@@ -70,7 +70,7 @@ export default function Home() {
         <Button variant="ghost" size="icon" onClick={signOut}><LogOut className="w-5 h-5" /></Button>
       </header>
 
-      <div className="p-4 space-y-4 max-w-lg mx-auto">
+      <div className="p-4 space-y-4 max-w-lg mx-auto pb-32">
         <div className="card-felt rounded-2xl p-5">
           <p className="text-xs text-muted-foreground">Tonga soa</p>
           <h2 className="text-2xl font-display font-bold">{profile?.mvola_name ?? "..."}</h2>
@@ -103,16 +103,24 @@ export default function Home() {
 
         <Link to="/rules"><div className="card-felt rounded-xl p-4 text-center text-sm text-muted-foreground">Règle du jeu</div></Link>
 
-        {/* Bokotra ADMINISTRATIF — kitihina intelo */}
-        <button onClick={handleAdminTap} className="w-full card-felt rounded-xl p-4 text-center mt-6 select-none">
-          <Shield className="w-5 h-5 inline mr-2 text-primary/60" />
-          <span className="text-primary/70 font-display tracking-widest text-sm">ADMINISTRATIF</span>
-          {tapCount > 0 && <span className="ml-2 text-xs">({tapCount}/3)</span>}
-        </button>
+        <p className="text-center text-xs text-muted-foreground/60 pt-4">Hiditra · DOMINO MGA · v1</p>
+
         {isAdmin && (
           <Link to="/admin"><Button variant="outline" className="w-full">Tableau Admin</Button></Link>
         )}
       </div>
+
+      {/* Bokotra ADMINISTRATIF — FAB amin'ny zorony havanana ambany — triple click */}
+      <button
+        onClick={handleAdminTap}
+        aria-label="Administratif"
+        className="fixed bottom-4 right-4 w-14 h-14 rounded-full bg-card/40 border border-primary/20 backdrop-blur flex items-center justify-center shadow-lg active:scale-95 transition select-none z-50"
+      >
+        <Shield className="w-5 h-5 text-primary/40" />
+        {tapCount > 0 && (
+          <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] rounded-full w-5 h-5 flex items-center justify-center font-bold">{tapCount}</span>
+        )}
+      </button>
 
       <Dialog open={showCode} onOpenChange={setShowCode}>
         <DialogContent>

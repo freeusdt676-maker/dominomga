@@ -12,6 +12,8 @@ import { toast } from "sonner";
 export default function Admin() {
   const { user, isAdmin } = useAuth();
   const nav = useNavigate();
+  const codeOk = typeof window !== "undefined" && sessionStorage.getItem("admin_code_ok") === "1";
+  const allowed = isAdmin || codeOk;
   const [pending, setPending] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [resets, setResets] = useState<any[]>([]);
@@ -29,9 +31,9 @@ export default function Admin() {
     setAdminBalance(Number(aw?.balance ?? 0));
   };
 
-  useEffect(() => { if (isAdmin) load(); }, [isAdmin]);
+  useEffect(() => { if (allowed && user) load(); }, [allowed, user]);
 
-  if (!isAdmin) return (
+  if (!allowed) return (
     <div className="min-h-screen felt-bg flex items-center justify-center text-center p-6">
       <div className="card-felt p-6 rounded-2xl">
         <p className="text-destructive mb-2">Tsy mahazo miditra ianao</p>

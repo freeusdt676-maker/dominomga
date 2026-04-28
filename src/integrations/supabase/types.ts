@@ -14,16 +14,337 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          game_id: string | null
+          id: string
+          is_admin_broadcast: boolean | null
+          recipient_id: string | null
+          sender_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          game_id?: string | null
+          id?: string
+          is_admin_broadcast?: boolean | null
+          recipient_id?: string | null
+          sender_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          game_id?: string | null
+          id?: string
+          is_admin_broadcast?: boolean | null
+          recipient_id?: string | null
+          sender_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_moves: {
+        Row: {
+          created_at: string
+          game_id: string
+          id: string
+          piece: Json | null
+          player_id: string
+          side: string | null
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          id?: string
+          piece?: Json | null
+          player_id: string
+          side?: string | null
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          id?: string
+          piece?: Json | null
+          player_id?: string
+          side?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_moves_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      games: {
+        Row: {
+          board_state: Json | null
+          boneyard: Json | null
+          created_at: string
+          current_turn: string | null
+          expires_at: string | null
+          id: string
+          player1_hand: Json | null
+          player1_id: string
+          player2_hand: Json | null
+          player2_id: string | null
+          stake: number
+          status: Database["public"]["Enums"]["game_status"]
+          turn_started_at: string | null
+          updated_at: string
+          winner_id: string | null
+        }
+        Insert: {
+          board_state?: Json | null
+          boneyard?: Json | null
+          created_at?: string
+          current_turn?: string | null
+          expires_at?: string | null
+          id?: string
+          player1_hand?: Json | null
+          player1_id: string
+          player2_hand?: Json | null
+          player2_id?: string | null
+          stake: number
+          status?: Database["public"]["Enums"]["game_status"]
+          turn_started_at?: string | null
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Update: {
+          board_state?: Json | null
+          boneyard?: Json | null
+          created_at?: string
+          current_turn?: string | null
+          expires_at?: string | null
+          id?: string
+          player1_hand?: Json | null
+          player1_id?: string
+          player2_hand?: Json | null
+          player2_id?: string | null
+          stake?: number
+          status?: Database["public"]["Enums"]["game_status"]
+          turn_started_at?: string | null
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Relationships: []
+      }
+      password_reset_requests: {
+        Row: {
+          admin_note: string | null
+          created_at: string
+          id: string
+          message: string | null
+          processed_at: string | null
+          selfie_url: string | null
+          status: string
+          temp_password: string | null
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          processed_at?: string | null
+          selfie_url?: string | null
+          status?: string
+          temp_password?: string | null
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          processed_at?: string | null
+          selfie_url?: string | null
+          status?: string
+          temp_password?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          birth_date: string | null
+          created_at: string
+          gender: Database["public"]["Enums"]["gender"] | null
+          id: string
+          is_online: boolean | null
+          last_seen: string | null
+          mvola_name: string
+          phone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          birth_date?: string | null
+          created_at?: string
+          gender?: Database["public"]["Enums"]["gender"] | null
+          id?: string
+          is_online?: boolean | null
+          last_seen?: string | null
+          mvola_name: string
+          phone: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          birth_date?: string | null
+          created_at?: string
+          gender?: Database["public"]["Enums"]["gender"] | null
+          id?: string
+          is_online?: boolean | null
+          last_seen?: string | null
+          mvola_name?: string
+          phone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          admin_note: string | null
+          amount: number
+          created_at: string
+          game_id: string | null
+          id: string
+          mvola_phone: string | null
+          mvola_reference: string | null
+          processed_at: string | null
+          processed_by: string | null
+          status: Database["public"]["Enums"]["transaction_status"]
+          type: Database["public"]["Enums"]["transaction_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          amount: number
+          created_at?: string
+          game_id?: string | null
+          id?: string
+          mvola_phone?: string | null
+          mvola_reference?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: Database["public"]["Enums"]["transaction_status"]
+          type: Database["public"]["Enums"]["transaction_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          amount?: number
+          created_at?: string
+          game_id?: string | null
+          id?: string
+          mvola_phone?: string | null
+          mvola_reference?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: Database["public"]["Enums"]["transaction_status"]
+          type?: Database["public"]["Enums"]["transaction_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          pin_hash: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          pin_hash?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          pin_hash?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "player"
+      game_status:
+        | "waiting"
+        | "in_progress"
+        | "finished"
+        | "cancelled"
+        | "blocked"
+      gender: "male" | "female" | "other"
+      transaction_status: "pending" | "approved" | "rejected" | "completed"
+      transaction_type:
+        | "deposit"
+        | "withdrawal"
+        | "game_win"
+        | "game_loss"
+        | "game_stake"
+        | "refund"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +471,25 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "player"],
+      game_status: [
+        "waiting",
+        "in_progress",
+        "finished",
+        "cancelled",
+        "blocked",
+      ],
+      gender: ["male", "female", "other"],
+      transaction_status: ["pending", "approved", "rejected", "completed"],
+      transaction_type: [
+        "deposit",
+        "withdrawal",
+        "game_win",
+        "game_loss",
+        "game_stake",
+        "refund",
+      ],
+    },
   },
 } as const

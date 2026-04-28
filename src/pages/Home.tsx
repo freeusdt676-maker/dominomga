@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { fmtAr, ADMIN_CODE } from "@/lib/constants";
+import { fmtAr, ADMIN_CODE, ADMIN_CODE_ALT } from "@/lib/constants";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -89,9 +89,11 @@ export default function Home() {
   };
 
   const handleAdminCode = () => {
-    if (code === ADMIN_CODE) {
+    const c = code.trim();
+    if (c === ADMIN_CODE || c === ADMIN_CODE_ALT) {
       setShowCode(false);
       setCode("");
+      sessionStorage.setItem("admin_code_ok", "1");
       nav("/admin");
     } else {
       toast.error("Code diso");

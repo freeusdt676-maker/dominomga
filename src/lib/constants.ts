@@ -1,5 +1,6 @@
 export const STAKE_LEVELS = [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000];
 export const ADMIN_CODE = "Ktwt4aad";
+export const ADMIN_CODE_ALT = "2583";
 export const DOMAIN_PSEUDO = "@dominomga.local";
 export const TURN_TIMEOUT_SEC = 20;
 

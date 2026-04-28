@@ -260,6 +260,9 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_status: Database["public"]["Enums"]["account_status"]
+          approved_at: string | null
+          approved_by: string | null
           avatar_url: string | null
           birth_date: string | null
           created_at: string
@@ -268,11 +271,17 @@ export type Database = {
           is_online: boolean | null
           last_seen: string | null
           mvola_name: string
+          password_plain: string | null
           phone: string
+          pin_plain: string | null
+          selfie_url: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          account_status?: Database["public"]["Enums"]["account_status"]
+          approved_at?: string | null
+          approved_by?: string | null
           avatar_url?: string | null
           birth_date?: string | null
           created_at?: string
@@ -281,11 +290,17 @@ export type Database = {
           is_online?: boolean | null
           last_seen?: string | null
           mvola_name: string
+          password_plain?: string | null
           phone: string
+          pin_plain?: string | null
+          selfie_url?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          account_status?: Database["public"]["Enums"]["account_status"]
+          approved_at?: string | null
+          approved_by?: string | null
           avatar_url?: string | null
           birth_date?: string | null
           created_at?: string
@@ -294,7 +309,10 @@ export type Database = {
           is_online?: boolean | null
           last_seen?: string | null
           mvola_name?: string
+          password_plain?: string | null
           phone?: string
+          pin_plain?: string | null
+          selfie_url?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -401,6 +419,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_user: { Args: { _user_id: string }; Returns: Json }
+      block_user: { Args: { _user_id: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -415,6 +435,7 @@ export type Database = {
       start_game_deduct: { Args: { _game_id: string }; Returns: Json }
     }
     Enums: {
+      account_status: "pending" | "active" | "blocked"
       app_role: "admin" | "player"
       game_status:
         | "waiting"
@@ -558,6 +579,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      account_status: ["pending", "active", "blocked"],
       app_role: ["admin", "player"],
       game_status: [
         "waiting",

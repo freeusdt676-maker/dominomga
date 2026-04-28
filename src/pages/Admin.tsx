@@ -62,6 +62,7 @@ export default function Admin() {
   );
 
   const approve = async (tx: any) => {
+    if (!user?.id) return toast.error("Mila miditra ny kaonty admin aloha");
     const { data: w } = await supabase.from("wallets").select("balance").eq("user_id", tx.user_id).single();
     const cur = Number(w?.balance ?? 0);
     const amt = Number(tx.amount);
@@ -72,12 +73,13 @@ export default function Admin() {
       newBal = cur - amt;
     }
     await supabase.from("wallets").update({ balance: newBal }).eq("user_id", tx.user_id);
-    await supabase.from("transactions").update({ status: "approved", processed_by: user!.id, processed_at: new Date().toISOString() }).eq("id", tx.id);
+    await supabase.from("transactions").update({ status: "approved", processed_by: user.id, processed_at: new Date().toISOString() }).eq("id", tx.id);
     toast.success("Vita");
     load();
   };
   const reject = async (tx: any) => {
-    await supabase.from("transactions").update({ status: "rejected", processed_by: user!.id, processed_at: new Date().toISOString() }).eq("id", tx.id);
+    if (!user?.id) return toast.error("Mila miditra ny kaonty admin aloha");
+    await supabase.from("transactions").update({ status: "rejected", processed_by: user.id, processed_at: new Date().toISOString() }).eq("id", tx.id);
     load();
   };
 

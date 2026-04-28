@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_wallets: {
+        Row: {
+          admin_id: string
+          balance: number
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          admin_id: string
+          balance?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string
+          balance?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      challenges: {
+        Row: {
+          created_at: string
+          expires_at: string
+          from_user: string
+          game_id: string | null
+          id: string
+          stake: number
+          status: string
+          to_user: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          from_user: string
+          game_id?: string | null
+          id?: string
+          stake: number
+          status?: string
+          to_user: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          from_user?: string
+          game_id?: string | null
+          id?: string
+          stake?: number
+          status?: string
+          to_user?: string
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           content: string
@@ -91,6 +148,7 @@ export type Database = {
         Row: {
           board_state: Json | null
           boneyard: Json | null
+          commission: number
           created_at: string
           current_turn: string | null
           expires_at: string | null
@@ -108,6 +166,7 @@ export type Database = {
         Insert: {
           board_state?: Json | null
           boneyard?: Json | null
+          commission?: number
           created_at?: string
           current_turn?: string | null
           expires_at?: string | null
@@ -125,6 +184,7 @@ export type Database = {
         Update: {
           board_state?: Json | null
           boneyard?: Json | null
+          commission?: number
           created_at?: string
           current_turn?: string | null
           expires_at?: string | null
@@ -138,6 +198,27 @@ export type Database = {
           turn_started_at?: string | null
           updated_at?: string
           winner_id?: string | null
+        }
+        Relationships: []
+      }
+      matchmaking_queue: {
+        Row: {
+          created_at: string
+          id: string
+          stake: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          stake: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          stake?: number
+          user_id?: string
         }
         Relationships: []
       }
@@ -327,6 +408,11 @@ export type Database = {
         }
         Returns: boolean
       }
+      settle_game: {
+        Args: { _game_id: string; _winner: string }
+        Returns: Json
+      }
+      start_game_deduct: { Args: { _game_id: string }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "player"

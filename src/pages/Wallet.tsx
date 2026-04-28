@@ -44,7 +44,7 @@ export default function Wallet() {
     const a = Number(withdrawAmount);
     if (a < 1000) return toast.error("Min 1000 Ar");
     if (a > balance) return toast.error("Solde tsy ampy");
-    if (!/^03[2-4]\d{7}$/.test(withdrawPhone)) return toast.error("Numéro Telma diso");
+    if (!/^03[2-48]\d{7}$/.test(withdrawPhone)) return toast.error("Numéro Telma diso (034 na 038)");
     if (!/^\d{4,6}$/.test(pin)) return toast.error("PIN diso");
 
     const { data: { session } } = await supabase.auth.getSession();

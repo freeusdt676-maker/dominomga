@@ -33,7 +33,7 @@ export default function Auth() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: phoneToEmail(phone), password });
+    const { error } = await supabase.auth.signInWithPassword({ email: phoneToEmail(phone.trim()), password: password.trim() });
     setLoading(false);
     if (error) return toast.error("Numéro na mot de passe diso");
     toast.success("Tonga soa!");
@@ -43,7 +43,7 @@ export default function Auth() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!sName.trim()) return toast.error("Anarana MVOLA ilaina");
-    if (!/^03[2-4]\d{7}$/.test(sPhone.replace(/\s/g, ""))) return toast.error("Numéro Telma diso (032/033/034)");
+    if (!/^03[2-48]\d{7}$/.test(sPhone.replace(/\s/g, ""))) return toast.error("Numéro Telma diso (034 na 038)");
     if (sPwd.length < 6) return toast.error("Mot de passe ≥ 6 caractères");
     if (sPwd !== sPwd2) return toast.error("Mot de passe tsy mitovy");
     if (!/^\d{4,6}$/.test(sPin)) return toast.error("Code PIN: 4-6 chiffres");
@@ -143,7 +143,7 @@ export default function Auth() {
                 </div>
                 <div>
                   <Label>Numéro Telma</Label>
-                  <Input value={sPhone} onChange={(e) => setSPhone(e.target.value)} placeholder="034XXXXXXX" inputMode="tel" />
+                  <Input value={sPhone} onChange={(e) => setSPhone(e.target.value)} placeholder="034 na 038 XXXXXXX" inputMode="tel" maxLength={10} />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>

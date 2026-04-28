@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Check, X, Megaphone } from "lucide-react";
+import { ArrowLeft, Check, X, Megaphone, Wallet as WalletIcon } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 import { toast } from "sonner";
 
@@ -16,6 +16,7 @@ export default function Admin() {
   const [users, setUsers] = useState<any[]>([]);
   const [resets, setResets] = useState<any[]>([]);
   const [broadcast, setBroadcast] = useState("");
+  const [adminBalance, setAdminBalance] = useState(0);
 
   const load = async () => {
     const { data: p } = await supabase.from("transactions").select("*, profiles!transactions_user_id_fkey(mvola_name, phone)").eq("status", "pending").order("created_at", { ascending: false });
@@ -24,6 +25,8 @@ export default function Admin() {
     setUsers(u ?? []);
     const { data: r } = await supabase.from("password_reset_requests").select("*, profiles!password_reset_requests_user_id_fkey(mvola_name, phone)").eq("status", "pending");
     setResets(r ?? []);
+    const { data: aw } = await supabase.from("admin_wallets").select("balance").eq("admin_id", user!.id).maybeSingle();
+    setAdminBalance(Number(aw?.balance ?? 0));
   };
 
   useEffect(() => { if (isAdmin) load(); }, [isAdmin]);
@@ -71,6 +74,12 @@ export default function Admin() {
         <h1 className="font-display text-xl font-bold gold-text">ADMINISTRATIF</h1>
       </header>
       <div className="p-4 max-w-2xl mx-auto">
+        <div className="card-felt rounded-2xl p-4 mb-4 flex items-center justify-between">
+          <div>
+            <p className="text-xs text-muted-foreground flex items-center gap-1"><WalletIcon className="w-3 h-3" />Wallet Admin (commission 10%)</p>
+            <p className="text-2xl font-display gold-text font-bold">{fmtAr(adminBalance)}</p>
+          </div>
+        </div>
         <Tabs defaultValue="tx">
           <TabsList className="grid grid-cols-4 w-full">
             <TabsTrigger value="tx">Transactions</TabsTrigger>

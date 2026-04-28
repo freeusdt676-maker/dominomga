@@ -18,6 +18,7 @@ export default function Home() {
   const [tapCount, setTapCount] = useState(0);
   const [showCode, setShowCode] = useState(false);
   const [code, setCode] = useState("");
+  const [incoming, setIncoming] = useState<any[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -39,6 +40,43 @@ export default function Home() {
       supabase.from("profiles").update({ is_online: false }).eq("user_id", user.id);
     };
   }, [user]);
+
+  // Mandray fanasana (challenges) miditra
+  useEffect(() => {
+    if (!user) return;
+    const loadCh = async () => {
+      const { data } = await supabase
+        .from("challenges")
+        .select("*, profiles!challenges_from_user_fkey(mvola_name)")
+        .eq("to_user", user.id).eq("status","pending")
+        .gt("expires_at", new Date().toISOString());
+      setIncoming(data ?? []);
+    };
+    loadCh();
+    const ch = supabase.channel("ch-"+user.id)
+      .on("postgres_changes",{event:"*",schema:"public",table:"challenges",filter:`to_user=eq.${user.id}`}, () => loadCh())
+      .subscribe();
+    const itv = setInterval(loadCh, 10000);
+    return () => { supabase.removeChannel(ch); clearInterval(itv); };
+  }, [user]);
+
+  const acceptChallenge = async (c: any) => {
+    if (!user) return;
+    const { data: w } = await supabase.from("wallets").select("balance").eq("user_id", user.id).single();
+    if (Number(w?.balance ?? 0) < Number(c.stake)) return toast.error("Tsy ampy ny solde");
+    // Mamorona game
+    const { data: g, error } = await supabase.from("games").insert({
+      player1_id: c.from_user, player2_id: user.id, stake: c.stake,
+      status: "in_progress", current_turn: c.from_user, turn_started_at: new Date().toISOString()
+    }).select().single();
+    if (error || !g) return toast.error(error?.message ?? "Hadisoana");
+    await supabase.from("challenges").update({ status: "accepted", game_id: g.id }).eq("id", c.id);
+    await supabase.rpc("start_game_deduct", { _game_id: g.id });
+    nav(`/game/${g.id}`);
+  };
+  const declineChallenge = async (c: any) => {
+    await supabase.from("challenges").update({ status: "declined" }).eq("id", c.id);
+  };
 
   const handleAdminTap = () => {
     const next = tapCount + 1;
@@ -70,7 +108,25 @@ export default function Home() {
         <Button variant="ghost" size="icon" onClick={signOut}><LogOut className="w-5 h-5" /></Button>
       </header>
 
-      <div className="p-4 space-y-4 max-w-lg mx-auto">
+      <div className="p-4 space-y-4 max-w-lg mx-auto pb-32">
+        {incoming.length > 0 && (
+          <div className="card-felt rounded-2xl p-4 border-2 border-primary animate-pulse">
+            <p className="font-display font-bold gold-text mb-2">⚔️ Misy fanasana!</p>
+            {incoming.map((c) => (
+              <div key={c.id} className="flex items-center justify-between gap-2 py-2">
+                <div className="text-sm">
+                  <p className="font-bold">{c.profiles?.mvola_name ?? "?"}</p>
+                  <p className="text-xs text-muted-foreground">Mise: {fmtAr(c.stake)}</p>
+                </div>
+                <div className="flex gap-1">
+                  <Button size="sm" className="btn-gold" onClick={() => acceptChallenge(c)}>Eny</Button>
+                  <Button size="sm" variant="destructive" onClick={() => declineChallenge(c)}>Tsia</Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="card-felt rounded-2xl p-5">
           <p className="text-xs text-muted-foreground">Tonga soa</p>
           <h2 className="text-2xl font-display font-bold">{profile?.mvola_name ?? "..."}</h2>
@@ -103,16 +159,24 @@ export default function Home() {
 
         <Link to="/rules"><div className="card-felt rounded-xl p-4 text-center text-sm text-muted-foreground">Règle du jeu</div></Link>
 
-        {/* Bokotra ADMINISTRATIF — kitihina intelo */}
-        <button onClick={handleAdminTap} className="w-full card-felt rounded-xl p-4 text-center mt-6 select-none">
-          <Shield className="w-5 h-5 inline mr-2 text-primary/60" />
-          <span className="text-primary/70 font-display tracking-widest text-sm">ADMINISTRATIF</span>
-          {tapCount > 0 && <span className="ml-2 text-xs">({tapCount}/3)</span>}
-        </button>
+        <p className="text-center text-xs text-muted-foreground/60 pt-4">Hiditra · DOMINO MGA · v1</p>
+
         {isAdmin && (
           <Link to="/admin"><Button variant="outline" className="w-full">Tableau Admin</Button></Link>
         )}
       </div>
+
+      {/* Bokotra ADMINISTRATIF — FAB amin'ny zorony havanana ambany — triple click */}
+      <button
+        onClick={handleAdminTap}
+        aria-label="Administratif"
+        className="fixed bottom-4 right-4 w-14 h-14 rounded-full bg-card/40 border border-primary/20 backdrop-blur flex items-center justify-center shadow-lg active:scale-95 transition select-none z-50"
+      >
+        <Shield className="w-5 h-5 text-primary/40" />
+        {tapCount > 0 && (
+          <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] rounded-full w-5 h-5 flex items-center justify-center font-bold">{tapCount}</span>
+        )}
+      </button>
 
       <Dialog open={showCode} onOpenChange={setShowCode}>
         <DialogContent>

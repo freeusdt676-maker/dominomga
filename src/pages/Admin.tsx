@@ -83,7 +83,8 @@ export default function Admin() {
 
   const sendBroadcast = async () => {
     if (!broadcast.trim()) return;
-    await supabase.from("chat_messages").insert({ sender_id: user!.id, content: broadcast.trim(), is_admin_broadcast: true });
+    if (!user?.id) return toast.error("Mila miditra ny kaonty admin aloha");
+    await supabase.from("chat_messages").insert({ sender_id: user.id, content: broadcast.trim(), is_admin_broadcast: true });
     toast.success("Hafatra alefa amin'ny rehetra");
     setBroadcast("");
   };

@@ -10,8 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { DominoTile } from "@/components/DominoTile";
 import logo from "@/assets/logo.png";
-import { Shield } from "lucide-react";
-import { ADMIN_CODE } from "@/lib/constants";
+import { Shield, Camera } from "lucide-react";
+import { ADMIN_CODE, ADMIN_CODE_ALT } from "@/lib/constants";
 
 export default function Auth() {
   const nav = useNavigate();
@@ -30,12 +30,14 @@ export default function Auth() {
   const [sPwd2, setSPwd2] = useState("");
   const [sPin, setSPin] = useState("");
   const [sPin2, setSPin2] = useState("");
+  const [sSelfie, setSSelfie] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [adminCode, setAdminCode] = useState("");
 
   const handleAdminAccess = () => {
-    if (adminCode.trim() === ADMIN_CODE) {
+    const c = adminCode.trim();
+    if (c === ADMIN_CODE || c === ADMIN_CODE_ALT) {
       sessionStorage.setItem("admin_code_ok", "1");
       toast.success("Code marina");
       setAdminOpen(false);
@@ -49,11 +51,39 @@ export default function Auth() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: phoneToEmail(phone.trim()), password: password.trim() });
+    const cleanPhone = phone.trim().replace(/\s/g, "");
+    const cleanPwd = password.trim();
+    const { data, error } = await supabase.auth.signInWithPassword({ email: phoneToEmail(cleanPhone), password: cleanPwd });
     setLoading(false);
-    if (error) return toast.error("Numéro na mot de passe diso");
+    if (error) {
+      if (error.message?.toLowerCase().includes("not confirmed")) {
+        return toast.error("Mbola eo am-panamarinana ny mombamomba anao ny Admin.");
+      }
+      return toast.error("Numéro na mot de passe diso");
+    }
+    // Mijery raha pending
+    if (data.user) {
+      const { data: prof } = await supabase.from("profiles").select("account_status").eq("user_id", data.user.id).maybeSingle();
+      if (prof?.account_status === "pending") {
+        await supabase.auth.signOut();
+        return toast.error("Mbola eo am-panamarinana ny mombamomba anao ny Admin.");
+      }
+      if (prof?.account_status === "blocked") {
+        await supabase.auth.signOut();
+        return toast.error("Voasakana ny kaontinao. Mifandraisa amin'ny Admin.");
+      }
+    }
     toast.success("Tonga soa!");
     nav("/");
+  };
+
+  const handleSelfie = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (f.size > 5_000_000) return toast.error("Sary lehibe loatra (>5MB)");
+    const r = new FileReader();
+    r.onload = () => setSSelfie(String(r.result));
+    r.readAsDataURL(f);
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -64,38 +94,36 @@ export default function Auth() {
     if (sPwd !== sPwd2) return toast.error("Mot de passe tsy mitovy");
     if (!/^\d{4,6}$/.test(sPin)) return toast.error("Code PIN: 4-6 chiffres");
     if (sPin !== sPin2) return toast.error("Code PIN tsy mitovy");
+    if (!sSelfie) return toast.error("Aka sary selfie aloha");
 
     setLoading(true);
     const cleanPhone = sPhone.replace(/\s/g, "");
-    const { data, error } = await supabase.auth.signUp({
-      email: phoneToEmail(cleanPhone),
-      password: sPwd,
-      options: {
-        emailRedirectTo: `${window.location.origin}/`,
-        data: {
+    try {
+      const res = await fetch(`https://taucobvazpwzzhmapekh.supabase.co/functions/v1/signup-kyc`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: phoneToEmail(cleanPhone),
+          password: sPwd.trim(),
           mvola_name: sName.trim(),
           phone: cleanPhone,
-          birth_date: sBirth,
+          birth_date: sBirth || null,
           gender: sGender,
-        },
-      },
-    });
-    if (error || !data.user) {
-      setLoading(false);
-      return toast.error(error?.message?.includes("already") ? "Efa misy compte amin'io numéro io" : (error?.message ?? "Hadisoana"));
-    }
-    // Set PIN via edge function
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      await fetch(`https://taucobvazpwzzhmapekh.supabase.co/functions/v1/wallet-pin`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ action: "set", pin: sPin }),
+          selfie_base64: sSelfie,
+          pin: sPin,
+        }),
       });
+      const json = await res.json();
+      setLoading(false);
+      if (!res.ok || !json.ok) return toast.error(json.error ?? "Hadisoana");
+      toast.success("Inscription vita! Miandry ny fankatoavan'ny Admin.");
+      setTab("login");
+      // reset
+      setSName(""); setSBirth(""); setSPhone(""); setSPwd(""); setSPwd2(""); setSPin(""); setSPin2(""); setSSelfie(null);
+    } catch (err: any) {
+      setLoading(false);
+      toast.error(String(err?.message ?? err));
     }
-    setLoading(false);
-    toast.success("Inscription vita! Tonga soa.");
-    nav("/");
   };
 
   return (
@@ -161,6 +189,22 @@ export default function Auth() {
                   <Label>Numéro Telma</Label>
                   <Input value={sPhone} onChange={(e) => setSPhone(e.target.value)} placeholder="034 na 038 XXXXXXX" inputMode="tel" maxLength={10} />
                 </div>
+                <div>
+                  <Label>Sary selfie (KYC)</Label>
+                  <div className="flex items-center gap-3 mt-1">
+                    <label className="flex items-center justify-center w-20 h-20 rounded-xl border-2 border-dashed border-primary/40 bg-card/40 cursor-pointer overflow-hidden">
+                      {sSelfie ? (
+                        <img src={sSelfie} alt="selfie" className="w-full h-full object-cover" />
+                      ) : (
+                        <Camera className="w-6 h-6 text-primary" />
+                      )}
+                      <input type="file" accept="image/*" capture="user" className="hidden" onChange={handleSelfie} />
+                    </label>
+                    <p className="text-xs text-muted-foreground flex-1">
+                      Aka sary mazava amin'ny tavanao mba ho fanamarinana. Tsy hisy fidirana raha tsy misy.
+                    </p>
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label>Mot de passe</Label>
@@ -181,7 +225,12 @@ export default function Auth() {
                     <Input type="password" inputMode="numeric" maxLength={6} value={sPin2} onChange={(e) => setSPin2(e.target.value)} />
                   </div>
                 </div>
-                <Button type="submit" disabled={loading} className="w-full btn-gold">Hisoratra anarana</Button>
+                <Button type="submit" disabled={loading || !sSelfie} className="w-full btn-gold">
+                  {loading ? "Andraso..." : "Hisoratra anarana"}
+                </Button>
+                {!sSelfie && (
+                  <p className="text-xs text-destructive text-center">Mila selfie vao afaka manindry "Hisoratra anarana"</p>
+                )}
               </form>
             </TabsContent>
           </Tabs>

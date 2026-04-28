@@ -114,6 +114,7 @@ export default function Admin() {
           <div>
             <p className="text-xs text-muted-foreground flex items-center gap-1"><WalletIcon className="w-3 h-3" />Wallet Admin (commission 10%)</p>
             <p className="text-2xl font-display gold-text font-bold">{fmtAr(adminBalance)}</p>
+            <p className="text-[10px] text-muted-foreground mt-1">Eto no anangonana ny vola commission 10% avy amin'ny lalao rehetra automatique</p>
           </div>
           <Button size="sm" variant="outline" onClick={() => setShowSecrets(s => !s)}>
             {showSecrets ? <><EyeOff className="w-4 h-4 mr-1" />Hafenina</> : <><Eye className="w-4 h-4 mr-1" />Code</>}
@@ -129,6 +130,9 @@ export default function Admin() {
           </TabsList>
 
           <TabsContent value="kyc" className="space-y-2 mt-3">
+            <div className="card-felt rounded-xl p-3 mb-2 border-l-4 border-primary">
+              <p className="text-xs text-foreground/80">📋 <b>KYC — Inscription miandry fakatoavana.</b> Eto no hita ny olona vao avy nameno ny formulaire ka miandry ny "Approuver" na "Bloquer".</p>
+            </div>
             {pendingUsers.length === 0 && <p className="text-center text-muted-foreground py-6">Tsy misy KYC miandry</p>}
             {pendingUsers.map((u) => (
               <div key={u.user_id} className="card-felt rounded-xl p-3">
@@ -162,6 +166,9 @@ export default function Admin() {
           </TabsContent>
 
           <TabsContent value="tx" className="space-y-2 mt-3">
+            <div className="card-felt rounded-xl p-3 mb-2 border-l-4 border-primary">
+              <p className="text-xs text-foreground/80">💰 <b>Transactions — Dépôt sy Retrait.</b> Eto ny demande ataon'ny mpilalao raha sokafana hizara roa: Dépôt sy Retrait. Tsindrio ✓ raha mety, ✗ raha tsia.</p>
+            </div>
             {pending.length === 0 && <p className="text-center text-muted-foreground py-6">Tsy misy en attente</p>}
             {pending.map((t) => (
               <div key={t.id} className="card-felt rounded-xl p-3">
@@ -183,6 +190,9 @@ export default function Admin() {
           </TabsContent>
 
           <TabsContent value="users" className="space-y-2 mt-3 max-h-[70vh] overflow-y-auto">
+            <div className="card-felt rounded-xl p-3 mb-2 border-l-4 border-primary">
+              <p className="text-xs text-foreground/80">👥 <b>Mpilalao — Lisitra feno.</b> Eto no hipoitra ny isan'ny olona nanao inscription efa nankatoavina, miaraka amin'ny mombamomba azy: anarana, numéro, solde, status, ary "Code" raha sokafana.</p>
+            </div>
             {users.map((u) => (
               <div key={u.user_id} className="card-felt rounded-xl p-3 text-sm">
                 <div className="flex items-start gap-2">
@@ -198,6 +208,7 @@ export default function Admin() {
                     <p className="text-xs text-muted-foreground">{u.phone} · {u.gender ?? "?"} · {u.birth_date ?? "?"}</p>
                     <p className="text-xs">
                       Status: <b className={u.account_status === "active" ? "text-green-500" : u.account_status === "blocked" ? "text-destructive" : "text-yellow-500"}>{u.account_status}</b>
+                      {" · "}<span className={u.is_online ? "text-green-500" : "text-muted-foreground"}>{u.is_online ? "🟢 En ligne" : "⚫ Hors ligne"}</span>
                     </p>
                     {showSecrets && (
                       <p className="text-xs mt-1 font-mono bg-card/40 px-2 py-1 rounded">
@@ -219,6 +230,9 @@ export default function Admin() {
           </TabsContent>
 
           <TabsContent value="reset" className="space-y-2 mt-3">
+            <div className="card-felt rounded-xl p-3 mb-2 border-l-4 border-primary">
+              <p className="text-xs text-foreground/80">🔑 <b>Reset PWD — Demande hanovana mot de passe.</b> Eto no hipoitra raha misy mpilalao manao demande hanovana ny mot de passe na PIN.</p>
+            </div>
             {resets.length === 0 && <p className="text-center text-muted-foreground py-6">Tsy misy demande</p>}
             {resets.map((r) => (
               <div key={r.id} className="card-felt rounded-xl p-3">
@@ -230,6 +244,9 @@ export default function Admin() {
           </TabsContent>
 
           <TabsContent value="broadcast" className="mt-3 space-y-3">
+            <div className="card-felt rounded-xl p-3 border-l-4 border-primary">
+              <p className="text-xs text-foreground/80">📢 <b>Annonce — Fampitambaovao.</b> Hafatra haingana alefa amin'ny mpilalao rehetra eo amin'ny lalao en ligne (tsy azo valiana).</p>
+            </div>
             <div className="card-felt rounded-xl p-4">
               <Megaphone className="w-6 h-6 text-primary mb-2" />
               <p className="text-sm text-muted-foreground mb-3">Hafatra alefa amin'ny mpilalao rehetra (tsy azo valiana)</p>

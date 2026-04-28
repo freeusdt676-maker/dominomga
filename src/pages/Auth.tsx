@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { DominoTile } from "@/components/DominoTile";
 import logo from "@/assets/logo.png";
+import { Shield } from "lucide-react";
+import { ADMIN_CODE } from "@/lib/constants";
 
 export default function Auth() {
   const nav = useNavigate();
@@ -29,6 +31,20 @@ export default function Auth() {
   const [sPin, setSPin] = useState("");
   const [sPin2, setSPin2] = useState("");
   const [loading, setLoading] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
+  const [adminCode, setAdminCode] = useState("");
+
+  const handleAdminAccess = () => {
+    if (adminCode.trim() === ADMIN_CODE) {
+      sessionStorage.setItem("admin_code_ok", "1");
+      toast.success("Code marina");
+      setAdminOpen(false);
+      setAdminCode("");
+      nav("/admin");
+    } else {
+      toast.error("Code diso");
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,6 +187,38 @@ export default function Auth() {
           </Tabs>
         </div>
       </div>
+
+      <button
+        type="button"
+        onClick={() => setAdminOpen(true)}
+        className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-xl btn-gold shadow-2xl font-display font-bold text-sm"
+        aria-label="ADMINISTRATIF"
+      >
+        <Shield className="w-4 h-4" />
+        ADMINISTRATIF
+      </button>
+
+      {adminOpen && (
+        <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4" onClick={() => setAdminOpen(false)}>
+          <div className="card-felt rounded-2xl p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <h2 className="font-display text-lg font-bold gold-text mb-3 flex items-center gap-2">
+              <Shield className="w-5 h-5" /> Code ADMINISTRATIF
+            </h2>
+            <Input
+              type="password"
+              value={adminCode}
+              onChange={(e) => setAdminCode(e.target.value)}
+              placeholder="Code..."
+              onKeyDown={(e) => e.key === "Enter" && handleAdminAccess()}
+              autoFocus
+            />
+            <div className="grid grid-cols-2 gap-2 mt-3">
+              <Button variant="outline" onClick={() => { setAdminOpen(false); setAdminCode(""); }}>Hiala</Button>
+              <Button className="btn-gold" onClick={handleAdminAccess}>Hiditra</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

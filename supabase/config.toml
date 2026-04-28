@@ -1,1 +1,4 @@
 project_id = "taucobvazpwzzhmapekh"
+
+[functions.signup-kyc]
+verify_jwt = false

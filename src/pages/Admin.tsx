@@ -39,6 +39,18 @@ export default function Admin() {
 
   useEffect(() => { if (allowed) load(); }, [allowed, user]);
 
+  // Realtime: rehefa misy profil vaovao na ovaina ny status, mihaingana mamerina ny lisitra
+  useEffect(() => {
+    if (!allowed) return;
+    const ch = supabase
+      .channel("admin-profiles")
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "transactions" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "password_reset_requests" }, () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [allowed]);
+
   const approveUser = async (uid: string) => {
     const { error } = await supabase.rpc("approve_user", { _user_id: uid });
     if (error) return toast.error(error.message);

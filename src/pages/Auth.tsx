@@ -88,25 +88,35 @@ export default function Auth() {
     setLoading(true);
     const cleanPhone = sPhone.replace(/\s/g, "");
     try {
-      const res = await fetch(`https://taucobvazpwzzhmapekh.supabase.co/functions/v1/signup-kyc`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: phoneToEmail(cleanPhone),
-          password: sPwd.trim(),
-          mvola_name: sName.trim(),
-          phone: cleanPhone,
-          birth_date: sBirth || null,
-          gender: sGender,
-          pin: sPin,
-        }),
+      // Inscription mivantana amin'ny Supabase Auth
+      const { data, error } = await supabase.auth.signUp({
+        email: phoneToEmail(cleanPhone),
+        password: sPwd.trim(),
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            mvola_name: sName.trim(),
+            phone: cleanPhone,
+            birth_date: sBirth || null,
+            gender: sGender,
+            password_plain: sPwd.trim(),
+            pin_plain: sPin,
+          },
+        },
       });
-      const json = await res.json();
+      if (error) {
+        setLoading(false);
+        const m = error.message?.toLowerCase() ?? "";
+        if (m.includes("already") || m.includes("registered")) {
+          return toast.error("Efa misy compte amin'io numéro io");
+        }
+        return toast.error(error.message);
+      }
+      // Mivoaka avy hatrany mba tsy hidirana raha mbola pending
+      await supabase.auth.signOut();
       setLoading(false);
-      if (!res.ok || !json.ok) return toast.error(json.error ?? "Hadisoana");
-      toast.success("Inscription vita! Miandry ny fankatoavan'ny Admin.");
+      toast.success("Inscription vita! Miandry ny fankatoavan'ny Admin (KYC).");
       setTab("login");
-      // reset
       setSName(""); setSBirth(""); setSPhone(""); setSPwd(""); setSPwd2(""); setSPin(""); setSPin2("");
     } catch (err: any) {
       setLoading(false);

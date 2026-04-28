@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { DominoTile } from "@/components/DominoTile";
 import logo from "@/assets/logo.png";
-import { Shield, Camera } from "lucide-react";
+import { Shield } from "lucide-react";
 import { ADMIN_CODE, ADMIN_CODE_ALT } from "@/lib/constants";
 
 export default function Auth() {
@@ -30,7 +30,6 @@ export default function Auth() {
   const [sPwd2, setSPwd2] = useState("");
   const [sPin, setSPin] = useState("");
   const [sPin2, setSPin2] = useState("");
-  const [sSelfie, setSSelfie] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [adminCode, setAdminCode] = useState("");
@@ -77,15 +76,6 @@ export default function Auth() {
     nav("/");
   };
 
-  const handleSelfie = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    if (f.size > 5_000_000) return toast.error("Sary lehibe loatra (>5MB)");
-    const r = new FileReader();
-    r.onload = () => setSSelfie(String(r.result));
-    r.readAsDataURL(f);
-  };
-
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!sName.trim()) return toast.error("Anarana MVOLA ilaina");
@@ -94,7 +84,6 @@ export default function Auth() {
     if (sPwd !== sPwd2) return toast.error("Mot de passe tsy mitovy");
     if (!/^\d{4,6}$/.test(sPin)) return toast.error("Code PIN: 4-6 chiffres");
     if (sPin !== sPin2) return toast.error("Code PIN tsy mitovy");
-    if (!sSelfie) return toast.error("Aka sary selfie aloha");
 
     setLoading(true);
     const cleanPhone = sPhone.replace(/\s/g, "");
@@ -109,7 +98,6 @@ export default function Auth() {
           phone: cleanPhone,
           birth_date: sBirth || null,
           gender: sGender,
-          selfie_base64: sSelfie,
           pin: sPin,
         }),
       });
@@ -119,7 +107,7 @@ export default function Auth() {
       toast.success("Inscription vita! Miandry ny fankatoavan'ny Admin.");
       setTab("login");
       // reset
-      setSName(""); setSBirth(""); setSPhone(""); setSPwd(""); setSPwd2(""); setSPin(""); setSPin2(""); setSSelfie(null);
+      setSName(""); setSBirth(""); setSPhone(""); setSPwd(""); setSPwd2(""); setSPin(""); setSPin2("");
     } catch (err: any) {
       setLoading(false);
       toast.error(String(err?.message ?? err));
@@ -189,22 +177,6 @@ export default function Auth() {
                   <Label>Numéro Telma</Label>
                   <Input value={sPhone} onChange={(e) => setSPhone(e.target.value)} placeholder="034 na 038 XXXXXXX" inputMode="tel" maxLength={10} />
                 </div>
-                <div>
-                  <Label>Sary selfie (KYC)</Label>
-                  <div className="flex items-center gap-3 mt-1">
-                    <label className="flex items-center justify-center w-20 h-20 rounded-xl border-2 border-dashed border-primary/40 bg-card/40 cursor-pointer overflow-hidden">
-                      {sSelfie ? (
-                        <img src={sSelfie} alt="selfie" className="w-full h-full object-cover" />
-                      ) : (
-                        <Camera className="w-6 h-6 text-primary" />
-                      )}
-                      <input type="file" accept="image/*" capture="user" className="hidden" onChange={handleSelfie} />
-                    </label>
-                    <p className="text-xs text-muted-foreground flex-1">
-                      Aka sary mazava amin'ny tavanao mba ho fanamarinana. Tsy hisy fidirana raha tsy misy.
-                    </p>
-                  </div>
-                </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label>Mot de passe</Label>
@@ -225,12 +197,9 @@ export default function Auth() {
                     <Input type="password" inputMode="numeric" maxLength={6} value={sPin2} onChange={(e) => setSPin2(e.target.value)} />
                   </div>
                 </div>
-                <Button type="submit" disabled={loading || !sSelfie} className="w-full btn-gold">
+                <Button type="submit" disabled={loading} className="w-full btn-gold">
                   {loading ? "Andraso..." : "Hisoratra anarana"}
                 </Button>
-                {!sSelfie && (
-                  <p className="text-xs text-destructive text-center">Mila selfie vao afaka manindry "Hisoratra anarana"</p>
-                )}
               </form>
             </TabsContent>
           </Tabs>

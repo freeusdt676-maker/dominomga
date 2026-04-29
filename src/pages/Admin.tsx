@@ -27,7 +27,13 @@ export default function Admin() {
     setPending(p ?? []);
     const { data: u } = await supabase.from("profiles").select("*, wallets(balance)").order("created_at", { ascending: false }).limit(100);
     setUsers(u ?? []);
-    const { data: pu } = await supabase.from("profiles").select("*, wallets(balance)").eq("account_status", "pending").order("created_at", { ascending: false });
+    const { data: pu, error: puErr } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("account_status", "pending")
+      .order("created_at", { ascending: false });
+    if (puErr) console.error("KYC load error:", puErr);
+    console.log("KYC pending users:", pu);
     setPendingUsers(pu ?? []);
     const { data: r } = await supabase.from("password_reset_requests").select("*, profiles!password_reset_requests_user_id_fkey(mvola_name, phone)").eq("status", "pending");
     setResets(r ?? []);
@@ -38,6 +44,13 @@ export default function Admin() {
   };
 
   useEffect(() => { if (allowed) load(); }, [allowed, user]);
+
+  // Fampitandremana raha tsy mbola nidira amin'ny kaonty admin
+  useEffect(() => {
+    if (allowed && !isAdmin) {
+      toast.warning("Mba hahitana ny KYC sy ny mpilalao rehetra dia mila miditra amin'ny kaonty ADMIN (0345023006) aloha", { duration: 6000 });
+    }
+  }, [allowed, isAdmin]);
 
   // Realtime: rehefa misy profil vaovao na ovaina ny status, mihaingana mamerina ny lisitra
   useEffect(() => {

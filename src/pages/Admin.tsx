@@ -39,6 +39,13 @@ export default function Admin() {
 
   useEffect(() => { if (allowed) load(); }, [allowed, user]);
 
+  // Fampitandremana raha tsy mbola nidira amin'ny kaonty admin
+  useEffect(() => {
+    if (allowed && !isAdmin) {
+      toast.warning("Mba hahitana ny KYC sy ny mpilalao rehetra dia mila miditra amin'ny kaonty ADMIN (0345023006) aloha", { duration: 6000 });
+    }
+  }, [allowed, isAdmin]);
+
   // Realtime: rehefa misy profil vaovao na ovaina ny status, mihaingana mamerina ny lisitra
   useEffect(() => {
     if (!allowed) return;

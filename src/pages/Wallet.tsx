@@ -47,13 +47,9 @@ export default function Wallet() {
     if (!/^03[2-48]\d{7}$/.test(withdrawPhone)) return toast.error("Numéro Telma diso (034 na 038)");
     if (!/^\d{4,6}$/.test(pin)) return toast.error("PIN diso");
 
-    const { data: { session } } = await supabase.auth.getSession();
-    const r = await fetch(`https://taucobvazpwzzhmapekh.supabase.co/functions/v1/wallet-pin`, {
-      method: "POST", headers: { "Content-Type":"application/json", Authorization:`Bearer ${session!.access_token}` },
-      body: JSON.stringify({ action: "verify", pin }),
-    });
-    const j = await r.json();
-    if (!j.ok) return toast.error("PIN diso");
+    // Verify PIN against profiles.pin_plain (set during signup)
+    const { data: prof } = await supabase.from("profiles").select("pin_plain").eq("user_id", user!.id).maybeSingle();
+    if (!prof?.pin_plain || prof.pin_plain !== pin) return toast.error("PIN diso");
 
     const { error } = await supabase.from("transactions").insert({
       user_id: user!.id, type: "withdrawal", amount: a, mvola_phone: withdrawPhone, status: "pending"

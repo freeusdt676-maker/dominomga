@@ -4,8 +4,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Check, X, Megaphone, Wallet as WalletIcon, UserCheck, Eye, EyeOff, Ban } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { ArrowLeft, Check, X, Megaphone, Wallet as WalletIcon, UserCheck, Eye, EyeOff, MessageSquare, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 import { toast } from "sonner";
 
@@ -16,27 +18,36 @@ export default function Admin() {
   const allowed = isAdmin || codeOk;
   const [pending, setPending] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
-  const [pendingUsers, setPendingUsers] = useState<any[]>([]);
   const [resets, setResets] = useState<any[]>([]);
   const [broadcast, setBroadcast] = useState("");
   const [adminBalance, setAdminBalance] = useState(0);
   const [showSecrets, setShowSecrets] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [rejectFor, setRejectFor] = useState<any | null>(null);
+  const [rejectMsg, setRejectMsg] = useState("");
+  const [txSubTab, setTxSubTab] = useState<"deposit" | "withdrawal">("deposit");
 
   const load = async () => {
-    const { data: p } = await supabase.from("transactions").select("*, profiles!transactions_user_id_fkey(mvola_name, phone)").eq("status", "pending").order("created_at", { ascending: false });
-    setPending(p ?? []);
-    const { data: u } = await supabase.from("profiles").select("*, wallets(balance)").order("created_at", { ascending: false }).limit(100);
-    setUsers(u ?? []);
-    const { data: pu, error: puErr } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("account_status", "pending")
+    const { data: p } = await supabase
+      .from("transactions")
+      .select("*, profiles!transactions_user_id_fkey(mvola_name, phone)")
+      .eq("status", "pending")
       .order("created_at", { ascending: false });
-    if (puErr) console.error("KYC load error:", puErr);
-    console.log("KYC pending users:", pu);
-    setPendingUsers(pu ?? []);
-    const { data: r } = await supabase.from("password_reset_requests").select("*, profiles!password_reset_requests_user_id_fkey(mvola_name, phone)").eq("status", "pending");
+    setPending(p ?? []);
+
+    const { data: u } = await supabase
+      .from("profiles")
+      .select("*, wallets(balance)")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    setUsers(u ?? []);
+
+    const { data: r } = await supabase
+      .from("password_reset_requests")
+      .select("*, profiles!password_reset_requests_user_id_fkey(mvola_name, phone)")
+      .eq("status", "pending");
     setResets(r ?? []);
+
     if (user?.id) {
       const { data: aw } = await supabase.from("admin_wallets").select("balance").eq("admin_id", user.id).maybeSingle();
       setAdminBalance(Number(aw?.balance ?? 0));
@@ -45,37 +56,23 @@ export default function Admin() {
 
   useEffect(() => { if (allowed) load(); }, [allowed, user]);
 
-  // Fampitandremana raha tsy mbola nidira amin'ny kaonty admin
   useEffect(() => {
     if (allowed && !isAdmin) {
-      toast.warning("Mba hahitana ny KYC sy ny mpilalao rehetra dia mila miditra amin'ny kaonty ADMIN (0345023006) aloha", { duration: 6000 });
+      toast.warning("Mba ahafahana mampiasa ny ADM dia mila miditra amin'ny kaonty admin (0345023006)", { duration: 5000 });
     }
   }, [allowed, isAdmin]);
 
-  // Realtime: rehefa misy profil vaovao na ovaina ny status, mihaingana mamerina ny lisitra
   useEffect(() => {
     if (!allowed) return;
     const ch = supabase
-      .channel("admin-profiles")
+      .channel("admin-rt")
       .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => load())
       .on("postgres_changes", { event: "*", schema: "public", table: "transactions" }, () => load())
       .on("postgres_changes", { event: "*", schema: "public", table: "password_reset_requests" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "wallets" }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [allowed]);
-
-  const approveUser = async (uid: string) => {
-    const { error } = await supabase.rpc("approve_user", { _user_id: uid });
-    if (error) return toast.error(error.message);
-    toast.success("Mpilalao nankatoavina");
-    load();
-  };
-  const blockUser = async (uid: string) => {
-    const { error } = await supabase.rpc("block_user", { _user_id: uid });
-    if (error) return toast.error(error.message);
-    toast.success("Mpilalao voasakana");
-    load();
-  };
 
   if (!allowed) return (
     <div className="min-h-screen felt-bg flex items-center justify-center text-center p-6">
@@ -86,7 +83,28 @@ export default function Admin() {
     </div>
   );
 
-  const approve = async (tx: any) => {
+  const approveUser = async (uid: string) => {
+    if (!user?.id) return toast.error("Mila miditra ny kaonty admin aloha");
+    const { error } = await supabase.rpc("approve_user_with_message", { _user_id: uid, _admin_id: user.id });
+    if (error) return toast.error(error.message);
+    toast.success("Nankatoavina + hafatra nalefa");
+    setSelectedUser(null);
+    load();
+  };
+
+  const submitReject = async () => {
+    if (!rejectFor || !user?.id) return;
+    if (!rejectMsg.trim()) return toast.error("Soraty ny antony");
+    const { error } = await supabase.rpc("reject_user_with_message", {
+      _user_id: rejectFor.user_id, _admin_id: user.id, _message: rejectMsg.trim()
+    });
+    if (error) return toast.error(error.message);
+    toast.success("Nolavina + hafatra nalefa");
+    setRejectFor(null); setRejectMsg(""); setSelectedUser(null);
+    load();
+  };
+
+  const approveTx = async (tx: any) => {
     if (!user?.id) return toast.error("Mila miditra ny kaonty admin aloha");
     const { data: w } = await supabase.from("wallets").select("balance").eq("user_id", tx.user_id).single();
     const cur = Number(w?.balance ?? 0);
@@ -99,12 +117,24 @@ export default function Admin() {
     }
     await supabase.from("wallets").update({ balance: newBal }).eq("user_id", tx.user_id);
     await supabase.from("transactions").update({ status: "approved", processed_by: user.id, processed_at: new Date().toISOString() }).eq("id", tx.id);
-    toast.success("Vita");
+    await supabase.from("chat_messages").insert({
+      sender_id: user.id, recipient_id: tx.user_id,
+      content: `${tx.type === "deposit" ? "Dépôt" : "Retrait"} ${fmtAr(amt)} nankatoavina ✓`,
+      is_admin_broadcast: false,
+    });
+    toast.success("Nankatoavina");
     load();
   };
-  const reject = async (tx: any) => {
+
+  const rejectTx = async (tx: any) => {
     if (!user?.id) return toast.error("Mila miditra ny kaonty admin aloha");
     await supabase.from("transactions").update({ status: "rejected", processed_by: user.id, processed_at: new Date().toISOString() }).eq("id", tx.id);
+    await supabase.from("chat_messages").insert({
+      sender_id: user.id, recipient_id: tx.user_id,
+      content: `${tx.type === "deposit" ? "Dépôt" : "Retrait"} ${fmtAr(tx.amount)} tsy nekena. Mba hamarino ny mombamomba ny transaction ataonao.`,
+      is_admin_broadcast: false,
+    });
+    toast.error("Nolavina");
     load();
   };
 
@@ -115,6 +145,11 @@ export default function Admin() {
     toast.success("Hafatra alefa amin'ny rehetra");
     setBroadcast("");
   };
+
+  const deposits = pending.filter(t => t.type === "deposit");
+  const withdrawals = pending.filter(t => t.type === "withdrawal");
+  const pendingUsersCount = users.filter(u => u.account_status === "pending").length;
+  const txCount = pending.length;
 
   return (
     <div className="min-h-screen felt-bg">
@@ -127,115 +162,105 @@ export default function Admin() {
           <div>
             <p className="text-xs text-muted-foreground flex items-center gap-1"><WalletIcon className="w-3 h-3" />Wallet Admin (commission 10%)</p>
             <p className="text-2xl font-display gold-text font-bold">{fmtAr(adminBalance)}</p>
-            <p className="text-[10px] text-muted-foreground mt-1">Eto no anangonana ny vola commission 10% avy amin'ny lalao rehetra automatique</p>
+            <p className="text-[10px] text-muted-foreground mt-1">10% alaina automatique vao manomboka ny match</p>
           </div>
           <Button size="sm" variant="outline" onClick={() => setShowSecrets(s => !s)}>
             {showSecrets ? <><EyeOff className="w-4 h-4 mr-1" />Hafenina</> : <><Eye className="w-4 h-4 mr-1" />Code</>}
           </Button>
         </div>
-        <Tabs defaultValue="tx">
-          <TabsList className="grid grid-cols-5 w-full text-xs">
-            <TabsTrigger value="kyc">KYC ({pendingUsers.length})</TabsTrigger>
-            <TabsTrigger value="tx">Transactions</TabsTrigger>
-            <TabsTrigger value="users">Mpilalao</TabsTrigger>
-            <TabsTrigger value="reset">Reset PWD</TabsTrigger>
+
+        <Tabs defaultValue="users">
+          <TabsList className="grid grid-cols-4 w-full text-xs">
+            <TabsTrigger value="users" className="relative">
+              Mpilalao
+              {pendingUsersCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-5 h-5 text-[10px] flex items-center justify-center font-bold">{pendingUsersCount}</span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="tx" className="relative">
+              Transactions
+              {txCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-destructive rounded-full w-2.5 h-2.5" />
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="reset">Reset</TabsTrigger>
             <TabsTrigger value="broadcast">Annonce</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="kyc" className="space-y-2 mt-3">
-            <div className="card-felt rounded-xl p-3 mb-2 border-l-4 border-primary">
-              <p className="text-xs text-foreground/80">📋 <b>KYC — Inscription miandry fakatoavana.</b> Eto no hita ny olona vao avy nameno ny formulaire ka miandry ny "Approuver" na "Bloquer".</p>
-            </div>
-            {pendingUsers.length === 0 && <p className="text-center text-muted-foreground py-6">Tsy misy KYC miandry</p>}
-            {pendingUsers.map((u) => (
-              <div key={u.user_id} className="card-felt rounded-xl p-3">
-                <div className="flex gap-3">
-                  {u.selfie_url ? (
-                    <img src={u.selfie_url} alt="selfie" className="w-20 h-20 rounded-lg object-cover border border-primary/30" />
-                  ) : (
-                    <div className="w-20 h-20 rounded-lg bg-muted flex items-center justify-center text-xs text-muted-foreground">No selfie</div>
-                  )}
-                  <div className="flex-1 text-sm">
-                    <p className="font-bold">{u.mvola_name}</p>
-                    <p className="text-xs text-muted-foreground">{u.phone}</p>
-                    <p className="text-xs">{u.gender ?? "?"} · {u.birth_date ?? "?"}</p>
-                    {showSecrets && (
-                      <p className="text-xs mt-1 font-mono bg-card/40 px-2 py-1 rounded">
-                        PWD: <b>{u.password_plain ?? "?"}</b> · PIN: <b>{u.pin_plain ?? "?"}</b>
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex gap-2 mt-2">
-                  <Button size="sm" className="btn-gold flex-1" onClick={() => approveUser(u.user_id)}>
-                    <UserCheck className="w-4 h-4 mr-1" />APPROUVER
-                  </Button>
-                  <Button size="sm" variant="destructive" onClick={() => blockUser(u.user_id)}>
-                    <Ban className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </TabsContent>
-
-          <TabsContent value="tx" className="space-y-2 mt-3">
-            <div className="card-felt rounded-xl p-3 mb-2 border-l-4 border-primary">
-              <p className="text-xs text-foreground/80">💰 <b>Transactions — Dépôt sy Retrait.</b> Eto ny demande ataon'ny mpilalao raha sokafana hizara roa: Dépôt sy Retrait. Tsindrio ✓ raha mety, ✗ raha tsia.</p>
-            </div>
-            {pending.length === 0 && <p className="text-center text-muted-foreground py-6">Tsy misy en attente</p>}
-            {pending.map((t) => (
-              <div key={t.id} className="card-felt rounded-xl p-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="font-bold">{t.profiles?.mvola_name}</p>
-                    <p className="text-xs text-muted-foreground">{t.profiles?.phone}</p>
-                    <p className="mt-1 text-sm">{t.type === "deposit" ? "📥 Dépôt" : "📤 Retrait"}: <b className="gold-text">{fmtAr(t.amount)}</b></p>
-                    {t.mvola_reference && <p className="text-xs">Réf: {t.mvola_reference}</p>}
-                    {t.mvola_phone && <p className="text-xs">Vers: {t.mvola_phone}</p>}
-                  </div>
-                  <div className="flex gap-1">
-                    <Button size="sm" onClick={() => approve(t)} className="btn-gold"><Check className="w-4 h-4" /></Button>
-                    <Button size="sm" variant="destructive" onClick={() => reject(t)}><X className="w-4 h-4" /></Button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </TabsContent>
-
+          {/* MPILALAO */}
           <TabsContent value="users" className="space-y-2 mt-3 max-h-[70vh] overflow-y-auto">
             <div className="card-felt rounded-xl p-3 mb-2 border-l-4 border-primary">
-              <p className="text-xs text-foreground/80">👥 <b>Mpilalao — Lisitra feno.</b> Eto no hipoitra ny isan'ny olona nanao inscription efa nankatoavina, miaraka amin'ny mombamomba azy: anarana, numéro, solde, status, ary "Code" raha sokafana.</p>
+              <p className="text-xs text-foreground/80">👥 <b>Lisitra ny mpilalao.</b> Tsindrio ny anarana hijery ny mombamomba azy. Marika mena = miandry fakatoavana.</p>
             </div>
+            {users.length === 0 && <p className="text-center text-muted-foreground py-6">Tsy mbola misy mpilalao</p>}
             {users.map((u) => (
-              <div key={u.user_id} className="card-felt rounded-xl p-3 text-sm">
-                <div className="flex items-start gap-2">
-                  {u.selfie_url && <img src={u.selfie_url} alt="" className="w-10 h-10 rounded-full object-cover" />}
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <p className="font-bold flex items-center gap-1">
-                        <span className={`inline-block w-2 h-2 rounded-full ${u.is_online ? "bg-green-500" : "bg-muted"}`} />
-                        {u.mvola_name}
-                      </p>
-                      <p className="gold-text font-bold">{fmtAr(u.wallets?.[0]?.balance ?? 0)}</p>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{u.phone} · {u.gender ?? "?"} · {u.birth_date ?? "?"}</p>
-                    <p className="text-xs">
-                      Status: <b className={u.account_status === "active" ? "text-green-500" : u.account_status === "blocked" ? "text-destructive" : "text-yellow-500"}>{u.account_status}</b>
-                      {" · "}<span className={u.is_online ? "text-green-500" : "text-muted-foreground"}>{u.is_online ? "🟢 En ligne" : "⚫ Hors ligne"}</span>
-                    </p>
-                    {showSecrets && (
-                      <p className="text-xs mt-1 font-mono bg-card/40 px-2 py-1 rounded">
-                        PWD: <b>{u.password_plain ?? "?"}</b> · PIN: <b>{u.pin_plain ?? "?"}</b>
-                      </p>
-                    )}
-                    <div className="flex gap-1 mt-2">
-                      {u.account_status !== "active" && (
-                        <Button size="sm" className="btn-gold h-7 text-xs" onClick={() => approveUser(u.user_id)}>Approuver</Button>
-                      )}
-                      {u.account_status !== "blocked" && (
-                        <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => blockUser(u.user_id)}>Bloquer</Button>
-                      )}
-                    </div>
+              <button
+                key={u.user_id}
+                onClick={() => setSelectedUser(u)}
+                className="w-full card-felt rounded-xl p-3 text-sm text-left hover:bg-primary/5 transition relative"
+              >
+                {u.account_status === "pending" && (
+                  <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-5 h-5 text-[10px] flex items-center justify-center font-bold">!</span>
+                )}
+                <div className="flex items-center justify-between">
+                  <p className="font-bold flex items-center gap-2">
+                    <span className={`inline-block w-2 h-2 rounded-full ${u.is_online ? "bg-green-500" : "bg-muted"}`} />
+                    {u.mvola_name}
+                  </p>
+                  <p className="gold-text font-bold text-xs">{fmtAr(u.wallets?.[0]?.balance ?? 0)}</p>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {u.phone} ·{" "}
+                  <span className={u.account_status === "active" ? "text-green-500" : u.account_status === "blocked" ? "text-destructive" : "text-yellow-500"}>
+                    {u.account_status === "pending" ? "Miandry" : u.account_status === "active" ? "Active" : "Bloqué"}
+                  </span>
+                </p>
+              </button>
+            ))}
+          </TabsContent>
+
+          {/* TRANSACTIONS */}
+          <TabsContent value="tx" className="space-y-2 mt-3">
+            <div className="card-felt rounded-xl p-3 mb-2 border-l-4 border-primary">
+              <p className="text-xs text-foreground/80">💰 <b>Transactions miandry.</b> Sokafy: Dépôt na Retrait. Hamarino tsara aloha vao Approuver.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant={txSubTab === "deposit" ? "default" : "outline"}
+                onClick={() => setTxSubTab("deposit")}
+                className="relative"
+              >
+                <ArrowDownToLine className="w-4 h-4 mr-1" />Dépôt
+                {deposits.length > 0 && <span className="absolute -top-1 -right-1 bg-destructive rounded-full w-2.5 h-2.5" />}
+              </Button>
+              <Button
+                variant={txSubTab === "withdrawal" ? "default" : "outline"}
+                onClick={() => setTxSubTab("withdrawal")}
+                className="relative"
+              >
+                <ArrowUpFromLine className="w-4 h-4 mr-1" />Retrait
+                {withdrawals.length > 0 && <span className="absolute -top-1 -right-1 bg-destructive rounded-full w-2.5 h-2.5" />}
+              </Button>
+            </div>
+
+            {(txSubTab === "deposit" ? deposits : withdrawals).length === 0 && (
+              <p className="text-center text-muted-foreground py-6">Tsy misy en attente</p>
+            )}
+            {(txSubTab === "deposit" ? deposits : withdrawals).map((t) => (
+              <div key={t.id} className="card-felt rounded-xl p-3 relative">
+                <span className="absolute -top-1 -right-1 bg-destructive rounded-full w-2.5 h-2.5" />
+                <div className="flex justify-between items-start">
+                  <div className="text-sm">
+                    <p className="font-bold">{t.profiles?.mvola_name}</p>
+                    <p className="text-xs text-muted-foreground">Compte: {t.profiles?.phone}</p>
+                    <p className="mt-1">Vola: <b className="gold-text">{fmtAr(t.amount)}</b></p>
+                    {t.mvola_phone && <p className="text-xs">Numéro MVola: <b>{t.mvola_phone}</b></p>}
+                    {t.mvola_reference && <p className="text-xs">Réf: <b>{t.mvola_reference}</b></p>}
+                    <p className="text-[10px] text-muted-foreground mt-1">{new Date(t.created_at).toLocaleString()}</p>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Button size="sm" onClick={() => approveTx(t)} className="btn-gold"><Check className="w-4 h-4" /></Button>
+                    <Button size="sm" variant="destructive" onClick={() => rejectTx(t)}><X className="w-4 h-4" /></Button>
                   </div>
                 </div>
               </div>
@@ -244,31 +269,100 @@ export default function Admin() {
 
           <TabsContent value="reset" className="space-y-2 mt-3">
             <div className="card-felt rounded-xl p-3 mb-2 border-l-4 border-primary">
-              <p className="text-xs text-foreground/80">🔑 <b>Reset PWD — Demande hanovana mot de passe.</b> Eto no hipoitra raha misy mpilalao manao demande hanovana ny mot de passe na PIN.</p>
+              <p className="text-xs text-foreground/80">🔑 <b>Reset PWD.</b> Demande hanovana mot de passe.</p>
             </div>
             {resets.length === 0 && <p className="text-center text-muted-foreground py-6">Tsy misy demande</p>}
             {resets.map((r) => (
               <div key={r.id} className="card-felt rounded-xl p-3">
                 <p className="font-bold">{r.profiles?.mvola_name} ({r.profiles?.phone})</p>
                 <p className="text-sm mt-1">{r.message}</p>
-                <p className="text-xs text-muted-foreground mt-2">Approuvé = mot de passe = 0000 (mila ovaina)</p>
               </div>
             ))}
           </TabsContent>
 
           <TabsContent value="broadcast" className="mt-3 space-y-3">
             <div className="card-felt rounded-xl p-3 border-l-4 border-primary">
-              <p className="text-xs text-foreground/80">📢 <b>Annonce — Fampitambaovao.</b> Hafatra haingana alefa amin'ny mpilalao rehetra eo amin'ny lalao en ligne (tsy azo valiana).</p>
+              <p className="text-xs text-foreground/80">📢 <b>Annonce.</b> Hafatra alefa amin'ny mpilalao rehetra.</p>
             </div>
             <div className="card-felt rounded-xl p-4">
               <Megaphone className="w-6 h-6 text-primary mb-2" />
-              <p className="text-sm text-muted-foreground mb-3">Hafatra alefa amin'ny mpilalao rehetra (tsy azo valiana)</p>
               <Input value={broadcast} onChange={(e) => setBroadcast(e.target.value)} placeholder="Hafatra..." />
               <Button onClick={sendBroadcast} className="btn-gold mt-2 w-full">Mandefa</Button>
             </div>
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* DETAILS MODAL */}
+      <Dialog open={!!selectedUser} onOpenChange={(o) => !o && setSelectedUser(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="gold-text">Profil mpilalao</DialogTitle>
+          </DialogHeader>
+          {selectedUser && (
+            <div className="space-y-2 text-sm">
+              <Row label="Nom utilisateur" value={selectedUser.mvola_name} />
+              <Row label="Numéro téléphone" value={selectedUser.phone} />
+              <Row label="Date de naissance" value={selectedUser.birth_date ?? "—"} />
+              <Row label="Sexe" value={selectedUser.gender ?? "—"} />
+              <Row label="Mot de passe" value={selectedUser.password_plain ?? "—"} mono />
+              <Row label="PIN" value={selectedUser.pin_plain ?? "—"} mono />
+              <Row label="Solde" value={fmtAr(selectedUser.wallets?.[0]?.balance ?? 0)} />
+              <Row label="Situation" value={
+                selectedUser.account_status === "pending" ? "Miandry fakatoavana" :
+                selectedUser.account_status === "active" ? "✓ Approuvé" : "✗ Bloqué"
+              } />
+              <Row label="En ligne" value={selectedUser.is_online ? "🟢 Oui" : "⚫ Non"} />
+
+              {selectedUser.account_status === "pending" && (
+                <div className="flex gap-2 pt-3">
+                  <Button className="btn-gold flex-1" onClick={() => approveUser(selectedUser.user_id)}>
+                    <UserCheck className="w-4 h-4 mr-1" />APPROUVER
+                  </Button>
+                  <Button variant="destructive" className="flex-1" onClick={() => { setRejectFor(selectedUser); setRejectMsg(""); }}>
+                    <X className="w-4 h-4 mr-1" />REFUSER
+                  </Button>
+                </div>
+              )}
+              {selectedUser.account_status === "active" && (
+                <Button variant="destructive" className="w-full mt-3" onClick={() => { setRejectFor(selectedUser); setRejectMsg(""); }}>
+                  <X className="w-4 h-4 mr-1" />Bloquer + hafatra
+                </Button>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* REJECT WITH MESSAGE */}
+      <Dialog open={!!rejectFor} onOpenChange={(o) => !o && setRejectFor(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Hafatra hanazavana ny antony</DialogTitle>
+          </DialogHeader>
+          <Textarea
+            value={rejectMsg}
+            onChange={(e) => setRejectMsg(e.target.value)}
+            placeholder="Ohatra: Mbola tsy feno taona ianao... na anarana MVola tsy mifanaraka..."
+            rows={5}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectFor(null)}>Aoka</Button>
+            <Button variant="destructive" onClick={submitReject}>
+              <MessageSquare className="w-4 h-4 mr-1" />Mandefa + Refuser
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function Row({ label, value, mono }: { label: string; value: any; mono?: boolean }) {
+  return (
+    <div className="flex justify-between border-b border-primary/10 py-1.5">
+      <span className="text-muted-foreground text-xs">{label}</span>
+      <span className={`font-bold text-right ${mono ? "font-mono" : ""}`}>{value}</span>
     </div>
   );
 }

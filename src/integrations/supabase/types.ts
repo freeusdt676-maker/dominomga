@@ -420,6 +420,10 @@ export type Database = {
     }
     Functions: {
       approve_user: { Args: { _user_id: string }; Returns: Json }
+      approve_user_with_message: {
+        Args: { _admin_id: string; _user_id: string }
+        Returns: Json
+      }
       block_user: { Args: { _user_id: string }; Returns: Json }
       has_role: {
         Args: {
@@ -427,6 +431,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      reject_user_with_message: {
+        Args: { _admin_id: string; _message: string; _user_id: string }
+        Returns: Json
       }
       settle_game: {
         Args: { _game_id: string; _winner: string }

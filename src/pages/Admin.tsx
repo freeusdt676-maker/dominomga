@@ -323,7 +323,7 @@ export default function Admin() {
               <Row label="Sexe" value={selectedUser.gender ?? "—"} />
               <Row label="Mot de passe" value={selectedUser.password_plain ?? "—"} mono />
               <Row label="PIN" value={selectedUser.pin_plain ?? "—"} mono />
-              <Row label="Solde" value={fmtAr(selectedUser.wallets?.[0]?.balance ?? 0)} />
+              <Row label="Solde" value={fmtAr(selectedUser._balance ?? 0)} />
               <Row label="Situation" value={
                 selectedUser.account_status === "pending" ? "Miandry fakatoavana" :
                 selectedUser.account_status === "active" ? "✓ Approuvé" : "✗ Bloqué"

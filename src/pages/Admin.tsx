@@ -28,25 +28,41 @@ export default function Admin() {
   const [txSubTab, setTxSubTab] = useState<"deposit" | "withdrawal">("deposit");
 
   const load = async () => {
-    const { data: p } = await supabase
+    // 1) Profiles (rehetra)
+    const { data: u, error: uErr } = await supabase
+      .from("profiles")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (uErr) console.error("profiles load err", uErr);
+    const profiles = u ?? [];
+
+    // 2) Wallets — manual map
+    const ids = profiles.map((p: any) => p.user_id);
+    let walletMap: Record<string, number> = {};
+    if (ids.length) {
+      const { data: ws } = await supabase.from("wallets").select("user_id,balance").in("user_id", ids);
+      (ws ?? []).forEach((w: any) => { walletMap[w.user_id] = Number(w.balance ?? 0); });
+    }
+    setUsers(profiles.map((p: any) => ({ ...p, _balance: walletMap[p.user_id] ?? 0 })));
+
+    // 3) Pending transactions + manual profile join
+    const { data: p, error: pErr } = await supabase
       .from("transactions")
-      .select("*, profiles!transactions_user_id_fkey(mvola_name, phone)")
+      .select("*")
       .eq("status", "pending")
       .order("created_at", { ascending: false });
-    setPending(p ?? []);
+    if (pErr) console.error("tx load err", pErr);
+    const profMap: Record<string, any> = {};
+    profiles.forEach((pr: any) => { profMap[pr.user_id] = pr; });
+    setPending((p ?? []).map((t: any) => ({ ...t, profiles: profMap[t.user_id] ?? null })));
 
-    const { data: u } = await supabase
-      .from("profiles")
-      .select("*, wallets(balance)")
-      .order("created_at", { ascending: false })
-      .limit(200);
-    setUsers(u ?? []);
-
+    // 4) Password resets
     const { data: r } = await supabase
       .from("password_reset_requests")
-      .select("*, profiles!password_reset_requests_user_id_fkey(mvola_name, phone)")
+      .select("*")
       .eq("status", "pending");
-    setResets(r ?? []);
+    setResets((r ?? []).map((rr: any) => ({ ...rr, profiles: profMap[rr.user_id] ?? null })));
 
     if (user?.id) {
       const { data: aw } = await supabase.from("admin_wallets").select("balance").eq("admin_id", user.id).maybeSingle();
@@ -207,7 +223,7 @@ export default function Admin() {
                     <span className={`inline-block w-2 h-2 rounded-full ${u.is_online ? "bg-green-500" : "bg-muted"}`} />
                     {u.mvola_name}
                   </p>
-                  <p className="gold-text font-bold text-xs">{fmtAr(u.wallets?.[0]?.balance ?? 0)}</p>
+                  <p className="gold-text font-bold text-xs">{fmtAr(u._balance ?? 0)}</p>
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {u.phone} ·{" "}
@@ -307,7 +323,7 @@ export default function Admin() {
               <Row label="Sexe" value={selectedUser.gender ?? "—"} />
               <Row label="Mot de passe" value={selectedUser.password_plain ?? "—"} mono />
               <Row label="PIN" value={selectedUser.pin_plain ?? "—"} mono />
-              <Row label="Solde" value={fmtAr(selectedUser.wallets?.[0]?.balance ?? 0)} />
+              <Row label="Solde" value={fmtAr(selectedUser._balance ?? 0)} />
               <Row label="Situation" value={
                 selectedUser.account_status === "pending" ? "Miandry fakatoavana" :
                 selectedUser.account_status === "active" ? "✓ Approuvé" : "✗ Bloqué"

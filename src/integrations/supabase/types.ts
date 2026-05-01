@@ -38,6 +38,45 @@ export type Database = {
         }
         Relationships: []
       }
+      bot_games: {
+        Row: {
+          commission: number
+          created_at: string
+          difficulty: Database["public"]["Enums"]["bot_difficulty"]
+          finished_at: string | null
+          id: string
+          kind: Database["public"]["Enums"]["bot_game_kind"]
+          payout: number
+          stake: number
+          status: Database["public"]["Enums"]["bot_game_status"]
+          user_id: string
+        }
+        Insert: {
+          commission?: number
+          created_at?: string
+          difficulty?: Database["public"]["Enums"]["bot_difficulty"]
+          finished_at?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["bot_game_kind"]
+          payout?: number
+          stake: number
+          status?: Database["public"]["Enums"]["bot_game_status"]
+          user_id: string
+        }
+        Update: {
+          commission?: number
+          created_at?: string
+          difficulty?: Database["public"]["Enums"]["bot_difficulty"]
+          finished_at?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["bot_game_kind"]
+          payout?: number
+          stake?: number
+          status?: Database["public"]["Enums"]["bot_game_status"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       challenges: {
         Row: {
           created_at: string
@@ -425,6 +464,15 @@ export type Database = {
         Returns: Json
       }
       block_user: { Args: { _user_id: string }; Returns: Json }
+      bot_settle: { Args: { _game_id: string; _won: boolean }; Returns: Json }
+      bot_start_stake: {
+        Args: {
+          _difficulty: Database["public"]["Enums"]["bot_difficulty"]
+          _kind: Database["public"]["Enums"]["bot_game_kind"]
+          _stake: number
+        }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -445,6 +493,9 @@ export type Database = {
     Enums: {
       account_status: "pending" | "active" | "blocked"
       app_role: "admin" | "player"
+      bot_difficulty: "easy" | "medium" | "hard"
+      bot_game_kind: "billiard" | "ludo" | "poker"
+      bot_game_status: "in_progress" | "won" | "lost" | "aborted"
       game_status:
         | "waiting"
         | "in_progress"
@@ -589,6 +640,9 @@ export const Constants = {
     Enums: {
       account_status: ["pending", "active", "blocked"],
       app_role: ["admin", "player"],
+      bot_difficulty: ["easy", "medium", "hard"],
+      bot_game_kind: ["billiard", "ludo", "poker"],
+      bot_game_status: ["in_progress", "won", "lost", "aborted"],
       game_status: [
         "waiting",
         "in_progress",

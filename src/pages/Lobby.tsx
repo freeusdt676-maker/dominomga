@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { STAKE_LEVELS, fmtAr } from "@/lib/constants";
-import { ArrowLeft, Circle, Zap, Swords, Loader2 } from "lucide-react";
+import { ArrowLeft, Circle, Zap, Swords, Loader2, Bot, Target, Dice5, Spade } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Lobby() {
@@ -17,6 +17,7 @@ export default function Lobby() {
   const [tab, setTab] = useState<"online"|"members">("online");
   const [filterByStake, setFilterByStake] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [botDiff, setBotDiff] = useState<"easy"|"medium"|"hard">("medium");
 
   useEffect(() => {
     if (!user) return;
@@ -117,6 +118,36 @@ export default function Lobby() {
             <input type="checkbox" checked={filterByStake} onChange={(e) => setFilterByStake(e.target.checked)} />
             Sivana ny lisitra arakaraka ny mise voafaritra
           </label>
+        </div>
+
+        {/* === LALAO VS BOT === */}
+        <div className="card-felt rounded-2xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Bot className="w-5 h-5 text-primary" />
+            <h3 className="font-display font-bold gold-text">Lalao manohitra ny Bot</h3>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">Mise mitovy ihany koa, esorina ao amin'ny wallet — commission 10% ho an'ny ADMIN. Mandresy = +80%.</p>
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            {(["easy","medium","hard"] as const).map(d => (
+              <button key={d} onClick={() => setBotDiff(d)} className={`py-2 rounded-lg text-xs font-semibold border ${botDiff===d?"btn-gold border-primary":"border-primary/30"}`}>
+                {d === "easy" ? "Mora" : d === "medium" ? "Antonony" : "Sarotra"}
+              </button>
+            ))}
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <Button className="btn-gold flex-col h-auto py-3" onClick={() => nav(`/bot/billiard?stake=${stake}&d=${botDiff}`)}>
+              <Target className="w-5 h-5 mb-1" />
+              <span className="text-xs">Billard</span>
+            </Button>
+            <Button className="btn-gold flex-col h-auto py-3" onClick={() => nav(`/bot/ludo?stake=${stake}&d=${botDiff}`)}>
+              <Dice5 className="w-5 h-5 mb-1" />
+              <span className="text-xs">Ludo</span>
+            </Button>
+            <Button className="btn-gold flex-col h-auto py-3" onClick={() => nav(`/bot/poker?stake=${stake}&d=${botDiff}`)}>
+              <Spade className="w-5 h-5 mb-1" />
+              <span className="text-xs">Poker</span>
+            </Button>
+          </div>
         </div>
 
         {waitingGames.length > 0 && (

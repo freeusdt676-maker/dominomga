@@ -458,6 +458,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_approve_tx: {
+        Args: { _admin_id: string; _tx_id: string }
+        Returns: Json
+      }
+      admin_reject_tx: {
+        Args: { _admin_id: string; _tx_id: string }
+        Returns: Json
+      }
+      admin_send_broadcast: {
+        Args: { _admin_id: string; _content: string }
+        Returns: Json
+      }
       approve_user: { Args: { _user_id: string }; Returns: Json }
       approve_user_with_message: {
         Args: { _admin_id: string; _user_id: string }
@@ -473,6 +485,7 @@ export type Database = {
         }
         Returns: Json
       }
+      get_admin_id: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

@@ -26,6 +26,16 @@ export default function Admin() {
   const [rejectFor, setRejectFor] = useState<any | null>(null);
   const [rejectMsg, setRejectMsg] = useState("");
   const [txSubTab, setTxSubTab] = useState<"deposit" | "withdrawal">("deposit");
+  const [resolvedAdminId, setResolvedAdminId] = useState<string | null>(null);
+  const adminId = user?.id ?? resolvedAdminId;
+
+  useEffect(() => {
+    if (!user?.id && codeOk && !resolvedAdminId) {
+      supabase.rpc("get_admin_id").then(({ data }) => {
+        if (data) setResolvedAdminId(data as string);
+      });
+    }
+  }, [user?.id, codeOk, resolvedAdminId]);
 
   const load = async () => {
     // 1) Profiles (rehetra)
@@ -64,17 +74,18 @@ export default function Admin() {
       .eq("status", "pending");
     setResets((r ?? []).map((rr: any) => ({ ...rr, profiles: profMap[rr.user_id] ?? null })));
 
-    if (user?.id) {
-      const { data: aw } = await supabase.from("admin_wallets").select("balance").eq("admin_id", user.id).maybeSingle();
+    const aid = user?.id ?? resolvedAdminId;
+    if (aid) {
+      const { data: aw } = await supabase.from("admin_wallets").select("balance").eq("admin_id", aid).maybeSingle();
       setAdminBalance(Number(aw?.balance ?? 0));
     }
   };
 
-  useEffect(() => { if (allowed) load(); }, [allowed, user]);
+  useEffect(() => { if (allowed) load(); }, [allowed, user, resolvedAdminId]);
 
   useEffect(() => {
     if (allowed && !isAdmin) {
-      toast.warning("Mba ahafahana mampiasa ny ADM dia mila miditra amin'ny kaonty admin (0345023006)", { duration: 5000 });
+      // Admin via code: full access granted through SECURITY DEFINER RPCs
     }
   }, [allowed, isAdmin]);
 
@@ -100,8 +111,8 @@ export default function Admin() {
   );
 
   const approveUser = async (uid: string) => {
-    if (!user?.id) return toast.error("Mila miditra ny kaonty admin aloha");
-    const { error } = await supabase.rpc("approve_user_with_message", { _user_id: uid, _admin_id: user.id });
+    if (!adminId) return toast.error("Mbola tsy vita ny fanamarinana admin, andraso kely");
+    const { error } = await supabase.rpc("approve_user_with_message", { _user_id: uid, _admin_id: adminId });
     if (error) return toast.error(error.message);
     toast.success("Nankatoavina + hafatra nalefa");
     setSelectedUser(null);
@@ -109,10 +120,10 @@ export default function Admin() {
   };
 
   const submitReject = async () => {
-    if (!rejectFor || !user?.id) return;
+    if (!rejectFor || !adminId) return;
     if (!rejectMsg.trim()) return toast.error("Soraty ny antony");
     const { error } = await supabase.rpc("reject_user_with_message", {
-      _user_id: rejectFor.user_id, _admin_id: user.id, _message: rejectMsg.trim()
+      _user_id: rejectFor.user_id, _admin_id: adminId, _message: rejectMsg.trim()
     });
     if (error) return toast.error(error.message);
     toast.success("Nolavina + hafatra nalefa");
@@ -121,43 +132,26 @@ export default function Admin() {
   };
 
   const approveTx = async (tx: any) => {
-    if (!user?.id) return toast.error("Mila miditra ny kaonty admin aloha");
-    const { data: w } = await supabase.from("wallets").select("balance").eq("user_id", tx.user_id).single();
-    const cur = Number(w?.balance ?? 0);
-    const amt = Number(tx.amount);
-    let newBal = cur;
-    if (tx.type === "deposit") newBal = cur + amt;
-    else if (tx.type === "withdrawal") {
-      if (cur < amt) return toast.error("Solde tsy ampy");
-      newBal = cur - amt;
-    }
-    await supabase.from("wallets").update({ balance: newBal }).eq("user_id", tx.user_id);
-    await supabase.from("transactions").update({ status: "approved", processed_by: user.id, processed_at: new Date().toISOString() }).eq("id", tx.id);
-    await supabase.from("chat_messages").insert({
-      sender_id: user.id, recipient_id: tx.user_id,
-      content: `${tx.type === "deposit" ? "Dépôt" : "Retrait"} ${fmtAr(amt)} nankatoavina ✓`,
-      is_admin_broadcast: false,
-    });
+    if (!adminId) return toast.error("Mbola tsy vita ny fanamarinana admin, andraso kely");
+    const { error } = await supabase.rpc("admin_approve_tx", { _tx_id: tx.id, _admin_id: adminId });
+    if (error) return toast.error(error.message);
     toast.success("Nankatoavina");
     load();
   };
 
   const rejectTx = async (tx: any) => {
-    if (!user?.id) return toast.error("Mila miditra ny kaonty admin aloha");
-    await supabase.from("transactions").update({ status: "rejected", processed_by: user.id, processed_at: new Date().toISOString() }).eq("id", tx.id);
-    await supabase.from("chat_messages").insert({
-      sender_id: user.id, recipient_id: tx.user_id,
-      content: `${tx.type === "deposit" ? "Dépôt" : "Retrait"} ${fmtAr(tx.amount)} tsy nekena. Mba hamarino ny mombamomba ny transaction ataonao.`,
-      is_admin_broadcast: false,
-    });
+    if (!adminId) return toast.error("Mbola tsy vita ny fanamarinana admin, andraso kely");
+    const { error } = await supabase.rpc("admin_reject_tx", { _tx_id: tx.id, _admin_id: adminId });
+    if (error) return toast.error(error.message);
     toast.error("Nolavina");
     load();
   };
 
   const sendBroadcast = async () => {
     if (!broadcast.trim()) return;
-    if (!user?.id) return toast.error("Mila miditra ny kaonty admin aloha");
-    await supabase.from("chat_messages").insert({ sender_id: user.id, content: broadcast.trim(), is_admin_broadcast: true });
+    if (!adminId) return toast.error("Mbola tsy vita ny fanamarinana admin, andraso kely");
+    const { error } = await supabase.rpc("admin_send_broadcast", { _admin_id: adminId, _content: broadcast.trim() });
+    if (error) return toast.error(error.message);
     toast.success("Hafatra alefa amin'ny rehetra");
     setBroadcast("");
   };

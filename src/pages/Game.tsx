@@ -58,9 +58,9 @@ export default function Game() {
         const has66_p2 = h2.some(([a,b]) => a===6 && b===6);
         if (has66_p2 && !has66_p1) starter = game.player2_id;
         supabase.from("games").update({
-          player1_hand: h1, player2_hand: h2, boneyard,
-          board_state: [], current_turn: starter, turn_started_at: new Date().toISOString(),
-        }).eq("id", id);
+          player1_hand: h1 as any, player2_hand: h2 as any, boneyard: boneyard as any,
+          board_state: [] as any, current_turn: starter, turn_started_at: new Date().toISOString(),
+        } as any).eq("id", id);
       }
     }
   }, [game?.status, game?.player1_id, user?.id]);
@@ -97,19 +97,19 @@ export default function Game() {
     if (newHand.length === 0) {
       await supabase.rpc("settle_game", { _game_id: game.id, _winner: user.id });
       await supabase.from("games").update({
-        board_state: newBoard,
-        [isP1 ? "player1_hand" : "player2_hand"]: newHand,
-      }).eq("id", game.id);
+        board_state: newBoard as any,
+        [isP1 ? "player1_hand" : "player2_hand"]: newHand as any,
+      } as any).eq("id", game.id);
       setSelected(null);
       return;
     }
     await supabase.from("games").update({
-      board_state: newBoard,
-      [isP1 ? "player1_hand" : "player2_hand"]: newHand,
+      board_state: newBoard as any,
+      [isP1 ? "player1_hand" : "player2_hand"]: newHand as any,
       current_turn: oppId,
       turn_started_at: new Date().toISOString(),
       passes: 0,
-    }).eq("id", game.id);
+    } as any).eq("id", game.id);
     setSelected(null);
   };
 
@@ -124,9 +124,9 @@ export default function Game() {
       const newBone = boneyard.slice(1);
       const newHand = [...myHand, drawn];
       await supabase.from("games").update({
-        boneyard: newBone,
-        [isP1 ? "player1_hand" : "player2_hand"]: newHand,
-      }).eq("id", game.id);
+        boneyard: newBone as any,
+        [isP1 ? "player1_hand" : "player2_hand"]: newHand as any,
+      } as any).eq("id", game.id);
       toast.success("Naka iray tao am-poto");
       return;
     }

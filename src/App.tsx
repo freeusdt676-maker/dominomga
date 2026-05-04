@@ -11,9 +11,6 @@ import Rules from "./pages/Rules";
 import AdminChat from "./pages/AdminChat";
 import Game from "./pages/Game";
 import Admin from "./pages/Admin";
-import BotBilliard from "./pages/BotBilliard";
-import BotLudo from "./pages/BotLudo";
-import BotPoker from "./pages/BotPoker";
 import { AuthProvider } from "./contexts/AuthContext";
 
 const queryClient = new QueryClient();
@@ -33,9 +30,6 @@ const App = () => (
             <Route path="/admin-chat" element={<AdminChat />} />
             <Route path="/game/:id" element={<Game />} />
             <Route path="/admin" element={<Admin />} />
-            <Route path="/bot/billiard" element={<BotBilliard />} />
-            <Route path="/bot/ludo" element={<BotLudo />} />
-            <Route path="/bot/poker" element={<BotPoker />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

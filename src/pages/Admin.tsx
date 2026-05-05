@@ -427,6 +427,35 @@ export default function Admin() {
               } />
               <Row label="En ligne" value={selectedUser.is_online ? "🟢 Oui" : "⚫ Non"} />
 
+              {/* Historique transactions an'ity mpilalao ity */}
+              <div className="pt-3">
+                <p className="text-xs font-bold gold-text mb-1 flex items-center gap-1"><History className="w-3 h-3" />Historique Transactions</p>
+                <div className="max-h-60 overflow-y-auto space-y-1">
+                  {allTx.filter((t) => t.user_id === selectedUser.user_id).length === 0 && (
+                    <p className="text-[11px] text-muted-foreground text-center py-2">Tsy mbola misy</p>
+                  )}
+                  {allTx.filter((t) => t.user_id === selectedUser.user_id).map((t) => (
+                    <div key={t.id} className="rounded-lg border border-primary/20 p-2 text-[11px] bg-card/40">
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold uppercase">
+                          {t.type === "deposit" ? <span className="text-green-500">Dépôt</span> : <span className="text-yellow-500">Retrait</span>}
+                          {" · "}
+                          {t.status === "approved" ? <span className="text-success">Accepté ✓</span> : <span className="text-destructive">Refusé ✗</span>}
+                        </span>
+                        <span className="gold-text font-bold">{fmtAr(t.amount)}</span>
+                      </div>
+                      <p className="text-muted-foreground mt-0.5">
+                        {t.processed_at ? new Date(t.processed_at).toLocaleString(undefined, { hour12: false }) : "—"}
+                      </p>
+                      <p className="text-muted-foreground">
+                        Par: <b className="text-foreground">{adminNames[t.processed_by] ?? "Admin"}</b>
+                        {t.mvola_reference && <> · Réf: <b className="text-foreground">{t.mvola_reference}</b></>}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               {selectedUser.account_status === "pending" && (
                 <div className="flex gap-2 pt-3">
                   <Button className="btn-gold flex-1" onClick={() => approveUser(selectedUser.user_id)}>

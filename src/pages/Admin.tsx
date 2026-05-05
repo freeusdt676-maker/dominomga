@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Check, X, Megaphone, Wallet as WalletIcon, UserCheck, Eye, EyeOff, MessageSquare, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
+import { ArrowLeft, Check, X, Megaphone, Wallet as WalletIcon, UserCheck, Eye, EyeOff, MessageSquare, ArrowDownToLine, ArrowUpFromLine, History, Search, Unlock } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 import { toast } from "sonner";
 
@@ -27,6 +27,8 @@ export default function Admin() {
   const [rejectMsg, setRejectMsg] = useState("");
   const [txSubTab, setTxSubTab] = useState<"deposit" | "withdrawal">("deposit");
   const [resolvedAdminId, setResolvedAdminId] = useState<string | null>(null);
+  const [history, setHistory] = useState<any[]>([]);
+  const [historySearch, setHistorySearch] = useState("");
   const adminId = user?.id ?? resolvedAdminId;
 
   useEffect(() => {
@@ -79,6 +81,19 @@ export default function Admin() {
       const { data: aw } = await supabase.from("admin_wallets").select("balance").eq("admin_id", aid).maybeSingle();
       setAdminBalance(Number(aw?.balance ?? 0));
     }
+
+    // Historique ny lalao rehetra
+    const { data: hg } = await supabase
+      .from("games")
+      .select("id, ticket_number, stake, player1_id, player2_id, winner_id, status, created_at, finished_at, turn_started_at")
+      .not("ticket_number", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(500);
+    setHistory((hg ?? []).map((g: any) => ({
+      ...g,
+      _p1: profMap[g.player1_id]?.mvola_name ?? "?",
+      _p2: profMap[g.player2_id]?.mvola_name ?? "?",
+    })));
   };
 
   useEffect(() => { if (allowed) load(); }, [allowed, user, resolvedAdminId]);
@@ -97,6 +112,7 @@ export default function Admin() {
       .on("postgres_changes", { event: "*", schema: "public", table: "transactions" }, () => load())
       .on("postgres_changes", { event: "*", schema: "public", table: "password_reset_requests" }, () => load())
       .on("postgres_changes", { event: "*", schema: "public", table: "wallets" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "games" }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [allowed]);
@@ -156,6 +172,25 @@ export default function Admin() {
     setBroadcast("");
   };
 
+  const unblockUser = async (uid: string) => {
+    if (!adminId) return toast.error("Andraso kely...");
+    const { error } = await supabase.rpc("admin_unblock_user", { _user_id: uid, _admin_id: adminId });
+    if (error) return toast.error(error.message);
+    toast.success("Voavaha ny compte");
+    setSelectedUser(null);
+    load();
+  };
+
+  const filteredHistory = history.filter((h) => {
+    if (!historySearch.trim()) return true;
+    const q = historySearch.trim().toLowerCase();
+    return (
+      (h.ticket_number ?? "").toLowerCase().includes(q) ||
+      (h._p1 ?? "").toLowerCase().includes(q) ||
+      (h._p2 ?? "").toLowerCase().includes(q)
+    );
+  });
+
   const deposits = pending.filter(t => t.type === "deposit");
   const withdrawals = pending.filter(t => t.type === "withdrawal");
   const pendingUsersCount = users.filter(u => u.account_status === "pending").length;
@@ -180,7 +215,7 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="users">
-          <TabsList className="grid grid-cols-4 w-full text-xs">
+          <TabsList className="grid grid-cols-5 w-full text-[10px]">
             <TabsTrigger value="users" className="relative">
               Mpilalao
               {pendingUsersCount > 0 && (
@@ -195,6 +230,7 @@ export default function Admin() {
             </TabsTrigger>
             <TabsTrigger value="reset">Reset</TabsTrigger>
             <TabsTrigger value="broadcast">Annonce</TabsTrigger>
+            <TabsTrigger value="history">Historique</TabsTrigger>
           </TabsList>
 
           {/* MPILALAO */}
@@ -300,6 +336,45 @@ export default function Admin() {
               <Button onClick={sendBroadcast} className="btn-gold mt-2 w-full">Mandefa</Button>
             </div>
           </TabsContent>
+
+          <TabsContent value="history" className="mt-3 space-y-2 max-h-[70vh] overflow-y-auto">
+            <div className="card-felt rounded-xl p-3 mb-2 border-l-4 border-primary">
+              <p className="text-xs text-foreground/80 flex items-center gap-1"><History className="w-3 h-3" /><b>Historique ny lalao.</b> Karohy araka ny Numéro Ticket na anaran'ny mpilalao.</p>
+            </div>
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={historySearch}
+                onChange={(e) => setHistorySearch(e.target.value)}
+                placeholder="TICKET Nº na anarana..."
+                className="pl-9"
+              />
+            </div>
+            <p className="text-[10px] text-muted-foreground">{filteredHistory.length} / {history.length} lalao</p>
+            {filteredHistory.map((h) => {
+              const winnerName = h.winner_id === h.player1_id ? h._p1 : h.winner_id === h.player2_id ? h._p2 : null;
+              const loserName = h.winner_id === h.player1_id ? h._p2 : h.winner_id === h.player2_id ? h._p1 : null;
+              const start = h.turn_started_at ?? h.created_at;
+              return (
+                <div key={h.id} className="card-felt rounded-xl p-3 text-xs space-y-1">
+                  <div className="flex justify-between items-start">
+                    <p className="font-mono font-bold gold-text">Nº{h.ticket_number}</p>
+                    <span className={`px-2 py-0.5 rounded text-[10px] ${h.status === "finished" ? "bg-success/20 text-success" : h.status === "blocked" ? "bg-destructive/20 text-destructive" : "bg-muted/40"}`}>
+                      {h.status}
+                    </span>
+                  </div>
+                  <p><b>{h._p1}</b> vs <b>{h._p2}</b></p>
+                  <p>Mise: <b className="gold-text">{fmtAr(h.stake)}</b></p>
+                  {winnerName && <p>🏆 Pandresy: <b className="text-success">{winnerName}</b> · Resy: {loserName}</p>}
+                  <p className="text-[10px] text-muted-foreground">
+                    Niatomboka: {new Date(start).toLocaleString()}<br />
+                    {h.finished_at && <>Niafarany: {new Date(h.finished_at).toLocaleString()}</>}
+                  </p>
+                </div>
+              );
+            })}
+            {filteredHistory.length === 0 && <p className="text-center text-muted-foreground py-6">Tsy misy historique</p>}
+          </TabsContent>
         </Tabs>
       </div>
 
@@ -337,6 +412,11 @@ export default function Admin() {
               {selectedUser.account_status === "active" && (
                 <Button variant="destructive" className="w-full mt-3" onClick={() => { setRejectFor(selectedUser); setRejectMsg(""); }}>
                   <X className="w-4 h-4 mr-1" />Bloquer + hafatra
+                </Button>
+              )}
+              {selectedUser.account_status === "blocked" && (
+                <Button className="btn-gold w-full mt-3" onClick={() => unblockUser(selectedUser.user_id)}>
+                  <Unlock className="w-4 h-4 mr-1" />Débloquer
                 </Button>
               )}
             </div>

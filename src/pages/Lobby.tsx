@@ -1,156 +1,181 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { STAKE_LEVELS, fmtAr } from "@/lib/constants";
-import { ArrowLeft, Circle, Zap, Swords, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Coins, Users, X } from "lucide-react";
 import { toast } from "sonner";
+
+type WaitingGame = {
+  id: string; player1_id: string; stake: number; created_at: string;
+  _name?: string;
+};
 
 export default function Lobby() {
   const { user } = useAuth();
   const nav = useNavigate();
   const [stake, setStake] = useState(STAKE_LEVELS[0]);
-  const [online, setOnline] = useState<any[]>([]);
-  const [members, setMembers] = useState<any[]>([]);
-  const [waitingGames, setWaitingGames] = useState<any[]>([]);
-  const [tab, setTab] = useState<"online"|"members">("online");
-  const [filterByStake, setFilterByStake] = useState(false);
-  const [searching, setSearching] = useState(false);
+  const [waiting, setWaiting] = useState<WaitingGame[]>([]);
+  const [myWaiting, setMyWaiting] = useState<WaitingGame | null>(null);
+  const [placing, setPlacing] = useState(false);
+  const [joining, setJoining] = useState<string | null>(null);
+
+  const load = async () => {
+    if (!user) return;
+    const { data: gs } = await supabase
+      .from("games")
+      .select("id, player1_id, stake, created_at")
+      .eq("status", "waiting")
+      .is("player2_id", null)
+      .order("created_at", { ascending: true });
+    const list = (gs ?? []) as WaitingGame[];
+    const ids = Array.from(new Set(list.map((g) => g.player1_id)));
+    let nameMap: Record<string, string> = {};
+    if (ids.length) {
+      const { data: ps } = await supabase.from("profiles").select("user_id, mvola_name").in("user_id", ids);
+      (ps ?? []).forEach((p: any) => { nameMap[p.user_id] = p.mvola_name; });
+    }
+    const enriched = list.map((g) => ({ ...g, _name: nameMap[g.player1_id] ?? "Mpilalao" }));
+    setWaiting(enriched.filter((g) => g.player1_id !== user.id));
+    setMyWaiting(enriched.find((g) => g.player1_id === user.id) ?? null);
+  };
 
   useEffect(() => {
     if (!user) return;
-    const load = async () => {
-      const since = new Date(Date.now() - 60_000).toISOString();
-      const { data: on } = await supabase.from("profiles").select("user_id, mvola_name, last_seen, is_online").gte("last_seen", since).neq("user_id", user.id).order("last_seen", { ascending: false }).limit(50);
-      setOnline(on ?? []);
-      const { data: all } = await supabase.from("profiles").select("user_id, mvola_name, last_seen").neq("user_id", user.id).order("created_at", { ascending: false }).limit(100);
-      setMembers(all ?? []);
-      let q = supabase.from("games").select("*").eq("status", "waiting").is("player2_id", null).neq("player1_id", user.id);
-      if (filterByStake) q = q.eq("stake", stake);
-      const { data: wg } = await q;
-      setWaitingGames(wg ?? []);
-    };
     load();
-    const i = setInterval(load, 5000);
-    return () => clearInterval(i);
-  }, [user, filterByStake, stake]);
+    const ch = supabase.channel("lobby-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "games" }, () => load())
+      .subscribe();
+    const itv = setInterval(load, 4000);
+    return () => { supabase.removeChannel(ch); clearInterval(itv); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
-  // Quick match: jereo raha misy efa miandry mitovy stake → join, raha tsy misy → ampidiro queue
-  const quickMatch = async () => {
+  // Raha misy mihantsy ny mise nataoko (player2 niditra) → tonga dia mankany amin'ny lalao
+  useEffect(() => {
     if (!user) return;
+    const ch = supabase.channel("my-games-rt")
+      .on("postgres_changes",
+        { event: "UPDATE", schema: "public", table: "games", filter: `player1_id=eq.${user.id}` },
+        (p: any) => {
+          if (p.new?.status === "in_progress" && p.new?.id) {
+            nav(`/game/${p.new.id}`);
+          }
+        })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user, nav]);
+
+  const placeMise = async () => {
+    if (!user) return;
+    if (myWaiting) return toast.error("Efa manana mise vonona ianao");
     const { data: w } = await supabase.from("wallets").select("balance").eq("user_id", user.id).single();
     if (Number(w?.balance ?? 0) < stake) return toast.error("Tsy ampy ny solde");
-
-    setSearching(true);
-    // Mitady latabatra efa misy mitovy stake
-    const { data: existing } = await supabase.from("games").select("*").eq("status","waiting").is("player2_id", null).eq("stake", stake).neq("player1_id", user.id).limit(1);
-    if (existing && existing.length > 0) {
-      await joinGame(existing[0].id, Number(existing[0].stake));
-      setSearching(false);
-      return;
-    }
-    // Tsy nahita — mamorona latabatra vaovao
-    const { data, error } = await supabase.from("games").insert({ player1_id: user.id, stake, status: "waiting" }).select().single();
-    setSearching(false);
+    setPlacing(true);
+    const { error } = await supabase.from("games").insert({ player1_id: user.id, stake, status: "waiting" });
+    setPlacing(false);
     if (error) return toast.error(error.message);
-    toast.success("Latabatra noforonina, miandry adversaire...");
-    nav(`/game/${data.id}`);
+    toast.success("Vonona — miandry mpifanandrina mitovy mise");
+    load();
   };
 
-  const challenge = async (toUser: string, name: string) => {
+  const cancelMyWaiting = async () => {
+    if (!myWaiting) return;
+    const { error } = await supabase.from("games").delete().eq("id", myWaiting.id).eq("status", "waiting").is("player2_id", null);
+    if (error) return toast.error(error.message);
+    toast("Nesorina");
+    load();
+  };
+
+  const joinWaiting = async (g: WaitingGame) => {
     if (!user) return;
     const { data: w } = await supabase.from("wallets").select("balance").eq("user_id", user.id).single();
-    if (Number(w?.balance ?? 0) < stake) return toast.error("Tsy ampy ny solde");
-    const { error } = await supabase.from("challenges").insert({ from_user: user.id, to_user: toUser, stake, status: "pending" });
-    if (error) return toast.error(error.message);
-    toast.success(`Fanasana nalefa amin'i ${name}`);
+    if (Number(w?.balance ?? 0) < Number(g.stake)) return toast.error("Tsy ampy ny solde amin'io mise io");
+    setJoining(g.id);
+    const { data, error } = await supabase.rpc("join_and_start_game", { _game_id: g.id, _player2: user.id });
+    setJoining(null);
+    if (error) return toast.error(error.message === "already_taken" ? "Efa nalain'ny hafa" : error.message);
+    nav(`/game/${g.id}`);
   };
 
-  const createGame = async () => {
-    if (!user) return;
-    const { data: w } = await supabase.from("wallets").select("balance").eq("user_id", user.id).single();
-    if (Number(w?.balance ?? 0) < stake) return toast.error("Tsy ampy ny solde");
-    const { data, error } = await supabase.from("games").insert({ player1_id: user.id, stake, status: "waiting" }).select().single();
-    if (error) return toast.error(error.message);
-    toast.success("Latabatra noforonina, miandry mpilalao...");
-    nav(`/game/${data.id}`);
-  };
-
-  const joinGame = async (gameId: string, gameStake: number) => {
-    if (!user) return;
-    const { data: w } = await supabase.from("wallets").select("balance").eq("user_id", user.id).single();
-    if (Number(w?.balance ?? 0) < gameStake) return toast.error("Tsy ampy ny solde");
-    const { error } = await supabase.from("games").update({ player2_id: user.id, status: "in_progress", current_turn: user.id, turn_started_at: new Date().toISOString() }).eq("id", gameId).is("player2_id", null);
-    if (error) return toast.error(error.message);
-    // Sintonana ny mise sy ny commission 10%
-    await supabase.rpc("start_game_deduct", { _game_id: gameId });
-    nav(`/game/${gameId}`);
-  };
+  const grouped = useMemo(() => {
+    const m: Record<number, WaitingGame[]> = {};
+    waiting.forEach((g) => { (m[Number(g.stake)] = m[Number(g.stake)] || []).push(g); });
+    return m;
+  }, [waiting]);
 
   return (
     <div className="min-h-screen felt-bg">
       <header className="p-4 flex items-center gap-3 border-b border-primary/20">
         <Button variant="ghost" size="icon" onClick={() => nav("/")}><ArrowLeft /></Button>
-        <h1 className="font-display text-xl font-bold gold-text">Lobby</h1>
+        <h1 className="font-display text-xl font-bold gold-text">Lobby Domino</h1>
       </header>
 
       <div className="p-4 max-w-lg mx-auto space-y-4">
         <div className="card-felt rounded-2xl p-4">
-          <p className="text-sm text-muted-foreground mb-2">Mise</p>
+          <p className="text-sm text-muted-foreground mb-2">Safidio ny mise</p>
           <div className="grid grid-cols-5 gap-2">
             {STAKE_LEVELS.map((s) => (
-              <button key={s} onClick={() => setStake(s)} className={`py-2 rounded-lg text-xs font-semibold border ${stake === s ? "btn-gold border-primary" : "border-primary/30 text-foreground"}`}>
+              <button key={s} onClick={() => setStake(s)}
+                className={`py-2 rounded-lg text-xs font-semibold border ${stake === s ? "btn-gold border-primary" : "border-primary/30 text-foreground"}`}>
                 {s/1000}k
               </button>
             ))}
           </div>
-          <p className="mt-3 text-center text-sm">Mise: <span className="gold-text font-bold">{fmtAr(stake)}</span> · Commission 10% · Gain net = <span className="gold-text font-bold">{fmtAr(Math.round(stake*1.8))}</span></p>
-          <div className="grid grid-cols-2 gap-2 mt-3">
-            <Button className="btn-gold" onClick={quickMatch} disabled={searching}>
-              {searching ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Zap className="w-4 h-4 mr-2" />}
-              Lalao haingana
+          <p className="mt-3 text-center text-sm">
+            Mise: <b className="gold-text">{fmtAr(stake)}</b> · Gain net: <b className="gold-text">{fmtAr(Math.round(stake*1.8))}</b>
+          </p>
+          {myWaiting ? (
+            <div className="mt-3 p-3 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-between">
+              <div className="text-sm">
+                <p className="font-bold gold-text">Misy mise vonona ianao</p>
+                <p className="text-xs text-muted-foreground">Mise: {fmtAr(myWaiting.stake)} — miandry mpifanandrina</p>
+              </div>
+              <Button size="sm" variant="destructive" onClick={cancelMyWaiting}><X className="w-4 h-4" /></Button>
+            </div>
+          ) : (
+            <Button className="btn-gold w-full mt-3" onClick={placeMise} disabled={placing}>
+              {placing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Coins className="w-4 h-4 mr-2" />}
+              Place mise {fmtAr(stake)}
             </Button>
-            <Button variant="outline" onClick={createGame}>Mamorona latabatra</Button>
-          </div>
-          <label className="flex items-center gap-2 text-xs text-muted-foreground mt-3 cursor-pointer">
-            <input type="checkbox" checked={filterByStake} onChange={(e) => setFilterByStake(e.target.checked)} />
-            Sivana ny lisitra arakaraka ny mise voafaritra
-          </label>
+          )}
         </div>
 
-        {waitingGames.length > 0 && (
-          <div className="card-felt rounded-2xl p-4">
-            <h3 className="font-display font-bold mb-2">Latabatra miandry</h3>
-            <div className="space-y-2">
-              {waitingGames.map((g) => (
-                <div key={g.id} className="flex justify-between items-center bg-muted/30 rounded-lg p-3">
-                  <span className="text-sm">Mise: <b className="gold-text">{fmtAr(g.stake)}</b></span>
-                  <Button size="sm" className="btn-gold" onClick={() => joinGame(g.id, Number(g.stake))}>Hiditra</Button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         <div className="card-felt rounded-2xl p-4">
-          <div className="flex gap-2 mb-3">
-            <button onClick={() => setTab("online")} className={`flex-1 py-2 rounded-lg text-sm ${tab==="online"?"btn-gold":"bg-muted/30"}`}>En ligne ({online.length})</button>
-            <button onClick={() => setTab("members")} className={`flex-1 py-2 rounded-lg text-sm ${tab==="members"?"btn-gold":"bg-muted/30"}`}>Membre ({members.length})</button>
+          <div className="flex items-center gap-2 mb-3">
+            <Users className="w-4 h-4 text-primary" />
+            <h3 className="font-display font-bold">Mpilalao vonona ({waiting.length})</h3>
           </div>
-          <div className="space-y-1 max-h-[40vh] overflow-y-auto">
-            {(tab === "online" ? online : members).map((p) => (
-              <div key={p.user_id} className="flex items-center gap-2 p-2 hover:bg-muted/20 rounded">
-                <Circle className={`w-2 h-2 ${tab==="online" ? "fill-success text-success" : "fill-muted text-muted"}`} />
-                <span className="flex-1 text-sm">{p.mvola_name}</span>
-                {tab === "online" && (
-                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => challenge(p.user_id, p.mvola_name)}>
-                    <Swords className="w-3 h-3 mr-1" /> Hihantsy
-                  </Button>
-                )}
+          <p className="text-[11px] text-muted-foreground mb-2">Tsindrio izay mitovy mise aminao — izay malaky no tafiditra.</p>
+          {waiting.length === 0 && <p className="text-center text-sm text-muted-foreground py-6">Tsy mbola misy vonona</p>}
+          <div className="space-y-3">
+            {Object.keys(grouped).sort((a,b) => Number(a)-Number(b)).map((k) => (
+              <div key={k}>
+                <p className="text-[10px] uppercase text-muted-foreground mb-1">Mise {fmtAr(Number(k))}</p>
+                <div className="space-y-1.5">
+                  {grouped[Number(k)].map((g) => {
+                    const same = Number(g.stake) === stake;
+                    return (
+                      <button
+                        key={g.id}
+                        onClick={() => joinWaiting(g)}
+                        disabled={joining === g.id}
+                        className={`w-full flex items-center justify-between p-3 rounded-lg border transition ${same ? "border-primary bg-primary/5 hover:bg-primary/10" : "border-primary/20 bg-muted/20 hover:bg-muted/30"}`}
+                      >
+                        <div className="text-left">
+                          <p className="font-bold text-sm">{g._name}</p>
+                          <p className="text-[11px] text-muted-foreground">mise <b className="gold-text">{fmtAr(g.stake)}</b> · vonona</p>
+                        </div>
+                        {joining === g.id ? <Loader2 className="w-4 h-4 animate-spin" /> : (
+                          <span className="text-xs font-bold text-primary">Hiditra ▶</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             ))}
-            {(tab === "online" ? online : members).length === 0 && <p className="text-center text-xs text-muted-foreground py-4">Tsy misy</p>}
           </div>
         </div>
       </div>

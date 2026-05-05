@@ -17,10 +17,10 @@ const layouts: Record<number, string[]> = {
 };
 
 const SIZES = {
-  sm: { w: 36, h: 72, dot: 6 },
-  md: { w: 56, h: 112, dot: 9 },
-  lg: { w: 72, h: 144, dot: 12 },
-  xl: { w: 88, h: 176, dot: 14 },
+  sm: { w: 44, h: 88, dot: 9 },
+  md: { w: 72, h: 144, dot: 14 },
+  lg: { w: 92, h: 184, dot: 18 },
+  xl: { w: 110, h: 220, dot: 22 },
 };
 
 export function DominoFace({ value, dotSize }: { value: number; dotSize: number }) {

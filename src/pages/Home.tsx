@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Wallet, Users, Trophy, MessageCircle, LogOut, Shield } from "lucide-react";
 import logo from "@/assets/logo.png";
+import MessageInbox from "@/components/MessageInbox";
 
 export default function Home() {
   const { user, isAdmin, signOut } = useAuth();
@@ -107,7 +108,10 @@ export default function Home() {
           <img src={logo} alt="Logo" className="w-10 h-10" />
           <h1 className="font-display font-bold gold-text text-xl">DOMINO MGA</h1>
         </div>
-        <Button variant="ghost" size="icon" onClick={signOut}><LogOut className="w-5 h-5" /></Button>
+        <div className="flex items-center gap-2">
+          <MessageInbox />
+          <Button variant="ghost" size="icon" onClick={signOut}><LogOut className="w-5 h-5" /></Button>
+        </div>
       </header>
 
       <div className="p-4 space-y-4 max-w-lg mx-auto pb-32">

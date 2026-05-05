@@ -29,6 +29,8 @@ export default function Admin() {
   const [resolvedAdminId, setResolvedAdminId] = useState<string | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [historySearch, setHistorySearch] = useState("");
+  const [allTx, setAllTx] = useState<any[]>([]);
+  const [adminNames, setAdminNames] = useState<Record<string, string>>({});
   const adminId = user?.id ?? resolvedAdminId;
 
   useEffect(() => {
@@ -68,6 +70,32 @@ export default function Admin() {
     const profMap: Record<string, any> = {};
     profiles.forEach((pr: any) => { profMap[pr.user_id] = pr; });
     setPending((p ?? []).map((t: any) => ({ ...t, profiles: profMap[t.user_id] ?? null })));
+
+    // All processed transactions (approved/rejected) — anaty profil
+    const { data: at } = await supabase
+      .from("transactions")
+      .select("*")
+      .in("status", ["approved", "rejected"])
+      .in("type", ["deposit", "withdrawal"])
+      .order("processed_at", { ascending: false })
+      .limit(2000);
+    setAllTx(at ?? []);
+
+    // Anaran'ny admin (processed_by)
+    const adminIds = Array.from(new Set((at ?? []).map((t: any) => t.processed_by).filter(Boolean)));
+    if (adminIds.length) {
+      const map: Record<string, string> = {};
+      adminIds.forEach((id: string) => {
+        if (profMap[id]) map[id] = profMap[id].mvola_name;
+      });
+      // Fetch missing
+      const missing = adminIds.filter((id: string) => !map[id]);
+      if (missing.length) {
+        const { data: ap } = await supabase.from("profiles").select("user_id,mvola_name").in("user_id", missing);
+        (ap ?? []).forEach((pr: any) => { map[pr.user_id] = pr.mvola_name; });
+      }
+      setAdminNames(map);
+    }
 
     // 4) Password resets
     const { data: r } = await supabase

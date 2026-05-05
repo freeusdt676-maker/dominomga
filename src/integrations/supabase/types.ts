@@ -152,6 +152,7 @@ export type Database = {
           created_at: string
           current_turn: string | null
           expires_at: string | null
+          finished_at: string | null
           id: string
           passes: number
           player1_hand: Json | null
@@ -160,6 +161,7 @@ export type Database = {
           player2_id: string | null
           stake: number
           status: Database["public"]["Enums"]["game_status"]
+          ticket_number: string | null
           turn_started_at: string | null
           updated_at: string
           winner_id: string | null
@@ -171,6 +173,7 @@ export type Database = {
           created_at?: string
           current_turn?: string | null
           expires_at?: string | null
+          finished_at?: string | null
           id?: string
           passes?: number
           player1_hand?: Json | null
@@ -179,6 +182,7 @@ export type Database = {
           player2_id?: string | null
           stake: number
           status?: Database["public"]["Enums"]["game_status"]
+          ticket_number?: string | null
           turn_started_at?: string | null
           updated_at?: string
           winner_id?: string | null
@@ -190,6 +194,7 @@ export type Database = {
           created_at?: string
           current_turn?: string | null
           expires_at?: string | null
+          finished_at?: string | null
           id?: string
           passes?: number
           player1_hand?: Json | null
@@ -198,6 +203,7 @@ export type Database = {
           player2_id?: string | null
           stake?: number
           status?: Database["public"]["Enums"]["game_status"]
+          ticket_number?: string | null
           turn_started_at?: string | null
           updated_at?: string
           winner_id?: string | null
@@ -434,6 +440,10 @@ export type Database = {
         Args: { _admin_id: string; _content: string }
         Returns: Json
       }
+      admin_unblock_user: {
+        Args: { _admin_id: string; _user_id: string }
+        Returns: Json
+      }
       approve_user: { Args: { _user_id: string }; Returns: Json }
       approve_user_with_message: {
         Args: { _admin_id: string; _user_id: string }
@@ -455,6 +465,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      join_and_start_game: {
+        Args: { _game_id: string; _player2: string }
+        Returns: Json
       }
       reject_user_with_message: {
         Args: { _admin_id: string; _message: string; _user_id: string }

@@ -26,6 +26,16 @@ export default function Game() {
   const nav = useNavigate();
   const [game, setGame] = useState<any>(null);
   const [selected, setSelected] = useState<number | null>(null);
+  const [ticketBanner, setTicketBanner] = useState<string | null>(null);
+
+  // Hipoitra ny banniere TICKET Nº...ACCEPTÉ raha vao tafapetraka ny ticket
+  useEffect(() => {
+    if (game?.ticket_number) {
+      setTicketBanner(game.ticket_number);
+      const t = setTimeout(() => setTicketBanner(null), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [game?.ticket_number]);
 
   useEffect(() => {
     if (!id) return;
@@ -161,6 +171,11 @@ export default function Game() {
 
   return (
     <div className="min-h-screen felt-bg flex flex-col">
+      {ticketBanner && (
+        <div className="fixed inset-x-0 top-0 z-50 bg-success text-success-foreground py-3 px-4 text-center font-bold shadow-lg animate-in slide-in-from-top">
+          🎫 TICKET Nº{ticketBanner} ACCEPTÉ
+        </div>
+      )}
       <header className="p-3 flex items-center gap-3 border-b border-primary/20">
         <Button variant="ghost" size="icon" onClick={() => nav("/")}><ArrowLeft /></Button>
         <div className="flex-1">

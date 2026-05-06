@@ -96,7 +96,7 @@ export default function Lobby() {
 
   const cancelMyWaiting = async () => {
     if (!myWaiting) return;
-    const { error } = await supabase.from("games").delete().eq("id", myWaiting.id).eq("status", "waiting").is("player2_id", null);
+    const { error } = await supabase.rpc("cancel_waiting_game", { _game_id: myWaiting.id });
     if (error) return toast.error(error.message);
     toast("Nesorina");
     load();
@@ -107,7 +107,7 @@ export default function Lobby() {
     const { data: w } = await supabase.from("wallets").select("balance").eq("user_id", user.id).single();
     if (Number(w?.balance ?? 0) < Number(g.stake)) return toast.error("Tsy ampy ny solde amin'io mise io");
     setJoining(g.id);
-    const { data, error } = await supabase.rpc("join_and_start_game", { _game_id: g.id, _player2: user.id });
+    const { error } = await supabase.rpc("join_and_start_game", { _game_id: g.id, _player2: user.id });
     setJoining(null);
     if (error) return toast.error(error.message === "already_taken" ? "Efa nalain'ny hafa" : error.message);
     nav(`/game/${g.id}`);

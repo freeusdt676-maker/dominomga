@@ -28,6 +28,30 @@ export default function Game() {
   const [selected, setSelected] = useState<number | null>(null);
   const [ticketBanner, setTicketBanner] = useState<string | null>(null);
 
+  const updateGameState = async (payload: {
+    board_state?: Placed[];
+    player1_hand?: Tile[];
+    player2_hand?: Tile[];
+    boneyard?: Tile[];
+    current_turn?: string;
+    turn_started_at?: string;
+    passes?: number;
+    status?: "waiting" | "in_progress" | "finished" | "cancelled" | "blocked";
+  }) => {
+    if (!game?.id) return { error: new Error("game_missing") };
+    return supabase.rpc("player_update_game_state", {
+      _game_id: game.id,
+      _board_state: payload.board_state ?? null,
+      _player1_hand: payload.player1_hand ?? null,
+      _player2_hand: payload.player2_hand ?? null,
+      _boneyard: payload.boneyard ?? null,
+      _current_turn: payload.current_turn ?? null,
+      _turn_started_at: payload.turn_started_at ?? null,
+      _passes: payload.passes ?? null,
+      _status: payload.status ?? null,
+    });
+  };
+
   // Hipoitra ny banniere TICKET Nº...ACCEPTÉ raha vao tafapetraka ny ticket
   useEffect(() => {
     if (game?.ticket_number) {
@@ -67,10 +91,14 @@ export default function Game() {
         const has66_p1 = h1.some(([a,b]) => a===6 && b===6);
         const has66_p2 = h2.some(([a,b]) => a===6 && b===6);
         if (has66_p2 && !has66_p1) starter = game.player2_id;
-        supabase.from("games").update({
-          player1_hand: h1 as any, player2_hand: h2 as any, boneyard: boneyard as any,
-          board_state: [] as any, current_turn: starter, turn_started_at: new Date().toISOString(),
-        } as any).eq("id", id);
+        updateGameState({
+          player1_hand: h1,
+          player2_hand: h2,
+          boneyard,
+          board_state: [],
+          current_turn: starter,
+          turn_started_at: new Date().toISOString(),
+        });
       }
     }
   }, [game?.status, game?.player1_id, user?.id]);
@@ -106,20 +134,20 @@ export default function Game() {
     // Mandresy raha tsy misy piesy
     if (newHand.length === 0) {
       await supabase.rpc("settle_game", { _game_id: game.id, _winner: user.id });
-      await supabase.from("games").update({
-        board_state: newBoard as any,
-        [isP1 ? "player1_hand" : "player2_hand"]: newHand as any,
-      } as any).eq("id", game.id);
+      await updateGameState({
+        board_state: newBoard,
+        [isP1 ? "player1_hand" : "player2_hand"]: newHand,
+      } as any);
       setSelected(null);
       return;
     }
-    await supabase.from("games").update({
-      board_state: newBoard as any,
-      [isP1 ? "player1_hand" : "player2_hand"]: newHand as any,
+    await updateGameState({
+      board_state: newBoard,
+      [isP1 ? "player1_hand" : "player2_hand"]: newHand,
       current_turn: oppId,
       turn_started_at: new Date().toISOString(),
       passes: 0,
-    } as any).eq("id", game.id);
+    } as any);
     setSelected(null);
   };
 
@@ -133,10 +161,10 @@ export default function Game() {
       const drawn = boneyard[0];
       const newBone = boneyard.slice(1);
       const newHand = [...myHand, drawn];
-      await supabase.from("games").update({
-        boneyard: newBone as any,
-        [isP1 ? "player1_hand" : "player2_hand"]: newHand as any,
-      } as any).eq("id", game.id);
+      await updateGameState({
+        boneyard: newBone,
+        [isP1 ? "player1_hand" : "player2_hand"]: newHand,
+      } as any);
       toast.success("Naka iray tao am-poto");
       return;
     }
@@ -150,15 +178,15 @@ export default function Game() {
       if (winner) {
         await supabase.rpc("settle_game", { _game_id: game.id, _winner: winner });
       } else {
-        await supabase.from("games").update({ status: "blocked" }).eq("id", game.id);
+        await updateGameState({ status: "blocked" });
       }
       return;
     }
-    await supabase.from("games").update({
+    await updateGameState({
       current_turn: oppId,
       turn_started_at: new Date().toISOString(),
       passes,
-    }).eq("id", game.id);
+    });
     toast("Pass — tsy misy piesy mety");
   };
 

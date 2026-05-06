@@ -428,6 +428,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_challenge_start_game: {
+        Args: { _challenge_id: string }
+        Returns: Json
+      }
       admin_approve_tx: {
         Args: { _admin_id: string; _tx_id: string }
         Returns: Json
@@ -458,6 +462,7 @@ export type Database = {
         }
         Returns: Json
       }
+      cancel_waiting_game: { Args: { _game_id: string }; Returns: Json }
       get_admin_id: { Args: never; Returns: string }
       has_role: {
         Args: {
@@ -468,6 +473,20 @@ export type Database = {
       }
       join_and_start_game: {
         Args: { _game_id: string; _player2: string }
+        Returns: Json
+      }
+      player_update_game_state: {
+        Args: {
+          _board_state?: Json
+          _boneyard?: Json
+          _current_turn?: string
+          _game_id: string
+          _passes?: number
+          _player1_hand?: Json
+          _player2_hand?: Json
+          _status?: Database["public"]["Enums"]["game_status"]
+          _turn_started_at?: string
+        }
         Returns: Json
       }
       reject_user_with_message: {

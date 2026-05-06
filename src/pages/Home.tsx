@@ -65,15 +65,10 @@ export default function Home() {
     if (!user) return;
     const { data: w } = await supabase.from("wallets").select("balance").eq("user_id", user.id).single();
     if (Number(w?.balance ?? 0) < Number(c.stake)) return toast.error("Tsy ampy ny solde");
-    // Mamorona game
-    const { data: g, error } = await supabase.from("games").insert({
-      player1_id: c.from_user, player2_id: user.id, stake: c.stake,
-      status: "in_progress", current_turn: c.from_user, turn_started_at: new Date().toISOString()
-    }).select().single();
-    if (error || !g) return toast.error(error?.message ?? "Hadisoana");
-    await supabase.from("challenges").update({ status: "accepted", game_id: g.id }).eq("id", c.id);
-    await supabase.rpc("start_game_deduct", { _game_id: g.id });
-    nav(`/game/${g.id}`);
+    const { data, error } = await supabase.rpc("accept_challenge_start_game", { _challenge_id: c.id });
+    const gameId = data && typeof data === "object" && "game_id" in data ? String((data as any).game_id ?? "") : "";
+    if (error || !gameId) return toast.error(error?.message ?? "Hadisoana");
+    nav(`/game/${gameId}`);
   };
   const declineChallenge = async (c: any) => {
     await supabase.from("challenges").update({ status: "declined" }).eq("id", c.id);

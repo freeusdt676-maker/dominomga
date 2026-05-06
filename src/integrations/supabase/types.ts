@@ -428,6 +428,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_challenge_start_game: {
+        Args: { _challenge_id: string }
+        Returns: Json
+      }
       admin_approve_tx: {
         Args: { _admin_id: string; _tx_id: string }
         Returns: Json

@@ -23,6 +23,20 @@ export default function Lobby() {
 
   const load = async () => {
     if (!user) return;
+    // Fallback: raha vao nanomboka (60s farany) misy lalao in_progress dia tonga dia mankany
+    const since = new Date(Date.now() - 60_000).toISOString();
+    const { data: mine } = await supabase
+      .from("games")
+      .select("id, updated_at")
+      .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
+      .eq("status", "in_progress")
+      .gte("updated_at", since)
+      .order("updated_at", { ascending: false })
+      .limit(1);
+    if (mine && mine.length > 0) {
+      nav(`/game/${mine[0].id}`);
+      return;
+    }
     const { data: gs } = await supabase
       .from("games")
       .select("id, player1_id, stake, created_at")
@@ -47,7 +61,7 @@ export default function Lobby() {
     const ch = supabase.channel("lobby-rt")
       .on("postgres_changes", { event: "*", schema: "public", table: "games" }, () => load())
       .subscribe();
-    const itv = setInterval(load, 4000);
+    const itv = setInterval(load, 2000);
     return () => { supabase.removeChannel(ch); clearInterval(itv); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);

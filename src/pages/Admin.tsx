@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { ArrowLeft, Check, X, Megaphone, Wallet as WalletIcon, UserCheck, Eye, EyeOff, MessageSquare, ArrowDownToLine, ArrowUpFromLine, History, Search, Unlock } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 import { toast } from "sonner";
+import { DominoTile } from "@/components/DominoTile";
 
 export default function Admin() {
   const { user, isAdmin } = useAuth();
@@ -31,6 +32,8 @@ export default function Admin() {
   const [historySearch, setHistorySearch] = useState("");
   const [allTx, setAllTx] = useState<any[]>([]);
   const [adminNames, setAdminNames] = useState<Record<string, string>>({});
+  const [selectedGame, setSelectedGame] = useState<any | null>(null);
+  const [gameMoves, setGameMoves] = useState<any[]>([]);
   const adminId = user?.id ?? resolvedAdminId;
 
   useEffect(() => {
@@ -218,6 +221,17 @@ export default function Admin() {
       (h._p2 ?? "").toLowerCase().includes(q)
     );
   });
+
+  const openGameDetails = async (h: any) => {
+    setSelectedGame(h);
+    setGameMoves([]);
+    const { data: mv } = await supabase
+      .from("game_moves")
+      .select("*")
+      .eq("game_id", h.id)
+      .order("created_at", { ascending: true });
+    setGameMoves(mv ?? []);
+  };
 
   const deposits = pending.filter(t => t.type === "deposit");
   const withdrawals = pending.filter(t => t.type === "withdrawal");

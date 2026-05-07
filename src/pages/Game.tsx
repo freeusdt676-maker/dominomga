@@ -161,6 +161,13 @@ export default function Game() {
       turn_started_at: new Date().toISOString(),
       passes: 0,
     } as any);
+    // Mametraka filaharana ho an'ny Admin (historique)
+    await supabase.from("game_moves").insert({
+      game_id: game.id,
+      player_id: user.id,
+      piece: { tile, flipped: chosenSide === "left" ? tile[1] !== (ends(board)?.left ?? tile[1]) : tile[0] !== (ends(board)?.right ?? tile[0]) },
+      side: chosenSide,
+    });
     setSelected(null);
   };
 

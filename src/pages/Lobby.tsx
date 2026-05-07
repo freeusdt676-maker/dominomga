@@ -87,11 +87,16 @@ export default function Lobby() {
     const { data: w } = await supabase.from("wallets").select("balance").eq("user_id", user.id).single();
     if (Number(w?.balance ?? 0) < stake) return toast.error("Tsy ampy ny solde");
     setPlacing(true);
-    const { error } = await supabase.from("games").insert({ player1_id: user.id, stake, status: "waiting" });
+    const { data: g, error } = await supabase
+      .from("games")
+      .insert({ player1_id: user.id, stake, status: "waiting" })
+      .select("id")
+      .single();
     setPlacing(false);
-    if (error) return toast.error(error.message);
-    toast.success("Vonona — miandry mpifanandrina mitovy mise");
-    load();
+    if (error || !g) return toast.error(error?.message ?? "Tsy nahomby");
+    toast.success("Vonona — miandry mpifanandrina");
+    // Tonga dia miditra ny Table de jeu mba ho hita avy hatrany rehefa miditra ny adversaire
+    nav(`/game/${g.id}`);
   };
 
   const cancelMyWaiting = async () => {

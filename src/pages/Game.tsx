@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, Home as HomeIcon } from "lucide-react";
-import { fmtAr } from "@/lib/constants";
+import { ArrowLeft, Loader2, Home as HomeIcon, Clock } from "lucide-react";
+import { fmtAr, TURN_TIMEOUT_SEC } from "@/lib/constants";
 import { DominoTile, DominoBack } from "@/components/DominoTile";
 import {
   Tile, Placed, deal, ends, canPlace, place, pipsTotal, hasMove,
@@ -27,6 +27,8 @@ export default function Game() {
   const [game, setGame] = useState<any>(null);
   const [selected, setSelected] = useState<number | null>(null);
   const [ticketBanner, setTicketBanner] = useState<string | null>(null);
+  const [now, setNow] = useState(Date.now());
+  const autoActedRef = useRef<string | null>(null);
 
   const updateGameState = async (payload: {
     board_state?: Placed[];
@@ -75,6 +77,12 @@ export default function Game() {
     return () => { supabase.removeChannel(ch); };
   }, [id]);
 
+  // Tic-tac timer 1s
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
   // Mamboatra ny lalao raha vao nivadika ho in_progress saingy mbola tsy nizara piesy
   useEffect(() => {
     if (!game || !user) return;
@@ -116,6 +124,11 @@ export default function Game() {
   const board: Placed[] = (game?.board_state as Placed[]) ?? [];
   const isMyTurn = game?.current_turn === user?.id && game?.status === "in_progress";
 
+  // Faharetan'ny Tour
+  const turnStart = game?.turn_started_at ? new Date(game.turn_started_at).getTime() : 0;
+  const elapsed = Math.max(0, Math.floor((now - turnStart) / 1000));
+  const remaining = Math.max(0, TURN_TIMEOUT_SEC - elapsed);
+
   const tryPlay = async (idx: number, side?: "left" | "right") => {
     if (!isMyTurn || !game || !user) return;
     const tile = myHand[idx];
@@ -148,6 +161,13 @@ export default function Game() {
       turn_started_at: new Date().toISOString(),
       passes: 0,
     } as any);
+    // Mametraka filaharana ho an'ny Admin (historique)
+    await supabase.from("game_moves").insert({
+      game_id: game.id,
+      player_id: user.id,
+      piece: { tile, flipped: chosenSide === "left" ? tile[1] !== (ends(board)?.left ?? tile[1]) : tile[0] !== (ends(board)?.right ?? tile[0]) },
+      side: chosenSide,
+    });
     setSelected(null);
   };
 
@@ -190,6 +210,36 @@ export default function Game() {
     toast("Pass — tsy misy piesy mety");
   };
 
+  // Auto-action rehefa lany ny 20s
+  useEffect(() => {
+    if (!game || !user || !isMyTurn) return;
+    if (game.status !== "in_progress") return;
+    if (remaining > 0) return;
+    const key = `${game.id}-${game.turn_started_at}`;
+    if (autoActedRef.current === key) return;
+    autoActedRef.current = key;
+
+    (async () => {
+      // 1) Raha misy piesy mety apetraka → ataovy automatique ny voalohany hita
+      const playableIdx = myHand.findIndex((t) => canPlace(board, t) !== null);
+      if (playableIdx >= 0) {
+        const can = canPlace(board, myHand[playableIdx]);
+        const side: "left" | "right" = can === "left" ? "left" : "right";
+        await tryPlay(playableIdx, side);
+        return;
+      }
+      // 2) Raha mbola misy boneyard → maka iray
+      const boneyard: Tile[] = (game.boneyard as Tile[]) ?? [];
+      if (boneyard.length > 0) {
+        await drawOrPass();
+        return;
+      }
+      // 3) Tsy afa-mihetsika intsony → pass (mandeha amin'ny adversaire)
+      await drawOrPass();
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remaining, isMyTurn, game?.turn_started_at, game?.status]);
+
   if (!game) return <div className="min-h-screen felt-bg flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
   const e = ends(board);
@@ -205,13 +255,18 @@ export default function Game() {
         </div>
       )}
       <header className="p-3 flex items-center gap-3 border-b border-primary/20">
-        <Button variant="ghost" size="icon" onClick={() => nav("/")}><ArrowLeft /></Button>
+        <Button variant="ghost" size="icon" onClick={() => nav(-1 as any)}><ArrowLeft /></Button>
         <div className="flex-1">
           <h1 className="font-display text-base font-bold gold-text">Latabatra Domino</h1>
           <p className="text-[10px] text-muted-foreground">
             Mise: {fmtAr(game.stake)} · Gain: {fmtAr(Math.round(game.stake * 1.8))} · Comm. 10%
           </p>
         </div>
+        {game.status === "in_progress" && (
+          <div className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold ${remaining <= 5 ? "bg-destructive/20 text-destructive animate-pulse" : "bg-primary/15 gold-text"}`}>
+            <Clock className="w-3 h-3" /> {remaining}s
+          </div>
+        )}
         <Button variant="ghost" size="icon" onClick={() => nav("/")}><HomeIcon className="w-5 h-5" /></Button>
       </header>
 
@@ -221,6 +276,20 @@ export default function Game() {
             <Loader2 className="w-12 h-12 mx-auto animate-spin text-primary mb-4" />
             <p className="font-display text-lg">Miandry adversaire...</p>
             <p className="text-sm text-muted-foreground mt-2">Ny adversaire afaka miditra avy ao amin'ny Lobby.</p>
+            {game.player1_id === user?.id && (
+              <Button
+                variant="outline"
+                className="mt-4"
+                onClick={async () => {
+                  const { error } = await supabase.rpc("cancel_waiting_game", { _game_id: game.id });
+                  if (error) return toast.error(error.message);
+                  toast("Nesorina ny mise");
+                  nav("/lobby");
+                }}
+              >
+                Annuler ny mise
+              </Button>
+            )}
           </div>
         </div>
       )}
@@ -234,26 +303,26 @@ export default function Game() {
             ))}
           </div>
 
-          {/* Latabatra — chain horizontal mifandimby */}
-          <div className="flex-1 overflow-auto p-2 flex items-center justify-center">
+          {/* Latabatra — chain mifandrohy, mihodina raha lava (snake) */}
+          <div className="flex-1 overflow-auto p-2 flex items-start justify-center">
             {board.length === 0 ? (
-              <p className="text-sm text-muted-foreground italic">
+              <p className="text-sm text-muted-foreground italic mt-8">
                 {isMyTurn ? "Apetraho ny piesy voalohany" : "Miandry ny adversaire..."}
               </p>
             ) : (
-              <div className="flex flex-wrap justify-center items-center gap-0.5">
+              <div className="flex flex-wrap justify-center items-center gap-0 max-w-full px-1">
                 {board.map((p, i) => {
                   const [a, b] = p.tile;
                   const isDouble = a === b;
-                  // Double = vertical, hafa = horizontal
                   return (
-                    <DominoTile
-                      key={i}
-                      a={p.flipped ? b : a}
-                      b={p.flipped ? a : b}
-                      size="md"
-                      horizontal={!isDouble}
-                    />
+                    <div key={i} className="flex items-center justify-center">
+                      <DominoTile
+                        a={p.flipped ? b : a}
+                        b={p.flipped ? a : b}
+                        size="sm"
+                        horizontal={!isDouble}
+                      />
+                    </div>
                   );
                 })}
               </div>

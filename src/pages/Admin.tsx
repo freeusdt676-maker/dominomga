@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { ArrowLeft, Check, X, Megaphone, Wallet as WalletIcon, UserCheck, Eye, EyeOff, MessageSquare, ArrowDownToLine, ArrowUpFromLine, History, Search, Unlock } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 import { toast } from "sonner";
+import { DominoTile } from "@/components/DominoTile";
 
 export default function Admin() {
   const { user, isAdmin } = useAuth();
@@ -31,6 +32,8 @@ export default function Admin() {
   const [historySearch, setHistorySearch] = useState("");
   const [allTx, setAllTx] = useState<any[]>([]);
   const [adminNames, setAdminNames] = useState<Record<string, string>>({});
+  const [selectedGame, setSelectedGame] = useState<any | null>(null);
+  const [gameMoves, setGameMoves] = useState<any[]>([]);
   const adminId = user?.id ?? resolvedAdminId;
 
   useEffect(() => {
@@ -219,6 +222,17 @@ export default function Admin() {
     );
   });
 
+  const openGameDetails = async (h: any) => {
+    setSelectedGame(h);
+    setGameMoves([]);
+    const { data: mv } = await supabase
+      .from("game_moves")
+      .select("*")
+      .eq("game_id", h.id)
+      .order("created_at", { ascending: true });
+    setGameMoves(mv ?? []);
+  };
+
   const deposits = pending.filter(t => t.type === "deposit");
   const withdrawals = pending.filter(t => t.type === "withdrawal");
   const pendingUsersCount = users.filter(u => u.account_status === "pending").length;
@@ -384,7 +398,11 @@ export default function Admin() {
               const loserName = h.winner_id === h.player1_id ? h._p2 : h.winner_id === h.player2_id ? h._p1 : null;
               const start = h.turn_started_at ?? h.created_at;
               return (
-                <div key={h.id} className="card-felt rounded-xl p-3 text-xs space-y-1">
+                <button
+                  key={h.id}
+                  onClick={() => openGameDetails(h)}
+                  className="w-full text-left card-felt rounded-xl p-3 text-xs space-y-1 hover:bg-primary/5 transition"
+                >
                   <div className="flex justify-between items-start">
                     <p className="font-mono font-bold gold-text">Nº{h.ticket_number}</p>
                     <span className={`px-2 py-0.5 rounded text-[10px] ${h.status === "finished" ? "bg-success/20 text-success" : h.status === "blocked" ? "bg-destructive/20 text-destructive" : "bg-muted/40"}`}>
@@ -398,13 +416,55 @@ export default function Admin() {
                     Niatomboka: {new Date(start).toLocaleString()}<br />
                     {h.finished_at && <>Niafarany: {new Date(h.finished_at).toLocaleString()}</>}
                   </p>
-                </div>
+                  <p className="text-[10px] text-primary mt-1">▶ Tsindrio hijery filaharana...</p>
+                </button>
               );
             })}
             {filteredHistory.length === 0 && <p className="text-center text-muted-foreground py-6">Tsy misy historique</p>}
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* DETAILS LALAO — filaharan'ny vato napetraka */}
+      <Dialog open={!!selectedGame} onOpenChange={(o) => !o && setSelectedGame(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="gold-text font-mono">Nº{selectedGame?.ticket_number}</DialogTitle>
+          </DialogHeader>
+          {selectedGame && (
+            <div className="space-y-2 text-sm">
+              <Row label="Mpifanandrina" value={`${selectedGame._p1} vs ${selectedGame._p2}`} />
+              <Row label="Mise" value={fmtAr(selectedGame.stake)} />
+              <Row label="Pandresy" value={selectedGame.winner_id === selectedGame.player1_id ? selectedGame._p1 : selectedGame.winner_id === selectedGame.player2_id ? selectedGame._p2 : "—"} />
+              <Row label="Niatomboka" value={new Date(selectedGame.turn_started_at ?? selectedGame.created_at).toLocaleString()} />
+              <Row label="Niafarany" value={selectedGame.finished_at ? new Date(selectedGame.finished_at).toLocaleString() : "—"} />
+              <div className="pt-2">
+                <p className="text-xs font-bold gold-text mb-2">Filaharan'ny vato napetraka ({gameMoves.length})</p>
+                <div className="max-h-72 overflow-y-auto space-y-1">
+                  {gameMoves.length === 0 && <p className="text-[11px] text-muted-foreground text-center py-3">Tsy misy hetsika voarakitra</p>}
+                  {gameMoves.map((m, i) => {
+                    const piece = m.piece as { tile?: [number, number]; flipped?: boolean } | null;
+                    const tile = piece?.tile;
+                    const playerName = m.player_id === selectedGame.player1_id ? selectedGame._p1 : selectedGame._p2;
+                    return (
+                      <div key={m.id} className="flex items-center gap-2 rounded-lg border border-primary/20 p-2 bg-card/40">
+                        <span className="text-[10px] font-mono text-muted-foreground w-6">{i + 1}.</span>
+                        {tile ? <DominoTile a={tile[0]} b={tile[1]} size="sm" horizontal /> : <span className="text-xs">—</span>}
+                        <div className="flex-1 text-[11px]">
+                          <p className="font-bold">{playerName}</p>
+                          <p className="text-muted-foreground">
+                            {m.side === "left" ? "⬅ havia" : m.side === "right" ? "havanana ➡" : "—"} · {new Date(m.created_at).toLocaleTimeString(undefined, { hour12: false })}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* DETAILS MODAL */}
       <Dialog open={!!selectedUser} onOpenChange={(o) => !o && setSelectedUser(null)}>

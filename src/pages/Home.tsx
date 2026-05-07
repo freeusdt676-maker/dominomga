@@ -23,6 +23,40 @@ export default function Home() {
 
   useEffect(() => {
     if (!user) return;
+
+    const redirectToActiveGame = async () => {
+      const { data } = await supabase
+        .from("games")
+        .select("id, status, updated_at")
+        .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
+        .eq("status", "in_progress")
+        .order("updated_at", { ascending: false })
+        .limit(1);
+
+      if (data && data[0]?.id) {
+        nav(`/game/${data[0].id}`);
+      }
+    };
+
+    redirectToActiveGame();
+
+    const ch = supabase.channel(`home-games-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "games" },
+        () => redirectToActiveGame(),
+      )
+      .subscribe();
+
+    const itv = setInterval(redirectToActiveGame, 2500);
+    return () => {
+      supabase.removeChannel(ch);
+      clearInterval(itv);
+    };
+  }, [user, nav]);
+
+  useEffect(() => {
+    if (!user) return;
     (async () => {
       const { data: p } = await supabase.from("profiles").select("*").eq("user_id", user.id).single();
       setProfile(p);

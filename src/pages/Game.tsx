@@ -7,7 +7,7 @@ import { ArrowLeft, Loader2, Home as HomeIcon, Clock } from "lucide-react";
 import { fmtAr, TURN_TIMEOUT_SEC } from "@/lib/constants";
 import { DominoTile, DominoBack } from "@/components/DominoTile";
 import {
-  Tile, Placed, deal, ends, canPlace, place, pipsTotal, hasMove,
+  Tile, Placed, deal, ends, canPlace, place, pipsTotal, hasMove, chooseStartingPlayer,
 } from "@/lib/dominoEngine";
 import { toast } from "sonner";
 
@@ -29,6 +29,34 @@ export default function Game() {
   const [ticketBanner, setTicketBanner] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
   const autoActedRef = useRef<string | null>(null);
+  const initLockRef = useRef(false);
+
+  const initializeGameHands = async (currentGame: any) => {
+    if (!currentGame?.id || !currentGame.player1_id || !currentGame.player2_id) return;
+    if (initLockRef.current) return;
+    initLockRef.current = true;
+
+    try {
+      const seed = currentGame.ticket_number || currentGame.id;
+      const { p1: h1, p2: h2, boneyard } = deal(seed);
+      const starter = chooseStartingPlayer(h1, h2, currentGame.player1_id, currentGame.player2_id);
+      const { error } = await updateGameState({
+        player1_hand: h1,
+        player2_hand: h2,
+        boneyard,
+        board_state: [],
+        current_turn: starter,
+        turn_started_at: new Date().toISOString(),
+      });
+      if (error) {
+        throw error;
+      }
+    } catch (error: any) {
+      toast.error(error?.message ?? "Tsy tafapetraka ny vaton'ny lalao");
+    } finally {
+      initLockRef.current = false;
+    }
+  };
 
   const updateGameState = async (payload: {
     board_state?: Placed[];
@@ -90,26 +118,10 @@ export default function Game() {
     const board = (game.board_state as Placed[]) ?? [];
     const p1 = (game.player1_hand as Tile[]) ?? [];
     const p2 = (game.player2_hand as Tile[]) ?? [];
-    if (board.length === 0 && p1.length === 0 && p2.length === 0) {
-      // Player1 ihany no manomboka mizara
-      if (game.player1_id === user.id) {
-        const { p1: h1, p2: h2, boneyard } = deal();
-        // Ny manana [6,6] na ny ambony indrindra no manomboka
-        let starter = game.player1_id;
-        const has66_p1 = h1.some(([a,b]) => a===6 && b===6);
-        const has66_p2 = h2.some(([a,b]) => a===6 && b===6);
-        if (has66_p2 && !has66_p1) starter = game.player2_id;
-        updateGameState({
-          player1_hand: h1,
-          player2_hand: h2,
-          boneyard,
-          board_state: [],
-          current_turn: starter,
-          turn_started_at: new Date().toISOString(),
-        });
-      }
+    if (board.length === 0 && p1.length === 0 && p2.length === 0 && game.player2_id) {
+      initializeGameHands(game);
     }
-  }, [game?.status, game?.player1_id, user?.id]);
+  }, [game, user]);
 
   const myHand: Tile[] = useMemo(() => {
     if (!game || !user) return [];
@@ -304,13 +316,48 @@ export default function Game() {
           </div>
 
           {/* Latabatra — chain mifandrohy, mihodina raha lava (snake) */}
-          <div className="flex-1 overflow-auto p-2 flex items-start justify-center">
+          <div className="flex-1 overflow-auto px-2 py-4 flex flex-col items-center justify-start">
             {board.length === 0 ? (
-              <p className="text-sm text-muted-foreground italic mt-8">
-                {isMyTurn ? "Apetraho ny piesy voalohany" : "Miandry ny adversaire..."}
-              </p>
+              <div className="w-full flex flex-col items-center justify-start pt-4 gap-3">
+                {game.player2_id ? (
+                  <>
+                    <div className="min-h-[56px] flex items-center justify-center">
+                      {selected !== null && isMyTurn ? (
+                        <DominoTile
+                          a={myHand[selected][0]}
+                          b={myHand[selected][1]}
+                          size="md"
+                          horizontal={myHand[selected][0] !== myHand[selected][1]}
+                        />
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic text-center">
+                          {isMyTurn ? "Safidio ny vato dia hiakatra eo afovoany" : "Miandry ny tour-nao..."}
+                        </p>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground italic text-center">
+                      {isMyTurn ? "Apetraho ny piesy voalohany" : "Miandry ny adversaire..."}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic mt-8 text-center">
+                    Miandry adversaire hiditra hanomboka ny lalao...
+                  </p>
+                )}
+              </div>
             ) : (
-              <div className="flex flex-wrap justify-center items-center gap-0 max-w-full px-1">
+              <div className="w-full flex flex-col items-center gap-3">
+                {selected !== null && isMyTurn && (
+                  <div className="min-h-[56px] flex items-center justify-center">
+                    <DominoTile
+                      a={myHand[selected][0]}
+                      b={myHand[selected][1]}
+                      size="md"
+                      horizontal={myHand[selected][0] !== myHand[selected][1]}
+                    />
+                  </div>
+                )}
+                <div className="flex flex-wrap justify-center items-center gap-0 max-w-full px-1">
                 {board.map((p, i) => {
                   const [a, b] = p.tile;
                   const isDouble = a === b;
@@ -325,6 +372,7 @@ export default function Game() {
                     </div>
                   );
                 })}
+                </div>
               </div>
             )}
           </div>

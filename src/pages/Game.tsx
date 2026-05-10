@@ -472,12 +472,20 @@ export default function Game() {
           🎫 TICKET Nº{ticketBanner} ACCEPTÉ
         </div>
       )}
+      {roundBanner && (
+        <div className="fixed inset-x-0 top-0 z-50 bg-primary text-primary-foreground py-3 px-4 text-center font-bold shadow-lg animate-in slide-in-from-top">
+          🏁 {roundBanner}
+        </div>
+      )}
       <header className="p-3 flex items-center gap-3 border-b border-primary/20">
         <Button variant="ghost" size="icon" onClick={() => nav(-1 as any)}><ArrowLeft /></Button>
         <div className="flex-1">
           <h1 className="font-display text-base font-bold gold-text">Latabatra Domino</h1>
           <p className="text-[10px] text-muted-foreground">
-            Mise: {fmtAr(game.stake)} · Gain: {fmtAr(Math.round(game.stake * 1.8))} · Comm. 10%
+            {MODE_LABEL[gameMode]} · Tour {game.round_number ?? 1} · Score {myScore}-{oppScore}{targetPts ? ` /${targetPts}` : ""}
+          </p>
+          <p className="text-[10px] text-muted-foreground">
+            Mise: {fmtAr(game.stake)} · Gain: {fmtAr(Math.round(game.stake * 1.8))}
           </p>
         </div>
         {game.status === "in_progress" && (
@@ -504,21 +512,9 @@ export default function Game() {
       )}
 
       {game.status === "in_progress" && isMyTurn && !hasMove(myHand, board) && (
-        <div className="px-3 py-2 bg-warning/15 border-b border-warning/40 flex flex-col items-center gap-2">
+        <div className="px-3 py-2 bg-warning/15 border-b border-warning/40 flex flex-col items-center gap-1">
           <p className="font-bold text-sm gold-text">⚠ TSIMANANA IZAHO</p>
-          {showBlockedChoice && myBoneyardEmpty ? (
-            <>
-              <p className="text-xs text-muted-foreground text-center">
-                Maty ny domy. Mbola hanohy ve ianao? Raha "Tsia" dia resy avy hatrany.
-              </p>
-              <div className="flex gap-2">
-                <Button size="sm" className="btn-gold" onClick={continueAfterEmpty}>Mbola hanohy</Button>
-                <Button size="sm" variant="destructive" onClick={giveUpAfterEmpty}>Tsia (Resy)</Button>
-              </div>
-            </>
-          ) : (
-            <p className="text-xs text-muted-foreground">Mandray vato vaovao avy ao am-poto...</p>
-          )}
+          <p className="text-xs text-muted-foreground">Mandalo ho azy any amin'ny adversaire...</p>
         </div>
       )}
 

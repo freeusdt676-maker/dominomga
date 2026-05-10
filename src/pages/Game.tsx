@@ -36,6 +36,8 @@ export default function Game() {
   const [isAbandoning, setIsAbandoning] = useState(false);
   const autoActedRef = useRef<string | null>(null);
   const initLockRef = useRef(false);
+  const autoDrawRef = useRef<string | null>(null);
+  const [showBlockedChoice, setShowBlockedChoice] = useState(false);
   const isMobile = useIsMobile();
 
   const getAbandonedGameId = () => sessionStorage.getItem(ABANDONED_GAME_KEY);
@@ -353,6 +355,66 @@ export default function Game() {
   const canLeft = selected !== null && e ? canPlace(board, myHand[selected]) === "left" || canPlace(board, myHand[selected]) === "either" : false;
   const canRight = selected !== null && e ? canPlace(board, myHand[selected]) === "right" || canPlace(board, myHand[selected]) === "either" : false;
   const noMove = isMyTurn && !hasMove(myHand, board);
+  const myBoneyardEmpty = ((game?.boneyard as Tile[]) ?? []).length === 0;
+
+  // Auto-draw raha tsy manana piesy mety ny mpilalao manana ny tour ary mbola misy boneyard
+  useEffect(() => {
+    if (!isMyTurn || !game) return;
+    if (hasMove(myHand, board)) {
+      setShowBlockedChoice(false);
+      return;
+    }
+    const bone = ((game.boneyard as Tile[]) ?? []);
+    if (bone.length > 0) {
+      const key = `${game.id}-draw-${game.turn_started_at}`;
+      if (autoDrawRef.current === key) return;
+      autoDrawRef.current = key;
+      (async () => {
+        const isP1 = game.player1_id === user!.id;
+        const drawn = bone[0];
+        const newBone = bone.slice(1);
+        const newHand = [...myHand, drawn];
+        await updateGameState({
+          boneyard: newBone,
+          [isP1 ? "player1_hand" : "player2_hand"]: newHand,
+        } as any);
+        toast("TSIMANANA IZAHO — naka vato vaovao");
+      })();
+    } else {
+      setShowBlockedChoice(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMyTurn, myHand, board, game?.boneyard]);
+
+  const continueAfterEmpty = () => {
+    setShowBlockedChoice(false);
+    // Mamerina ny lalao - pass ny tour any amin'ny adversaire
+    drawOrPass();
+  };
+
+  const giveUpAfterEmpty = async () => {
+    if (!game || !user) return;
+    const oppId = game.player1_id === user.id ? game.player2_id : game.player1_id;
+    if (!oppId) return;
+    sessionStorage.setItem(ABANDONED_GAME_KEY, game.id);
+    setShowBlockedChoice(false);
+    setOptimistic({
+      ...game,
+      status: "finished",
+      winner_id: oppId,
+      current_turn: null,
+      finished_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+    const { error } = await supabase.rpc("settle_game", { _game_id: game.id, _winner: oppId });
+    if (error) {
+      sessionStorage.removeItem(ABANDONED_GAME_KEY);
+      setOptimistic(null);
+      return toast.error(error.message);
+    }
+    toast("Resy ianao — tsy nety nanohy");
+    nav("/lobby", { replace: true });
+  };
 
   const abandonGame = async () => {
     if (!game || !user || isAbandoning) return;
@@ -426,6 +488,25 @@ export default function Game() {
             {isAbandoning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Flag className="w-4 h-4" />}
             {isAbandoning ? "Tapitra ny lalao..." : "Abandonné — Hiala amin'ny lalao"}
           </Button>
+        </div>
+      )}
+
+      {game.status === "in_progress" && isMyTurn && !hasMove(myHand, board) && (
+        <div className="px-3 py-2 bg-warning/15 border-b border-warning/40 flex flex-col items-center gap-2">
+          <p className="font-bold text-sm gold-text">⚠ TSIMANANA IZAHO</p>
+          {showBlockedChoice && myBoneyardEmpty ? (
+            <>
+              <p className="text-xs text-muted-foreground text-center">
+                Maty ny domy. Mbola hanohy ve ianao? Raha "Tsia" dia resy avy hatrany.
+              </p>
+              <div className="flex gap-2">
+                <Button size="sm" className="btn-gold" onClick={continueAfterEmpty}>Mbola hanohy</Button>
+                <Button size="sm" variant="destructive" onClick={giveUpAfterEmpty}>Tsia (Resy)</Button>
+              </div>
+            </>
+          ) : (
+            <p className="text-xs text-muted-foreground">Mandray vato vaovao avy ao am-poto...</p>
+          )}
         </div>
       )}
 

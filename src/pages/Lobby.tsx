@@ -9,6 +9,7 @@ import { toast } from "sonner";
 
 type WaitingGame = {
   id: string; player1_id: string; stake: number; created_at: string; game_mode?: string;
+  players_count?: number; player2_id?: string | null; player3_id?: string | null; status?: string;
   _name?: string;
 };
 
@@ -25,6 +26,8 @@ export default function Lobby() {
   const nav = useNavigate();
   const [stake, setStake] = useState(STAKE_LEVELS[0]);
   const [mode, setMode] = useState<string>("d120");
+  const [playersCount, setPlayersCount] = useState<2 | 3>(2);
+  const [confirmed, setConfirmed] = useState(false);
   const [waiting, setWaiting] = useState<WaitingGame[]>([]);
   const [myWaiting, setMyWaiting] = useState<WaitingGame | null>(null);
   const [placing, setPlacing] = useState(false);
@@ -50,19 +53,25 @@ export default function Lobby() {
     }
     const { data: gs } = await supabase
       .from("games")
-      .select("id, player1_id, stake, created_at, game_mode")
-      .eq("status", "waiting")
-      .is("player2_id", null)
+      .select("id, player1_id, player2_id, player3_id, stake, created_at, game_mode, players_count, status")
+      .or("status.eq.waiting,and(status.eq.in_progress,player3_id.is.null)")
       .order("created_at", { ascending: true });
     const list = (gs ?? []) as WaitingGame[];
-    const ids = Array.from(new Set(list.map((g) => g.player1_id)));
+    // Only keep games still seeking players (3P with empty seat, 2P waiting)
+    const open = list.filter((g) => {
+      const pc = Number(g.players_count ?? 2);
+      if (pc === 2) return g.status === "waiting" && !g.player2_id;
+      // 3P
+      return !g.player3_id && (g.status === "waiting" || g.status === "in_progress");
+    });
+    const ids = Array.from(new Set(open.map((g) => g.player1_id)));
     let nameMap: Record<string, string> = {};
     if (ids.length) {
       const { data: ps } = await supabase.from("profiles").select("user_id, mvola_name").in("user_id", ids);
       (ps ?? []).forEach((p: any) => { nameMap[p.user_id] = p.mvola_name; });
     }
-    const enriched = list.map((g) => ({ ...g, _name: nameMap[g.player1_id] ?? "Mpilalao" }));
-    setWaiting(enriched.filter((g) => g.player1_id !== user.id));
+    const enriched = open.map((g) => ({ ...g, _name: nameMap[g.player1_id] ?? "Mpilalao" }));
+    setWaiting(enriched.filter((g) => g.player1_id !== user.id && g.player2_id !== user.id));
     setMyWaiting(enriched.find((g) => g.player1_id === user.id) ?? null);
   };
 
@@ -100,7 +109,7 @@ export default function Lobby() {
     setPlacing(true);
     const { data: g, error } = await supabase
       .from("games")
-      .insert({ player1_id: user.id, stake, status: "waiting", game_mode: mode })
+      .insert({ player1_id: user.id, stake, status: "waiting", game_mode: mode, players_count: playersCount } as any)
       .select("id")
       .single();
     setPlacing(false);
@@ -123,7 +132,11 @@ export default function Lobby() {
     const { data: w } = await supabase.from("wallets").select("balance").eq("user_id", user.id).single();
     if (Number(w?.balance ?? 0) < Number(g.stake)) return toast.error("Tsy ampy ny solde amin'io mise io");
     setJoining(g.id);
-    const { error } = await supabase.rpc("join_and_start_game", { _game_id: g.id, _player2: user.id });
+    const pc = Number(g.players_count ?? 2);
+    const isThirdSeat = pc === 3 && g.player2_id && !g.player3_id;
+    const { error } = isThirdSeat
+      ? await supabase.rpc("join_3p_start" as any, { _game_id: g.id, _player3: user.id })
+      : await supabase.rpc("join_and_start_game", { _game_id: g.id, _player2: user.id });
     setJoining(null);
     if (error) return toast.error(error.message === "already_taken" ? "Efa nalain'ny hafa" : error.message);
     nav(`/game/${g.id}`);
@@ -144,30 +157,46 @@ export default function Lobby() {
 
       <div className="p-4 max-w-lg mx-auto space-y-4">
         <div className="card-felt rounded-2xl p-4">
-          <p className="text-sm text-muted-foreground mb-2">Karazana lalao</p>
+          <p className="text-sm text-muted-foreground mb-2">1. Mpilalao</p>
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            {[2, 3].map((n) => (
+              <button
+                key={n}
+                onClick={() => { setPlayersCount(n as 2 | 3); setConfirmed(false); }}
+                className={`py-2 rounded-lg text-xs font-semibold border ${playersCount === n ? "btn-gold border-primary" : "border-primary/30 text-foreground"}`}
+              >
+                {n}P {n === 2 ? "(1 vs 1)" : "(1 vs 2 vs 3)"}
+              </button>
+            ))}
+          </div>
+
+          <p className="text-sm text-muted-foreground mb-2">2. Mise</p>
+          <div className="grid grid-cols-5 gap-2 mb-4">
+            {STAKE_LEVELS.map((s) => (
+              <button key={s} onClick={() => { setStake(s); setConfirmed(false); }}
+                className={`py-2 rounded-lg text-xs font-semibold border ${stake === s ? "btn-gold border-primary" : "border-primary/30 text-foreground"}`}>
+                {s/1000}k
+              </button>
+            ))}
+          </div>
+
+          <p className="text-sm text-muted-foreground mb-2">3. Karazana lalao</p>
           <div className="grid grid-cols-3 gap-2 mb-4">
             {MODES.map((m) => (
               <button
                 key={m.value}
-                onClick={() => setMode(m.value)}
+                onClick={() => { setMode(m.value); setConfirmed(false); }}
                 className={`py-2 rounded-lg text-[11px] font-semibold border ${mode === m.value ? "btn-gold border-primary" : "border-primary/30 text-foreground"}`}
               >
                 {m.label}
               </button>
             ))}
           </div>
-          <p className="text-sm text-muted-foreground mb-2">Safidio ny mise</p>
-          <div className="grid grid-cols-5 gap-2">
-            {STAKE_LEVELS.map((s) => (
-              <button key={s} onClick={() => setStake(s)}
-                className={`py-2 rounded-lg text-xs font-semibold border ${stake === s ? "btn-gold border-primary" : "border-primary/30 text-foreground"}`}>
-                {s/1000}k
-              </button>
-            ))}
-          </div>
-          <p className="mt-3 text-center text-sm">
-            Mise: <b className="gold-text">{fmtAr(stake)}</b> · Gain net: <b className="gold-text">{fmtAr(Math.round(stake*1.8))}</b>
+
+          <p className="text-center text-sm">
+            <b className="gold-text">{playersCount}P</b> · Mise <b className="gold-text">{fmtAr(stake)}</b> · Gain net <b className="gold-text">{fmtAr(Math.round(stake * 0.9 * playersCount))}</b>
           </p>
+
           {myWaiting ? (
             <div className="mt-3 p-3 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-between">
               <div className="text-sm">
@@ -176,10 +205,14 @@ export default function Lobby() {
               </div>
               <Button size="sm" variant="destructive" onClick={cancelMyWaiting}><X className="w-4 h-4" /></Button>
             </div>
+          ) : !confirmed ? (
+            <Button className="btn-gold w-full mt-3" onClick={() => setConfirmed(true)}>
+              4. Confirmer le demande
+            </Button>
           ) : (
             <Button className="btn-gold w-full mt-3" onClick={placeMise} disabled={placing}>
               {placing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Coins className="w-4 h-4 mr-2" />}
-              Place mise {fmtAr(stake)}
+              Mise vonona — apetrao {fmtAr(stake)}
             </Button>
           )}
         </div>
@@ -199,6 +232,7 @@ export default function Lobby() {
                   {grouped[Number(k)].map((g) => {
                     const same = Number(g.stake) === stake;
                     const gMode = MODES.find((m) => m.value === (g.game_mode ?? "d120"));
+                    const pc = Number(g.players_count ?? 2);
                     return (
                       <button
                         key={g.id}
@@ -209,7 +243,8 @@ export default function Lobby() {
                         <div className="text-left">
                           <p className="font-bold text-sm">{g._name}</p>
                           <p className="text-[11px] text-muted-foreground">
-                            mise <b className="gold-text">{fmtAr(g.stake)}</b> · <b className="text-primary">{gMode?.label ?? "Maty 120"}</b>
+                            <b className="gold-text">{pc}P</b> · mise <b className="gold-text">{fmtAr(g.stake)}</b> · <b className="text-primary">{gMode?.label ?? "Maty 120"}</b>
+                            {pc === 3 && g.player2_id && !g.player3_id ? " · miandry pilalao 3" : ""}
                           </p>
                         </div>
                         {joining === g.id ? <Loader2 className="w-4 h-4 animate-spin" /> : (

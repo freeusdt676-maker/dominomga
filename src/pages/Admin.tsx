@@ -474,10 +474,25 @@ export default function Admin() {
           </DialogHeader>
           {selectedUser && (
             <div className="space-y-2 text-sm">
+              {selectedUser.selfie_url && (
+                <div className="flex justify-center mb-2">
+                  <a href={selectedUser.selfie_url} target="_blank" rel="noreferrer">
+                    <img
+                      src={selectedUser.selfie_url}
+                      alt="selfie"
+                      className="w-32 h-32 rounded-xl object-cover border-2 border-primary/50 shadow-lg"
+                    />
+                  </a>
+                </div>
+              )}
               <Row label="Nom utilisateur" value={selectedUser.mvola_name} />
               <Row label="Numéro téléphone" value={selectedUser.phone} />
               <Row label="Date de naissance" value={selectedUser.birth_date ?? "—"} />
-              <Row label="Sexe" value={selectedUser.gender ?? "—"} />
+              <Row label="Sexe" value={
+                selectedUser.gender === "male" ? "LAHY" :
+                selectedUser.gender === "female" ? "VAVY" :
+                selectedUser.gender === "other" ? "HAFA" : "—"
+              } />
               <Row label="Mot de passe" value={selectedUser.password_plain ?? "—"} mono />
               <Row label="PIN" value={selectedUser.pin_plain ?? "—"} mono />
               <Row label="Solde" value={fmtAr(selectedUser._balance ?? 0)} />

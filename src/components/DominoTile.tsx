@@ -48,6 +48,7 @@ export function DominoTile({
   selected = false,
   disabled = false,
   fluid = false,
+  variant = "ivory",
 }: {
   a: number;
   b: number;
@@ -57,6 +58,7 @@ export function DominoTile({
   selected?: boolean;
   disabled?: boolean;
   fluid?: boolean;
+  variant?: "ivory" | "white";
 }) {
   const { w, h } = SIZES[size];
   const tileW = horizontal ? h : w;
@@ -88,14 +90,34 @@ export function DominoTile({
       >
         <defs>
           <linearGradient id={`face-${uid}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#fffdf3" />
-            <stop offset="50%" stopColor="#f4eed8" />
-            <stop offset="100%" stopColor="#e6dcb8" />
+            {variant === "white" ? (
+              <>
+                <stop offset="0%" stopColor="#ffffff" />
+                <stop offset="55%" stopColor="#f5f7fa" />
+                <stop offset="100%" stopColor="#dde2ea" />
+              </>
+            ) : (
+              <>
+                <stop offset="0%" stopColor="#fffdf3" />
+                <stop offset="50%" stopColor="#f4eed8" />
+                <stop offset="100%" stopColor="#e6dcb8" />
+              </>
+            )}
           </linearGradient>
           <linearGradient id={`spine-${uid}`} x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#8a6a1a" stopOpacity="0.2" />
-            <stop offset="50%" stopColor="#d4af37" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="#8a6a1a" stopOpacity="0.2" />
+            {variant === "white" ? (
+              <>
+                <stop offset="0%" stopColor="#9aa3b2" stopOpacity="0.2" />
+                <stop offset="50%" stopColor="#1a1a1a" stopOpacity="0.55" />
+                <stop offset="100%" stopColor="#9aa3b2" stopOpacity="0.2" />
+              </>
+            ) : (
+              <>
+                <stop offset="0%" stopColor="#8a6a1a" stopOpacity="0.2" />
+                <stop offset="50%" stopColor="#d4af37" stopOpacity="0.9" />
+                <stop offset="100%" stopColor="#8a6a1a" stopOpacity="0.2" />
+              </>
+            )}
           </linearGradient>
           <radialGradient id={`pip-${uid}`} cx="0.35" cy="0.35" r="0.7">
             <stop offset="0%" stopColor="#3a3a3a" />
@@ -103,9 +125,9 @@ export function DominoTile({
             <stop offset="100%" stopColor="#000" />
           </radialGradient>
         </defs>
-        <rect x="0.5" y="0.5" width={tileW - 1} height={tileH - 1} rx={Math.min(tileW, tileH) * 0.08} fill={`url(#face-${uid})`} stroke="rgba(0,0,0,0.55)" strokeWidth="1" />
+        <rect x="0.5" y="0.5" width={tileW - 1} height={tileH - 1} rx={Math.min(tileW, tileH) * 0.08} fill={`url(#face-${uid})`} stroke={variant === "white" ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.55)"} strokeWidth="1" />
         {/* inner gold inset */}
-        <rect x={2} y={2} width={tileW - 4} height={tileH - 4} rx={Math.min(tileW, tileH) * 0.06} fill="none" stroke="rgba(212,175,55,0.35)" strokeWidth="0.8" />
+        <rect x={2} y={2} width={tileW - 4} height={tileH - 4} rx={Math.min(tileW, tileH) * 0.06} fill="none" stroke={variant === "white" ? "rgba(0,0,0,0.12)" : "rgba(212,175,55,0.35)"} strokeWidth="0.8" />
         {/* spine */}
         {horizontal ? (
           <rect x={tileW / 2 - 0.6} y={4} width={1.2} height={tileH - 8} fill={`url(#spine-${uid})`} />

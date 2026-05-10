@@ -3,9 +3,10 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, Home as HomeIcon, Clock, Flag } from "lucide-react";
+import { ArrowLeft, Loader2, Home as HomeIcon, Clock, Flag, Pizza, Rabbit } from "lucide-react";
 import { fmtAr, TURN_TIMEOUT_SEC } from "@/lib/constants";
 import { DominoTile, DominoBack } from "@/components/DominoTile";
+import { SnakeBoard } from "@/components/SnakeBoard";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Tile, Placed, deal, deal3, ends, canPlace, place, pipsTotal, hasMove, chooseOpening,
@@ -610,7 +611,7 @@ export default function Game() {
   const boardTileSize = isMobile ? "xs" : "sm";
 
   return (
-    <div className="min-h-screen felt-bg flex flex-col">
+    <div className="min-h-screen green-felt flex flex-col">
       {ticketBanner && (
         <div className="fixed inset-x-0 top-0 z-50 bg-success text-success-foreground py-3 px-4 text-center font-bold shadow-lg animate-in slide-in-from-top">
           🎫 TICKET Nº{ticketBanner} ACCEPTÉ
@@ -621,51 +622,49 @@ export default function Game() {
           🏁 {roundBanner}
         </div>
       )}
-      <header className="p-3 flex items-center gap-3 border-b border-primary/20">
-        <Button variant="ghost" size="icon" onClick={() => nav(-1 as any)}><ArrowLeft /></Button>
-        <div className="flex-1">
-          <h1 className="font-display text-base font-bold gold-text">Latabatra Domino · {playersCount}P</h1>
-          <p className="text-[10px] text-muted-foreground">
-            {MODE_LABEL[gameMode]} · Tour {game.round_number ?? 1}
-            {game.ticket_number ? ` · Nº${game.ticket_number}` : ""}
-          </p>
-          {turnName && game.status === "in_progress" && (
-            <p className="text-[10px] gold-text font-bold">▶ Andiany: {turnName}</p>
+      {/* Header style "Rolland | Tour | Opponent" */}
+      <header className="relative px-3 py-2 grid grid-cols-3 items-center gap-2 border-b-2 border-[#d4a52c]/60 bg-[linear-gradient(180deg,#0d3b22_0%,#0a2818_100%)] shadow-[inset_0_-2px_0_rgba(212,165,44,0.25)]">
+        <div className="flex items-center gap-2 min-w-0">
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-[#ffe27a] hover:bg-[#ffffff10]" onClick={() => nav(-1 as any)}>
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <div className="min-w-0">
+            <div className={`truncate text-sm font-extrabold ${game.current_turn === user?.id ? "text-[#ffe27a]" : "text-white/90"}`}>
+              {myName}
+            </div>
+            <div className="text-[10px] text-[#ffe27a]/70 truncate">
+              Score {scoreOf(user?.id ?? "")}
+              {targetPts ? <span className="opacity-60">/{targetPts}</span> : null}
+            </div>
+          </div>
+        </div>
+        <div className="text-center">
+          <div className="font-display text-[11px] uppercase tracking-[0.2em] text-[#ffe27a]/80">Tour</div>
+          <div className="font-display text-lg font-extrabold gold-text leading-none">
+            {game.round_number ?? 1}
+          </div>
+          {game.status === "in_progress" && (
+            <div className={`mt-0.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${remaining <= 5 ? "bg-destructive/30 text-white animate-pulse" : "bg-black/30 text-[#ffe27a]"}`}>
+              <Clock className="w-3 h-3" /> {remaining}s
+            </div>
           )}
         </div>
-        {game.status === "in_progress" && (
-          <div className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold ${remaining <= 5 ? "bg-destructive/20 text-destructive animate-pulse" : "bg-primary/15 gold-text"}`}>
-            <Clock className="w-3 h-3" /> {remaining}s
+        <div className="flex items-center justify-end gap-2 min-w-0">
+          <div className="min-w-0 text-right">
+            <div className={`truncate text-sm font-extrabold ${game.current_turn && opponents.some(o => o.id === game.current_turn) ? "text-[#ffe27a]" : "text-white/90"}`}>
+              {opponents[0]?.name ?? "Opponent"}
+            </div>
+            <div className="text-[10px] text-[#ffe27a]/70 truncate">
+              {opponents.length > 1
+                ? opponents.map(o => `${scoreOf(o.id)}`).join(" · ")
+                : `Score ${scoreOf(opponents[0]?.id ?? "")}`}
+            </div>
           </div>
-        )}
-        <Button variant="ghost" size="icon" onClick={() => nav("/")}><HomeIcon className="w-5 h-5" /></Button>
-      </header>
-
-      {/* Score board lehibe — anarana sy isan'ny score azo */}
-      <div className="px-3 pt-2">
-        <div className="rounded-xl border-2 border-primary/40 bg-black/40 shadow-inner overflow-hidden">
-          <div className="grid" style={{ gridTemplateColumns: `repeat(${1 + opponents.length}, minmax(0, 1fr))` }}>
-            {[{ id: user?.id ?? "", name: myName }, ...opponents].map((p, i) => {
-              const s = scoreOf(p.id);
-              const isTurn = game.current_turn === p.id;
-              return (
-                <div
-                  key={p.id || i}
-                  className={`px-2 py-2 text-center ${i > 0 ? "border-l border-primary/30" : ""} ${isTurn ? "bg-primary/15" : ""}`}
-                >
-                  <div className={`truncate text-sm sm:text-base font-bold ${isTurn ? "gold-text" : "text-foreground/90"}`}>
-                    {p.name}
-                  </div>
-                  <div className="font-display text-2xl sm:text-3xl font-extrabold gold-text leading-tight">
-                    {s}
-                    {targetPts ? <span className="text-xs text-muted-foreground font-sans">/{targetPts}</span> : null}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-[#ffe27a] hover:bg-[#ffffff10]" onClick={() => nav("/")}>
+            <HomeIcon className="w-4 h-4" />
+          </Button>
         </div>
-      </div>
+      </header>
 
       {game.status === "in_progress" && (
         <div className="px-3 py-2 bg-destructive/10 border-b border-destructive/30 flex justify-center">
@@ -745,66 +744,56 @@ export default function Game() {
             })}
           </div>
 
-          {/* Latabatra — chain mifandrohy, mihodina raha lava (snake) */}
-          <div className="flex-1 overflow-auto px-2 py-4 flex flex-col items-center justify-start">
-            {board.length === 0 ? (
-              <div className="w-full flex flex-col items-center justify-start pt-4 gap-3">
-                {game.player2_id ? (
-                  <>
-                    <div className="min-h-[56px] flex items-center justify-center">
-                      {selected !== null && isMyTurn ? (
-                        <DominoTile
-                          a={myHand[selected][0]}
-                          b={myHand[selected][1]}
-                          size="md"
-                          horizontal={myHand[selected][0] !== myHand[selected][1]}
-                        />
-                      ) : (
-                        <p className="text-sm text-muted-foreground italic text-center">
-                          {isMyTurn ? "Safidio ny vato dia hiakatra eo afovoany" : "Miandry ny tour-nao..."}
-                        </p>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground italic text-center">
+          {/* Latabatra — felt poker, snake path mihodina amin'ny sisiny */}
+          <div className="relative flex-1 px-3 py-3 min-h-[260px]">
+            {/* Floating side action buttons */}
+            <button
+              type="button"
+              className="fab-circle absolute left-2 top-1/2 -translate-y-1/2 z-20"
+              title="Pizza"
+              onClick={() => sfx.move()}
+            >
+              <Pizza className="w-6 h-6" />
+            </button>
+            <button
+              type="button"
+              className="fab-circle absolute right-2 top-1/2 -translate-y-1/2 z-20"
+              title="Rabbit"
+              onClick={() => sfx.move()}
+            >
+              <Rabbit className="w-6 h-6" />
+            </button>
+
+            <div className="felt-board relative w-full h-full min-h-[240px] mx-auto overflow-hidden">
+              {board.length === 0 ? (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  {game.player2_id ? (
+                    <p className="text-sm text-[#ffe27a]/80 italic text-center px-4">
                       {isMyTurn ? "Apetraho ny piesy voalohany" : "Miandry ny adversaire..."}
                     </p>
-                  </>
-                ) : (
-                  <p className="text-sm text-muted-foreground italic mt-8 text-center">
-                    Miandry adversaire hiditra hanomboka ny lalao...
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div className="w-full flex flex-col items-center gap-3">
-                {selected !== null && isMyTurn && (
-                  <div className="min-h-[56px] flex items-center justify-center">
-                    <DominoTile
-                      a={myHand[selected][0]}
-                      b={myHand[selected][1]}
-                      size="md"
-                      horizontal={myHand[selected][0] !== myHand[selected][1]}
-                    />
-                  </div>
-                )}
-                <div className="flex flex-wrap justify-center items-center gap-0 max-w-full px-1">
-                {board.map((p, i) => {
-                  const [a, b] = p.tile;
-                  const isDouble = a === b;
-                  return (
-                    <div key={i} className="flex items-center justify-center animate-scale-in">
-                      <DominoTile
-                        a={p.flipped ? b : a}
-                        b={p.flipped ? a : b}
-                        size={boardTileSize}
-                        horizontal={!isDouble}
-                      />
-                    </div>
-                  );
-                })}
+                  ) : (
+                    <p className="text-sm text-[#ffe27a]/80 italic text-center px-4">
+                      Miandry adversaire hiditra hanomboka ny lalao...
+                    </p>
+                  )}
                 </div>
-              </div>
-            )}
+              ) : (
+                <SnakeBoard board={board} tileSize={boardTileSize as "xs" | "sm"} />
+              )}
+
+              {selected !== null && isMyTurn && (
+                <div className="absolute left-1/2 -translate-x-1/2 bottom-2 z-10 flex items-center gap-2 bg-black/40 px-2 py-1 rounded-lg backdrop-blur-sm">
+                  <span className="text-[10px] text-[#ffe27a]">Voafidy:</span>
+                  <DominoTile
+                    a={myHand[selected][0]}
+                    b={myHand[selected][1]}
+                    size="xs"
+                    horizontal={myHand[selected][0] !== myHand[selected][1]}
+                    variant="white"
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Indikatera tendro + bokotra apetraka */}

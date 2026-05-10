@@ -46,6 +46,7 @@ export type Database = {
           game_id: string | null
           game_mode: string
           id: string
+          players_count: number
           stake: number
           status: string
           to_user: string
@@ -57,6 +58,7 @@ export type Database = {
           game_id?: string | null
           game_mode?: string
           id?: string
+          players_count?: number
           stake: number
           status?: string
           to_user: string
@@ -68,6 +70,7 @@ export type Database = {
           game_id?: string | null
           game_mode?: string
           id?: string
+          players_count?: number
           stake?: number
           status?: string
           to_user?: string
@@ -163,10 +166,14 @@ export type Database = {
           player1_id: string
           player2_hand: Json | null
           player2_id: string | null
+          player3_hand: Json
+          player3_id: string | null
+          players_count: number
           reveal_until: string | null
           round_number: number
           score_p1: number
           score_p2: number
+          score_p3: number
           stake: number
           status: Database["public"]["Enums"]["game_status"]
           ticket_number: string | null
@@ -189,10 +196,14 @@ export type Database = {
           player1_id: string
           player2_hand?: Json | null
           player2_id?: string | null
+          player3_hand?: Json
+          player3_id?: string | null
+          players_count?: number
           reveal_until?: string | null
           round_number?: number
           score_p1?: number
           score_p2?: number
+          score_p3?: number
           stake: number
           status?: Database["public"]["Enums"]["game_status"]
           ticket_number?: string | null
@@ -215,10 +226,14 @@ export type Database = {
           player1_id?: string
           player2_hand?: Json | null
           player2_id?: string | null
+          player3_hand?: Json
+          player3_id?: string | null
+          players_count?: number
           reveal_until?: string | null
           round_number?: number
           score_p1?: number
           score_p2?: number
+          score_p3?: number
           stake?: number
           status?: Database["public"]["Enums"]["game_status"]
           ticket_number?: string | null
@@ -233,6 +248,7 @@ export type Database = {
           created_at: string
           game_mode: string
           id: string
+          players_count: number
           stake: number
           user_id: string
         }
@@ -240,6 +256,7 @@ export type Database = {
           created_at?: string
           game_mode?: string
           id?: string
+          players_count?: number
           stake: number
           user_id: string
         }
@@ -247,6 +264,7 @@ export type Database = {
           created_at?: string
           game_mode?: string
           id?: string
+          players_count?: number
           stake?: number
           user_id?: string
         }
@@ -492,24 +510,44 @@ export type Database = {
         }
         Returns: boolean
       }
+      join_3p_start: {
+        Args: { _game_id: string; _player3: string }
+        Returns: Json
+      }
       join_and_start_game: {
         Args: { _game_id: string; _player2: string }
         Returns: Json
       }
-      player_update_game_state: {
-        Args: {
-          _board_state?: Json
-          _boneyard?: Json
-          _current_turn?: string
-          _game_id: string
-          _passes?: number
-          _player1_hand?: Json
-          _player2_hand?: Json
-          _status?: Database["public"]["Enums"]["game_status"]
-          _turn_started_at?: string
-        }
-        Returns: Json
-      }
+      player_update_game_state:
+        | {
+            Args: {
+              _board_state?: Json
+              _boneyard?: Json
+              _current_turn?: string
+              _game_id: string
+              _passes?: number
+              _player1_hand?: Json
+              _player2_hand?: Json
+              _status?: Database["public"]["Enums"]["game_status"]
+              _turn_started_at?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              _board_state?: Json
+              _boneyard?: Json
+              _current_turn?: string
+              _game_id: string
+              _passes?: number
+              _player1_hand?: Json
+              _player2_hand?: Json
+              _player3_hand?: Json
+              _status?: Database["public"]["Enums"]["game_status"]
+              _turn_started_at?: string
+            }
+            Returns: Json
+          }
       reject_user_with_message: {
         Args: { _admin_id: string; _message: string; _user_id: string }
         Returns: Json

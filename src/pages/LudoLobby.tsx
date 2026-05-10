@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { STAKE_LEVELS, fmtAr } from "@/lib/constants";
 import { ArrowLeft, Loader2, Coins, Users, X } from "lucide-react";
 import { toast } from "sonner";
+import { sfx } from "@/lib/sfx";
 
 type WaitingGame = {
   id: string; player1_id: string; stake: number; created_at: string;
@@ -70,6 +71,22 @@ export default function LudoLobby() {
     return () => { supabase.removeChannel(ch); clearInterval(itv); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  // Auto-redirect mahalaky rehefa misy mpifanandrina niditra ny mise nataoko
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase.channel("my-ludo-games-rt")
+      .on("postgres_changes",
+        { event: "UPDATE", schema: "public", table: "ludo_games", filter: `player1_id=eq.${user.id}` },
+        (p: any) => {
+          if (p.new?.status === "in_progress" && p.new?.id) {
+            sfx.notify();
+            nav(`/ludo/${p.new.id}`);
+          }
+        })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user, nav]);
 
   const placeMise = async () => {
     if (!user) return;

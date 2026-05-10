@@ -264,35 +264,88 @@ export default function Game() {
     toast("Pass — tsy misy piesy mety");
   };
 
-  // Auto-action rehefa lany ny 20s
+  // Auto-action / Bot — rehefa lany ny 20s, mandeha ho azy ny lalao
+  // Ny mpilalao manana ny tour no manao voalohany; raha tsy mihetsika izy,
+  // ny client-n'ny adversaire no maka an-tanana (bot) aorian'ny 3s fanampiny.
   useEffect(() => {
-    if (!game || !user || !isMyTurn) return;
+    if (!game || !user) return;
     if (game.status !== "in_progress") return;
-    if (remaining > 0) return;
-    const key = `${game.id}-${game.turn_started_at}`;
+    if (!game.current_turn) return;
+    const triggerAt = isMyTurn ? 0 : -3; // elapsed > TIMEOUT (mine) or +3s (bot for opp)
+    if (remaining > triggerAt) return;
+    const key = `${game.id}-${game.turn_started_at}-${game.current_turn}`;
     if (autoActedRef.current === key) return;
     autoActedRef.current = key;
 
     (async () => {
-      // 1) Raha misy piesy mety apetraka → ataovy automatique ny voalohany hita
-      const playableIdx = myHand.findIndex((t) => canPlace(board, t) !== null);
-      if (playableIdx >= 0) {
-        const can = canPlace(board, myHand[playableIdx]);
-        const side: "left" | "right" = can === "left" ? "left" : "right";
-        await tryPlay(playableIdx, side);
-        return;
-      }
-      // 2) Raha mbola misy boneyard → maka iray
+      const isP1Turn = game.current_turn === game.player1_id;
+      const turnHand: Tile[] = ((isP1Turn ? game.player1_hand : game.player2_hand) ?? []) as Tile[];
+      const oppId = isP1Turn ? game.player2_id : game.player1_id;
       const boneyard: Tile[] = (game.boneyard as Tile[]) ?? [];
-      if (boneyard.length > 0) {
-        await drawOrPass();
+
+      // 1) Misy piesy mety apetraka → apetraho ny voalohany
+      const playableIdx = turnHand.findIndex((t) => canPlace(board, t) !== null);
+      if (playableIdx >= 0) {
+        const tile = turnHand[playableIdx];
+        const can = canPlace(board, tile);
+        const chosenSide: "left" | "right" = can === "left" ? "left" : can === "right" ? "right" : "right";
+        const newBoard = place(board, tile, chosenSide);
+        const newHand = turnHand.filter((_, i) => i !== playableIdx);
+        if (newHand.length === 0) {
+          await supabase.rpc("settle_game", { _game_id: game.id, _winner: game.current_turn });
+          await updateGameState({
+            board_state: newBoard,
+            [isP1Turn ? "player1_hand" : "player2_hand"]: newHand,
+          } as any);
+          return;
+        }
+        await updateGameState({
+          board_state: newBoard,
+          [isP1Turn ? "player1_hand" : "player2_hand"]: newHand,
+          current_turn: oppId,
+          turn_started_at: new Date().toISOString(),
+          passes: 0,
+        } as any);
+        await supabase.from("game_moves").insert({
+          game_id: game.id,
+          player_id: game.current_turn,
+          piece: { tile, auto: true },
+          side: chosenSide,
+        });
         return;
       }
-      // 3) Tsy afa-mihetsika intsony → pass (mandeha amin'ny adversaire)
-      await drawOrPass();
+      // 2) Misy boneyard → maka iray
+      if (boneyard.length > 0) {
+        const drawn = boneyard[0];
+        const newBone = boneyard.slice(1);
+        const newHand = [...turnHand, drawn];
+        await updateGameState({
+          boneyard: newBone,
+          [isP1Turn ? "player1_hand" : "player2_hand"]: newHand,
+        } as any);
+        return;
+      }
+      // 3) Pass
+      const passes = (game.passes ?? 0) + 1;
+      if (passes >= 2) {
+        const myPips = pipsTotal(turnHand);
+        const oppPips = pipsTotal(((isP1Turn ? game.player2_hand : game.player1_hand) ?? []) as Tile[]);
+        const winner = myPips < oppPips ? game.current_turn : oppPips < myPips ? oppId : null;
+        if (winner) {
+          await supabase.rpc("settle_game", { _game_id: game.id, _winner: winner });
+        } else {
+          await updateGameState({ status: "blocked" });
+        }
+        return;
+      }
+      await updateGameState({
+        current_turn: oppId,
+        turn_started_at: new Date().toISOString(),
+        passes,
+      });
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [remaining, isMyTurn, game?.turn_started_at, game?.status]);
+  }, [remaining, isMyTurn, game?.turn_started_at, game?.status, game?.current_turn]);
 
   if (!game) return <div className="min-h-screen felt-bg flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 

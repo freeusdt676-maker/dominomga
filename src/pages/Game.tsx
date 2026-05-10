@@ -341,24 +341,52 @@ export default function Game() {
     const board = (game.board_state as Placed[]) ?? [];
     const p1 = (game.player1_hand as Tile[]) ?? [];
     const p2 = (game.player2_hand as Tile[]) ?? [];
-    if (board.length === 0 && p1.length === 0 && p2.length === 0 && game.player2_id) {
+    const p3 = (game.player3_hand as Tile[]) ?? [];
+    const pc = Number(game.players_count ?? 2);
+    const ready = pc === 3 ? !!game.player3_id : !!game.player2_id;
+    if (board.length === 0 && p1.length === 0 && p2.length === 0 && p3.length === 0 && ready) {
       initializeGameHands(game);
     }
   }, [game, user]);
 
+  // Anaran'ny mpilalao
+  useEffect(() => {
+    if (!game) return;
+    const ids = getPlayerIds(game);
+    if (!ids.length) return;
+    (async () => {
+      const { data } = await supabase.from("profiles").select("user_id, mvola_name").in("user_id", ids);
+      const m: Record<string, string> = {};
+      (data ?? []).forEach((p: any) => { m[p.user_id] = p.mvola_name ?? "Mpilalao"; });
+      setProfileNames(m);
+    })();
+  }, [game?.player1_id, game?.player2_id, game?.player3_id]);
+
   const myHand: Tile[] = useMemo(() => {
     if (!game || !user) return [];
-    return (game.player1_id === user.id ? game.player1_hand : game.player2_hand) ?? [];
+    const k = getHandKey(game, user.id);
+    return (k ? (game[k] as Tile[]) : []) ?? [];
   }, [game, user]);
 
-  const oppHandCount: number = useMemo(() => {
-    if (!game || !user) return 0;
-    return ((game.player1_id === user.id ? game.player2_hand : game.player1_hand) ?? []).length;
-  }, [game, user]);
-
-  const oppHand: Tile[] = useMemo(() => {
+  // Liste of opponents (1 or 2)
+  const opponents: { id: string; name: string; hand: Tile[]; count: number }[] = useMemo(() => {
     if (!game || !user) return [];
-    return ((game.player1_id === user.id ? game.player2_hand : game.player1_hand) ?? []) as Tile[];
+    const ids = getPlayerIds(game);
+    return ids.filter((id) => id !== user.id).map((id) => {
+      const k = getHandKey(game, id) as any;
+      const h = (game[k] as Tile[]) ?? [];
+      return { id, name: profileNames[id] ?? "Mpilalao", hand: h, count: h.length };
+    });
+  }, [game, user, profileNames]);
+
+  const myName = profileNames[user?.id ?? ""] ?? "Izaho";
+  const myHandKey = getHandKey(game, user?.id ?? "") ?? "player1_hand";
+  const oppHandCount = opponents.reduce((s, o) => s + o.count, 0);
+  const oppHand: Tile[] = useMemo(() => {
+    return opponents.flatMap((o) => o.hand);
+  }, [opponents]);
+  const isP1Helper = useMemo(() => {
+    return game ? game.player1_id === user?.id : false;
   }, [game, user]);
 
   const board: Placed[] = (game?.board_state as Placed[]) ?? [];
@@ -382,15 +410,14 @@ export default function Game() {
     }
     const newBoard = place(board, tile, chosenSide);
     const newHand = myHand.filter((_, i) => i !== idx);
-    const isP1 = game.player1_id === user.id;
-    const oppHand: Tile[] = (isP1 ? game.player2_hand : game.player1_hand) ?? [];
-    const oppId = isP1 ? game.player2_id : game.player1_id;
+    const oppId = nextTurnId(game, user.id);
+    const handKey = getHandKey(game, user.id) as "player1_hand" | "player2_hand" | "player3_hand";
+    const remainingOthers: Tile[] = opponents.flatMap((o) => o.hand);
 
-    // OPTIMISTIC UI — apetraho avy hatrany eo amin'ny ecran
     setOptimistic({
       ...game,
       board_state: newBoard,
-      [isP1 ? "player1_hand" : "player2_hand"]: newHand,
+      [handKey]: newHand,
       current_turn: newHand.length === 0 ? game.current_turn : oppId,
       turn_started_at: new Date().toISOString(),
       passes: 0,
@@ -398,24 +425,22 @@ export default function Game() {
     });
     setSelected(null);
 
-    // Lany ny tanana → tour vita
     if (newHand.length === 0) {
       await updateGameState({
         board_state: newBoard,
-        [isP1 ? "player1_hand" : "player2_hand"]: newHand,
+        [handKey]: newHand,
       } as any);
-      const points = pipsTotal(oppHand);
+      const points = pipsTotal(remainingOthers);
       await finishRound(user.id, points, tile);
       return;
     }
     await updateGameState({
       board_state: newBoard,
-      [isP1 ? "player1_hand" : "player2_hand"]: newHand,
+      [handKey]: newHand,
       current_turn: oppId,
       turn_started_at: new Date().toISOString(),
       passes: 0,
     } as any);
-    // Mametraka filaharana ho an'ny Admin (historique)
     await supabase.from("game_moves").insert({
       game_id: game.id,
       player_id: user.id,
@@ -424,13 +449,12 @@ export default function Game() {
     });
   };
 
-  // Auto-pass: tsy misy fakana vato intsony, mandeha avy hatrany any amin'ny adversaire
   const autoPass = async () => {
     if (!isMyTurn || !game || !user) return;
-    const isP1 = game.player1_id === user.id;
-    const oppId = isP1 ? game.player2_id : game.player1_id;
+    const oppId = nextTurnId(game, user.id);
+    const pc = Number(game.players_count ?? 2);
     const passes = (game.passes ?? 0) + 1;
-    if (passes >= 2) {
+    if (passes >= pc) {
       await finishBlocked();
       return;
     }
@@ -457,12 +481,13 @@ export default function Game() {
     autoActedRef.current = key;
 
     (async () => {
-      const isP1Turn = game.current_turn === game.player1_id;
-      const turnHand: Tile[] = ((isP1Turn ? game.player1_hand : game.player2_hand) ?? []) as Tile[];
-      const oppId = isP1Turn ? game.player2_id : game.player1_id;
-      const boneyard: Tile[] = (game.boneyard as Tile[]) ?? [];
+      const turnId = game.current_turn as string;
+      const turnKey = getHandKey(game, turnId) as "player1_hand" | "player2_hand" | "player3_hand" | null;
+      if (!turnKey) return;
+      const turnHand: Tile[] = ((game[turnKey] as Tile[]) ?? []) as Tile[];
+      const oppId = nextTurnId(game, turnId);
+      const pc = Number(game.players_count ?? 2);
 
-      // 1) Misy piesy mety apetraka → apetraho ny voalohany
       const playableIdx = turnHand.findIndex((t) => canPlace(board, t) !== null);
       if (playableIdx >= 0) {
         const tile = turnHand[playableIdx];
@@ -473,30 +498,33 @@ export default function Game() {
         if (newHand.length === 0) {
           await updateGameState({
             board_state: newBoard,
-            [isP1Turn ? "player1_hand" : "player2_hand"]: newHand,
+            [turnKey]: newHand,
           } as any);
-          const oppHand: Tile[] = ((isP1Turn ? game.player2_hand : game.player1_hand) ?? []) as Tile[];
-          await finishRound(game.current_turn, pipsTotal(oppHand), tile);
+          const otherIds = getPlayerIds(game).filter((x) => x !== turnId);
+          const otherTiles: Tile[] = otherIds.flatMap((id) => {
+            const k = getHandKey(game, id) as any;
+            return (game[k] as Tile[]) ?? [];
+          });
+          await finishRound(turnId, pipsTotal(otherTiles), tile);
           return;
         }
         await updateGameState({
           board_state: newBoard,
-          [isP1Turn ? "player1_hand" : "player2_hand"]: newHand,
+          [turnKey]: newHand,
           current_turn: oppId,
           turn_started_at: new Date().toISOString(),
           passes: 0,
         } as any);
         await supabase.from("game_moves").insert({
           game_id: game.id,
-          player_id: game.current_turn,
+          player_id: turnId,
           piece: { tile, auto: true },
           side: chosenSide,
         });
         return;
       }
-      // 2) Pass auto (tsy misy fakana vato intsony)
       const passes = (game.passes ?? 0) + 1;
-      if (passes >= 2) {
+      if (passes >= pc) {
         await finishBlocked();
         return;
       }
@@ -529,10 +557,17 @@ export default function Game() {
   const canRight = selected !== null && e ? canPlace(board, myHand[selected]) === "right" || canPlace(board, myHand[selected]) === "either" : false;
   const noMove = isMyTurn && !hasMove(myHand, board);
   const gameMode = (game?.game_mode ?? "d120") as GameMode;
-  const myIsP1 = game?.player1_id === user?.id;
-  const myScore = Number(myIsP1 ? game?.score_p1 : game?.score_p2) || 0;
-  const oppScore = Number(myIsP1 ? game?.score_p2 : game?.score_p1) || 0;
+  const scoreOf = (uid: string): number => {
+    if (!game) return 0;
+    if (uid === game.player1_id) return Number(game.score_p1 ?? 0);
+    if (uid === game.player2_id) return Number(game.score_p2 ?? 0);
+    if (uid === game.player3_id) return Number(game.score_p3 ?? 0);
+    return 0;
+  };
+  const myScore = scoreOf(user?.id ?? "");
   const targetPts = MODE_TARGET[gameMode];
+  const playersCount = Number(game?.players_count ?? 2);
+  const turnName = game?.current_turn ? (profileNames[game.current_turn] ?? "Mpilalao") : "";
 
   const abandonGame = async () => {
     if (!game || !user || isAbandoning) return;

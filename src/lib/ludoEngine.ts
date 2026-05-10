@@ -51,8 +51,8 @@ export const BASE_SPOTS: Record<number, Array<[number, number]>> = {
 export const SAFE_INDICES = new Set([0, 8, 13, 21, 26, 34, 39, 47]);
 
 export function activeSeats(playersCount: number): number[] {
-  // 2P → diagonale Red (top-left) ↔ Yellow (bottom-right)
-  if (playersCount === 2) return [2, 4];
+  // 2P → diagonale Blue (bottom-left) ↔ Green (top-right)
+  if (playersCount === 2) return [1, 3];
   if (playersCount === 3) return [1, 2, 3];
   return [1, 2, 3, 4];
 }

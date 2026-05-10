@@ -11,6 +11,7 @@ import {
   Tile, Placed, deal, deal3, ends, canPlace, place, pipsTotal, hasMove, chooseOpening,
 } from "@/lib/dominoEngine";
 import { toast } from "sonner";
+import { sfx } from "@/lib/sfx";
 
 type GameState = {
   player1_hand: Tile[];
@@ -411,6 +412,7 @@ export default function Game() {
     }
     const newBoard = place(board, tile, chosenSide);
     const newHand = myHand.filter((_, i) => i !== idx);
+    sfx.move();
     const oppId = nextTurnId(game, user.id);
     const handKey = getHandKey(game, user.id) as "player1_hand" | "player2_hand" | "player3_hand";
     const remainingOthers: Tile[] = opponents.flatMap((o) => o.hand);

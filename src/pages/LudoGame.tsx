@@ -10,6 +10,7 @@ import {
   SEAT_COLOR, SEAT_NAME, type Pawn,
 } from "@/lib/ludoEngine";
 import { fmtAr } from "@/lib/constants";
+import { sfx } from "@/lib/sfx";
 import { toast } from "sonner";
 
 type LG = {
@@ -108,6 +109,7 @@ export default function LudoGame() {
     if (!g || !isMyTurn || g.dice_rolled || rolling) return;
     setRolling(true);
     setRollAnimSeat(g.current_turn_seat);
+    sfx.dice();
     // Let the spin play before locking the face
     await new Promise((r) => setTimeout(r, 650));
     const dice = rollDice();
@@ -142,9 +144,11 @@ export default function LudoGame() {
     if (!g || !isMyTurn || !g.dice_rolled || !g.last_dice) return;
     const dice = g.last_dice;
     const res = applyMove(g.pawns ?? [], g.current_turn_seat, pawnIdx, dice);
+    if (res.captured > 0) sfx.capture(); else sfx.move();
     // Check victory
     if (seatHasFinished(res.pawns, g.current_turn_seat)) {
       const winnerUid = seatToUid(g.current_turn_seat);
+      sfx.win();
       await supabase.rpc("ludo_update_state" as any, {
         _game_id: g.id, _pawns: res.pawns, _dice_rolled: false, _last_dice: null,
       });

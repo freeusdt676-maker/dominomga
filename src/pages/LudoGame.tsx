@@ -168,18 +168,45 @@ export default function LudoGame() {
         </div>
       </header>
 
-      {/* Players bar */}
-      <div className="px-3 pt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+      {/* Players bar — chaque joueur a son propre dé à côté du profil */}
+      <div className="px-3 pt-3 grid grid-cols-2 gap-2">
         {seats.map((s) => {
           const uid = seatToUid(s);
           const isTurn = g.current_turn_seat === s && g.status === "in_progress";
+          const isMe = mySeat === s;
+          const showDice = isTurn ? (g.last_dice ?? "•") : "•";
           return (
-            <div key={s} className={`rounded-lg p-2 border ${isTurn ? "border-yellow-300 ring-2 ring-yellow-300/50" : "border-yellow-500/20"}`} style={{ background: SEAT_COLOR[s] + "33" }}>
-              <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-full" style={{ background: SEAT_COLOR[s] }} />
-                <span className="text-xs font-bold text-yellow-50 truncate">{uid ? (names[uid] ?? "...") : <em className="opacity-60">miandry</em>}</span>
+            <div
+              key={s}
+              className={`rounded-xl p-2 border-2 flex items-center gap-2 ${isTurn ? "border-yellow-300 ring-2 ring-yellow-300/40" : "border-yellow-500/20"}`}
+              style={{ background: SEAT_COLOR[s] + "33" }}
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-full" style={{ background: SEAT_COLOR[s] }} />
+                  <span className="text-xs font-bold text-yellow-50 truncate">
+                    {uid ? (names[uid] ?? "...") : <em className="opacity-60">miandry</em>}
+                  </span>
+                </div>
+                <p className="text-[10px] text-yellow-100/70">{SEAT_NAME[s]}{isTurn ? " · ▶" : ""}</p>
               </div>
-              <p className="text-[10px] text-yellow-100/70">{SEAT_NAME[s]}{isTurn ? " · ▶" : ""}</p>
+              {/* Personal dice */}
+              {isTurn && isMe && !g.dice_rolled ? (
+                <button
+                  onClick={handleRoll}
+                  disabled={rolling}
+                  className="w-12 h-12 rounded-lg bg-white border-2 border-yellow-400 flex items-center justify-center font-display text-2xl font-black text-purple-900 shadow-lg active:scale-95 transition"
+                  aria-label="Roll dice"
+                >
+                  <Dice5 className="w-6 h-6" />
+                </button>
+              ) : (
+                <div
+                  className={`w-12 h-12 rounded-lg flex items-center justify-center font-display text-2xl font-black ${isTurn ? "bg-white text-purple-900 border-2 border-yellow-400 shadow-lg" : "bg-white/20 text-yellow-100/60 border border-yellow-500/30"}`}
+                >
+                  {isTurn && g.last_dice ? g.last_dice : "•"}
+                </div>
+              )}
             </div>
           );
         })}
@@ -196,27 +223,22 @@ export default function LudoGame() {
         />
       </div>
 
-      {/* Dice + status */}
+      {/* Status bar (no shared dice — each player has their own above) */}
       <div className="fixed bottom-0 left-0 right-0 p-3 ludo-panel border-t border-yellow-500/40">
-        <div className="max-w-lg mx-auto flex items-center gap-3">
-          <div className="w-16 h-16 rounded-xl bg-white/95 border-4 border-yellow-400 flex items-center justify-center font-display text-3xl font-black text-purple-900 shadow-lg">
-            {g.last_dice ?? "—"}
-          </div>
-          <div className="flex-1">
-            {g.status === "waiting" && <p className="text-yellow-100 text-sm">Miandry mpilalao... ({[g.player1_id, g.player2_id, g.player3_id, g.player4_id].filter(Boolean).length}/{g.players_count})</p>}
-            {g.status === "finished" && <p className="text-yellow-300 font-bold text-sm">🏆 Mpandresy: {winnerName}</p>}
-            {g.status === "in_progress" && (
-              isMyTurn ? (
-                <Button className="ludo-btn w-full" onClick={handleRoll} disabled={g.dice_rolled || rolling}>
-                  {g.dice_rolled
-                    ? (movable.length > 0 ? "Misafidiana pion" : "Tsy misy fihetsiketsehana")
-                    : <><Dice5 className="w-4 h-4 mr-2" /> Roll dice</>}
-                </Button>
-              ) : (
-                <p className="text-yellow-100/80 text-sm">Andrasana ny <b>{SEAT_NAME[g.current_turn_seat]}</b>...</p>
-              )
-            )}
-          </div>
+        <div className="max-w-lg mx-auto text-center">
+          {g.status === "waiting" && (
+            <p className="text-yellow-100 text-sm">Miandry mpilalao... ({[g.player1_id, g.player2_id, g.player3_id, g.player4_id].filter(Boolean).length}/{g.players_count})</p>
+          )}
+          {g.status === "finished" && <p className="text-yellow-300 font-bold text-sm">🏆 Mpandresy: {winnerName}</p>}
+          {g.status === "in_progress" && (
+            isMyTurn ? (
+              g.dice_rolled
+                ? <p className="text-yellow-100 text-sm">{movable.length > 0 ? "Misafidiana pion azonao ampihetsiketsehina" : "Tsy misy fihetsiketsehana — andrasana..."}</p>
+                : <p className="text-yellow-200 text-sm font-bold">▶ Andao tehirizo ny dé!</p>
+            ) : (
+              <p className="text-yellow-100/80 text-sm">Andrasana ny <b>{SEAT_NAME[g.current_turn_seat]}</b>...</p>
+            )
+          )}
         </div>
       </div>
     </div>

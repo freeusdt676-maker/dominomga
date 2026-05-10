@@ -1,4 +1,4 @@
-import { TRACK, HOME_COL, BASE_SPOTS, SEAT_COLOR, SAFE_INDICES, type Pawn, pawnXY, SEAT_START } from "@/lib/ludoEngine";
+import { TRACK, HOME_COL, BASE_SPOTS, SEAT_COLOR, SAFE_INDICES, type Pawn, pawnXY, SEAT_START, activeSeats } from "@/lib/ludoEngine";
 
 type Props = {
   pawns: Pawn[];
@@ -26,7 +26,7 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
     { seat: 3, x: 9, y: 0, color: SEAT_COLOR[3] },
     { seat: 4, x: 9, y: 9, color: SEAT_COLOR[4] },
   ];
-  const activeSeatsArr = playersCount === 2 ? [1, 3] : playersCount === 3 ? [1, 2, 3] : [1, 2, 3, 4];
+  const activeSeatsArr = activeSeats(playersCount);
 
   // Determine cell color (white default, or seat-colored for start/home column)
   const cellFill = (col: number, row: number): string => {
@@ -123,11 +123,15 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
           const y = cy * CELL + oy;
           const movable = movableSeat === p.seat && movablePawns?.includes(p.idx);
           const color = SEAT_COLOR[p.seat];
-          const r = CELL * 0.36;     // sphere radius
+          // Bowling-pin / bottle proportions — taller than wide
+          const W = CELL * 0.78;     // overall width
+          const H = CELL * 1.25;     // overall height
           const id = `pgrad-${i}`;
           const idShine = `pshine-${i}`;
-          // Use a stable id so React keeps the same DOM node when pawn moves → CSS transition runs
+          const idBody = `pbody-${i}`;
           const stableKey = `pawn-${p.seat}-${p.idx}`;
+          // Lift the pawn up so the BASE sits on the cell center (cy)
+          // body anchor = bottom of the pawn
           return (
             <g
               key={stableKey}
@@ -137,32 +141,56 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
               style={{ cursor: movable ? "pointer" : "default" }}
             >
               <defs>
-                {/* Glossy sphere fill */}
-                <radialGradient id={id} cx="35%" cy="30%" r="75%">
-                  <stop offset="0%"  stopColor="#ffffff" stopOpacity="1" />
-                  <stop offset="18%" stopColor={color}   stopOpacity="1" />
-                  <stop offset="70%" stopColor={color}   stopOpacity="1" />
-                  <stop offset="100%" stopColor="#000000" stopOpacity="0.85" />
+                {/* Vertical glossy fill — light on left, dark on right */}
+                <linearGradient id={idBody} x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%"   stopColor="#ffffff" stopOpacity="0.55" />
+                  <stop offset="22%"  stopColor={color} />
+                  <stop offset="60%"  stopColor={color} />
+                  <stop offset="100%" stopColor="#000000" stopOpacity="0.55" />
+                </linearGradient>
+                {/* Top head highlight */}
+                <radialGradient id={id} cx="35%" cy="30%" r="70%">
+                  <stop offset="0%"  stopColor="#ffffff" stopOpacity="0.9" />
+                  <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
                 </radialGradient>
-                {/* Top-light shine */}
-                <radialGradient id={idShine} cx="35%" cy="25%" r="35%">
+                <radialGradient id={idShine} cx="50%" cy="50%" r="50%">
                   <stop offset="0%"  stopColor="#ffffff" stopOpacity="0.95" />
                   <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
                 </radialGradient>
               </defs>
-              {/* Soft drop shadow on the floor */}
-              <ellipse cx={0} cy={r * 0.95} rx={r * 0.85} ry={r * 0.22} fill="#000" opacity={0.45} />
-              {/* Glossy sphere body */}
-              <circle cx={0} cy={0} r={r} fill={`url(#${id})`} stroke="#1c1235" strokeWidth={1.2} />
-              {/* Top specular highlight */}
-              <ellipse cx={-r * 0.28} cy={-r * 0.34} rx={r * 0.42} ry={r * 0.26} fill={`url(#${idShine})`} />
-              {/* Tiny crisp highlight dot */}
-              <circle cx={-r * 0.32} cy={-r * 0.38} r={r * 0.10} fill="#ffffff" opacity={0.9} />
-              {/* Movable indicator: gold ring + pulse */}
+              {/* Floor shadow */}
+              <ellipse cx={0} cy={H * 0.42} rx={W * 0.55} ry={W * 0.16} fill="#000" opacity={0.5} />
+              {/* Bottle / bowling-pin silhouette built with a path:
+                  - wide round base
+                  - narrow neck
+                  - small round head on top */}
+              <path
+                d={`
+                  M ${-W*0.50} ${ H*0.38}
+                  C ${-W*0.62} ${ H*0.20}, ${-W*0.62} ${ H*0.05}, ${-W*0.40} ${-H*0.05}
+                  C ${-W*0.28} ${-H*0.12}, ${-W*0.22} ${-H*0.22}, ${-W*0.22} ${-H*0.32}
+                  C ${-W*0.42} ${-H*0.40}, ${-W*0.42} ${-H*0.55}, ${-W*0.18} ${-H*0.58}
+                  C ${-W*0.06} ${-H*0.62},  ${ W*0.06} ${-H*0.62}, ${ W*0.18} ${-H*0.58}
+                  C ${ W*0.42} ${-H*0.55},  ${ W*0.42} ${-H*0.40}, ${ W*0.22} ${-H*0.32}
+                  C ${ W*0.22} ${-H*0.22},  ${ W*0.28} ${-H*0.12}, ${ W*0.40} ${-H*0.05}
+                  C ${ W*0.62} ${ H*0.05},  ${ W*0.62} ${ H*0.20}, ${ W*0.50} ${ H*0.38}
+                  Z
+                `}
+                fill={`url(#${idBody})`}
+                stroke="#1c1235"
+                strokeWidth={1.4}
+              />
+              {/* Glossy head highlight */}
+              <ellipse cx={-W*0.05} cy={-H*0.50} rx={W*0.18} ry={H*0.10} fill={`url(#${id})`} />
+              {/* Body specular streak */}
+              <ellipse cx={-W*0.18} cy={ H*0.10} rx={W*0.10} ry={H*0.22} fill={`url(#${idShine})`} opacity={0.7} />
+              {/* Crisp tiny highlight on head */}
+              <circle cx={-W*0.10} cy={-H*0.52} r={W*0.06} fill="#ffffff" opacity={0.95} />
+              {/* Movable indicator: gold ring + pulse around the base */}
               {movable && (
                 <>
-                  <circle cx={0} cy={0} r={r + 3} fill="none" stroke="#ffe27a" strokeWidth={2.5} opacity={0.95} />
-                  <circle cx={0} cy={0} r={r + 3} fill="none" stroke="#ffe27a" strokeWidth={2} className="pulse-ring" />
+                  <ellipse cx={0} cy={H*0.30} rx={W*0.55} ry={W*0.20} fill="none" stroke="#ffe27a" strokeWidth={2.5} opacity={0.95} />
+                  <ellipse cx={0} cy={H*0.30} rx={W*0.55} ry={W*0.20} fill="none" stroke="#ffe27a" strokeWidth={2} className="pulse-ring" />
                 </>
               )}
             </g>

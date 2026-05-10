@@ -271,8 +271,8 @@ export default function Game() {
     if (!game || !user) return;
     if (game.status !== "in_progress") return;
     if (!game.current_turn) return;
-    const triggerAt = isMyTurn ? 0 : -3; // elapsed > TIMEOUT (mine) or +3s (bot for opp)
-    if (remaining > triggerAt) return;
+    // Rehefa lany ny 20s (na ahy na adversaire), ny Bot no mandefa avy hatrany
+    if (elapsed < TURN_TIMEOUT_SEC) return;
     const key = `${game.id}-${game.turn_started_at}-${game.current_turn}`;
     if (autoActedRef.current === key) return;
     autoActedRef.current = key;
@@ -345,7 +345,7 @@ export default function Game() {
       });
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [remaining, isMyTurn, game?.turn_started_at, game?.status, game?.current_turn]);
+  }, [elapsed, game?.turn_started_at, game?.status, game?.current_turn]);
 
   if (!game) return <div className="min-h-screen felt-bg flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 

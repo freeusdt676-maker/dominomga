@@ -243,6 +243,75 @@ export type Database = {
         }
         Relationships: []
       }
+      ludo_games: {
+        Row: {
+          commission: number
+          consecutive_sixes: number
+          created_at: string
+          current_turn_seat: number
+          dice_rolled: boolean
+          finished_at: string | null
+          id: string
+          last_dice: number | null
+          pawns: Json
+          player1_id: string
+          player2_id: string | null
+          player3_id: string | null
+          player4_id: string | null
+          players_count: number
+          stake: number
+          status: Database["public"]["Enums"]["game_status"]
+          ticket_number: string | null
+          turn_started_at: string | null
+          updated_at: string
+          winner_id: string | null
+        }
+        Insert: {
+          commission?: number
+          consecutive_sixes?: number
+          created_at?: string
+          current_turn_seat?: number
+          dice_rolled?: boolean
+          finished_at?: string | null
+          id?: string
+          last_dice?: number | null
+          pawns?: Json
+          player1_id: string
+          player2_id?: string | null
+          player3_id?: string | null
+          player4_id?: string | null
+          players_count?: number
+          stake: number
+          status?: Database["public"]["Enums"]["game_status"]
+          ticket_number?: string | null
+          turn_started_at?: string | null
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Update: {
+          commission?: number
+          consecutive_sixes?: number
+          created_at?: string
+          current_turn_seat?: number
+          dice_rolled?: boolean
+          finished_at?: string | null
+          id?: string
+          last_dice?: number | null
+          pawns?: Json
+          player1_id?: string
+          player2_id?: string | null
+          player3_id?: string | null
+          player4_id?: string | null
+          players_count?: number
+          stake?: number
+          status?: Database["public"]["Enums"]["game_status"]
+          ticket_number?: string | null
+          turn_started_at?: string | null
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Relationships: []
+      }
       matchmaking_queue: {
         Row: {
           created_at: string
@@ -516,6 +585,29 @@ export type Database = {
       }
       join_and_start_game: {
         Args: { _game_id: string; _player2: string }
+        Returns: Json
+      }
+      ludo_cancel_waiting: { Args: { _game_id: string }; Returns: Json }
+      ludo_initial_pawns: { Args: { _n: number }; Returns: Json }
+      ludo_join_and_start: {
+        Args: { _game_id: string; _user: string }
+        Returns: Json
+      }
+      ludo_settle: {
+        Args: { _game_id: string; _winner: string }
+        Returns: Json
+      }
+      ludo_start_deduct: { Args: { _game_id: string }; Returns: Json }
+      ludo_update_state: {
+        Args: {
+          _consecutive_sixes?: number
+          _current_turn_seat?: number
+          _dice_rolled?: boolean
+          _game_id: string
+          _last_dice?: number
+          _pawns?: Json
+          _turn_started_at?: string
+        }
         Returns: Json
       }
       player_update_game_state:

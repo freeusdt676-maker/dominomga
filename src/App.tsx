@@ -11,6 +11,8 @@ import Rules from "./pages/Rules";
 import AdminChat from "./pages/AdminChat";
 import Game from "./pages/Game";
 import Admin from "./pages/Admin";
+import LudoLobby from "./pages/LudoLobby";
+import LudoGame from "./pages/LudoGame";
 import { AuthProvider } from "./contexts/AuthContext";
 
 const queryClient = new QueryClient();
@@ -30,6 +32,8 @@ const App = () => (
             <Route path="/admin-chat" element={<AdminChat />} />
             <Route path="/game/:id" element={<Game />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/ludo" element={<LudoLobby />} />
+            <Route path="/ludo/:id" element={<LudoGame />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

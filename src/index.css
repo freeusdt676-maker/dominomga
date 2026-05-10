@@ -96,4 +96,39 @@
     color: hsl(var(--primary-foreground));
     box-shadow: var(--shadow-gold);
   }
+  /* Ludo Master theme — purple/gold ornate */
+  .ludo-bg {
+    background:
+      radial-gradient(ellipse at top, #3a1c66 0%, #1a0d2e 70%);
+    color: #fff7d6;
+  }
+  .ludo-title {
+    background: linear-gradient(180deg, #ffe27a 0%, #d4a52c 60%, #8a5a0a 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 1px 0 rgba(0,0,0,0.4);
+    letter-spacing: 0.05em;
+  }
+  .ludo-panel {
+    background: linear-gradient(180deg, #4a2580 0%, #2c1356 100%);
+    border: 2px solid #d4a52c;
+    box-shadow: 0 0 0 2px #2c1356, 0 8px 24px -8px rgba(0,0,0,0.6);
+  }
+  .ludo-btn {
+    background: linear-gradient(180deg, #7cc6f7 0%, #2a8edb 100%);
+    color: #fff;
+    border: 2px solid #d4a52c;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    font-weight: 800;
+    box-shadow: 0 4px 0 #1a5d99, 0 6px 12px -2px rgba(0,0,0,0.5);
+  }
+  .ludo-btn:hover { filter: brightness(1.05); }
+  .ludo-btn:disabled { opacity: 0.6; }
+  .ludo-btn-outline {
+    background: rgba(255,255,255,0.05);
+    border: 2px solid rgba(212,165,44,0.5);
+    color: #ffe27a;
+    font-weight: 700;
+  }
 }

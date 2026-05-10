@@ -1,58 +1,112 @@
-# Fanovana lehibe — Domino MGA
+# Ludo MGA — fanampiana lalao vaovao
 
-## 1. Lobby vaovao (4 dingana + Confirmer)
-Ao amin'ny `src/pages/Lobby.tsx`, soloana ny UI tononkalo amin'ireto safidy ireto:
+Hampidirina ao amin'ny site ny Ludo (mitovy paompy amin'ny Ludo Master) miaraka amin'ny mise sy commission mitovy amin'ny Domino.
 
-1. **Players** — boutons 2 toy ny tab: `2P (1vs1)` na `3P (1vs2vs3)`.
-2. **Mise** — chip 1k → 10k (efa misy).
-3. **Mode** — `Maty 120` / `Maty 80` / `Maty atanana` (efa misy).
-4. **Confirmer le demande** — bokotra lehibe gold. Tsy mandefa lalao raha tsy voakitika.
+## 1. Database (migration vaovao)
 
-Aorian'ny Confirmer:
-- Mamorona `games` row vaovao misy `players_count`, `stake`, `game_mode`, `status='waiting'`.
-- Lasa miditra avy hatrany amin'ny `/game/:id` ny mpamorona.
-- Eo amin'ny lisitry ny lalao vonona, hipoitra amin'ny adversaire rehetra ireo info: anaran'ny mpamorona, players (2P/3P), mise, mode. Raha mety aminy → kitiha → join → manomboka avy hatrany.
-- Asehoy Nº TICKET amin'ny mpilalao rehetra rehefa manomboka.
+Tafy `ludo_games` table mitokana (mba tsy hanakorontana ny `games` an'ny Domino):
 
-## 2. 3P mode
-- Engine: 3 mpilalao, samy 7 vato (28 - 21 = 7 sisa tsy zaraina raha 2P efa 14 sisa, fa 3P dia 7 sisa lasa boneyard fotsy — tsy ampiasaina satria tsy misy fakana).
-- Tour: rotation `p1 → p2 → p3 → p1`.
-- Bloqué: raha samy tsy afaka ny 3, izay kely indrindra mahazo ny diff (point = sum of others - own).
-- Round end: rehefa misy mahalany dia mahazo `sum of remaining of 2 others`.
-- Instant win conditions mitoetra: double-6 final, total = anio date, target reached.
+```
+ludo_games
+- id uuid pk
+- players_count smallint (2 | 3 | 4)
+- stake numeric
+- status game_status (waiting | in_progress | finished)
+- player1_id .. player4_id uuid (player1 NOT NULL, hafa nullable)
+- current_turn_seat smallint (1..players_count)
+- last_dice smallint (1..6, nullable)
+- dice_rolled bool
+- consecutive_sixes smallint
+- pawns jsonb  -- [{seat:1, idx:0, pos:-1, home:false}, ...]  (pos: -1=base, 0..51=track, 100..105=home column, 200=finished)
+- winner_id uuid
+- ticket_number text
+- commission numeric default 0
+- created_at, updated_at, finished_at, turn_started_at
+```
 
-## 3. Opening rules araka ny mode
-- `d120` (Maty 120) → mpamoaka voalohany = manana **double 0** (0,0). Tsy misy → double 1, 2, 3, 4, 5, 6 (kely → lehibe).
-- `d80` (Maty 80) → manana **double 6** voalohany. Tsy misy → 5, 4, 3, 2, 1, 0 (lehibe → kely).
-- `hand` (atanana) → mitovy amin'ny d120 (kely → lehibe).
-- Alaina ny mpilalao manana ilay double, lasa first turn azy, ary apetraka ho voalohany ny vato.
+RLS:
+- `select`: participant na `waiting` na admin
+- `insert`: own waiting
+- `update`: participant
+- `delete`: own waiting tsy mbola misy player2
 
-## 4. Tableau — anarana
-Ao amin'ny `src/pages/Game.tsx`, asehoy eo amin'ny tsirairay (header + areny ny tanana) ny `mvola_name` (avy amin'ny `profiles`). Ho 3P, asehoy avokoa ny anaran'ny telo.
+Functions vaovao (mitovy paompy amin'ny Domino):
+- `ludo_join_and_start(_game_id, _user)` — mametraka amin'ny seat malalaka, raha feno → `in_progress`, current_turn_seat=1, manomboka ny pawns avy hatrany.
+- `ludo_start_deduct(_game_id)` — manala mise tamin'ny mpilalao rehetra, mandefa commission 10% × N any amin'ny `admin_wallets`, mametraka `commission` ao amin'ny game.
+- `ludo_settle(_game_id, _winner)` — mandoa pot = (stake − 10%) × N.
+- `ludo_cancel_waiting(_game_id)` — mitovy amin'ny `cancel_waiting_game`.
+- `ludo_update_state(...)` — anokafan'ny client manavao `pawns`, `current_turn_seat`, `last_dice`, `dice_rolled`, `consecutive_sixes`, `status`, `winner_id`.
 
-## 5. Vato HD
-Avaozina ny `DominoTile.tsx`:
-- SVG misy gradient ivory, shadow lalina, double border (gold inset + dark outset).
-- Pip = circle radius lehibe kokoa, gradient noir → charcoal, inner highlight.
-- Spine (rezika afovoany) gold thin line.
-- Sizes: `sm` 40×80, `md` 56×112, `lg` 72×144.
+## 2. Engine (`src/lib/ludoEngine.ts` vaovao)
 
-## 6. Database
-Ampiana `players_count` (smallint, default 2) sy `player3_id` (uuid, nullable) sy `player3_hand` (jsonb default `[]`) sy `score_p3` (numeric default 0) ao amin'ny `games`.
-Ampiana `players_count` (smallint default 2) ao amin'ny `challenges` sy `matchmaking_queue` (raha mbola ampiasaina).
-Asiana update ny RLS games_select_participant + games_update_participant mba hampidirana `player3_id`.
-Asiana update `join_and_start_game` RPC mba handraisana 3P (raha efa feno player2 fa mbola players_count=3, mametraka player3 ary 'in_progress' rehefa feno).
-Mety mila RPC vaovao `start_game_deduct` mihevitra player3 koa.
+Lalao Ludo classique:
+- Track 52 case (0..51), seat start positions: seat1=0, seat2=13, seat3=26, seat4=39.
+- Home column 6 case isaky ny seat.
+- Pawn 4 isaky ny seat (16 raha 4P, 12 raha 3P, 8 raha 2P).
+- Roll dice 1–6.
+- Mivoaka tao base mila 6.
+- Mahazo 6 → mividy tour iray hafa (max 3 consecutive sixes → tsy maintsy mandalo).
+- Capture: raha mipetraka amin'ny case efa misy pion an'ny hafa (tsy safe square) → ny pion tratra miverina any base.
+- Safe squares: 8 case mahazatra (start squares + star squares).
+- Tonga home column → tsy maintsy roll exact mba hahatongavana 200 (finished).
+- Mandresy = pion 4 vita home daholo voalohany.
+
+Helpers:
+- `legalMoves(state, seat, dice)` → list of pawn indices afaka mihetsika.
+- `applyMove(state, seat, pawnIdx, dice)` → state vaovao + capture info.
+- `nextTurn(state)` → mandeha amin'ny seat manaraka raha tsy 6 (na 3 sixes).
+
+## 3. Pages vaovao
+
+### `src/pages/LudoLobby.tsx` (route `/ludo`)
+- Mitovy paompy amin'ny `Lobby.tsx` (Domino) fa misafidy: `Players (2P/3P/4P)` + `Mise`. Tsy misy "Mode" (tsy ilaina amin'ny Ludo).
+- Confirmer le demande → Mise vonona → mamorona `ludo_games` row → mankany `/ludo/:id`.
+- Lisitra mpilalao vonona (waiting + 3P/4P misy seat malalaka).
+
+### `src/pages/LudoGame.tsx` (route `/ludo/:id`)
+- Header: ticket, mise, scores, anaran'ny mpilalao (`profiles.mvola_name`).
+- Board SVG 15×15 ornate purple/gold (manakaiky ny screenshot 3rd image).
+  - 4 home base (red, green, yellow, blue) any an-joro.
+  - Cross track 52 case.
+  - Center home triangle 4 colors.
+  - Star/safe squares.
+- Seat → loko :
+  - 2P: seat1=blue, seat2=red.
+  - 3P: blue, red, green.
+  - 4P: blue, red, green, yellow (mitovy amin'ny Ludo Master).
+- Dice 3D ornate gold border. Click to roll (raha turn anao + tsy mbola voakitika).
+- Pawn click → animation move.
+- Realtime sync via supabase channel.
+- Turn timer 30s.
+- Rehefa misy mahalany pion 4 daholo → call `ludo_settle`.
+
+### Theme/UI
+- Ny LudoLobby sy LudoGame ihany no manana style "Ludo Master" (purple panel + gold ornate frame). Ampiana `.ludo-panel`, `.ludo-frame`, `.ludo-btn` ao amin'ny `index.css` mba tsy hanapotika ny Domino UI.
+- Background: deep purple gradient + ornate gold border SVG.
+- Bouton: gold gradient pill miaraka amin'ny shadow.
+
+## 4. Routing (`src/App.tsx`)
+- Ampiana `/ludo` → LudoLobby
+- Ampiana `/ludo/:id` → LudoGame
+
+## 5. Home (`src/pages/Home.tsx`)
+- Asiana "card" iray vaovao "LUDO MASTER" miaraka amin'ny lobby Domino, mba ahafahan'ny user misafidy lalao roa.
+
+## 6. Types
+Aorian'ny migration, ny `src/integrations/supabase/types.ts` dia havaozina automatique.
 
 ## Sehatry ny asa
-1. Migration database (ampiana column + update RPC).
-2. `src/lib/dominoEngine.ts` — ampiana 3P + opening rule.
-3. `src/components/DominoTile.tsx` — HD redesign.
-4. `src/pages/Lobby.tsx` — UI vaovao 4 dingana.
-5. `src/pages/Game.tsx` — 3P support, anarana, ticket display, opening logic.
+1. Migration: `ludo_games` table + 4 RPC + RLS.
+2. `src/lib/ludoEngine.ts`.
+3. `src/components/LudoBoard.tsx` (SVG board + pawns + dice).
+4. `src/pages/LudoLobby.tsx`.
+5. `src/pages/LudoGame.tsx`.
+6. `src/App.tsx` (routes) + `src/pages/Home.tsx` (entry point).
+7. `src/index.css` (ludo theme tokens).
 
-## Fanontaniana mialoha
-- Ny commission: ho 3P, samy mandoa `stake` ny telo, ary ny pot = `(stake - 10%) × 3` ho an'ny mpandresy iray. **OK ve?**
-- Ny "Maty atanana" amin'ny 3P → izay vita atanana voalohany no mandresy, sa izay manana isa kely indrindra raha bloqué? **Raisiko: izay vita voalohany na izay kely indrindra raha bloqué.**
+## Fanontaniana
+- Tsy ilaina ny "double dice" na "missed turn penalty" (ataoko classic). **OK ve?**
+- "Capture": miverina any base ny pion tratra fa tsy mahazo bonus turn ho an'izay nanao capture (classic). **OK ve?**
+- 3P → seat 1, 2, 3 (blue, red, green) — tsy misy yellow.
 
-Tafiditra anaty migration sy code rehetra ireto. Ekena ve?
+Raha mitombina daholo, ataoko avy hatrany ny implémentation.

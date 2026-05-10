@@ -691,15 +691,25 @@ export default function Game() {
 
       {game.status === "in_progress" && (
         <>
-          {/* Tanan'ny adversaire (back) */}
-          <div className="p-3 flex justify-center gap-1 overflow-x-auto">
-            {isRevealing
-              ? oppHand.map((t, i) => (
-                  <DominoTile key={i} a={t[0]} b={t[1]} size="sm" horizontal={t[0] !== t[1]} />
-                ))
-              : Array.from({ length: oppHandCount }).map((_, i) => (
-                  <DominoBack key={i} size="sm" />
-                ))}
+          {/* Tanan'ny adversaire (back) — asehoy ny anaran'ny tsirairay */}
+          <div className="p-2 flex flex-col gap-2">
+            {opponents.map((o) => (
+              <div key={o.id} className="flex flex-col items-center gap-1">
+                <span className={`text-[11px] font-bold ${game.current_turn === o.id ? "gold-text" : "text-muted-foreground"}`}>
+                  {game.current_turn === o.id ? "▶ " : ""}{o.name}{" "}
+                  <span className="text-muted-foreground">({o.count})</span>
+                </span>
+                <div className="flex justify-center gap-1 overflow-x-auto max-w-full">
+                  {isRevealing
+                    ? o.hand.map((t, i) => (
+                        <DominoTile key={i} a={t[0]} b={t[1]} size="sm" horizontal={t[0] !== t[1]} />
+                      ))
+                    : Array.from({ length: o.count }).map((_, i) => (
+                        <DominoBack key={i} size="sm" />
+                      ))}
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Latabatra — chain mifandrohy, mihodina raha lava (snake) */}

@@ -17,6 +17,7 @@ const layouts: Record<number, string[]> = {
 };
 
 const SIZES = {
+  xs: { w: 28, h: 56, dot: 6 },
   sm: { w: 44, h: 88, dot: 9 },
   md: { w: 72, h: 144, dot: 14 },
   lg: { w: 92, h: 184, dot: 18 },

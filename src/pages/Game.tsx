@@ -631,10 +631,8 @@ export default function Game() {
               <span className={`text-xs font-bold ${isMyTurn ? "gold-text" : "text-muted-foreground"}`}>
                 {isMyTurn ? "▶ Andiany!" : "Miandry adversaire"}
               </span>
-              {isMyTurn && (
-                <Button size="sm" variant="outline" onClick={drawOrPass} disabled={!noMove && (game.boneyard ?? []).length === 0}>
-                  {(game.boneyard ?? []).length > 0 ? "Maka piesy" : "Pass"}
-                </Button>
+              {noMove && (
+                <span className="text-[10px] text-muted-foreground italic">Pass auto…</span>
               )}
             </div>
             <div className="grid grid-cols-7 gap-1 py-2 px-1 w-full">

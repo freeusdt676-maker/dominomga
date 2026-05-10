@@ -516,7 +516,7 @@ export default function Game() {
                 </Button>
               )}
             </div>
-            <div className="flex gap-1 overflow-x-auto py-2 justify-center px-1">
+            <div className="grid grid-cols-7 gap-1 py-2 px-1 w-full">
               {myHand.map((t, i) => {
                 const placeable = canPlace(board, t) !== null;
                 return (
@@ -525,6 +525,7 @@ export default function Game() {
                     a={t[0]}
                     b={t[1]}
                     size={handTileSize}
+                    fluid
                     onClick={() => isMyTurn && placeable && setSelected(i === selected ? null : i)}
                     selected={selected === i}
                     disabled={!isMyTurn || !placeable}

@@ -131,6 +131,44 @@
     color: #ffe27a;
     font-weight: 700;
   }
+
+  /* ===== MVola theme (jaune/orange) ===== */
+  .mvola-bg {
+    background: linear-gradient(135deg, #ffd200 0%, #f7971e 60%, #ee5a24 100%);
+    color: #1a1a1a;
+  }
+  .mvola-gradient-text {
+    background: linear-gradient(135deg, #f7971e, #ffd200);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 800;
+  }
+  .btn-mvola {
+    background: linear-gradient(135deg, #ffd200 0%, #f7971e 50%, #ee5a24 100%);
+    color: #1a1a1a;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    box-shadow: 0 6px 18px -4px rgba(247,151,30,0.55), inset 0 1px 0 rgba(255,255,255,0.4);
+    border: 1px solid rgba(0,0,0,0.15);
+  }
+  .btn-mvola:hover { filter: brightness(1.06); }
+  .btn-mvola:disabled { opacity: 0.55; cursor: not-allowed; }
+  .mvola-card {
+    background: linear-gradient(180deg, hsl(155 40% 11%), hsl(155 45% 7%));
+    border: 1px solid #f7971e80;
+    box-shadow: 0 0 0 1px rgba(247,151,30,0.15), 0 12px 32px -10px rgba(247,151,30,0.25);
+  }
+  .mvola-banner {
+    background: linear-gradient(135deg, #ffd200, #f7971e);
+    color: #1a1a1a;
+    border-radius: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    font-weight: 800;
+    text-align: center;
+    box-shadow: 0 4px 14px -4px rgba(247,151,30,0.5);
+  }
 }
 
 /* ===== Ludo motion ===== */

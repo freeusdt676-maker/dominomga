@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { DominoTile } from "./DominoTile";
 import type { Placed } from "@/lib/dominoEngine";
 
-const SHORT = { xs: 28, sm: 44, md: 72 } as const;
+const SHORT = { xs: 24, sm: 36, md: 56 } as const;
 type Sz = keyof typeof SHORT;
 
 type Item = {
@@ -17,31 +17,36 @@ type Item = {
 };
 
 export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSize?: Sz }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [box, setBox] = useState({ w: 360, h: 360 });
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const [vp, setVp] = useState({ w: 360, h: 240 });
 
   useEffect(() => {
-    if (!ref.current) return;
+    if (!wrapRef.current) return;
     const ro = new ResizeObserver(() => {
-      if (!ref.current) return;
-      setBox({ w: ref.current.clientWidth, h: ref.current.clientHeight });
+      if (!wrapRef.current) return;
+      setVp({
+        w: Math.max(200, wrapRef.current.clientWidth),
+        h: Math.max(200, wrapRef.current.clientHeight),
+      });
     });
-    ro.observe(ref.current);
+    ro.observe(wrapRef.current);
     return () => ro.disconnect();
   }, []);
 
   const unit = SHORT[tileSize];
   const long = unit * 2;
-  const pad = 10;
-  const W = Math.max(box.w, unit * 4);
-  const H = Math.max(box.h, unit * 4);
+  const pad = 8;
+  // Available row width inside the felt; turn when exceeding
+  const rowMax = Math.max(unit * 6, vp.w - pad * 2 - unit); // leave room for fab buttons
 
-  // Snake layout
+  // Snake layout in "chain space" — we'll translate to fit later.
   const items: Item[] = [];
   let dir: "R" | "D" | "L" | "U" = "R";
-  // start near left, vertically centered
-  let cx = pad + long / 2; // chain center x
-  let cy = H / 2; // chain center y
+  let cx = 0; // chain pointer (next tile center)
+  let cy = 0;
+  let rowStartCx = 0;
+  let placedInRow = 0;
 
   const place = (a: number, b: number) => {
     const isDouble = a === b;
@@ -52,7 +57,6 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
       const tileShort = isDouble ? long : unit;
       const w = horiz ? tileLong : tileShort;
       const h = horiz ? tileShort : tileLong;
-      // half-step from chain center along direction
       const step = (isDouble ? unit : long) / 2;
       let centerX = cx;
       let centerY = cy;
@@ -62,22 +66,31 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
       if (d === "U") centerY = cy - step;
       const x = centerX - w / 2;
       const y = centerY - h / 2;
-      const fits = x >= pad && y >= pad && x + w <= W - pad && y + h <= H - pad;
-      return { horiz, w, h, x, y, centerX, centerY, fits, step };
+      return { horiz, w, h, x, y, centerX, centerY, step };
     };
 
-    let r = compute(dir);
-    if (!r.fits && items.length > 0) {
-      // try clockwise turn
-      const cw: Record<typeof dir, typeof dir> = { R: "D", D: "L", L: "U", U: "R" };
-      dir = cw[dir];
-      r = compute(dir);
-      // if still doesn't fit, try one more turn
-      if (!r.fits) {
-        dir = cw[dir];
-        r = compute(dir);
+    // Decide if we should turn before placing
+    if (items.length > 0 && (dir === "R" || dir === "L")) {
+      const probe = compute(dir);
+      const rowSpan = Math.abs(probe.centerX - rowStartCx);
+      if (rowSpan > rowMax) {
+        // turn down then reverse direction => U-turn (zig-zag)
+        dir = "D";
+        // step down by long to leave space for next row
+        cy += long;
+        // now flip horizontal direction for the new row
+        const next = compute(dir); // not used directly; we instead do row break:
+        void next;
+        dir = dir === "D" ? (placedInRow % 2 === 0 ? "L" : "R") : dir;
+        // Easier: alternate based on row count
+        const newRow = Math.round(cy / long);
+        dir = newRow % 2 === 1 ? "L" : "R";
+        rowStartCx = cx;
+        placedInRow = 0;
       }
     }
+
+    const r = compute(dir);
 
     items.push({
       x: r.x,
@@ -91,6 +104,7 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
     });
     cx = r.centerX + (dir === "R" ? r.step : dir === "L" ? -r.step : 0);
     cy = r.centerY + (dir === "D" ? r.step : dir === "U" ? -r.step : 0);
+    placedInRow += 1;
   };
 
   for (const p of board) {
@@ -100,41 +114,51 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
     place(a, b);
   }
 
-  // Center the chain bounding box
-  let dx = 0, dy = 0;
+  // Translate everything to positive coords with padding
+  let dx = pad, dy = pad, innerW = vp.w, innerH = vp.h;
   if (items.length > 0) {
     const minX = Math.min(...items.map((i) => i.x));
     const maxX = Math.max(...items.map((i) => i.x + i.w));
     const minY = Math.min(...items.map((i) => i.y));
     const maxY = Math.max(...items.map((i) => i.y + i.h));
-    dx = (W - (maxX - minX)) / 2 - minX;
-    dy = (H - (maxY - minY)) / 2 - minY;
+    const chainW = maxX - minX;
+    const chainH = maxY - minY;
+    innerW = Math.max(vp.w, chainW + pad * 2);
+    innerH = Math.max(vp.h, chainH + pad * 2);
+    dx = (innerW - chainW) / 2 - minX;
+    dy = (innerH - chainH) / 2 - minY;
   }
 
   return (
-    <div ref={ref} className="relative w-full h-full overflow-hidden">
-      {items.map((it, i) => (
-        <div
-          key={i}
-          className="absolute animate-scale-in"
-          style={{
-            left: it.x + dx,
-            top: it.y + dy,
-            width: it.w,
-            height: it.h,
-            transition: "left 280ms ease, top 280ms ease",
-          }}
-        >
-          <DominoTile
-            a={it.a}
-            b={it.b}
-            size={tileSize}
-            horizontal={it.horizontal}
-            variant="white"
-            fluid
-          />
-        </div>
-      ))}
+    <div
+      ref={wrapRef}
+      className="relative w-full h-full overflow-auto"
+      style={{ scrollbarWidth: "thin" }}
+    >
+      <div ref={innerRef} className="relative" style={{ width: innerW, height: innerH }}>
+        {items.map((it, i) => (
+          <div
+            key={i}
+            className="absolute animate-scale-in"
+            style={{
+              left: it.x + dx,
+              top: it.y + dy,
+              width: it.w,
+              height: it.h,
+              transition: "left 280ms ease, top 280ms ease",
+            }}
+          >
+            <DominoTile
+              a={it.a}
+              b={it.b}
+              size={tileSize}
+              horizontal={it.horizontal}
+              variant="white"
+              fluid
+            />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

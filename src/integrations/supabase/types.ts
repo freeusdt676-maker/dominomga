@@ -44,6 +44,7 @@ export type Database = {
           expires_at: string
           from_user: string
           game_id: string | null
+          game_mode: string
           id: string
           stake: number
           status: string
@@ -54,6 +55,7 @@ export type Database = {
           expires_at?: string
           from_user: string
           game_id?: string | null
+          game_mode?: string
           id?: string
           stake: number
           status?: string
@@ -64,6 +66,7 @@ export type Database = {
           expires_at?: string
           from_user?: string
           game_id?: string | null
+          game_mode?: string
           id?: string
           stake?: number
           status?: string
@@ -153,12 +156,16 @@ export type Database = {
           current_turn: string | null
           expires_at: string | null
           finished_at: string | null
+          game_mode: string
           id: string
           passes: number
           player1_hand: Json | null
           player1_id: string
           player2_hand: Json | null
           player2_id: string | null
+          round_number: number
+          score_p1: number
+          score_p2: number
           stake: number
           status: Database["public"]["Enums"]["game_status"]
           ticket_number: string | null
@@ -174,12 +181,16 @@ export type Database = {
           current_turn?: string | null
           expires_at?: string | null
           finished_at?: string | null
+          game_mode?: string
           id?: string
           passes?: number
           player1_hand?: Json | null
           player1_id: string
           player2_hand?: Json | null
           player2_id?: string | null
+          round_number?: number
+          score_p1?: number
+          score_p2?: number
           stake: number
           status?: Database["public"]["Enums"]["game_status"]
           ticket_number?: string | null
@@ -195,12 +206,16 @@ export type Database = {
           current_turn?: string | null
           expires_at?: string | null
           finished_at?: string | null
+          game_mode?: string
           id?: string
           passes?: number
           player1_hand?: Json | null
           player1_id?: string
           player2_hand?: Json | null
           player2_id?: string | null
+          round_number?: number
+          score_p1?: number
+          score_p2?: number
           stake?: number
           status?: Database["public"]["Enums"]["game_status"]
           ticket_number?: string | null
@@ -213,18 +228,21 @@ export type Database = {
       matchmaking_queue: {
         Row: {
           created_at: string
+          game_mode: string
           id: string
           stake: number
           user_id: string
         }
         Insert: {
           created_at?: string
+          game_mode?: string
           id?: string
           stake: number
           user_id: string
         }
         Update: {
           created_at?: string
+          game_mode?: string
           id?: string
           stake?: number
           user_id?: string

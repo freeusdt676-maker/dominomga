@@ -621,13 +621,19 @@ export default function Game() {
       <header className="p-3 flex items-center gap-3 border-b border-primary/20">
         <Button variant="ghost" size="icon" onClick={() => nav(-1 as any)}><ArrowLeft /></Button>
         <div className="flex-1">
-          <h1 className="font-display text-base font-bold gold-text">Latabatra Domino</h1>
+          <h1 className="font-display text-base font-bold gold-text">Latabatra Domino · {playersCount}P</h1>
           <p className="text-[10px] text-muted-foreground">
-            {MODE_LABEL[gameMode]} · Tour {game.round_number ?? 1} · Score {myScore}-{oppScore}{targetPts ? ` /${targetPts}` : ""}
+            {MODE_LABEL[gameMode]} · Tour {game.round_number ?? 1}
+            {game.ticket_number ? ` · Nº${game.ticket_number}` : ""}
           </p>
           <p className="text-[10px] text-muted-foreground">
-            Mise: {fmtAr(game.stake)} · Gain: {fmtAr(Math.round(game.stake * 1.8))}
+            Score: {myName} {myScore}
+            {opponents.map((o) => ` · ${o.name} ${scoreOf(o.id)}`).join("")}
+            {targetPts ? ` /${targetPts}` : ""}
           </p>
+          {turnName && game.status === "in_progress" && (
+            <p className="text-[10px] gold-text font-bold">▶ Andiany: {turnName}</p>
+          )}
         </div>
         {game.status === "in_progress" && (
           <div className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold ${remaining <= 5 ? "bg-destructive/20 text-destructive animate-pulse" : "bg-primary/15 gold-text"}`}>

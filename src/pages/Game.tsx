@@ -3,9 +3,14 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, Home as HomeIcon, Clock } from "lucide-react";
+import { ArrowLeft, Loader2, Home as HomeIcon, Clock, Flag } from "lucide-react";
 import { fmtAr, TURN_TIMEOUT_SEC } from "@/lib/constants";
 import { DominoTile, DominoBack } from "@/components/DominoTile";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Tile, Placed, deal, ends, canPlace, place, pipsTotal, hasMove, chooseStartingPlayer,
 } from "@/lib/dominoEngine";
@@ -24,12 +29,26 @@ export default function Game() {
   const { id } = useParams();
   const { user } = useAuth();
   const nav = useNavigate();
-  const [game, setGame] = useState<any>(null);
+  const [serverGame, setServerGame] = useState<any>(null);
+  const [optimistic, setOptimistic] = useState<any>(null);
+  const game = optimistic ?? serverGame;
   const [selected, setSelected] = useState<number | null>(null);
   const [ticketBanner, setTicketBanner] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
+  const [confirmAbandon, setConfirmAbandon] = useState(false);
   const autoActedRef = useRef<string | null>(null);
   const initLockRef = useRef(false);
+  const isMobile = useIsMobile();
+
+  // Reconcile optimistic with server: drop optimistic when server catches up
+  useEffect(() => {
+    if (!serverGame) return;
+    if (!optimistic) return;
+    // If server is at least as new as optimistic (same updated_at or newer), drop optimistic
+    if (new Date(serverGame.updated_at).getTime() >= new Date(optimistic.updated_at ?? 0).getTime()) {
+      setOptimistic(null);
+    }
+  }, [serverGame, optimistic]);
 
   const initializeGameHands = async (currentGame: any) => {
     if (!currentGame?.id || !currentGame.player1_id || !currentGame.player2_id) return;
@@ -95,12 +114,12 @@ export default function Game() {
     if (!id) return;
     const load = async () => {
       const { data } = await supabase.from("games").select("*").eq("id", id).single();
-      setGame(data);
+      setServerGame(data);
     };
     load();
     const ch = supabase.channel("game-" + id)
       .on("postgres_changes", { event: "*", schema: "public", table: "games", filter: `id=eq.${id}` },
-        (p: any) => setGame(p.new))
+        (p: any) => setServerGame(p.new))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [id]);
@@ -156,6 +175,18 @@ export default function Game() {
     const oppHand: Tile[] = (isP1 ? game.player2_hand : game.player1_hand) ?? [];
     const oppId = isP1 ? game.player2_id : game.player1_id;
 
+    // OPTIMISTIC UI — apetraho avy hatrany eo amin'ny ecran
+    setOptimistic({
+      ...game,
+      board_state: newBoard,
+      [isP1 ? "player1_hand" : "player2_hand"]: newHand,
+      current_turn: newHand.length === 0 ? game.current_turn : oppId,
+      turn_started_at: new Date().toISOString(),
+      passes: 0,
+      updated_at: new Date().toISOString(),
+    });
+    setSelected(null);
+
     // Mandresy raha tsy misy piesy
     if (newHand.length === 0) {
       await supabase.rpc("settle_game", { _game_id: game.id, _winner: user.id });
@@ -163,7 +194,6 @@ export default function Game() {
         board_state: newBoard,
         [isP1 ? "player1_hand" : "player2_hand"]: newHand,
       } as any);
-      setSelected(null);
       return;
     }
     await updateGameState({
@@ -180,7 +210,6 @@ export default function Game() {
       piece: { tile, flipped: chosenSide === "left" ? tile[1] !== (ends(board)?.left ?? tile[1]) : tile[0] !== (ends(board)?.right ?? tile[0]) },
       side: chosenSide,
     });
-    setSelected(null);
   };
 
   const drawOrPass = async () => {
@@ -259,6 +288,25 @@ export default function Game() {
   const canRight = selected !== null && e ? canPlace(board, myHand[selected]) === "right" || canPlace(board, myHand[selected]) === "either" : false;
   const noMove = isMyTurn && !hasMove(myHand, board);
 
+  const abandonGame = async () => {
+    if (!game || !user) return;
+    const oppId = game.player1_id === user.id ? game.player2_id : game.player1_id;
+    if (!oppId) {
+      // Mbola tsy nisy adversaire — annuler fotsiny
+      await supabase.rpc("cancel_waiting_game", { _game_id: game.id });
+      nav("/lobby");
+      return;
+    }
+    const { error } = await supabase.rpc("settle_game", { _game_id: game.id, _winner: oppId });
+    if (error) return toast.error(error.message);
+    toast("Niala tamin'ny lalao ianao");
+    nav("/lobby");
+  };
+
+  // Sary kely kokoa amin'ny mobile mba tsy hifanaikitra
+  const handTileSize = isMobile ? "md" : "lg";
+  const boardTileSize = isMobile ? "xs" : "sm";
+
   return (
     <div className="min-h-screen felt-bg flex flex-col">
       {ticketBanner && (
@@ -279,8 +327,28 @@ export default function Game() {
             <Clock className="w-3 h-3" /> {remaining}s
           </div>
         )}
+        {game.status === "in_progress" && (
+          <Button variant="destructive" size="sm" className="h-8 px-2 gap-1" onClick={() => setConfirmAbandon(true)}>
+            <Flag className="w-3 h-3" /> Abandonné
+          </Button>
+        )}
         <Button variant="ghost" size="icon" onClick={() => nav("/")}><HomeIcon className="w-5 h-5" /></Button>
       </header>
+
+      <AlertDialog open={confirmAbandon} onOpenChange={setConfirmAbandon}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tena hiala amin'ny lalao tokoa ve ianao?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Raha hiala ianao, lasa resy ny lalao ary mandeha ho an'ny adversaire ny vola.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Tsia</AlertDialogCancel>
+            <AlertDialogAction onClick={abandonGame}>OK, miala</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {game.status === "waiting" && (
         <div className="flex-1 flex items-center justify-center p-6">
@@ -362,11 +430,11 @@ export default function Game() {
                   const [a, b] = p.tile;
                   const isDouble = a === b;
                   return (
-                    <div key={i} className="flex items-center justify-center">
+                    <div key={i} className="flex items-center justify-center animate-scale-in">
                       <DominoTile
                         a={p.flipped ? b : a}
                         b={p.flipped ? a : b}
-                        size="sm"
+                        size={boardTileSize}
                         horizontal={!isDouble}
                       />
                     </div>
@@ -401,7 +469,7 @@ export default function Game() {
                 </Button>
               )}
             </div>
-            <div className="flex gap-1.5 overflow-x-auto py-2 justify-center">
+            <div className="flex gap-1 overflow-x-auto py-2 justify-center px-1">
               {myHand.map((t, i) => {
                 const placeable = canPlace(board, t) !== null;
                 return (
@@ -409,7 +477,7 @@ export default function Game() {
                     key={i}
                     a={t[0]}
                     b={t[1]}
-                    size="lg"
+                    size={handTileSize}
                     onClick={() => isMyTurn && placeable && setSelected(i === selected ? null : i)}
                     selected={selected === i}
                     disabled={!isMyTurn || !placeable}

@@ -548,7 +548,7 @@ export default function Game() {
     const key = `${game.id}-pass-${game.turn_started_at}`;
     if (autoPassRef.current === key) return;
     autoPassRef.current = key;
-    const t = setTimeout(() => { autoPass(); }, 1200);
+    const t = setTimeout(() => { autoPass(); }, 400);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMyTurn, myHand, board, game?.turn_started_at, isRevealing]);
@@ -661,12 +661,7 @@ export default function Game() {
         </div>
       )}
 
-      {game.status === "in_progress" && isMyTurn && !hasMove(myHand, board) && (
-        <div className="px-3 py-2 bg-warning/15 border-b border-warning/40 flex flex-col items-center gap-1">
-          <p className="font-bold text-sm gold-text">⚠ TSIMANANA IZAHO</p>
-          <p className="text-xs text-muted-foreground">Mandalo ho azy any amin'ny adversaire...</p>
-        </div>
-      )}
+      {/* TSIMANANA banner nesorina — tsy mibahana intsony, indikatera kely fotsiny ao amin'ny tanana */}
 
       {game.status === "waiting" && (
         <div className="flex-1 flex items-center justify-center p-6">
@@ -694,25 +689,39 @@ export default function Game() {
 
       {game.status === "in_progress" && (
         <>
-          {/* Tanan'ny adversaire (back) — asehoy ny anaran'ny tsirairay */}
-          <div className="p-2 flex flex-col gap-2">
-            {opponents.map((o) => (
-              <div key={o.id} className="flex flex-col items-center gap-1">
-                <span className={`text-[11px] font-bold ${game.current_turn === o.id ? "gold-text" : "text-muted-foreground"}`}>
-                  {game.current_turn === o.id ? "▶ " : ""}{o.name}{" "}
-                  <span className="text-muted-foreground">({o.count})</span>
-                </span>
-                <div className="flex justify-center gap-1 overflow-x-auto max-w-full">
-                  {isRevealing
-                    ? o.hand.map((t, i) => (
-                        <DominoTile key={i} a={t[0]} b={t[1]} size="sm" horizontal={t[0] !== t[1]} />
-                      ))
-                    : Array.from({ length: o.count }).map((_, i) => (
-                        <DominoBack key={i} size="sm" />
-                      ))}
+          {/* Tanan'ny adversaire — split-screen raha 2 na 3 mpilalao adversaire */}
+          <div className={`p-2 ${opponents.length >= 2 ? "grid grid-cols-2 gap-2" : "flex flex-col"}`}>
+            {opponents.map((o) => {
+              const isTurn = game.current_turn === o.id;
+              const initial = (o.name?.[0] ?? "?").toUpperCase();
+              return (
+                <div
+                  key={o.id}
+                  className={`flex flex-col items-center gap-1 rounded-xl p-2 border ${
+                    isTurn ? "border-primary bg-primary/10 shadow-[0_0_16px_-4px_hsl(var(--primary)/.5)]" : "border-primary/15 bg-card/30"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${isTurn ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
+                      {initial}
+                    </div>
+                    <span className={`text-[11px] font-bold ${isTurn ? "gold-text" : "text-foreground/80"}`}>
+                      {isTurn ? "▶ " : ""}{o.name}
+                      <span className="text-muted-foreground"> ({o.count})</span>
+                    </span>
+                  </div>
+                  <div className="flex justify-center gap-0.5 overflow-x-auto max-w-full">
+                    {isRevealing
+                      ? o.hand.map((t, i) => (
+                          <DominoTile key={i} a={t[0]} b={t[1]} size="xs" horizontal={t[0] !== t[1]} />
+                        ))
+                      : Array.from({ length: o.count }).map((_, i) => (
+                          <DominoBack key={i} size="xs" />
+                        ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Latabatra — chain mifandrohy, mihodina raha lava (snake) */}

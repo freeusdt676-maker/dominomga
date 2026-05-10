@@ -28,6 +28,7 @@ type LG = {
   pawns: Pawn[];
   winner_id: string | null;
   ticket_number: string | null;
+  turn_started_at: string | null;
 };
 
 export default function LudoGame() {

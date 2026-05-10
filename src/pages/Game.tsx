@@ -6,10 +6,6 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, Home as HomeIcon, Clock, Flag } from "lucide-react";
 import { fmtAr, TURN_TIMEOUT_SEC } from "@/lib/constants";
 import { DominoTile, DominoBack } from "@/components/DominoTile";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Tile, Placed, deal, ends, canPlace, place, pipsTotal, hasMove, chooseStartingPlayer,
@@ -37,7 +33,6 @@ export default function Game() {
   const [selected, setSelected] = useState<number | null>(null);
   const [ticketBanner, setTicketBanner] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
-  const [confirmAbandon, setConfirmAbandon] = useState(false);
   const [isAbandoning, setIsAbandoning] = useState(false);
   const autoActedRef = useRef<string | null>(null);
   const initLockRef = useRef(false);
@@ -317,7 +312,6 @@ export default function Game() {
     }
 
     setIsAbandoning(true);
-    setConfirmAbandon(false);
     sessionStorage.setItem(ABANDONED_GAME_KEY, game.id);
     setOptimistic({
       ...game,
@@ -373,29 +367,14 @@ export default function Game() {
             variant="destructive"
             size="sm"
             className="w-full max-w-xs gap-2 font-bold shadow-lg"
-            onClick={() => setConfirmAbandon(true)}
+            onClick={abandonGame}
+            disabled={isAbandoning}
           >
-            <Flag className="w-4 h-4" /> Abandonné — Hiala amin'ny lalao
+            {isAbandoning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Flag className="w-4 h-4" />}
+            {isAbandoning ? "Tapitra ny lalao..." : "Abandonné — Hiala amin'ny lalao"}
           </Button>
         </div>
       )}
-
-      <AlertDialog open={confirmAbandon} onOpenChange={setConfirmAbandon}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Tena hiala amin'ny lalao tokoa ve ianao?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Raha hiala ianao, lasa resy ny lalao ary mandeha ho an'ny adversaire ny vola.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Tsia</AlertDialogCancel>
-            <AlertDialogAction onClick={abandonGame} disabled={isAbandoning}>
-              {isAbandoning ? "Miandry..." : "OK, miala"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {game.status === "waiting" && (
         <div className="flex-1 flex items-center justify-center p-6">

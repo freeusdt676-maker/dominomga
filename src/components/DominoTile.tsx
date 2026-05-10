@@ -52,6 +52,7 @@ export function DominoTile({
   onClick,
   selected = false,
   disabled = false,
+  fluid = false,
 }: {
   a: number;
   b: number;
@@ -60,6 +61,7 @@ export function DominoTile({
   onClick?: () => void;
   selected?: boolean;
   disabled?: boolean;
+  fluid?: boolean;
 }) {
   const { w, h, dot } = SIZES[size];
   const tileW = horizontal ? h : w;
@@ -69,12 +71,13 @@ export function DominoTile({
       type="button"
       onClick={onClick}
       disabled={disabled || !onClick}
-      className={`relative shrink-0 rounded-md overflow-hidden transition ${
+      className={`relative ${fluid ? "w-full" : "shrink-0"} rounded-md overflow-hidden transition ${
         onClick && !disabled ? "cursor-pointer hover:scale-105 active:scale-95" : "cursor-default"
       } ${selected ? "ring-2 ring-primary -translate-y-2" : ""} ${disabled ? "opacity-50" : ""}`}
       style={{
-        width: tileW,
-        height: tileH,
+        width: fluid ? "100%" : tileW,
+        height: fluid ? "auto" : tileH,
+        aspectRatio: fluid ? (horizontal ? "2 / 1" : "1 / 2") : undefined,
         background: "#fafaf2",
         border: "1px solid rgba(0,0,0,.35)",
         boxShadow: "0 4px 8px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.6), inset 0 -1px 2px rgba(0,0,0,.2)",

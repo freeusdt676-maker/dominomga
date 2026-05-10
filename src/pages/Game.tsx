@@ -349,14 +349,6 @@ export default function Game() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elapsed, game?.turn_started_at, game?.status, game?.current_turn]);
 
-  if (!game) return <div className="min-h-screen felt-bg flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
-
-  const e = ends(board);
-  const canLeft = selected !== null && e ? canPlace(board, myHand[selected]) === "left" || canPlace(board, myHand[selected]) === "either" : false;
-  const canRight = selected !== null && e ? canPlace(board, myHand[selected]) === "right" || canPlace(board, myHand[selected]) === "either" : false;
-  const noMove = isMyTurn && !hasMove(myHand, board);
-  const myBoneyardEmpty = ((game?.boneyard as Tile[]) ?? []).length === 0;
-
   // Auto-draw raha tsy manana piesy mety ny mpilalao manana ny tour ary mbola misy boneyard
   useEffect(() => {
     if (!isMyTurn || !game) return;
@@ -385,6 +377,14 @@ export default function Game() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMyTurn, myHand, board, game?.boneyard]);
+
+  if (!game) return <div className="min-h-screen felt-bg flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
+
+  const e = ends(board);
+  const canLeft = selected !== null && e ? canPlace(board, myHand[selected]) === "left" || canPlace(board, myHand[selected]) === "either" : false;
+  const canRight = selected !== null && e ? canPlace(board, myHand[selected]) === "right" || canPlace(board, myHand[selected]) === "either" : false;
+  const noMove = isMyTurn && !hasMove(myHand, board);
+  const myBoneyardEmpty = ((game?.boneyard as Tile[]) ?? []).length === 0;
 
   const continueAfterEmpty = () => {
     setShowBlockedChoice(false);

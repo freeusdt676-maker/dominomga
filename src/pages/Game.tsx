@@ -265,6 +265,11 @@ export default function Game() {
     return ((game.player1_id === user.id ? game.player2_hand : game.player1_hand) ?? []).length;
   }, [game, user]);
 
+  const oppHand: Tile[] = useMemo(() => {
+    if (!game || !user) return [];
+    return ((game.player1_id === user.id ? game.player2_hand : game.player1_hand) ?? []) as Tile[];
+  }, [game, user]);
+
   const board: Placed[] = (game?.board_state as Placed[]) ?? [];
   const isMyTurn = game?.current_turn === user?.id && game?.status === "in_progress";
   const revealUntilMs = game?.reveal_until ? new Date(game.reveal_until).getTime() : 0;
@@ -556,9 +561,13 @@ export default function Game() {
         <>
           {/* Tanan'ny adversaire (back) */}
           <div className="p-3 flex justify-center gap-1 overflow-x-auto">
-            {Array.from({ length: oppHandCount }).map((_, i) => (
-              <DominoBack key={i} size="sm" />
-            ))}
+            {isRevealing
+              ? oppHand.map((t, i) => (
+                  <DominoTile key={i} a={t[0]} b={t[1]} size="sm" horizontal={t[0] !== t[1]} />
+                ))
+              : Array.from({ length: oppHandCount }).map((_, i) => (
+                  <DominoBack key={i} size="sm" />
+                ))}
           </div>
 
           {/* Latabatra — chain mifandrohy, mihodina raha lava (snake) */}

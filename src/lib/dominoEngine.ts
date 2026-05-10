@@ -49,6 +49,46 @@ export function deal(seed?: string) {
   return { p1, p2, boneyard };
 }
 
+export function deal3(seed?: string) {
+  const random = seed ? mulberry32(hashSeed(seed)) : Math.random;
+  const deck = [...buildDeck()];
+  for (let i = deck.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  const p1 = deck.slice(0, 7);
+  const p2 = deck.slice(7, 14);
+  const p3 = deck.slice(14, 21);
+  const boneyard = deck.slice(21);
+  return { p1, p2, p3, boneyard };
+}
+
+// Mode-aware opening: returns the index of the player (0-based) and the tile to open with.
+// d120 / hand: smallest double available (0,1,2,...,6); fallback: highest pip tile.
+// d80: largest double available (6,5,...,0); fallback: highest pip tile.
+export function chooseOpening(
+  hands: Tile[][],
+  mode: "d120" | "d80" | "hand",
+): { playerIndex: number; tile: Tile } {
+  const order = mode === "d80" ? [6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6];
+  for (const v of order) {
+    for (let i = 0; i < hands.length; i += 1) {
+      if (hands[i].some(([a, b]) => a === v && b === v)) {
+        return { playerIndex: i, tile: [v, v] };
+      }
+    }
+  }
+  // Fallback: highest pip tile across all players
+  let best = { playerIndex: 0, tile: hands[0][0], score: -1 };
+  for (let i = 0; i < hands.length; i += 1) {
+    for (const t of hands[i]) {
+      const s = t[0] + t[1];
+      if (s > best.score) best = { playerIndex: i, tile: t, score: s };
+    }
+  }
+  return { playerIndex: best.playerIndex, tile: best.tile };
+}
+
 function tileRank([a, b]: Tile) {
   return a === b ? 100 + a : Math.max(a, b) * 10 + Math.min(a, b);
 }

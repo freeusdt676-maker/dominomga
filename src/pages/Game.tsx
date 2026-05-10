@@ -43,6 +43,7 @@ export default function Game() {
   const initLockRef = useRef(false);
   const autoPassRef = useRef<string | null>(null);
   const roundEndLockRef = useRef<string | null>(null);
+  const revealCommitRef = useRef<string | null>(null);
   const isMobile = useIsMobile();
 
   const getAbandonedGameId = () => sessionStorage.getItem(ABANDONED_GAME_KEY);
@@ -134,34 +135,39 @@ export default function Game() {
     const handMode = mode === "hand";
     const instantWin = isDouble6Win || dateMatch || handMode || targetReached;
 
-    if (instantWin) {
-      await supabase.from("games").update({
-        score_p1: newScoreP1,
-        score_p2: newScoreP2,
-      }).eq("id", game.id);
-      await supabase.rpc("settle_game", { _game_id: game.id, _winner: winnerId });
-      return;
-    }
-
-    // Tour vaovao
-    const nextRound = (game.round_number ?? 1) + 1;
-    const seed = `${game.ticket_number || game.id}-r${nextRound}`;
-    const { p1: h1, p2: h2, boneyard } = deal(seed);
+    // 1) Asehoy 3s ny vato rehetra (reveal) + ampidiriny ny score vaovao
+    const REVEAL_MS = 3000;
+    const revealUntil = new Date(Date.now() + REVEAL_MS).toISOString();
     setRoundBanner(`Tour vita +${points} • ${newScoreP1} - ${newScoreP2}`);
-    setTimeout(() => setRoundBanner(null), 3500);
+    setTimeout(() => setRoundBanner(null), REVEAL_MS + 500);
     await supabase.from("games").update({
       score_p1: newScoreP1,
       score_p2: newScoreP2,
-      round_number: nextRound,
-      player1_hand: h1 as any,
-      player2_hand: h2 as any,
-      boneyard: boneyard as any,
-      board_state: [] as any,
-      current_turn: winnerId,
-      turn_started_at: new Date().toISOString(),
-      passes: 0,
-    }).eq("id", game.id);
+      reveal_until: revealUntil,
+    } as any).eq("id", game.id);
     setOptimistic(null);
+
+    // 2) Aorian'ny 3s — settle na re-deal
+    setTimeout(async () => {
+      if (instantWin) {
+        await supabase.rpc("settle_game", { _game_id: game.id, _winner: winnerId });
+        return;
+      }
+      const nextRound = (game.round_number ?? 1) + 1;
+      const seed = `${game.ticket_number || game.id}-r${nextRound}`;
+      const { p1: h1, p2: h2, boneyard } = deal(seed);
+      await supabase.from("games").update({
+        round_number: nextRound,
+        player1_hand: h1 as any,
+        player2_hand: h2 as any,
+        boneyard: boneyard as any,
+        board_state: [] as any,
+        current_turn: winnerId,
+        turn_started_at: new Date().toISOString(),
+        passes: 0,
+        reveal_until: null,
+      } as any).eq("id", game.id);
+    }, REVEAL_MS);
   };
 
   // Bloqué (samy tsy afaka mihetsika): kely vato indrindra mahazo ny diferansa

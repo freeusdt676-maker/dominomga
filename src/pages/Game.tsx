@@ -25,6 +25,8 @@ type GameState = {
   passes: number;
 };
 
+const ABANDONED_GAME_KEY = "domino_abandoned_game_id";
+
 export default function Game() {
   const { id } = useParams();
   const { user } = useAuth();
@@ -36,9 +38,12 @@ export default function Game() {
   const [ticketBanner, setTicketBanner] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
   const [confirmAbandon, setConfirmAbandon] = useState(false);
+  const [isAbandoning, setIsAbandoning] = useState(false);
   const autoActedRef = useRef<string | null>(null);
   const initLockRef = useRef(false);
   const isMobile = useIsMobile();
+
+  const getAbandonedGameId = () => sessionStorage.getItem(ABANDONED_GAME_KEY);
 
   // Reconcile optimistic with server: drop optimistic when server catches up
   useEffect(() => {
@@ -123,6 +128,19 @@ export default function Game() {
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [id]);
+
+  useEffect(() => {
+    if (!game || !user || !id) return;
+    const abandonedGameId = getAbandonedGameId();
+    if (
+      abandonedGameId === id &&
+      game.status === "finished" &&
+      game.winner_id &&
+      game.winner_id !== user.id
+    ) {
+      nav("/lobby", { replace: true });
+    }
+  }, [game, user, id, nav]);
 
   // Tic-tac timer 1s
   useEffect(() => {
@@ -289,18 +307,37 @@ export default function Game() {
   const noMove = isMyTurn && !hasMove(myHand, board);
 
   const abandonGame = async () => {
-    if (!game || !user) return;
+    if (!game || !user || isAbandoning) return;
     const oppId = game.player1_id === user.id ? game.player2_id : game.player1_id;
     if (!oppId) {
       // Mbola tsy nisy adversaire — annuler fotsiny
       await supabase.rpc("cancel_waiting_game", { _game_id: game.id });
-      nav("/lobby");
+      nav("/lobby", { replace: true });
       return;
     }
+
+    setIsAbandoning(true);
+    setConfirmAbandon(false);
+    sessionStorage.setItem(ABANDONED_GAME_KEY, game.id);
+    setOptimistic({
+      ...game,
+      status: "finished",
+      winner_id: oppId,
+      current_turn: null,
+      finished_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+
     const { error } = await supabase.rpc("settle_game", { _game_id: game.id, _winner: oppId });
-    if (error) return toast.error(error.message);
-    toast("Niala tamin'ny lalao ianao");
-    nav("/lobby");
+    if (error) {
+      sessionStorage.removeItem(ABANDONED_GAME_KEY);
+      setOptimistic(null);
+      setIsAbandoning(false);
+      return toast.error(error.message);
+    }
+
+    toast("Resy avy hatrany ianao noho ny abandonné");
+    nav("/lobby", { replace: true });
   };
 
   // Sary kely kokoa amin'ny mobile mba tsy hifanaikitra
@@ -353,7 +390,9 @@ export default function Game() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Tsia</AlertDialogCancel>
-            <AlertDialogAction onClick={abandonGame}>OK, miala</AlertDialogAction>
+            <AlertDialogAction onClick={abandonGame} disabled={isAbandoning}>
+              {isAbandoning ? "Miandry..." : "OK, miala"}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

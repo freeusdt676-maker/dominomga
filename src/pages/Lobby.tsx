@@ -12,6 +12,8 @@ type WaitingGame = {
   _name?: string;
 };
 
+const ABANDONED_GAME_KEY = "domino_abandoned_game_id";
+
 export default function Lobby() {
   const { user } = useAuth();
   const nav = useNavigate();
@@ -23,6 +25,7 @@ export default function Lobby() {
 
   const load = async () => {
     if (!user) return;
+    const abandonedGameId = sessionStorage.getItem(ABANDONED_GAME_KEY);
     // Fallback: raha vao nanomboka (60s farany) misy lalao in_progress dia tonga dia mankany
     const since = new Date(Date.now() - 60_000).toISOString();
     const { data: mine } = await supabase
@@ -33,8 +36,9 @@ export default function Lobby() {
       .gte("updated_at", since)
       .order("updated_at", { ascending: false })
       .limit(1);
-    if (mine && mine.length > 0) {
-      nav(`/game/${mine[0].id}`);
+    const latestActiveGame = mine?.find((g) => g.id !== abandonedGameId);
+    if (latestActiveGame?.id) {
+      nav(`/game/${latestActiveGame.id}`);
       return;
     }
     const { data: gs } = await supabase

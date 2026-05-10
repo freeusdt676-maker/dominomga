@@ -39,6 +39,7 @@ function nextTurnId(g: any, currentId: string): string {
   return ids[(i + 1) % ids.length] ?? ids[0];
 }
 function getHandKey(g: any, uid: string): "player1_hand" | "player2_hand" | "player3_hand" | null {
+  if (!g) return null;
   if (uid === g.player1_id) return "player1_hand";
   if (uid === g.player2_id) return "player2_hand";
   if (uid === g.player3_id) return "player3_hand";

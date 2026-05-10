@@ -267,6 +267,8 @@ export default function Game() {
 
   const board: Placed[] = (game?.board_state as Placed[]) ?? [];
   const isMyTurn = game?.current_turn === user?.id && game?.status === "in_progress";
+  const revealUntilMs = game?.reveal_until ? new Date(game.reveal_until).getTime() : 0;
+  const isRevealing = revealUntilMs > now;
 
   // Faharetan'ny Tour
   const turnStart = game?.turn_started_at ? new Date(game.turn_started_at).getTime() : 0;
@@ -351,6 +353,7 @@ export default function Game() {
     if (!game || !user) return;
     if (game.status !== "in_progress") return;
     if (!game.current_turn) return;
+    if (isRevealing) return;
     // Rehefa lany ny 20s (na ahy na adversaire), ny Bot no mandefa avy hatrany
     if (elapsed < TURN_TIMEOUT_SEC) return;
     const key = `${game.id}-${game.turn_started_at}-${game.current_turn}`;
@@ -413,6 +416,7 @@ export default function Game() {
   // Auto-pass raha tsy manana vato mety ny mpilalao manana ny tour
   useEffect(() => {
     if (!isMyTurn || !game) return;
+    if (isRevealing) return;
     if (hasMove(myHand, board)) return;
     const key = `${game.id}-pass-${game.turn_started_at}`;
     if (autoPassRef.current === key) return;
@@ -420,7 +424,7 @@ export default function Game() {
     const t = setTimeout(() => { autoPass(); }, 1200);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMyTurn, myHand, board, game?.turn_started_at]);
+  }, [isMyTurn, myHand, board, game?.turn_started_at, isRevealing]);
 
   if (!game) return <div className="min-h-screen felt-bg flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 

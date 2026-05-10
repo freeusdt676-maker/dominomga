@@ -8,16 +8,23 @@ import { ArrowLeft, Loader2, Coins, Users, X } from "lucide-react";
 import { toast } from "sonner";
 
 type WaitingGame = {
-  id: string; player1_id: string; stake: number; created_at: string;
+  id: string; player1_id: string; stake: number; created_at: string; game_mode?: string;
   _name?: string;
 };
 
 const ABANDONED_GAME_KEY = "domino_abandoned_game_id";
 
+const MODES: { value: string; label: string; short: string }[] = [
+  { value: "d120", label: "Maty 120", short: "120" },
+  { value: "d80", label: "Maty 80", short: "80" },
+  { value: "hand", label: "Domy maty atanana", short: "Atanana" },
+];
+
 export default function Lobby() {
   const { user } = useAuth();
   const nav = useNavigate();
   const [stake, setStake] = useState(STAKE_LEVELS[0]);
+  const [mode, setMode] = useState<string>("d120");
   const [waiting, setWaiting] = useState<WaitingGame[]>([]);
   const [myWaiting, setMyWaiting] = useState<WaitingGame | null>(null);
   const [placing, setPlacing] = useState(false);
@@ -43,7 +50,7 @@ export default function Lobby() {
     }
     const { data: gs } = await supabase
       .from("games")
-      .select("id, player1_id, stake, created_at")
+      .select("id, player1_id, stake, created_at, game_mode")
       .eq("status", "waiting")
       .is("player2_id", null)
       .order("created_at", { ascending: true });
@@ -93,7 +100,7 @@ export default function Lobby() {
     setPlacing(true);
     const { data: g, error } = await supabase
       .from("games")
-      .insert({ player1_id: user.id, stake, status: "waiting" })
+      .insert({ player1_id: user.id, stake, status: "waiting", game_mode: mode })
       .select("id")
       .single();
     setPlacing(false);
@@ -137,6 +144,18 @@ export default function Lobby() {
 
       <div className="p-4 max-w-lg mx-auto space-y-4">
         <div className="card-felt rounded-2xl p-4">
+          <p className="text-sm text-muted-foreground mb-2">Karazana lalao</p>
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            {MODES.map((m) => (
+              <button
+                key={m.value}
+                onClick={() => setMode(m.value)}
+                className={`py-2 rounded-lg text-[11px] font-semibold border ${mode === m.value ? "btn-gold border-primary" : "border-primary/30 text-foreground"}`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
           <p className="text-sm text-muted-foreground mb-2">Safidio ny mise</p>
           <div className="grid grid-cols-5 gap-2">
             {STAKE_LEVELS.map((s) => (
@@ -179,6 +198,7 @@ export default function Lobby() {
                 <div className="space-y-1.5">
                   {grouped[Number(k)].map((g) => {
                     const same = Number(g.stake) === stake;
+                    const gMode = MODES.find((m) => m.value === (g.game_mode ?? "d120"));
                     return (
                       <button
                         key={g.id}
@@ -188,7 +208,9 @@ export default function Lobby() {
                       >
                         <div className="text-left">
                           <p className="font-bold text-sm">{g._name}</p>
-                          <p className="text-[11px] text-muted-foreground">mise <b className="gold-text">{fmtAr(g.stake)}</b> · vonona</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            mise <b className="gold-text">{fmtAr(g.stake)}</b> · <b className="text-primary">{gMode?.label ?? "Maty 120"}</b>
+                          </p>
                         </div>
                         {joining === g.id ? <Loader2 className="w-4 h-4 animate-spin" /> : (
                           <span className="text-xs font-bold text-primary">Hiditra ▶</span>

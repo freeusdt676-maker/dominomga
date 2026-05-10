@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { phoneToEmail } from "@/lib/constants";
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { DominoTile } from "@/components/DominoTile";
 import logo from "@/assets/logo.png";
-import { Shield } from "lucide-react";
+import { Camera, Shield, X } from "lucide-react";
 import { ADMIN_CODE, ADMIN_CODE_ALT } from "@/lib/constants";
 
 export default function Auth() {
@@ -30,6 +30,10 @@ export default function Auth() {
   const [sPwd2, setSPwd2] = useState("");
   const [sPin, setSPin] = useState("");
   const [sPin2, setSPin2] = useState("");
+  const [sSelfie, setSSelfie] = useState<string | null>(null);
+  const [camOpen, setCamOpen] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [loading, setLoading] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [adminCode, setAdminCode] = useState("");
@@ -76,48 +80,100 @@ export default function Auth() {
     nav("/");
   };
 
+  // Camera lifecycle
+  useEffect(() => {
+    if (!camOpen) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user", width: { ideal: 720 }, height: { ideal: 720 } },
+          audio: false,
+        });
+        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play().catch(() => {});
+        }
+      } catch (e: any) {
+        toast.error("Tsy nahazo fahazoan'ny camera. Avelao ny accès.");
+        setCamOpen(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
+      }
+    };
+  }, [camOpen]);
+
+  const captureSelfie = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    const size = Math.min(v.videoWidth, v.videoHeight) || 480;
+    const c = document.createElement("canvas");
+    c.width = size; c.height = size;
+    const ctx = c.getContext("2d");
+    if (!ctx) return;
+    const sx = (v.videoWidth - size) / 2;
+    const sy = (v.videoHeight - size) / 2;
+    // miroir mba mitovy amin'ny preview
+    ctx.translate(size, 0); ctx.scale(-1, 1);
+    ctx.drawImage(v, sx, sy, size, size, 0, 0, size, size);
+    const data = c.toDataURL("image/jpeg", 0.85);
+    setSSelfie(data);
+    setCamOpen(false);
+  };
+
+  const ageOK = (iso: string) => {
+    if (!iso) return false;
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return false;
+    const now = new Date();
+    let age = now.getFullYear() - d.getFullYear();
+    const m = now.getMonth() - d.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
+    return age >= 18;
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!sName.trim()) return toast.error("Anarana MVOLA ilaina");
-    if (!/^03[2-48]\d{7}$/.test(sPhone.replace(/\s/g, ""))) return toast.error("Numéro Telma diso (034 na 038)");
+    const cleanPhoneIn = sPhone.replace(/\s/g, "");
+    if (!/^0(34|38)\d{7}$/.test(cleanPhoneIn)) return toast.error("Numéro téléphone diso (038/034 XXXXXXX)");
+    if (sName.trim().length < 3) return toast.error("Anarana certifié MVOLA tsy ampy");
+    if (!sBirth || !ageOK(sBirth)) return toast.error("Daty nahaterahana tsy mety na tsy ampy 18 taona");
     if (sPwd.length < 6) return toast.error("Mot de passe ≥ 6 caractères");
     if (sPwd !== sPwd2) return toast.error("Mot de passe tsy mitovy");
-    if (!/^\d{4,6}$/.test(sPin)) return toast.error("Code PIN: 4-6 chiffres");
-    if (sPin !== sPin2) return toast.error("Code PIN tsy mitovy");
+    if (!/^\d{4}$/.test(sPin)) return toast.error("PIN: 4 chiffres");
+    if (sPin !== sPin2) return toast.error("PIN tsy mitovy");
+    if (!sSelfie) return toast.error("Maka sary selfie aloha azafady");
 
     setLoading(true);
-    const cleanPhone = sPhone.replace(/\s/g, "");
+    const cleanPhone = cleanPhoneIn;
     try {
-      // Inscription mivantana amin'ny Supabase Auth
-      const { data, error } = await supabase.auth.signUp({
-        email: phoneToEmail(cleanPhone),
-        password: sPwd.trim(),
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            mvola_name: sName.trim(),
-            phone: cleanPhone,
-            birth_date: sBirth || null,
-            gender: sGender,
-            password_plain: sPwd.trim(),
-            pin_plain: sPin,
-          },
+      // Mampiasa ny edge function signup-kyc mba hampidirina ny selfie + auto-confirm
+      const { data, error } = await supabase.functions.invoke("signup-kyc", {
+        body: {
+          email: phoneToEmail(cleanPhone),
+          password: sPwd.trim(),
+          mvola_name: sName.trim(),
+          phone: cleanPhone,
+          birth_date: sBirth,
+          gender: sGender,
+          selfie_base64: sSelfie,
+          pin: sPin,
         },
       });
-      if (error) {
-        setLoading(false);
-        const m = error.message?.toLowerCase() ?? "";
-        if (m.includes("already") || m.includes("registered")) {
-          return toast.error("Efa misy compte amin'io numéro io");
-        }
-        return toast.error(error.message);
-      }
-      // Mivoaka avy hatrany mba tsy hidirana raha mbola pending
-      await supabase.auth.signOut();
       setLoading(false);
-      toast.success("Inscription vita! Miandry ny fankatoavan'ny Admin (KYC).");
+      const errMsg = (data as any)?.error || (error as any)?.message;
+      if (errMsg) return toast.error(errMsg);
+      toast.success("Inscription vita! Miandry validation amin'ny ADMINISTRATIF.");
       setTab("login");
-      setSName(""); setSBirth(""); setSPhone(""); setSPwd(""); setSPwd2(""); setSPin(""); setSPin2("");
+      setSName(""); setSBirth(""); setSPhone(""); setSPwd(""); setSPwd2("");
+      setSPin(""); setSPin2(""); setSSelfie(null);
     } catch (err: any) {
       setLoading(false);
       toast.error(String(err?.message ?? err));
@@ -161,60 +217,93 @@ export default function Auth() {
             </TabsContent>
 
             <TabsContent value="signup">
+              <div className="mvola-banner mb-3 text-sm">
+                💛 INSCRIPTION MVOLA — Fenoy daholo ireto mba ho ankatoavin'ny ADMINISTRATIF
+              </div>
               <form onSubmit={handleSignup} className="space-y-3">
                 <div>
-                  <Label>Anarana ao amin'ny MVOLA</Label>
-                  <Input value={sName} onChange={(e) => setSName(e.target.value)} placeholder="RAKOTO Jean" />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label>Daty nahaterahana</Label>
-                    <Input type="date" value={sBirth} onChange={(e) => setSBirth(e.target.value)} />
-                  </div>
-                  <div>
-                    <Label>Lahy/Vavy</Label>
-                    <Select value={sGender} onValueChange={(v: any) => setSGender(v)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="male">Lahy</SelectItem>
-                        <SelectItem value="female">Vavy</SelectItem>
-                        <SelectItem value="other">Hafa</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <Label className="text-xs font-bold uppercase tracking-wide">Numéro téléphone</Label>
+                  <Input value={sPhone} onChange={(e) => setSPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                    placeholder="038/034 XXXXXXX" inputMode="tel" maxLength={10} />
                 </div>
                 <div>
-                  <Label>Numéro Telma</Label>
-                  <Input value={sPhone} onChange={(e) => setSPhone(e.target.value)} placeholder="034 na 038 XXXXXXX" inputMode="tel" maxLength={10} />
+                  <Label className="text-xs font-bold uppercase tracking-wide">Anarana certifié MVOLA</Label>
+                  <Input value={sName} onChange={(e) => setSName(e.target.value)} placeholder="Jean Claude" />
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label>Mot de passe</Label>
-                    <Input type="password" value={sPwd} onChange={(e) => setSPwd(e.target.value)} />
-                  </div>
-                  <div>
-                    <Label>Avereno</Label>
-                    <Input type="password" value={sPwd2} onChange={(e) => setSPwd2(e.target.value)} />
-                  </div>
+                <div>
+                  <Label className="text-xs font-bold uppercase tracking-wide">Daty nahaterahana (YYYY/MM/JJ)</Label>
+                  <Input type="date" value={sBirth} onChange={(e) => setSBirth(e.target.value)} />
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label>Code PIN (retrait)</Label>
-                    <Input type="password" inputMode="numeric" maxLength={6} value={sPin} onChange={(e) => setSPin(e.target.value)} />
-                  </div>
-                  <div>
-                    <Label>Avereno</Label>
-                    <Input type="password" inputMode="numeric" maxLength={6} value={sPin2} onChange={(e) => setSPin2(e.target.value)} />
-                  </div>
+                <div>
+                  <Label className="text-xs font-bold uppercase tracking-wide">Sexe (LAHY/VAVY/HAFA)</Label>
+                  <Select value={sGender} onValueChange={(v: any) => setSGender(v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">LAHY</SelectItem>
+                      <SelectItem value="female">VAVY</SelectItem>
+                      <SelectItem value="other">HAFA</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Button type="submit" disabled={loading} className="w-full btn-gold">
-                  {loading ? "Andraso..." : "Hisoratra anarana"}
+                <div>
+                  <Label className="text-xs font-bold uppercase tracking-wide">Mot de passe</Label>
+                  <Input type="password" value={sPwd} onChange={(e) => setSPwd(e.target.value)} placeholder="DE4erStv." />
+                </div>
+                <div>
+                  <Label className="text-xs font-bold uppercase tracking-wide">Confirmer mot de passe</Label>
+                  <Input type="password" value={sPwd2} onChange={(e) => setSPwd2(e.target.value)} placeholder="DE4erStv." />
+                </div>
+                <div>
+                  <Label className="text-xs font-bold uppercase tracking-wide">PIN</Label>
+                  <Input type="password" inputMode="numeric" maxLength={4} value={sPin}
+                    onChange={(e) => setSPin(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="1234" />
+                </div>
+                <div>
+                  <Label className="text-xs font-bold uppercase tracking-wide">Confirmer PIN</Label>
+                  <Input type="password" inputMode="numeric" maxLength={4} value={sPin2}
+                    onChange={(e) => setSPin2(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="1234" />
+                </div>
+                <div>
+                  <Label className="text-xs font-bold uppercase tracking-wide">Selfie (sary tava)</Label>
+                  {sSelfie ? (
+                    <div className="relative inline-block mt-1">
+                      <img src={sSelfie} alt="selfie" className="w-32 h-32 rounded-xl object-cover border-2 border-[#f7971e]" />
+                      <button type="button" onClick={() => setSSelfie(null)}
+                        className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-1">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <Button type="button" onClick={() => setCamOpen(true)} className="w-full btn-mvola mt-1">
+                      <Camera className="w-4 h-4 mr-2" /> MAKA SARY
+                    </Button>
+                  )}
+                </div>
+                <Button type="submit" disabled={loading} className="w-full btn-mvola text-base py-6">
+                  {loading ? "Andraso..." : "HISORATRA ANARANA"}
                 </Button>
+                <p className="text-[11px] text-muted-foreground text-center mt-2">
+                  Aorian'ny fanindriana, miandry validation amin'ny ADMINISTRATIF. Raha misy diso na banga, tsy ho tafiditra ny compte.
+                </p>
               </form>
             </TabsContent>
           </Tabs>
         </div>
       </div>
+
+      {/* Camera modal */}
+      {camOpen && (
+        <div className="fixed inset-0 z-[70] bg-black/90 flex items-center justify-center p-4" onClick={() => setCamOpen(false)}>
+          <div className="bg-card rounded-2xl p-4 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-bold mb-2 mvola-gradient-text text-center">MAKA SARY TAVA</h3>
+            <video ref={videoRef} className="w-full rounded-xl bg-black" style={{ transform: "scaleX(-1)" }} playsInline muted />
+            <div className="grid grid-cols-2 gap-2 mt-3">
+              <Button variant="outline" onClick={() => setCamOpen(false)}>Aoka</Button>
+              <Button className="btn-mvola" onClick={captureSelfie}><Camera className="w-4 h-4 mr-2" /> Maka</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <button
         type="button"

@@ -629,11 +629,6 @@ export default function Game() {
             {MODE_LABEL[gameMode]} · Tour {game.round_number ?? 1}
             {game.ticket_number ? ` · Nº${game.ticket_number}` : ""}
           </p>
-          <p className="text-[10px] text-muted-foreground">
-            Score: {myName} {myScore}
-            {opponents.map((o) => ` · ${o.name} ${scoreOf(o.id)}`).join("")}
-            {targetPts ? ` /${targetPts}` : ""}
-          </p>
           {turnName && game.status === "in_progress" && (
             <p className="text-[10px] gold-text font-bold">▶ Andiany: {turnName}</p>
           )}
@@ -645,6 +640,32 @@ export default function Game() {
         )}
         <Button variant="ghost" size="icon" onClick={() => nav("/")}><HomeIcon className="w-5 h-5" /></Button>
       </header>
+
+      {/* Score board lehibe — anarana sy isan'ny score azo */}
+      <div className="px-3 pt-2">
+        <div className="rounded-xl border-2 border-primary/40 bg-black/40 shadow-inner overflow-hidden">
+          <div className="grid" style={{ gridTemplateColumns: `repeat(${1 + opponents.length}, minmax(0, 1fr))` }}>
+            {[{ id: user?.id ?? "", name: myName }, ...opponents].map((p, i) => {
+              const s = scoreOf(p.id);
+              const isTurn = game.current_turn === p.id;
+              return (
+                <div
+                  key={p.id || i}
+                  className={`px-2 py-2 text-center ${i > 0 ? "border-l border-primary/30" : ""} ${isTurn ? "bg-primary/15" : ""}`}
+                >
+                  <div className={`truncate text-sm sm:text-base font-bold ${isTurn ? "gold-text" : "text-foreground/90"}`}>
+                    {p.name}
+                  </div>
+                  <div className="font-display text-2xl sm:text-3xl font-extrabold gold-text leading-tight">
+                    {s}
+                    {targetPts ? <span className="text-xs text-muted-foreground font-sans">/{targetPts}</span> : null}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
 
       {game.status === "in_progress" && (
         <div className="px-3 py-2 bg-destructive/10 border-b border-destructive/30 flex justify-center">

@@ -790,7 +790,7 @@ export default function Game() {
           <div className="border-t-2 border-primary/30 bg-card/30 p-3">
             <div className="flex items-center justify-between mb-2 px-1">
               <span className={`text-xs font-bold ${isMyTurn ? "gold-text" : "text-muted-foreground"}`}>
-                {isMyTurn ? "▶ Andiany!" : "Miandry adversaire"}
+                {isMyTurn ? `▶ ${myName} — andiany!` : `${myName} (${myHand.length})`}
               </span>
               {noMove && (
                 <span className="text-[10px] text-muted-foreground italic">Pass auto…</span>

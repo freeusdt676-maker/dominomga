@@ -163,6 +163,7 @@ export type Database = {
           player1_id: string
           player2_hand: Json | null
           player2_id: string | null
+          reveal_until: string | null
           round_number: number
           score_p1: number
           score_p2: number
@@ -188,6 +189,7 @@ export type Database = {
           player1_id: string
           player2_hand?: Json | null
           player2_id?: string | null
+          reveal_until?: string | null
           round_number?: number
           score_p1?: number
           score_p2?: number
@@ -213,6 +215,7 @@ export type Database = {
           player1_id?: string
           player2_hand?: Json | null
           player2_id?: string | null
+          reveal_until?: string | null
           round_number?: number
           score_p1?: number
           score_p2?: number

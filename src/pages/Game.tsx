@@ -43,6 +43,7 @@ export default function Game() {
   const initLockRef = useRef(false);
   const autoPassRef = useRef<string | null>(null);
   const roundEndLockRef = useRef<string | null>(null);
+  const revealCommitRef = useRef<string | null>(null);
   const isMobile = useIsMobile();
 
   const getAbandonedGameId = () => sessionStorage.getItem(ABANDONED_GAME_KEY);
@@ -134,34 +135,39 @@ export default function Game() {
     const handMode = mode === "hand";
     const instantWin = isDouble6Win || dateMatch || handMode || targetReached;
 
-    if (instantWin) {
-      await supabase.from("games").update({
-        score_p1: newScoreP1,
-        score_p2: newScoreP2,
-      }).eq("id", game.id);
-      await supabase.rpc("settle_game", { _game_id: game.id, _winner: winnerId });
-      return;
-    }
-
-    // Tour vaovao
-    const nextRound = (game.round_number ?? 1) + 1;
-    const seed = `${game.ticket_number || game.id}-r${nextRound}`;
-    const { p1: h1, p2: h2, boneyard } = deal(seed);
+    // 1) Asehoy 3s ny vato rehetra (reveal) + ampidiriny ny score vaovao
+    const REVEAL_MS = 3000;
+    const revealUntil = new Date(Date.now() + REVEAL_MS).toISOString();
     setRoundBanner(`Tour vita +${points} • ${newScoreP1} - ${newScoreP2}`);
-    setTimeout(() => setRoundBanner(null), 3500);
+    setTimeout(() => setRoundBanner(null), REVEAL_MS + 500);
     await supabase.from("games").update({
       score_p1: newScoreP1,
       score_p2: newScoreP2,
-      round_number: nextRound,
-      player1_hand: h1 as any,
-      player2_hand: h2 as any,
-      boneyard: boneyard as any,
-      board_state: [] as any,
-      current_turn: winnerId,
-      turn_started_at: new Date().toISOString(),
-      passes: 0,
-    }).eq("id", game.id);
+      reveal_until: revealUntil,
+    } as any).eq("id", game.id);
     setOptimistic(null);
+
+    // 2) Aorian'ny 3s — settle na re-deal
+    setTimeout(async () => {
+      if (instantWin) {
+        await supabase.rpc("settle_game", { _game_id: game.id, _winner: winnerId });
+        return;
+      }
+      const nextRound = (game.round_number ?? 1) + 1;
+      const seed = `${game.ticket_number || game.id}-r${nextRound}`;
+      const { p1: h1, p2: h2, boneyard } = deal(seed);
+      await supabase.from("games").update({
+        round_number: nextRound,
+        player1_hand: h1 as any,
+        player2_hand: h2 as any,
+        boneyard: boneyard as any,
+        board_state: [] as any,
+        current_turn: winnerId,
+        turn_started_at: new Date().toISOString(),
+        passes: 0,
+        reveal_until: null,
+      } as any).eq("id", game.id);
+    }, REVEAL_MS);
   };
 
   // Bloqué (samy tsy afaka mihetsika): kely vato indrindra mahazo ny diferansa
@@ -259,8 +265,15 @@ export default function Game() {
     return ((game.player1_id === user.id ? game.player2_hand : game.player1_hand) ?? []).length;
   }, [game, user]);
 
+  const oppHand: Tile[] = useMemo(() => {
+    if (!game || !user) return [];
+    return ((game.player1_id === user.id ? game.player2_hand : game.player1_hand) ?? []) as Tile[];
+  }, [game, user]);
+
   const board: Placed[] = (game?.board_state as Placed[]) ?? [];
   const isMyTurn = game?.current_turn === user?.id && game?.status === "in_progress";
+  const revealUntilMs = game?.reveal_until ? new Date(game.reveal_until).getTime() : 0;
+  const isRevealing = revealUntilMs > now;
 
   // Faharetan'ny Tour
   const turnStart = game?.turn_started_at ? new Date(game.turn_started_at).getTime() : 0;
@@ -345,6 +358,7 @@ export default function Game() {
     if (!game || !user) return;
     if (game.status !== "in_progress") return;
     if (!game.current_turn) return;
+    if (isRevealing) return;
     // Rehefa lany ny 20s (na ahy na adversaire), ny Bot no mandefa avy hatrany
     if (elapsed < TURN_TIMEOUT_SEC) return;
     const key = `${game.id}-${game.turn_started_at}-${game.current_turn}`;
@@ -407,6 +421,7 @@ export default function Game() {
   // Auto-pass raha tsy manana vato mety ny mpilalao manana ny tour
   useEffect(() => {
     if (!isMyTurn || !game) return;
+    if (isRevealing) return;
     if (hasMove(myHand, board)) return;
     const key = `${game.id}-pass-${game.turn_started_at}`;
     if (autoPassRef.current === key) return;
@@ -414,7 +429,7 @@ export default function Game() {
     const t = setTimeout(() => { autoPass(); }, 1200);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMyTurn, myHand, board, game?.turn_started_at]);
+  }, [isMyTurn, myHand, board, game?.turn_started_at, isRevealing]);
 
   if (!game) return <div className="min-h-screen felt-bg flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
@@ -546,9 +561,13 @@ export default function Game() {
         <>
           {/* Tanan'ny adversaire (back) */}
           <div className="p-3 flex justify-center gap-1 overflow-x-auto">
-            {Array.from({ length: oppHandCount }).map((_, i) => (
-              <DominoBack key={i} size="sm" />
-            ))}
+            {isRevealing
+              ? oppHand.map((t, i) => (
+                  <DominoTile key={i} a={t[0]} b={t[1]} size="sm" horizontal={t[0] !== t[1]} />
+                ))
+              : Array.from({ length: oppHandCount }).map((_, i) => (
+                  <DominoBack key={i} size="sm" />
+                ))}
           </div>
 
           {/* Latabatra — chain mifandrohy, mihodina raha lava (snake) */}

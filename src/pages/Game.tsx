@@ -8,7 +8,7 @@ import { fmtAr, TURN_TIMEOUT_SEC } from "@/lib/constants";
 import { DominoTile, DominoBack } from "@/components/DominoTile";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
-  Tile, Placed, deal, ends, canPlace, place, pipsTotal, hasMove, chooseStartingPlayer,
+  Tile, Placed, deal, deal3, ends, canPlace, place, pipsTotal, hasMove, chooseOpening,
 } from "@/lib/dominoEngine";
 import { toast } from "sonner";
 
@@ -27,6 +27,24 @@ type GameMode = "d120" | "d80" | "hand";
 const MODE_LABEL: Record<GameMode, string> = { d120: "Maty 120", d80: "Maty 80", hand: "Maty atanana" };
 const MODE_TARGET: Record<GameMode, number | null> = { d120: 120, d80: 80, hand: null };
 
+function getPlayerIds(g: any): string[] {
+  const pc = Number(g?.players_count ?? 2);
+  return pc === 3
+    ? [g.player1_id, g.player2_id, g.player3_id].filter(Boolean)
+    : [g.player1_id, g.player2_id].filter(Boolean);
+}
+function nextTurnId(g: any, currentId: string): string {
+  const ids = getPlayerIds(g);
+  const i = ids.indexOf(currentId);
+  return ids[(i + 1) % ids.length] ?? ids[0];
+}
+function getHandKey(g: any, uid: string): "player1_hand" | "player2_hand" | "player3_hand" | null {
+  if (uid === g.player1_id) return "player1_hand";
+  if (uid === g.player2_id) return "player2_hand";
+  if (uid === g.player3_id) return "player3_hand";
+  return null;
+}
+
 export default function Game() {
   const { id } = useParams();
   const { user } = useAuth();
@@ -34,6 +52,7 @@ export default function Game() {
   const [serverGame, setServerGame] = useState<any>(null);
   const [optimistic, setOptimistic] = useState<any>(null);
   const game = optimistic ?? serverGame;
+  const [profileNames, setProfileNames] = useState<Record<string, string>>({});
   const [selected, setSelected] = useState<number | null>(null);
   const [ticketBanner, setTicketBanner] = useState<string | null>(null);
   const [roundBanner, setRoundBanner] = useState<string | null>(null);
@@ -59,25 +78,49 @@ export default function Game() {
   }, [serverGame, optimistic]);
 
   const initializeGameHands = async (currentGame: any) => {
+    const pc = Number(currentGame?.players_count ?? 2);
     if (!currentGame?.id || !currentGame.player1_id || !currentGame.player2_id) return;
+    if (pc === 3 && !currentGame.player3_id) return;
     if (initLockRef.current) return;
     initLockRef.current = true;
 
     try {
       const seed = `${currentGame.ticket_number || currentGame.id}-r${currentGame.round_number ?? 1}`;
-      const { p1: h1, p2: h2, boneyard } = deal(seed);
-      const starter = chooseStartingPlayer(h1, h2, currentGame.player1_id, currentGame.player2_id);
+      const mode = (currentGame.game_mode ?? "d120") as GameMode;
+      let hands: Tile[][];
+      let boneyard: Tile[];
+      if (pc === 3) {
+        const d = deal3(seed);
+        hands = [d.p1, d.p2, d.p3];
+        boneyard = d.boneyard;
+      } else {
+        const d = deal(seed);
+        hands = [d.p1, d.p2];
+        boneyard = d.boneyard;
+      }
+      const opener = chooseOpening(hands, mode);
+      // Remove opening tile from opener's hand and place on board
+      const openerHand = hands[opener.playerIndex].filter(
+        (t) => !(t[0] === opener.tile[0] && t[1] === opener.tile[1]),
+      );
+      hands[opener.playerIndex] = openerHand;
+      const ids = getPlayerIds(currentGame);
+      const openerId = ids[opener.playerIndex];
+      const nextId = ids[(opener.playerIndex + 1) % ids.length];
+      const board: Placed[] = [{ tile: opener.tile, flipped: false }];
       const { error } = await updateGameState({
-        player1_hand: h1,
-        player2_hand: h2,
+        player1_hand: hands[0],
+        player2_hand: hands[1],
+        player3_hand: pc === 3 ? hands[2] : undefined,
         boneyard,
-        board_state: [],
-        current_turn: starter,
+        board_state: board,
+        current_turn: nextId,
         turn_started_at: new Date().toISOString(),
       });
       if (error) {
         throw error;
       }
+      const _ = openerId;
     } catch (error: any) {
       toast.error(error?.message ?? "Tsy tafapetraka ny vaton'ny lalao");
     } finally {
@@ -89,6 +132,7 @@ export default function Game() {
     board_state?: Placed[];
     player1_hand?: Tile[];
     player2_hand?: Tile[];
+    player3_hand?: Tile[];
     boneyard?: Tile[];
     current_turn?: string;
     turn_started_at?: string;
@@ -106,6 +150,7 @@ export default function Game() {
       _turn_started_at: payload.turn_started_at ?? null,
       _passes: payload.passes ?? null,
       _status: payload.status ?? null,
+      _player3_hand: payload.player3_hand ?? null,
     });
   };
 
@@ -121,33 +166,40 @@ export default function Game() {
     if (roundEndLockRef.current === key) return;
     roundEndLockRef.current = key;
 
-    const isP1Winner = winnerId === game.player1_id;
+    const pc = Number(game.players_count ?? 2);
     const today = new Date().getDate();
     const isDouble6Win = !!lastTile && lastTile[0] === 6 && lastTile[1] === 6;
-    const newScoreP1 = Number(game.score_p1 ?? 0) + (isP1Winner ? points : 0);
-    const newScoreP2 = Number(game.score_p2 ?? 0) + (!isP1Winner ? points : 0);
+    const addTo = (uid: string, base: number) => Number(base ?? 0) + (winnerId === uid ? points : 0);
+    const newScoreP1 = addTo(game.player1_id, game.score_p1);
+    const newScoreP2 = addTo(game.player2_id, game.score_p2);
+    const newScoreP3 = pc === 3 ? addTo(game.player3_id, game.score_p3) : 0;
     const mode = (game.game_mode ?? "d120") as GameMode;
     const target = MODE_TARGET[mode];
-    const wScore = isP1Winner ? newScoreP1 : newScoreP2;
+    const wScore =
+      winnerId === game.player1_id ? newScoreP1 : winnerId === game.player2_id ? newScoreP2 : newScoreP3;
 
     const targetReached = target !== null && wScore >= target;
     const dateMatch = points > 0 && points === today;
     const handMode = mode === "hand";
     const instantWin = isDouble6Win || dateMatch || handMode || targetReached;
 
-    // 1) Asehoy 3s ny vato rehetra (reveal) + ampidiriny ny score vaovao
     const REVEAL_MS = 3000;
     const revealUntil = new Date(Date.now() + REVEAL_MS).toISOString();
-    setRoundBanner(`Tour vita +${points} • ${newScoreP1} - ${newScoreP2}`);
+    setRoundBanner(
+      pc === 3
+        ? `Tour vita +${points} • ${newScoreP1}-${newScoreP2}-${newScoreP3}`
+        : `Tour vita +${points} • ${newScoreP1} - ${newScoreP2}`,
+    );
     setTimeout(() => setRoundBanner(null), REVEAL_MS + 500);
-    await supabase.from("games").update({
+    const updatePayload: any = {
       score_p1: newScoreP1,
       score_p2: newScoreP2,
       reveal_until: revealUntil,
-    } as any).eq("id", game.id);
+    };
+    if (pc === 3) updatePayload.score_p3 = newScoreP3;
+    await supabase.from("games").update(updatePayload).eq("id", game.id);
     setOptimistic(null);
 
-    // 2) Aorian'ny 3s — settle na re-deal
     setTimeout(async () => {
       if (instantWin) {
         await supabase.rpc("settle_game", { _game_id: game.id, _winner: winnerId });
@@ -155,49 +207,88 @@ export default function Game() {
       }
       const nextRound = (game.round_number ?? 1) + 1;
       const seed = `${game.ticket_number || game.id}-r${nextRound}`;
-      const { p1: h1, p2: h2, boneyard } = deal(seed);
-      await supabase.from("games").update({
+      let h1: Tile[], h2: Tile[], h3: Tile[] = [], boneyard: Tile[];
+      if (pc === 3) {
+        const d = deal3(seed); h1 = d.p1; h2 = d.p2; h3 = d.p3; boneyard = d.boneyard;
+      } else {
+        const d = deal(seed); h1 = d.p1; h2 = d.p2; boneyard = d.boneyard;
+      }
+      // Re-pick opener for the new round
+      const opener = chooseOpening(pc === 3 ? [h1, h2, h3] : [h1, h2], mode);
+      const hands = pc === 3 ? [h1, h2, h3] : [h1, h2];
+      hands[opener.playerIndex] = hands[opener.playerIndex].filter(
+        (t) => !(t[0] === opener.tile[0] && t[1] === opener.tile[1]),
+      );
+      const ids = pc === 3 ? [game.player1_id, game.player2_id, game.player3_id] : [game.player1_id, game.player2_id];
+      const nextId = ids[(opener.playerIndex + 1) % ids.length];
+      const updateNext: any = {
         round_number: nextRound,
-        player1_hand: h1 as any,
-        player2_hand: h2 as any,
-        boneyard: boneyard as any,
-        board_state: [] as any,
-        current_turn: winnerId,
+        player1_hand: hands[0],
+        player2_hand: hands[1],
+        boneyard,
+        board_state: [{ tile: opener.tile, flipped: false }],
+        current_turn: nextId,
         turn_started_at: new Date().toISOString(),
         passes: 0,
         reveal_until: null,
-      } as any).eq("id", game.id);
+      };
+      if (pc === 3) updateNext.player3_hand = hands[2];
+      await supabase.from("games").update(updateNext).eq("id", game.id);
     }, REVEAL_MS);
   };
 
   // Bloqué (samy tsy afaka mihetsika): kely vato indrindra mahazo ny diferansa
   const finishBlocked = async () => {
     if (!game) return;
+    const pc = Number(game.players_count ?? 2);
     const p1H = (game.player1_hand as Tile[]) ?? [];
     const p2H = (game.player2_hand as Tile[]) ?? [];
+    const p3H = (game.player3_hand as Tile[]) ?? [];
     const p1Pips = pipsTotal(p1H);
     const p2Pips = pipsTotal(p2H);
-    if (p1Pips === p2Pips) {
+    const p3Pips = pc === 3 ? pipsTotal(p3H) : Infinity;
+    const totals = pc === 3
+      ? [{ id: game.player1_id, p: p1Pips }, { id: game.player2_id, p: p2Pips }, { id: game.player3_id, p: p3Pips }]
+      : [{ id: game.player1_id, p: p1Pips }, { id: game.player2_id, p: p2Pips }];
+    totals.sort((a, b) => a.p - b.p);
+    const tied = totals[0].p === totals[1].p;
+    if (tied) {
       // Mitovy: tsy misy point, alefa tour vaovao
       const nextRound = (game.round_number ?? 1) + 1;
       const seed = `${game.ticket_number || game.id}-r${nextRound}`;
-      const { p1: h1, p2: h2, boneyard } = deal(seed);
+      const mode = (game.game_mode ?? "d120") as GameMode;
+      let h1: Tile[], h2: Tile[], h3: Tile[] = [], boneyard: Tile[];
+      if (pc === 3) {
+        const d = deal3(seed); h1 = d.p1; h2 = d.p2; h3 = d.p3; boneyard = d.boneyard;
+      } else {
+        const d = deal(seed); h1 = d.p1; h2 = d.p2; boneyard = d.boneyard;
+      }
+      const opener = chooseOpening(pc === 3 ? [h1, h2, h3] : [h1, h2], mode);
+      const hands = pc === 3 ? [h1, h2, h3] : [h1, h2];
+      hands[opener.playerIndex] = hands[opener.playerIndex].filter(
+        (t) => !(t[0] === opener.tile[0] && t[1] === opener.tile[1]),
+      );
+      const ids = pc === 3 ? [game.player1_id, game.player2_id, game.player3_id] : [game.player1_id, game.player2_id];
+      const nextId = ids[(opener.playerIndex + 1) % ids.length];
       setRoundBanner(`Mitovy vato — tour vaovao`);
       setTimeout(() => setRoundBanner(null), 3500);
-      await supabase.from("games").update({
+      const updateNext: any = {
         round_number: nextRound,
-        player1_hand: h1 as any,
-        player2_hand: h2 as any,
-        boneyard: boneyard as any,
-        board_state: [] as any,
-        current_turn: game.player1_id,
+        player1_hand: hands[0],
+        player2_hand: hands[1],
+        boneyard,
+        board_state: [{ tile: opener.tile, flipped: false }],
+        current_turn: nextId,
         turn_started_at: new Date().toISOString(),
         passes: 0,
-      }).eq("id", game.id);
+      };
+      if (pc === 3) updateNext.player3_hand = hands[2];
+      await supabase.from("games").update(updateNext).eq("id", game.id);
       return;
     }
-    const winnerId = p1Pips < p2Pips ? game.player1_id : game.player2_id;
-    const points = Math.abs(p1Pips - p2Pips);
+    const winnerId = totals[0].id;
+    const sumOthers = totals.slice(1).reduce((s, x) => s + x.p, 0);
+    const points = sumOthers - totals[0].p;
     await finishRound(winnerId, points, null);
   };
 

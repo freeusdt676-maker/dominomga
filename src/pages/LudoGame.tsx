@@ -28,6 +28,7 @@ type LG = {
   pawns: Pawn[];
   winner_id: string | null;
   ticket_number: string | null;
+  turn_started_at: string | null;
 };
 
 export default function LudoGame() {
@@ -37,12 +38,17 @@ export default function LudoGame() {
   const [g, setG] = useState<LG | null>(null);
   const [names, setNames] = useState<Record<string, string>>({});
   const [rolling, setRolling] = useState(false);
+  const [now, setNow] = useState(Date.now());
+  const botActedRef = (typeof window !== "undefined" ? (window as any) : {}) as any;
 
   const load = async () => {
     if (!id) return;
     const { data } = await supabase.from("ludo_games" as any).select("*").eq("id", id).single();
     if (!data) return;
-    setG(data as any);
+    // Defensive: normalize any pawn with pos<0 to 0 (base)
+    const raw: any = data;
+    const pawns = Array.isArray(raw.pawns) ? raw.pawns.map((p: any) => ({ ...p, pos: Number(p?.pos) < 0 ? 0 : Number(p?.pos) })) : [];
+    setG({ ...raw, pawns } as any);
     const ids = [
       (data as any).player1_id,
       (data as any).player2_id,
@@ -66,6 +72,12 @@ export default function LudoGame() {
     return () => { supabase.removeChannel(ch); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // 1s tick for turn timer + bot trigger
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(t);
+  }, []);
 
   const mySeat = useMemo<number | null>(() => {
     if (!g || !user) return null;
@@ -151,9 +163,126 @@ export default function LudoGame() {
     });
   };
 
+  // ---- 10s turn timer + bot auto-play ----
+  const TURN_LIMIT = 10;
+  const turnStartMs = g?.turn_started_at ? new Date(g.turn_started_at).getTime() : 0;
+  const elapsedSec = Math.max(0, Math.floor((now - turnStartMs) / 1000));
+  const remainingSec = Math.max(0, TURN_LIMIT - elapsedSec);
+
+  // Designated bot operator: lowest-seat connected player whose seat != current_turn_seat.
+  // Falls back to any player. Ensures only ONE client triggers the bot.
+  const seats = g ? activeSeats(g.players_count) : [];
+  const seatToUidLocal = (seat: number): string | null => {
+    if (!g) return null;
+    if (seat === 1) return g.player1_id;
+    if (seat === 2) return g.player2_id;
+    if (seat === 3) return g.player3_id;
+    if (seat === 4) return g.player4_id;
+    return null;
+  };
+  const operatorSeat = g
+    ? (seats.find((s) => s !== g.current_turn_seat) ?? seats[0])
+    : null;
+  const isOperator = !!user && !!g && seatToUidLocal(operatorSeat ?? 0) === user.id;
+
+  useEffect(() => {
+    if (!g || g.status !== "in_progress" || !user) return;
+    if (remainingSec > 0) return;
+    if (!isOperator) return;
+    const key = `${g.id}-${g.current_turn_seat}-${g.dice_rolled ? "m" : "r"}-${turnStartMs}`;
+    if (botActedRef.__ludoBotKey === key) return;
+    botActedRef.__ludoBotKey = key;
+
+    (async () => {
+      // Bot logic: if dice not rolled → roll. If no legal moves → next turn. If legal → play first.
+      if (!g.dice_rolled) {
+        const dice = rollDice();
+        await supabase.rpc("ludo_update_state" as any, {
+          _game_id: g.id,
+          _last_dice: dice,
+          _dice_rolled: true,
+          _consecutive_sixes: dice === 6 ? g.consecutive_sixes + 1 : 0,
+        });
+        const moves = legalMoves(g.pawns ?? [], g.current_turn_seat, dice);
+        if (moves.length === 0) {
+          const sixes = dice === 6 ? g.consecutive_sixes + 1 : 0;
+          const { seat: ns } = nextSeat(g.current_turn_seat, g.players_count, dice === 6, 0, sixes);
+          await supabase.rpc("ludo_update_state" as any, {
+            _game_id: g.id,
+            _current_turn_seat: ns,
+            _dice_rolled: false,
+            _last_dice: null,
+            _consecutive_sixes: ns === g.current_turn_seat ? sixes : 0,
+            _turn_started_at: new Date().toISOString(),
+          });
+        } else {
+          const pawnIdx = moves[0];
+          const res = applyMove(g.pawns ?? [], g.current_turn_seat, pawnIdx, dice);
+          if (seatHasFinished(res.pawns, g.current_turn_seat)) {
+            const winnerUid = seatToUidLocal(g.current_turn_seat);
+            await supabase.rpc("ludo_update_state" as any, {
+              _game_id: g.id, _pawns: res.pawns, _dice_rolled: false, _last_dice: null,
+            });
+            if (winnerUid) await supabase.rpc("ludo_settle" as any, { _game_id: g.id, _winner: winnerUid });
+            return;
+          }
+          const sixes = dice === 6 ? g.consecutive_sixes : 0;
+          const { seat: ns, resetSixes } = nextSeat(g.current_turn_seat, g.players_count, dice === 6, res.captured, sixes);
+          await supabase.rpc("ludo_update_state" as any, {
+            _game_id: g.id,
+            _pawns: res.pawns,
+            _current_turn_seat: ns,
+            _dice_rolled: false,
+            _last_dice: null,
+            _consecutive_sixes: resetSixes ? 0 : sixes,
+            _turn_started_at: new Date().toISOString(),
+          });
+        }
+      } else if (g.last_dice) {
+        const dice = g.last_dice;
+        const moves = legalMoves(g.pawns ?? [], g.current_turn_seat, dice);
+        if (moves.length === 0) {
+          const sixes = dice === 6 ? g.consecutive_sixes : 0;
+          const { seat: ns } = nextSeat(g.current_turn_seat, g.players_count, false, 0, sixes);
+          await supabase.rpc("ludo_update_state" as any, {
+            _game_id: g.id,
+            _current_turn_seat: ns,
+            _dice_rolled: false,
+            _last_dice: null,
+            _consecutive_sixes: 0,
+            _turn_started_at: new Date().toISOString(),
+          });
+          return;
+        }
+        const pawnIdx = moves[0];
+        const res = applyMove(g.pawns ?? [], g.current_turn_seat, pawnIdx, dice);
+        if (seatHasFinished(res.pawns, g.current_turn_seat)) {
+          const winnerUid = seatToUidLocal(g.current_turn_seat);
+          await supabase.rpc("ludo_update_state" as any, {
+            _game_id: g.id, _pawns: res.pawns, _dice_rolled: false, _last_dice: null,
+          });
+          if (winnerUid) await supabase.rpc("ludo_settle" as any, { _game_id: g.id, _winner: winnerUid });
+          return;
+        }
+        const sixes = dice === 6 ? g.consecutive_sixes : 0;
+        const { seat: ns, resetSixes } = nextSeat(g.current_turn_seat, g.players_count, dice === 6, res.captured, sixes);
+        await supabase.rpc("ludo_update_state" as any, {
+          _game_id: g.id,
+          _pawns: res.pawns,
+          _current_turn_seat: ns,
+          _dice_rolled: false,
+          _last_dice: null,
+          _consecutive_sixes: resetSixes ? 0 : sixes,
+          _turn_started_at: new Date().toISOString(),
+        });
+      }
+    })().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remainingSec, isOperator, g?.id, g?.current_turn_seat, g?.dice_rolled, g?.last_dice, turnStartMs]);
+
   if (!g) return <div className="min-h-screen ludo-bg flex items-center justify-center"><Loader2 className="animate-spin text-yellow-300" /></div>;
 
-  const seats = activeSeats(g.players_count);
+  const seats2 = seats;
   const winnerName = g.winner_id ? names[g.winner_id] ?? "?" : null;
 
   return (
@@ -170,7 +299,7 @@ export default function LudoGame() {
 
       {/* Players bar — chaque joueur a son propre dé à côté du profil */}
       <div className="px-3 pt-3 grid grid-cols-2 gap-2">
-        {seats.map((s) => {
+        {seats2.map((s) => {
           const uid = seatToUid(s);
           const isTurn = g.current_turn_seat === s && g.status === "in_progress";
           const isMe = mySeat === s;
@@ -188,7 +317,9 @@ export default function LudoGame() {
                     {uid ? (names[uid] ?? "...") : <em className="opacity-60">miandry</em>}
                   </span>
                 </div>
-                <p className="text-[10px] text-yellow-100/70">{SEAT_NAME[s]}{isTurn ? " · ▶" : ""}</p>
+                <p className="text-[10px] text-yellow-100/70">
+                  {SEAT_NAME[s]}{isTurn ? ` · ⏱ ${remainingSec}s` : ""}
+                </p>
               </div>
               {/* Personal dice */}
               {isTurn && isMe && !g.dice_rolled ? (

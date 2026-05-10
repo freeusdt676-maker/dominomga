@@ -70,7 +70,7 @@ export function pawnTrackIdx(p: Pawn): number | null {
 
 // Compute pixel position [col, row] (cell center on 15x15 grid)
 export function pawnXY(p: Pawn): [number, number] {
-  if (p.pos === 0) {
+  if (p.pos <= 0) {
     return BASE_SPOTS[p.seat][p.idx];
   }
   if (p.pos >= 52 && p.pos <= 57) {
@@ -88,7 +88,7 @@ export function legalMoves(pawns: Pawn[], seat: number, dice: number): number[] 
   const seatPawns = pawns.filter((p) => p.seat === seat);
   const moves: number[] = [];
   for (const p of seatPawns) {
-    if (p.pos === 0) {
+    if (p.pos <= 0) {
       if (dice === 6) moves.push(p.idx);
     } else if (p.pos >= 1 && p.pos < 57) {
       if (p.pos + dice <= 57) moves.push(p.idx);
@@ -103,7 +103,7 @@ export function applyMove(pawns: Pawn[], seat: number, pawnIdx: number, dice: nu
   const next = pawns.map((p) => ({ ...p }));
   const me = next.find((p) => p.seat === seat && p.idx === pawnIdx)!;
   let captured = 0;
-  if (me.pos === 0) {
+  if (me.pos <= 0) {
     me.pos = 1;
   } else {
     me.pos += dice;

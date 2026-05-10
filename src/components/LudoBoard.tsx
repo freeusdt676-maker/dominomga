@@ -92,7 +92,7 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
         <polygon points={`${6 * CELL},${9 * CELL} ${7.5 * CELL},${7.5 * CELL} ${6 * CELL},${6 * CELL}`} fill={SEAT_COLOR[2]} />
       </g>
 
-      {/* Pawns — tall 3D pieces, fanned when stacked */}
+      {/* Pawns — glossy 3D spheres, fanned when stacked, hop-animated between cells */}
       {(() => {
         // Group pawns sharing the same cell so we can fan them out
         const groups = new Map<string, number[]>();
@@ -109,7 +109,7 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
             offsets[idxs[0]] = [0, 0];
           } else {
             // Fan in a small circle so pieces don't overlap
-            const ring = CELL * 0.28;
+            const ring = CELL * 0.32;
             idxs.forEach((idx, k) => {
               const ang = (-Math.PI / 2) + (k * 2 * Math.PI) / n;
               offsets[idx] = [Math.cos(ang) * ring, Math.sin(ang) * ring];
@@ -123,49 +123,47 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
           const y = cy * CELL + oy;
           const movable = movableSeat === p.seat && movablePawns?.includes(p.idx);
           const color = SEAT_COLOR[p.seat];
-          const w = CELL * 0.74; // pawn footprint width
-          const h = CELL * 1.05; // pawn height (tall 3D piece)
-          const headR = w * 0.32;
-          // Anchor pawn so the base sits on the cell, head extends upward
-          const baseY = y + h * 0.42;
-          const headCY = y - h * 0.32;
+          const r = CELL * 0.36;     // sphere radius
           const id = `pgrad-${i}`;
+          const idShine = `pshine-${i}`;
+          // Use a stable id so React keeps the same DOM node when pawn moves → CSS transition runs
+          const stableKey = `pawn-${p.seat}-${p.idx}`;
           return (
             <g
-              key={`p-${i}`}
+              key={stableKey}
+              className="pawn-group"
+              transform={`translate(${x} ${y})`}
               onClick={() => movable && onPawnClick?.(p.idx)}
               style={{ cursor: movable ? "pointer" : "default" }}
-              className={movable ? "animate-pulse" : ""}
             >
               <defs>
-                <radialGradient id={id} cx="35%" cy="35%" r="70%">
-                  <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9" />
-                  <stop offset="35%" stopColor={color} stopOpacity="1" />
-                  <stop offset="100%" stopColor="#000000" stopOpacity="0.55" />
+                {/* Glossy sphere fill */}
+                <radialGradient id={id} cx="35%" cy="30%" r="75%">
+                  <stop offset="0%"  stopColor="#ffffff" stopOpacity="1" />
+                  <stop offset="18%" stopColor={color}   stopOpacity="1" />
+                  <stop offset="70%" stopColor={color}   stopOpacity="1" />
+                  <stop offset="100%" stopColor="#000000" stopOpacity="0.85" />
+                </radialGradient>
+                {/* Top-light shine */}
+                <radialGradient id={idShine} cx="35%" cy="25%" r="35%">
+                  <stop offset="0%"  stopColor="#ffffff" stopOpacity="0.95" />
+                  <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
                 </radialGradient>
               </defs>
-              {/* Shadow on the floor */}
-              <ellipse cx={x} cy={baseY + 4} rx={w * 0.42} ry={w * 0.14} fill="#000" opacity={0.45} />
-              {/* Base disc */}
-              <ellipse cx={x} cy={baseY} rx={w * 0.42} ry={w * 0.16} fill={color} stroke="#1c1235" strokeWidth={1.4} />
-              {/* Body (tapered) */}
-              <path
-                d={`M ${x - w * 0.34} ${baseY}
-                    C ${x - w * 0.36} ${y - h * 0.05}, ${x - w * 0.18} ${y - h * 0.18}, ${x - w * 0.18} ${y - h * 0.22}
-                    L ${x + w * 0.18} ${y - h * 0.22}
-                    C ${x + w * 0.18} ${y - h * 0.18}, ${x + w * 0.36} ${y - h * 0.05}, ${x + w * 0.34} ${baseY} Z`}
-                fill={`url(#${id})`}
-                stroke="#1c1235"
-                strokeWidth={1.4}
-              />
-              {/* Neck ring */}
-              <ellipse cx={x} cy={y - h * 0.22} rx={w * 0.2} ry={w * 0.07} fill={color} stroke="#1c1235" strokeWidth={1.2} />
-              {/* Head */}
-              <circle cx={x} cy={headCY} r={headR} fill={`url(#${id})`} stroke="#1c1235" strokeWidth={1.4} />
-              {/* Highlight on head */}
-              <ellipse cx={x - headR * 0.35} cy={headCY - headR * 0.4} rx={headR * 0.35} ry={headR * 0.22} fill="#fff" opacity={0.7} />
+              {/* Soft drop shadow on the floor */}
+              <ellipse cx={0} cy={r * 0.95} rx={r * 0.85} ry={r * 0.22} fill="#000" opacity={0.45} />
+              {/* Glossy sphere body */}
+              <circle cx={0} cy={0} r={r} fill={`url(#${id})`} stroke="#1c1235" strokeWidth={1.2} />
+              {/* Top specular highlight */}
+              <ellipse cx={-r * 0.28} cy={-r * 0.34} rx={r * 0.42} ry={r * 0.26} fill={`url(#${idShine})`} />
+              {/* Tiny crisp highlight dot */}
+              <circle cx={-r * 0.32} cy={-r * 0.38} r={r * 0.10} fill="#ffffff" opacity={0.9} />
+              {/* Movable indicator: gold ring + pulse */}
               {movable && (
-                <circle cx={x} cy={headCY} r={headR + 4} fill="none" stroke="#ffe27a" strokeWidth={2.5} opacity={0.9} />
+                <>
+                  <circle cx={0} cy={0} r={r + 3} fill="none" stroke="#ffe27a" strokeWidth={2.5} opacity={0.95} />
+                  <circle cx={0} cy={0} r={r + 3} fill="none" stroke="#ffe27a" strokeWidth={2} className="pulse-ring" />
+                </>
               )}
             </g>
           );

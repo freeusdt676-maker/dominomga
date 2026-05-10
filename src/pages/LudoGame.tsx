@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, Dice5 } from "lucide-react";
+import { ArrowLeft, Loader2, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, ChevronDown } from "lucide-react";
 import LudoBoard from "@/components/LudoBoard";
 import {
   activeSeats, applyMove, legalMoves, nextSeat, rollDice, seatHasFinished,
@@ -39,6 +39,7 @@ export default function LudoGame() {
   const [names, setNames] = useState<Record<string, string>>({});
   const [rolling, setRolling] = useState(false);
   const [now, setNow] = useState(Date.now());
+  const [rollAnimSeat, setRollAnimSeat] = useState<number | null>(null);
   const botActedRef = (typeof window !== "undefined" ? (window as any) : {}) as any;
 
   const load = async () => {
@@ -106,6 +107,9 @@ export default function LudoGame() {
   const handleRoll = async () => {
     if (!g || !isMyTurn || g.dice_rolled || rolling) return;
     setRolling(true);
+    setRollAnimSeat(g.current_turn_seat);
+    // Let the spin play before locking the face
+    await new Promise((r) => setTimeout(r, 650));
     const dice = rollDice();
     // Save roll
     await supabase.rpc("ludo_update_state" as any, {
@@ -115,6 +119,7 @@ export default function LudoGame() {
       _consecutive_sixes: dice === 6 ? g.consecutive_sixes + 1 : 0,
     });
     setRolling(false);
+    setTimeout(() => setRollAnimSeat(null), 100);
     // If no legal moves → auto end turn
     setTimeout(async () => {
       const moves = legalMoves(g.pawns ?? [], g.current_turn_seat, dice);
@@ -284,6 +289,7 @@ export default function LudoGame() {
 
   const seats2 = seats;
   const winnerName = g.winner_id ? names[g.winner_id] ?? "?" : null;
+  const DiceIcons = [Dice1, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6];
 
   return (
     <div className="min-h-screen ludo-bg pb-24">
@@ -303,7 +309,8 @@ export default function LudoGame() {
           const uid = seatToUid(s);
           const isTurn = g.current_turn_seat === s && g.status === "in_progress";
           const isMe = mySeat === s;
-          const showDice = isTurn ? (g.last_dice ?? "•") : "•";
+          const DiceFace = isTurn && g.last_dice ? DiceIcons[g.last_dice] : Dice5;
+          const isAnim = rollAnimSeat === s;
           return (
             <div
               key={s}
@@ -321,23 +328,31 @@ export default function LudoGame() {
                   {SEAT_NAME[s]}{isTurn ? ` · ⏱ ${remainingSec}s` : ""}
                 </p>
               </div>
-              {/* Personal dice */}
-              {isTurn && isMe && !g.dice_rolled ? (
-                <button
-                  onClick={handleRoll}
-                  disabled={rolling}
-                  className="w-12 h-12 rounded-lg bg-white border-2 border-yellow-400 flex items-center justify-center font-display text-2xl font-black text-purple-900 shadow-lg active:scale-95 transition"
-                  aria-label="Roll dice"
-                >
-                  <Dice5 className="w-6 h-6" />
-                </button>
-              ) : (
-                <div
-                  className={`w-12 h-12 rounded-lg flex items-center justify-center font-display text-2xl font-black ${isTurn ? "bg-white text-purple-900 border-2 border-yellow-400 shadow-lg" : "bg-white/20 text-yellow-100/60 border border-yellow-500/30"}`}
-                >
-                  {isTurn && g.last_dice ? g.last_dice : "•"}
-                </div>
-              )}
+              {/* Personal dice + floating arrow when it's their turn to roll */}
+              <div className="relative">
+                {isTurn && !g.dice_rolled && (
+                  <ChevronDown
+                    className="dice-arrow absolute -top-5 left-1/2 -translate-x-1/2 w-6 h-6 text-yellow-300 drop-shadow-[0_2px_2px_rgba(0,0,0,0.6)]"
+                    strokeWidth={3}
+                  />
+                )}
+                {isTurn && isMe && !g.dice_rolled ? (
+                  <button
+                    onClick={handleRoll}
+                    disabled={rolling}
+                    className={`w-12 h-12 rounded-lg bg-white border-2 border-yellow-400 flex items-center justify-center text-purple-900 shadow-lg active:scale-95 transition ${isAnim ? "dice-rolling" : ""}`}
+                    aria-label="Roll dice"
+                  >
+                    <DiceFace className="w-7 h-7" />
+                  </button>
+                ) : (
+                  <div
+                    className={`w-12 h-12 rounded-lg flex items-center justify-center ${isTurn ? "bg-white text-purple-900 border-2 border-yellow-400 shadow-lg" : "bg-white/20 text-yellow-100/60 border border-yellow-500/30"} ${isAnim ? "dice-rolling" : ""}`}
+                  >
+                    {isTurn && g.last_dice ? <DiceFace className="w-7 h-7" /> : <span className="text-xl">•</span>}
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}

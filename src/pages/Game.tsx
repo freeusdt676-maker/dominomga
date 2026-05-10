@@ -23,6 +23,10 @@ type GameState = {
 
 const ABANDONED_GAME_KEY = "domino_abandoned_game_id";
 
+type GameMode = "d120" | "d80" | "hand";
+const MODE_LABEL: Record<GameMode, string> = { d120: "Maty 120", d80: "Maty 80", hand: "Maty atanana" };
+const MODE_TARGET: Record<GameMode, number | null> = { d120: 120, d80: 80, hand: null };
+
 export default function Game() {
   const { id } = useParams();
   const { user } = useAuth();
@@ -32,12 +36,13 @@ export default function Game() {
   const game = optimistic ?? serverGame;
   const [selected, setSelected] = useState<number | null>(null);
   const [ticketBanner, setTicketBanner] = useState<string | null>(null);
+  const [roundBanner, setRoundBanner] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
   const [isAbandoning, setIsAbandoning] = useState(false);
   const autoActedRef = useRef<string | null>(null);
   const initLockRef = useRef(false);
-  const autoDrawRef = useRef<string | null>(null);
-  const [showBlockedChoice, setShowBlockedChoice] = useState(false);
+  const autoPassRef = useRef<string | null>(null);
+  const roundEndLockRef = useRef<string | null>(null);
   const isMobile = useIsMobile();
 
   const getAbandonedGameId = () => sessionStorage.getItem(ABANDONED_GAME_KEY);
@@ -58,7 +63,7 @@ export default function Game() {
     initLockRef.current = true;
 
     try {
-      const seed = currentGame.ticket_number || currentGame.id;
+      const seed = `${currentGame.ticket_number || currentGame.id}-r${currentGame.round_number ?? 1}`;
       const { p1: h1, p2: h2, boneyard } = deal(seed);
       const starter = chooseStartingPlayer(h1, h2, currentGame.player1_id, currentGame.player2_id);
       const { error } = await updateGameState({
@@ -101,6 +106,93 @@ export default function Game() {
       _passes: payload.passes ?? null,
       _status: payload.status ?? null,
     });
+  };
+
+  // Mamarana tour iray. Raha tratra target / iala double-6 / mitovy daty -> resy daholo ny lalao.
+  // Raha tsy izany dia atomboka tour vaovao (re-deal).
+  const finishRound = async (
+    winnerId: string,
+    points: number,
+    lastTile: Tile | null,
+  ) => {
+    if (!game) return;
+    const key = `${game.id}-r${game.round_number ?? 1}-end`;
+    if (roundEndLockRef.current === key) return;
+    roundEndLockRef.current = key;
+
+    const isP1Winner = winnerId === game.player1_id;
+    const today = new Date().getDate();
+    const isDouble6Win = !!lastTile && lastTile[0] === 6 && lastTile[1] === 6;
+    const newScoreP1 = Number(game.score_p1 ?? 0) + (isP1Winner ? points : 0);
+    const newScoreP2 = Number(game.score_p2 ?? 0) + (!isP1Winner ? points : 0);
+    const mode = (game.game_mode ?? "d120") as GameMode;
+    const target = MODE_TARGET[mode];
+    const wScore = isP1Winner ? newScoreP1 : newScoreP2;
+
+    const targetReached = target !== null && wScore >= target;
+    const dateMatch = points > 0 && points === today;
+    const handMode = mode === "hand";
+    const instantWin = isDouble6Win || dateMatch || handMode || targetReached;
+
+    if (instantWin) {
+      await supabase.from("games").update({
+        score_p1: newScoreP1,
+        score_p2: newScoreP2,
+      }).eq("id", game.id);
+      await supabase.rpc("settle_game", { _game_id: game.id, _winner: winnerId });
+      return;
+    }
+
+    // Tour vaovao
+    const nextRound = (game.round_number ?? 1) + 1;
+    const seed = `${game.ticket_number || game.id}-r${nextRound}`;
+    const { p1: h1, p2: h2, boneyard } = deal(seed);
+    setRoundBanner(`Tour vita +${points} • ${newScoreP1} - ${newScoreP2}`);
+    setTimeout(() => setRoundBanner(null), 3500);
+    await supabase.from("games").update({
+      score_p1: newScoreP1,
+      score_p2: newScoreP2,
+      round_number: nextRound,
+      player1_hand: h1 as any,
+      player2_hand: h2 as any,
+      boneyard: boneyard as any,
+      board_state: [] as any,
+      current_turn: winnerId,
+      turn_started_at: new Date().toISOString(),
+      passes: 0,
+    }).eq("id", game.id);
+    setOptimistic(null);
+  };
+
+  // Bloqué (samy tsy afaka mihetsika): kely vato indrindra mahazo ny diferansa
+  const finishBlocked = async () => {
+    if (!game) return;
+    const p1H = (game.player1_hand as Tile[]) ?? [];
+    const p2H = (game.player2_hand as Tile[]) ?? [];
+    const p1Pips = pipsTotal(p1H);
+    const p2Pips = pipsTotal(p2H);
+    if (p1Pips === p2Pips) {
+      // Mitovy: tsy misy point, alefa tour vaovao
+      const nextRound = (game.round_number ?? 1) + 1;
+      const seed = `${game.ticket_number || game.id}-r${nextRound}`;
+      const { p1: h1, p2: h2, boneyard } = deal(seed);
+      setRoundBanner(`Mitovy vato — tour vaovao`);
+      setTimeout(() => setRoundBanner(null), 3500);
+      await supabase.from("games").update({
+        round_number: nextRound,
+        player1_hand: h1 as any,
+        player2_hand: h2 as any,
+        boneyard: boneyard as any,
+        board_state: [] as any,
+        current_turn: game.player1_id,
+        turn_started_at: new Date().toISOString(),
+        passes: 0,
+      }).eq("id", game.id);
+      return;
+    }
+    const winnerId = p1Pips < p2Pips ? game.player1_id : game.player2_id;
+    const points = Math.abs(p1Pips - p2Pips);
+    await finishRound(winnerId, points, null);
   };
 
   // Hipoitra ny banniere TICKET Nº...ACCEPTÉ raha vao tafapetraka ny ticket
@@ -202,13 +294,14 @@ export default function Game() {
     });
     setSelected(null);
 
-    // Mandresy raha tsy misy piesy
+    // Lany ny tanana → tour vita
     if (newHand.length === 0) {
-      await supabase.rpc("settle_game", { _game_id: game.id, _winner: user.id });
       await updateGameState({
         board_state: newBoard,
         [isP1 ? "player1_hand" : "player2_hand"]: newHand,
       } as any);
+      const points = pipsTotal(oppHand);
+      await finishRound(user.id, points, tile);
       return;
     }
     await updateGameState({
@@ -227,35 +320,14 @@ export default function Game() {
     });
   };
 
-  const drawOrPass = async () => {
+  // Auto-pass: tsy misy fakana vato intsony, mandeha avy hatrany any amin'ny adversaire
+  const autoPass = async () => {
     if (!isMyTurn || !game || !user) return;
     const isP1 = game.player1_id === user.id;
-    const boneyard: Tile[] = (game.boneyard as Tile[]) ?? [];
     const oppId = isP1 ? game.player2_id : game.player1_id;
-
-    if (boneyard.length > 0) {
-      const drawn = boneyard[0];
-      const newBone = boneyard.slice(1);
-      const newHand = [...myHand, drawn];
-      await updateGameState({
-        boneyard: newBone,
-        [isP1 ? "player1_hand" : "player2_hand"]: newHand,
-      } as any);
-      toast.success("Naka iray tao am-poto");
-      return;
-    }
-    // Pass — raha ny mpilalao roa tsy afa-mihetsika → blocked
     const passes = (game.passes ?? 0) + 1;
     if (passes >= 2) {
-      // Jereo izay manana pips kely indrindra
-      const myPips = pipsTotal(myHand);
-      const oppPips = pipsTotal(((isP1 ? game.player2_hand : game.player1_hand) ?? []) as Tile[]);
-      const winner = myPips < oppPips ? user.id : oppPips < myPips ? oppId : null;
-      if (winner) {
-        await supabase.rpc("settle_game", { _game_id: game.id, _winner: winner });
-      } else {
-        await updateGameState({ status: "blocked" });
-      }
+      await finishBlocked();
       return;
     }
     await updateGameState({
@@ -263,7 +335,7 @@ export default function Game() {
       turn_started_at: new Date().toISOString(),
       passes,
     });
-    toast("Pass — tsy misy piesy mety");
+    toast("TSIMANANA — mandalo any amin'ny adversaire");
   };
 
   // Auto-action / Bot — rehefa lany ny 20s, mandeha ho azy ny lalao
@@ -294,11 +366,12 @@ export default function Game() {
         const newBoard = place(board, tile, chosenSide);
         const newHand = turnHand.filter((_, i) => i !== playableIdx);
         if (newHand.length === 0) {
-          await supabase.rpc("settle_game", { _game_id: game.id, _winner: game.current_turn });
           await updateGameState({
             board_state: newBoard,
             [isP1Turn ? "player1_hand" : "player2_hand"]: newHand,
           } as any);
+          const oppHand: Tile[] = ((isP1Turn ? game.player2_hand : game.player1_hand) ?? []) as Tile[];
+          await finishRound(game.current_turn, pipsTotal(oppHand), tile);
           return;
         }
         await updateGameState({
@@ -316,28 +389,10 @@ export default function Game() {
         });
         return;
       }
-      // 2) Misy boneyard → maka iray
-      if (boneyard.length > 0) {
-        const drawn = boneyard[0];
-        const newBone = boneyard.slice(1);
-        const newHand = [...turnHand, drawn];
-        await updateGameState({
-          boneyard: newBone,
-          [isP1Turn ? "player1_hand" : "player2_hand"]: newHand,
-        } as any);
-        return;
-      }
-      // 3) Pass
+      // 2) Pass auto (tsy misy fakana vato intsony)
       const passes = (game.passes ?? 0) + 1;
       if (passes >= 2) {
-        const myPips = pipsTotal(turnHand);
-        const oppPips = pipsTotal(((isP1Turn ? game.player2_hand : game.player1_hand) ?? []) as Tile[]);
-        const winner = myPips < oppPips ? game.current_turn : oppPips < myPips ? oppId : null;
-        if (winner) {
-          await supabase.rpc("settle_game", { _game_id: game.id, _winner: winner });
-        } else {
-          await updateGameState({ status: "blocked" });
-        }
+        await finishBlocked();
         return;
       }
       await updateGameState({
@@ -349,34 +404,17 @@ export default function Game() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elapsed, game?.turn_started_at, game?.status, game?.current_turn]);
 
-  // Auto-draw raha tsy manana piesy mety ny mpilalao manana ny tour ary mbola misy boneyard
+  // Auto-pass raha tsy manana vato mety ny mpilalao manana ny tour
   useEffect(() => {
     if (!isMyTurn || !game) return;
-    if (hasMove(myHand, board)) {
-      setShowBlockedChoice(false);
-      return;
-    }
-    const bone = ((game.boneyard as Tile[]) ?? []);
-    if (bone.length > 0) {
-      const key = `${game.id}-draw-${game.turn_started_at}`;
-      if (autoDrawRef.current === key) return;
-      autoDrawRef.current = key;
-      (async () => {
-        const isP1 = game.player1_id === user!.id;
-        const drawn = bone[0];
-        const newBone = bone.slice(1);
-        const newHand = [...myHand, drawn];
-        await updateGameState({
-          boneyard: newBone,
-          [isP1 ? "player1_hand" : "player2_hand"]: newHand,
-        } as any);
-        toast("TSIMANANA IZAHO — naka vato vaovao");
-      })();
-    } else {
-      setShowBlockedChoice(true);
-    }
+    if (hasMove(myHand, board)) return;
+    const key = `${game.id}-pass-${game.turn_started_at}`;
+    if (autoPassRef.current === key) return;
+    autoPassRef.current = key;
+    const t = setTimeout(() => { autoPass(); }, 1200);
+    return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMyTurn, myHand, board, game?.boneyard]);
+  }, [isMyTurn, myHand, board, game?.turn_started_at]);
 
   if (!game) return <div className="min-h-screen felt-bg flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
@@ -384,37 +422,11 @@ export default function Game() {
   const canLeft = selected !== null && e ? canPlace(board, myHand[selected]) === "left" || canPlace(board, myHand[selected]) === "either" : false;
   const canRight = selected !== null && e ? canPlace(board, myHand[selected]) === "right" || canPlace(board, myHand[selected]) === "either" : false;
   const noMove = isMyTurn && !hasMove(myHand, board);
-  const myBoneyardEmpty = ((game?.boneyard as Tile[]) ?? []).length === 0;
-
-  const continueAfterEmpty = () => {
-    setShowBlockedChoice(false);
-    // Mamerina ny lalao - pass ny tour any amin'ny adversaire
-    drawOrPass();
-  };
-
-  const giveUpAfterEmpty = async () => {
-    if (!game || !user) return;
-    const oppId = game.player1_id === user.id ? game.player2_id : game.player1_id;
-    if (!oppId) return;
-    sessionStorage.setItem(ABANDONED_GAME_KEY, game.id);
-    setShowBlockedChoice(false);
-    setOptimistic({
-      ...game,
-      status: "finished",
-      winner_id: oppId,
-      current_turn: null,
-      finished_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    });
-    const { error } = await supabase.rpc("settle_game", { _game_id: game.id, _winner: oppId });
-    if (error) {
-      sessionStorage.removeItem(ABANDONED_GAME_KEY);
-      setOptimistic(null);
-      return toast.error(error.message);
-    }
-    toast("Resy ianao — tsy nety nanohy");
-    nav("/lobby", { replace: true });
-  };
+  const gameMode = (game?.game_mode ?? "d120") as GameMode;
+  const myIsP1 = game?.player1_id === user?.id;
+  const myScore = Number(myIsP1 ? game?.score_p1 : game?.score_p2) || 0;
+  const oppScore = Number(myIsP1 ? game?.score_p2 : game?.score_p1) || 0;
+  const targetPts = MODE_TARGET[gameMode];
 
   const abandonGame = async () => {
     if (!game || !user || isAbandoning) return;

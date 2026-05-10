@@ -11,6 +11,8 @@ import { Wallet, Users, Trophy, MessageCircle, LogOut, Shield } from "lucide-rea
 import logo from "@/assets/logo.png";
 import MessageInbox from "@/components/MessageInbox";
 
+const ABANDONED_GAME_KEY = "domino_abandoned_game_id";
+
 export default function Home() {
   const { user, isAdmin, signOut } = useAuth();
   const nav = useNavigate();
@@ -25,6 +27,7 @@ export default function Home() {
     if (!user) return;
 
     const redirectToActiveGame = async () => {
+      const abandonedGameId = sessionStorage.getItem(ABANDONED_GAME_KEY);
       const { data } = await supabase
         .from("games")
         .select("id, status, updated_at")
@@ -33,8 +36,10 @@ export default function Home() {
         .order("updated_at", { ascending: false })
         .limit(1);
 
-      if (data && data[0]?.id) {
-        nav(`/game/${data[0].id}`);
+      const nextActiveGame = data?.find((g) => g.id !== abandonedGameId);
+
+      if (nextActiveGame?.id) {
+        nav(`/game/${nextActiveGame.id}`);
       }
     };
 

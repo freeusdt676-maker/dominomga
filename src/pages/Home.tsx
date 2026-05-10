@@ -192,6 +192,18 @@ export default function Home() {
           </div>
         </Link>
 
+        <Link to="/ludo">
+          <div className="rounded-2xl p-6 hover:scale-[1.01] transition cursor-pointer ludo-panel">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">🎲</span>
+              <div className="flex-1">
+                <h3 className="font-display text-xl font-bold ludo-title">LUDO MASTER</h3>
+                <p className="text-sm text-yellow-100/80">2P · 3P · 4P — mise sy gain mitovy</p>
+              </div>
+            </div>
+          </div>
+        </Link>
+
         <div className="grid grid-cols-2 gap-3">
           <Link to="/lobby"><div className="card-felt rounded-xl p-4 text-center"><Users className="w-6 h-6 mx-auto mb-2 text-primary" /><p className="text-sm">En ligne</p></div></Link>
           <Link to="/admin-chat"><div className="card-felt rounded-xl p-4 text-center"><MessageCircle className="w-6 h-6 mx-auto mb-2 text-primary" /><p className="text-sm">Chat Admin</p></div></Link>

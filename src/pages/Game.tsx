@@ -659,6 +659,17 @@ export default function Game() {
           <Button variant="ghost" size="icon" className="h-8 w-8 text-[#ffe27a] hover:bg-[#ffffff10]" onClick={() => nav(-1 as any)}>
             <ArrowLeft className="w-4 h-4" />
           </Button>
+          {profilePhotos[user?.id ?? ""] ? (
+            <img
+              src={profilePhotos[user?.id ?? ""] as string}
+              alt={myName}
+              className="w-9 h-9 rounded-full object-cover border-2 border-[#ffe27a]/70 shadow"
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-[#ffe27a]/20 border-2 border-[#ffe27a]/70 flex items-center justify-center text-[11px] font-bold text-[#ffe27a]">
+              {(myName?.[0] ?? "?").toUpperCase()}
+            </div>
+          )}
           <div className="min-w-0">
             <div className={`truncate text-sm font-extrabold ${game.current_turn === user?.id ? "text-[#ffe27a]" : "text-white/90"}`}>
               {myName}
@@ -691,6 +702,17 @@ export default function Game() {
                 : `Score ${scoreOf(opponents[0]?.id ?? "")}`}
             </div>
           </div>
+          {opponents[0] && (profilePhotos[opponents[0].id] ? (
+            <img
+              src={profilePhotos[opponents[0].id] as string}
+              alt={opponents[0].name}
+              className="w-9 h-9 rounded-full object-cover border-2 border-[#ffe27a]/70 shadow"
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-[#ffe27a]/20 border-2 border-[#ffe27a]/70 flex items-center justify-center text-[11px] font-bold text-[#ffe27a]">
+              {(opponents[0].name?.[0] ?? "?").toUpperCase()}
+            </div>
+          ))}
           <Button variant="ghost" size="icon" className="h-8 w-8 text-[#ffe27a] hover:bg-[#ffffff10]" onClick={() => nav("/")}>
             <HomeIcon className="w-4 h-4" />
           </Button>

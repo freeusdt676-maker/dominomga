@@ -7,7 +7,7 @@ import { fmtAr, ADMIN_CODE, ADMIN_CODE_ALT } from "@/lib/constants";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Wallet, Users, Trophy, MessageCircle, LogOut, Shield, MessagesSquare, User as UserIcon } from "lucide-react";
+import { Wallet, Users, Trophy, MessageCircle, LogOut, Shield, MessagesSquare, User as UserIcon, Download } from "lucide-react";
 import logo from "@/assets/logo.png";
 import MessageInbox from "@/components/MessageInbox";
 
@@ -22,6 +22,24 @@ export default function Home() {
   const [showCode, setShowCode] = useState(false);
   const [code, setCode] = useState("");
   const [incoming, setIncoming] = useState<any[]>([]);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const onBip = (e: any) => { e.preventDefault(); setInstallPrompt(e); };
+    window.addEventListener("beforeinstallprompt", onBip);
+    return () => window.removeEventListener("beforeinstallprompt", onBip);
+  }, []);
+
+  const installApp = async () => {
+    if (!installPrompt) {
+      toast.info("Hampidirana ny app: tsindrio ny menu navigateur → 'Ajouter à l'écran d'accueil'");
+      return;
+    }
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === "accepted") toast.success("Voapetraka ny app!");
+    setInstallPrompt(null);
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -224,6 +242,11 @@ export default function Home() {
         </Link>
 
         <Link to="/rules"><div className="card-felt rounded-xl p-4 text-center text-sm text-muted-foreground">Règle du jeu</div></Link>
+
+        <button onClick={installApp} className="w-full card-felt rounded-xl p-4 flex items-center justify-center gap-2 text-sm border border-primary/30 hover:border-primary transition">
+          <Download className="w-4 h-4 text-primary" />
+          <span className="font-bold">Hampiditra ny app amin'ny finday</span>
+        </button>
 
         <p className="text-center text-xs text-muted-foreground/60 pt-4">Hiditra · DOMINO MGA · v1</p>
 

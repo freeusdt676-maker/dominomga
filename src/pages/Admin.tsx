@@ -22,6 +22,8 @@ export default function Admin() {
   const [resets, setResets] = useState<any[]>([]);
   const [broadcast, setBroadcast] = useState("");
   const [adminBalance, setAdminBalance] = useState(0);
+  const [totalPlayerBalance, setTotalPlayerBalance] = useState<number | null>(null);
+  const [showTotal, setShowTotal] = useState(false);
   const [showSecrets, setShowSecrets] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [rejectFor, setRejectFor] = useState<any | null>(null);
@@ -111,6 +113,8 @@ export default function Admin() {
     if (aid) {
       const { data: aw } = await supabase.from("admin_wallets").select("balance").eq("admin_id", aid).maybeSingle();
       setAdminBalance(Number(aw?.balance ?? 0));
+      const { data: tot } = await supabase.rpc("admin_total_player_balance", { _admin_id: aid });
+      setTotalPlayerBalance(Number(tot ?? 0));
     }
 
     // Historique ny lalao rehetra
@@ -255,6 +259,21 @@ export default function Admin() {
             {showSecrets ? <><EyeOff className="w-4 h-4 mr-1" />Hafenina</> : <><Eye className="w-4 h-4 mr-1" />Code</>}
           </Button>
         </div>
+
+        <button
+          onClick={() => setShowTotal((v) => !v)}
+          className="card-felt rounded-xl p-3 mb-4 w-full text-left border border-primary/30 hover:bg-primary/5 transition"
+        >
+          <p className="text-xs text-muted-foreground">💰 Solde mpilalao (kitiho hijery)</p>
+          {showTotal ? (
+            <p className="text-2xl font-display gold-text font-bold">
+              {fmtAr(totalPlayerBalance ?? 0)}
+            </p>
+          ) : (
+            <p className="text-2xl font-display gold-text font-bold tracking-widest">••••••</p>
+          )}
+          <p className="text-[10px] text-muted-foreground mt-1">Fitambaran'ny solde rehetran'ny mpilalao</p>
+        </button>
 
         <Tabs defaultValue="users">
           <TabsList className="grid grid-cols-5 w-full text-[10px]">

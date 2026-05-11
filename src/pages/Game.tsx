@@ -817,6 +817,42 @@ export default function Game() {
         </div>
       </header>
 
+      {/* Tableau ny score — mazava sy ngeza */}
+      {game.status === "in_progress" && (
+        <div className="px-3 py-2 bg-[#0a2818] border-b-2 border-[#d4a52c]/50">
+          <div className="max-w-md mx-auto">
+            <div className="text-center text-[10px] uppercase tracking-[0.25em] text-[#ffe27a]/70 mb-1 font-bold">
+              SCORE {targetPts ? `(Tanjona ${targetPts})` : ""}
+            </div>
+            <div className={`grid ${playersCount === 3 ? "grid-cols-3" : "grid-cols-2"} gap-2`}>
+              {[user?.id ?? "", ...opponents.map(o => o.id)].map((pid) => {
+                const isMe = pid === user?.id;
+                const name = isMe ? myName : (profileNames[pid] ?? "Mpilalao");
+                const sc = scoreOf(pid);
+                const pct = targetPts ? Math.min(100, Math.round((sc / targetPts) * 100)) : 0;
+                const isTurn = game.current_turn === pid;
+                return (
+                  <div
+                    key={pid}
+                    className={`rounded-lg p-2 border-2 ${isTurn ? "border-[#ffe27a] bg-[#d4a52c]/15 shadow-[0_0_12px_rgba(255,226,122,0.3)]" : "border-[#d4a52c]/30 bg-black/30"}`}
+                  >
+                    <div className="flex items-baseline justify-between gap-1">
+                      <span className="text-[11px] font-bold text-[#ffe27a]/90 truncate">{name}</span>
+                      <span className="text-2xl font-black gold-text leading-none tabular-nums">{sc}</span>
+                    </div>
+                    {targetPts && (
+                      <div className="mt-1 h-1.5 bg-black/50 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-[#d4a52c] to-[#ffe27a] transition-all" style={{ width: `${pct}%` }} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {game.status === "in_progress" && (
         <div className="px-3 py-2 bg-destructive/10 border-b border-destructive/30 flex justify-center">
           <Button

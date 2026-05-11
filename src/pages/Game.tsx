@@ -81,6 +81,7 @@ export default function Game() {
   const autoPassRef = useRef<string | null>(null);
   const roundEndLockRef = useRef<string | null>(null);
   const revealCommitRef = useRef<string | null>(null);
+  const endgameLockRef = useRef<string | null>(null);
   const isMobile = useIsMobile();
 
   const getAbandonedGameId = () => sessionStorage.getItem(ABANDONED_GAME_KEY);
@@ -381,6 +382,61 @@ export default function Game() {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  // Endgame vote resolver — kicks in once both players have voted (2-player only).
+  useEffect(() => {
+    if (!game) return;
+    if (game.status !== "in_progress") return;
+    if (Number(game.players_count ?? 2) !== 2) return;
+    const votes = game.endgame_votes as Record<string, "continue" | "stop"> | null | undefined;
+    if (!votes) return;
+    const ids = [game.player1_id, game.player2_id].filter(Boolean) as string[];
+    const allVoted = ids.every((id) => votes[id] === "continue" || votes[id] === "stop");
+    if (!allVoted) return;
+    const key = `${game.id}-r${game.round_number ?? 1}-endvote`;
+    if (endgameLockRef.current === key) return;
+    // Only the host (player1) commits the resolution to avoid double-writes.
+    if (user?.id !== game.player1_id) return;
+    endgameLockRef.current = key;
+    (async () => {
+      const stopper = ids.find((id) => votes[id] === "stop");
+      if (stopper) {
+        const winner = ids.find((id) => id !== stopper) as string;
+        await supabase.rpc("settle_game", { _game_id: game.id, _winner: winner });
+        return;
+      }
+      // Both continue → reset scores and start a fresh round
+      const nextRound = (game.round_number ?? 1) + 1;
+      const seed = `${game.ticket_number || game.id}-r${nextRound}`;
+      const d = deal(seed);
+      const mode = (game.game_mode ?? "d120") as GameMode;
+      const opener = chooseOpening([d.p1, d.p2], mode);
+      const hands = [d.p1, d.p2];
+      let board: Placed[] = [];
+      let nextId = ids[opener.playerIndex];
+      if (opener.forced) {
+        hands[opener.playerIndex] = hands[opener.playerIndex].filter(
+          (t) => !(t[0] === opener.tile[0] && t[1] === opener.tile[1]),
+        );
+        board = [{ tile: opener.tile, flipped: false }];
+        nextId = ids[(opener.playerIndex + 1) % ids.length];
+      }
+      await supabase.from("games").update({
+        round_number: nextRound,
+        score_p1: 0,
+        score_p2: 0,
+        player1_hand: hands[0],
+        player2_hand: hands[1],
+        boneyard: d.boneyard,
+        board_state: board,
+        current_turn: nextId,
+        turn_started_at: new Date().toISOString(),
+        passes: 0,
+        endgame_votes: null,
+        reveal_until: null,
+      }).eq("id", game.id);
+    })();
+  }, [game?.endgame_votes, game?.status, game?.id, user?.id]);
 
   // Mamboatra ny lalao raha vao nivadika ho in_progress saingy mbola tsy nizara piesy
   useEffect(() => {

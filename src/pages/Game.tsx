@@ -820,10 +820,11 @@ export default function Game() {
                       <img
                         src={photo}
                         alt={o.name}
-                        className={`w-7 h-7 rounded-full object-cover border-2 ${isTurn ? "border-primary" : "border-primary/30"}`}
+                        onClick={() => setZoomedPhoto(photo)}
+                        className={`w-9 h-9 rounded-full object-cover border-2 cursor-pointer active:scale-95 transition ${isTurn ? "border-primary" : "border-primary/30"}`}
                       />
                     ) : (
-                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${isTurn ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold ${isTurn ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
                         {initial}
                       </div>
                     )}

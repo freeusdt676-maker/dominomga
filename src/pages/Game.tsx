@@ -774,6 +774,21 @@ export default function Game() {
         </AlertDialogContent>
       </AlertDialog>
 
+      <Dialog open={!!zoomedPhoto} onOpenChange={(o) => !o && setZoomedPhoto(null)}>
+        <DialogContent
+          className="max-w-[92vw] sm:max-w-md p-0 bg-transparent border-0 shadow-none"
+          onClick={() => setZoomedPhoto(null)}
+        >
+          {zoomedPhoto && (
+            <img
+              src={zoomedPhoto}
+              alt="Profil"
+              className="w-full h-auto rounded-xl object-contain animate-scale-in cursor-zoom-out border-4 border-[#ffe27a]/70 shadow-2xl"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* TSIMANANA banner nesorina — tsy mibahana intsony, indikatera kely fotsiny ao amin'ny tanana */}
 
       {game.status === "waiting" && (

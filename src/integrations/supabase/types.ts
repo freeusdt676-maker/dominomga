@@ -585,6 +585,10 @@ export type Database = {
         Args: { _admin_id: string; _tx_id: string }
         Returns: Json
       }
+      admin_reset_commission: {
+        Args: { _admin_id: string; _pin: string }
+        Returns: Json
+      }
       admin_reset_user_balance: {
         Args: { _admin_id: string; _pin: string; _user_id: string }
         Returns: Json

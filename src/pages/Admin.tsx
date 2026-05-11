@@ -38,6 +38,8 @@ export default function Admin() {
   const [gameMoves, setGameMoves] = useState<any[]>([]);
   const [resetTarget, setResetTarget] = useState<any | null>(null);
   const [resetPin, setResetPin] = useState("");
+  const [commissionResetOpen, setCommissionResetOpen] = useState(false);
+  const [commissionPin, setCommissionPin] = useState("");
   const adminId = user?.id ?? resolvedAdminId;
 
   useEffect(() => {
@@ -250,6 +252,18 @@ export default function Admin() {
     load();
   };
 
+  const submitCommissionReset = async () => {
+    if (!adminId) return;
+    const { error } = await supabase.rpc("admin_reset_commission", { _admin_id: adminId, _pin: commissionPin });
+    if (error) {
+      const msg = error.message.includes("pin_diso") ? "PIN diso" : error.message;
+      return toast.error(msg);
+    }
+    toast.success("Wallet Admin nampody amin'ny 0 Ar");
+    setCommissionResetOpen(false); setCommissionPin("");
+    load();
+  };
+
   const filteredHistory = history.filter((h) => {
     if (!historySearch.trim()) return true;
     const q = historySearch.trim().toLowerCase();
@@ -288,6 +302,14 @@ export default function Admin() {
             <p className="text-xs text-muted-foreground flex items-center gap-1"><WalletIcon className="w-3 h-3" />Wallet Admin (commission 10%)</p>
             <p className="text-2xl font-display gold-text font-bold">{fmtAr(adminBalance)}</p>
             <p className="text-[10px] text-muted-foreground mt-1">10% alaina automatique vao manomboka ny match</p>
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-2 h-7 text-[11px] border-destructive/50 text-destructive hover:bg-destructive/10"
+              onClick={() => { setCommissionResetOpen(true); setCommissionPin(""); }}
+            >
+              <RotateCcw className="w-3 h-3 mr-1" />Réinitialiser solde commission
+            </Button>
           </div>
           <Button size="sm" variant="outline" onClick={() => setShowSecrets(s => !s)}>
             {showSecrets ? <><EyeOff className="w-4 h-4 mr-1" />Hafenina</> : <><Eye className="w-4 h-4 mr-1" />Code</>}
@@ -629,6 +651,30 @@ export default function Admin() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setResetTarget(null)}>Aoka</Button>
             <Button variant="destructive" onClick={submitReset}>Hamafa solde</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* RESET COMMISSION ADMIN — mila PIN 2583 */}
+      <Dialog open={commissionResetOpen} onOpenChange={(o) => { if (!o) { setCommissionResetOpen(false); setCommissionPin(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Réinitialiser solde commission</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Ny solde Wallet Admin (commission) dia hiverina 0 Ar. Ampidiro ny PIN administratif (2583) hanamafisana.
+          </p>
+          <Input
+            type="password"
+            inputMode="numeric"
+            maxLength={6}
+            value={commissionPin}
+            onChange={(e) => setCommissionPin(e.target.value)}
+            placeholder="PIN"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setCommissionResetOpen(false); setCommissionPin(""); }}>Annulé</Button>
+            <Button variant="destructive" onClick={submitCommissionReset}>Confirmer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

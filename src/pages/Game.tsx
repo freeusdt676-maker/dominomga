@@ -1076,17 +1076,7 @@ export default function Game() {
             </div>
           </div>
 
-          {/* Indikatera tendro + bokotra apetraka */}
-          {selected !== null && isMyTurn && (
-            <div className="px-3 py-2 flex justify-center gap-2 bg-card/40">
-              <Button size="sm" disabled={!canLeft} className="btn-gold" onClick={() => tryPlay(selected, "left")}>
-                ⬅ Apetraho havia {e ? `(${e.left})` : ""}
-              </Button>
-              <Button size="sm" disabled={!canRight} className="btn-gold" onClick={() => tryPlay(selected, "right")}>
-                Apetraho havanana ➡ {e ? `(${e.right})` : ""}
-              </Button>
-            </div>
-          )}
+          {/* Tap-to-play: tsy misy bokotra fanamafisana intsony */}
 
           {/* Tanako — lehibe sy mazava, mifanesy */}
           <div className="border-t-2 border-primary/30 bg-card/30 p-3">

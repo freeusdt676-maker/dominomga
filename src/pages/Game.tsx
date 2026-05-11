@@ -1080,19 +1080,49 @@ export default function Game() {
         </>
       )}
 
-      {(game.status === "finished" || game.status === "blocked" || game.status === "cancelled") && (
-        <div className="flex-1 flex items-center justify-center p-6">
-          <div className="card-felt rounded-2xl p-8 text-center max-w-sm">
-            <p className="font-display text-3xl gold-text mb-3">
-              {game.winner_id === user?.id ? "🏆 Nandresy!" : game.winner_id ? "Resy" : "Lalao tapaka"}
-            </p>
-            {game.winner_id === user?.id && (
-              <p className="text-lg">Nahazo: <span className="gold-text font-bold">{fmtAr(Math.round(game.stake * 1.8))}</span></p>
+      {(game.status === "finished" || game.status === "blocked" || game.status === "cancelled") && (() => {
+        const stake = Number(game.stake ?? 0);
+        const pc = Number(game.players_count ?? 2);
+        const commissionEach = Math.round(stake * 0.10);
+        const pot = (stake - commissionEach) * pc; // gross credited to winner
+        const netGain = pot - stake; // bonus on top of own stake
+        const iWon = game.winner_id === user?.id;
+        const draw = !game.winner_id;
+        return (
+          <div className="flex-1 flex items-center justify-center p-4 animate-in fade-in zoom-in duration-500">
+            {draw ? (
+              <div className="card-felt rounded-2xl p-8 text-center max-w-sm">
+                <p className="font-display text-3xl gold-text mb-3">Lalao tapaka</p>
+                <Button className="btn-gold mt-4 w-full" onClick={() => nav("/lobby")}>Lalao hafa</Button>
+              </div>
+            ) : iWon ? (
+              <div className="w-full max-w-md text-center rounded-3xl p-8 border-4 border-green-400 bg-gradient-to-br from-green-500 via-emerald-500 to-green-700 shadow-[0_0_60px_rgba(34,197,94,0.7)]">
+                <p className="text-5xl mb-3">🏆</p>
+                <p className="font-display text-4xl font-black text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] tracking-wide">
+                  NANDRESY GAGNÉ
+                </p>
+                <p className="font-display text-3xl font-black text-yellow-200 mt-3 drop-shadow-lg">
+                  +{fmtAr(netGain)}
+                </p>
+                <p className="text-sm text-white/90 mt-1">(+ Pot azo: {fmtAr(pot)})</p>
+                <Button className="btn-gold mt-6 w-full" onClick={() => nav("/lobby")}>Lalao hafa</Button>
+              </div>
+            ) : (
+              <div className="w-full max-w-md text-center rounded-3xl p-8 border-4 border-red-400 bg-gradient-to-br from-red-500 via-rose-600 to-red-800 shadow-[0_0_60px_rgba(239,68,68,0.7)]">
+                <p className="text-5xl mb-3">💔</p>
+                <p className="font-display text-4xl font-black text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] tracking-wide">
+                  RESY
+                </p>
+                <p className="font-display text-3xl font-black text-yellow-100 mt-3 drop-shadow-lg">
+                  -{fmtAr(stake)}
+                </p>
+                <p className="text-sm text-white/90 mt-1">(very ny mise napetrakao)</p>
+                <Button className="btn-gold mt-6 w-full" onClick={() => nav("/lobby")}>Lalao hafa</Button>
+              </div>
             )}
-            <Button className="btn-gold mt-4 w-full" onClick={() => nav("/lobby")}>Lalao hafa</Button>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

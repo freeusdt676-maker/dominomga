@@ -7,7 +7,7 @@ import { fmtAr, ADMIN_CODE, ADMIN_CODE_ALT } from "@/lib/constants";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Wallet, Users, Trophy, MessageCircle, LogOut, Shield, MessagesSquare } from "lucide-react";
+import { Wallet, Users, Trophy, MessageCircle, LogOut, Shield, MessagesSquare, User as UserIcon } from "lucide-react";
 import logo from "@/assets/logo.png";
 import MessageInbox from "@/components/MessageInbox";
 
@@ -211,6 +211,17 @@ export default function Home() {
           <Link to="/discussions"><div className="card-felt rounded-xl p-4 text-center"><MessagesSquare className="w-6 h-6 mx-auto mb-2 text-primary" /><p className="text-sm">Discussions</p></div></Link>
           <Link to="/admin-chat"><div className="card-felt rounded-xl p-4 text-center"><MessageCircle className="w-6 h-6 mx-auto mb-2 text-primary" /><p className="text-sm">Chat Admin</p></div></Link>
         </div>
+
+        <Link to="/profile">
+          <div className="card-felt rounded-xl p-4 flex items-center gap-3">
+            <UserIcon className="w-6 h-6 text-primary" />
+            <div className="flex-1">
+              <p className="text-sm font-bold">Profile sy Historique</p>
+              <p className="text-xs text-muted-foreground">Hijery ny lalao vita sy ny score</p>
+            </div>
+            <Trophy className="w-5 h-5 text-primary/60" />
+          </div>
+        </Link>
 
         <Link to="/rules"><div className="card-felt rounded-xl p-4 text-center text-sm text-muted-foreground">Règle du jeu</div></Link>
 

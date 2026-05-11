@@ -177,11 +177,12 @@ export default function Admin() {
   const submitReject = async () => {
     if (!rejectFor || !adminId) return;
     if (!rejectMsg.trim()) return toast.error("Soraty ny antony");
-    const { error } = await supabase.rpc("reject_user_with_message", {
-      _user_id: rejectFor.user_id, _admin_id: adminId, _message: rejectMsg.trim()
+    const { data, error } = await supabase.functions.invoke("admin-delete-user", {
+      body: { user_id: rejectFor.user_id, message: rejectMsg.trim() },
     });
-    if (error) return toast.error(error.message);
-    toast.success("Nolavina + hafatra nalefa");
+    const errMsg = (data as any)?.error || (error as any)?.message;
+    if (errMsg) return toast.error(errMsg);
+    toast.success("Nolavina sy nofafana ny compte. Afaka manao inscription indray ilay olona.");
     setRejectFor(null); setRejectMsg(""); setSelectedUser(null);
     load();
   };

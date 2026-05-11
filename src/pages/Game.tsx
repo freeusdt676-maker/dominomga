@@ -4,6 +4,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, Home as HomeIcon, Clock, Flag, Pizza, Rabbit } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { fmtAr, TURN_TIMEOUT_SEC } from "@/lib/constants";
 import { DominoTile, DominoBack } from "@/components/DominoTile";
 import { SnakeBoard } from "@/components/SnakeBoard";
@@ -57,11 +67,13 @@ export default function Game() {
   const [optimistic, setOptimistic] = useState<any>(null);
   const game = optimistic ?? serverGame;
   const [profileNames, setProfileNames] = useState<Record<string, string>>({});
+  const [profilePhotos, setProfilePhotos] = useState<Record<string, string | null>>({});
   const [selected, setSelected] = useState<number | null>(null);
   const [ticketBanner, setTicketBanner] = useState<string | null>(null);
   const [roundBanner, setRoundBanner] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
   const [isAbandoning, setIsAbandoning] = useState(false);
+  const [confirmAbandon, setConfirmAbandon] = useState(false);
   const autoActedRef = useRef<string | null>(null);
   const initLockRef = useRef(false);
   const autoPassRef = useRef<string | null>(null);
@@ -369,10 +381,18 @@ export default function Game() {
     const ids = getPlayerIds(game);
     if (!ids.length) return;
     (async () => {
-      const { data } = await supabase.from("profiles").select("user_id, mvola_name").in("user_id", ids);
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, mvola_name, selfie_url, avatar_url")
+        .in("user_id", ids);
       const m: Record<string, string> = {};
-      (data ?? []).forEach((p: any) => { m[p.user_id] = p.mvola_name ?? "Mpilalao"; });
+      const ph: Record<string, string | null> = {};
+      (data ?? []).forEach((p: any) => {
+        m[p.user_id] = p.mvola_name ?? "Mpilalao";
+        ph[p.user_id] = p.selfie_url ?? p.avatar_url ?? null;
+      });
       setProfileNames(m);
+      setProfilePhotos(ph);
     })();
   }, [game?.player1_id, game?.player2_id, game?.player3_id]);
 
@@ -683,7 +703,7 @@ export default function Game() {
             variant="destructive"
             size="sm"
             className="w-full max-w-xs gap-2 font-bold shadow-lg"
-            onClick={abandonGame}
+            onClick={() => setConfirmAbandon(true)}
             disabled={isAbandoning}
           >
             {isAbandoning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Flag className="w-4 h-4" />}
@@ -691,6 +711,34 @@ export default function Game() {
           </Button>
         </div>
       )}
+
+      <AlertDialog open={confirmAbandon} onOpenChange={setConfirmAbandon}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>⚠️ Tena hiala amin'ny lalao tokoa?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block font-semibold text-destructive">
+                Tandremo: raha hiala ianao izao dia:
+              </span>
+              <span className="block">• Ho <b>RESY avy hatrany</b> ianao</span>
+              <span className="block">• <b>HO VERY ny vola napetrakao</b> rehetra (mise)</span>
+              <span className="block">• Ny adversaire no handresy ka hahazo ny gain</span>
+              <span className="block pt-1 text-xs italic">
+                Mieritrereta tsara alohan'ny hanamafisana.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => { setConfirmAbandon(false); abandonGame(); }}
+            >
+              OK — Hiala ihany
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* TSIMANANA banner nesorina — tsy mibahana intsony, indikatera kely fotsiny ao amin'ny tanana */}
 

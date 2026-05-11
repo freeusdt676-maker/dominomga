@@ -63,22 +63,28 @@ export function deal3(seed?: string) {
   return { p1, p2, p3, boneyard };
 }
 
-// Mode-aware opening: returns the index of the player (0-based) and the tile to open with.
-// d120 / hand: smallest double available (0,1,2,...,6); fallback: highest pip tile.
-// d80: largest double available (6,5,...,0); fallback: highest pip tile.
+// Mode-aware opening:
+//  - d120: forced double; priority [0,1,2,3] (smallest blank first).
+//  - d80:  forced double; priority [6,5,4]   (largest first).
+//  - hand: NO forced double — opener (highest-pip player) plays any tile.
+// When no qualifying double exists in any hand, we also fall back to free-choice
+// opening by the player holding the highest pip tile. `forced` indicates
+// whether the returned tile must be played as the opener.
 export function chooseOpening(
   hands: Tile[][],
   mode: "d120" | "d80" | "hand",
-): { playerIndex: number; tile: Tile } {
-  const order = mode === "d80" ? [6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6];
-  for (const v of order) {
-    for (let i = 0; i < hands.length; i += 1) {
-      if (hands[i].some(([a, b]) => a === v && b === v)) {
-        return { playerIndex: i, tile: [v, v] };
+): { playerIndex: number; tile: Tile; forced: boolean } {
+  if (mode !== "hand") {
+    const order = mode === "d80" ? [6, 5, 4] : [0, 1, 2, 3];
+    for (const v of order) {
+      for (let i = 0; i < hands.length; i += 1) {
+        if (hands[i].some(([a, b]) => a === v && b === v)) {
+          return { playerIndex: i, tile: [v, v], forced: true };
+        }
       }
     }
   }
-  // Fallback: highest pip tile across all players
+  // Fallback / hand mode: highest pip tile across all players, opener plays freely
   let best = { playerIndex: 0, tile: hands[0][0], score: -1 };
   for (let i = 0; i < hands.length; i += 1) {
     for (const t of hands[i]) {
@@ -86,7 +92,7 @@ export function chooseOpening(
       if (s > best.score) best = { playerIndex: i, tile: t, score: s };
     }
   }
-  return { playerIndex: best.playerIndex, tile: best.tile };
+  return { playerIndex: best.playerIndex, tile: best.tile, forced: false };
 }
 
 function tileRank([a, b]: Tile) {

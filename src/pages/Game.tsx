@@ -81,6 +81,7 @@ export default function Game() {
   const autoPassRef = useRef<string | null>(null);
   const roundEndLockRef = useRef<string | null>(null);
   const revealCommitRef = useRef<string | null>(null);
+  const endgameLockRef = useRef<string | null>(null);
   const isMobile = useIsMobile();
 
   const getAbandonedGameId = () => sessionStorage.getItem(ABANDONED_GAME_KEY);
@@ -117,15 +118,21 @@ export default function Game() {
         boneyard = d.boneyard;
       }
       const opener = chooseOpening(hands, mode);
-      // Remove opening tile from opener's hand and place on board
-      const openerHand = hands[opener.playerIndex].filter(
-        (t) => !(t[0] === opener.tile[0] && t[1] === opener.tile[1]),
-      );
-      hands[opener.playerIndex] = openerHand;
       const ids = getPlayerIds(currentGame);
       const openerId = ids[opener.playerIndex];
-      const nextId = ids[(opener.playerIndex + 1) % ids.length];
-      const board: Placed[] = [{ tile: opener.tile, flipped: false }];
+      let board: Placed[] = [];
+      let nextId = openerId;
+      if (opener.forced) {
+        // Remove forced opening tile from opener's hand and place on board
+        const openerHand = hands[opener.playerIndex].filter(
+          (t) => !(t[0] === opener.tile[0] && t[1] === opener.tile[1]),
+        );
+        hands[opener.playerIndex] = openerHand;
+        board = [{ tile: opener.tile, flipped: false }];
+        nextId = ids[(opener.playerIndex + 1) % ids.length];
+      }
+      // If not forced (hand mode or no qualifying double), opener keeps full hand
+      // and plays any tile of their choice on an empty board.
       const { error } = await updateGameState({
         player1_hand: hands[0],
         player2_hand: hands[1],
@@ -220,6 +227,12 @@ export default function Game() {
 
     setTimeout(async () => {
       if (instantWin) {
+        // 2-player: ask both players "Mbola hanohy / Tsy hanohy" before settling.
+        // 3-player: settle immediately as before.
+        if (pc === 2 && targetReached) {
+          await supabase.from("games").update({ endgame_votes: {}, reveal_until: null }).eq("id", game.id);
+          return;
+        }
         await supabase.rpc("settle_game", { _game_id: game.id, _winner: winnerId });
         return;
       }
@@ -231,10 +244,9 @@ export default function Game() {
       } else {
         const d = deal(seed); h1 = d.p1; h2 = d.p2; boneyard = d.boneyard;
       }
-      // Tour 2+: tsy misy double terena. Topon'ny tour mihodina automatique
-      // makany ANKAVIA (= mpilalao manaraka eo amin'ny lisitra).
+      // Tour 2+: tsy misy double terena, ny topon'ny tour no mametraka izay tiany.
+      // Mihodina automatique makany ANKAVIA isaky ny tour.
       const ids = pc === 3 ? [game.player1_id, game.player2_id, game.player3_id] : [game.player1_id, game.player2_id];
-      // Round-1 opener: re-derive deterministically from the round-1 seed
       const r1Seed = `${game.ticket_number || game.id}-r1`;
       const r1Deal = pc === 3 ? deal3(r1Seed) : deal(r1Seed);
       const r1Hands = pc === 3
@@ -369,6 +381,61 @@ export default function Game() {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  // Endgame vote resolver — kicks in once both players have voted (2-player only).
+  useEffect(() => {
+    if (!game) return;
+    if (game.status !== "in_progress") return;
+    if (Number(game.players_count ?? 2) !== 2) return;
+    const votes = game.endgame_votes as Record<string, "continue" | "stop"> | null | undefined;
+    if (!votes) return;
+    const ids = [game.player1_id, game.player2_id].filter(Boolean) as string[];
+    const allVoted = ids.every((id) => votes[id] === "continue" || votes[id] === "stop");
+    if (!allVoted) return;
+    const key = `${game.id}-r${game.round_number ?? 1}-endvote`;
+    if (endgameLockRef.current === key) return;
+    // Only the host (player1) commits the resolution to avoid double-writes.
+    if (user?.id !== game.player1_id) return;
+    endgameLockRef.current = key;
+    (async () => {
+      const stopper = ids.find((id) => votes[id] === "stop");
+      if (stopper) {
+        const winner = ids.find((id) => id !== stopper) as string;
+        await supabase.rpc("settle_game", { _game_id: game.id, _winner: winner });
+        return;
+      }
+      // Both continue → reset scores and start a fresh round
+      const nextRound = (game.round_number ?? 1) + 1;
+      const seed = `${game.ticket_number || game.id}-r${nextRound}`;
+      const d = deal(seed);
+      const mode = (game.game_mode ?? "d120") as GameMode;
+      const opener = chooseOpening([d.p1, d.p2], mode);
+      const hands = [d.p1, d.p2];
+      let board: Placed[] = [];
+      let nextId = ids[opener.playerIndex];
+      if (opener.forced) {
+        hands[opener.playerIndex] = hands[opener.playerIndex].filter(
+          (t) => !(t[0] === opener.tile[0] && t[1] === opener.tile[1]),
+        );
+        board = [{ tile: opener.tile, flipped: false }];
+        nextId = ids[(opener.playerIndex + 1) % ids.length];
+      }
+      await supabase.from("games").update({
+        round_number: nextRound,
+        score_p1: 0,
+        score_p2: 0,
+        player1_hand: hands[0],
+        player2_hand: hands[1],
+        boneyard: d.boneyard,
+        board_state: board,
+        current_turn: nextId,
+        turn_started_at: new Date().toISOString(),
+        passes: 0,
+        endgame_votes: null,
+        reveal_until: null,
+      }).eq("id", game.id);
+    })();
+  }, [game?.endgame_votes, game?.status, game?.id, user?.id]);
 
   // Mamboatra ny lalao raha vao nivadika ho in_progress saingy mbola tsy nizara piesy
   useEffect(() => {
@@ -647,6 +714,21 @@ export default function Game() {
     nav("/lobby", { replace: true });
   };
 
+  const submitEndgameVote = async (choice: "continue" | "stop") => {
+    if (!game || !user) return;
+    const votes = (game.endgame_votes as Record<string, "continue" | "stop"> | null) ?? {};
+    if (votes[user.id]) return; // already voted
+    const next = { ...votes, [user.id]: choice };
+    await supabase.from("games").update({ endgame_votes: next }).eq("id", game.id);
+  };
+
+  const endgameVotes = (game?.endgame_votes as Record<string, "continue" | "stop"> | null) ?? null;
+  const showEndgameVote =
+    !!endgameVotes &&
+    game?.status === "in_progress" &&
+    Number(game?.players_count ?? 2) === 2;
+  const myVote = endgameVotes && user ? endgameVotes[user.id] : undefined;
+
   // Sary kely kokoa amin'ny mobile mba tsy hifanaikitra
   const handTileSize = isMobile ? "md" : "lg";
   const boardTileSize = isMobile ? "xs" : "sm";
@@ -788,6 +870,44 @@ export default function Game() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Endgame vote — Mbola hanohy / Tsy hanohy (target tratra) */}
+      <AlertDialog open={showEndgameVote}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>🏁 Tratra ny target — Mbola hanohy ve?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">
+                Tratra ny <b>{targetPts}</b> point. Samy mifidy ianareo:
+              </span>
+              <span className="block">• <b>Mbola hanohy</b> — averina amin'ny 0-0 ny score, mitohy ny lalao.</span>
+              <span className="block">• <b>Tsy hanohy</b> — <span className="text-destructive font-bold">ho resy avy hatrany</span> ilay nifidy izany; ny adversaire no handresy sy hahazo ny gain.</span>
+              {myVote && (
+                <span className="block pt-2 italic text-xs">
+                  Voarakitra ny safidinao: <b>{myVote === "continue" ? "Mbola hanohy" : "Tsy hanohy"}</b>. Miandry ny adversaire…
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button
+              variant="outline"
+              disabled={!!myVote}
+              onClick={() => submitEndgameVote("stop")}
+              className="border-destructive text-destructive hover:bg-destructive/10"
+            >
+              Tsy hanohy
+            </Button>
+            <Button
+              disabled={!!myVote}
+              onClick={() => submitEndgameVote("continue")}
+              className="btn-gold"
+            >
+              Mbola hanohy
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* TSIMANANA banner nesorina — tsy mibahana intsony, indikatera kely fotsiny ao amin'ny tanana */}
 

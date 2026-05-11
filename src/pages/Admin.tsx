@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Check, X, Megaphone, Wallet as WalletIcon, UserCheck, Eye, EyeOff, MessageSquare, ArrowDownToLine, ArrowUpFromLine, History, Search, Unlock } from "lucide-react";
+import { ArrowLeft, Check, X, Megaphone, Wallet as WalletIcon, UserCheck, Eye, EyeOff, MessageSquare, ArrowDownToLine, ArrowUpFromLine, History, Search, Unlock, Trash2, RotateCcw } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 import { toast } from "sonner";
 import { DominoTile } from "@/components/DominoTile";
@@ -36,6 +36,8 @@ export default function Admin() {
   const [adminNames, setAdminNames] = useState<Record<string, string>>({});
   const [selectedGame, setSelectedGame] = useState<any | null>(null);
   const [gameMoves, setGameMoves] = useState<any[]>([]);
+  const [resetTarget, setResetTarget] = useState<any | null>(null);
+  const [resetPin, setResetPin] = useState("");
   const adminId = user?.id ?? resolvedAdminId;
 
   useEffect(() => {
@@ -216,6 +218,38 @@ export default function Admin() {
     load();
   };
 
+  const deleteTx = async (tx: any) => {
+    if (!adminId) return;
+    if (!confirm("Hamafa ity transaction ity?")) return;
+    const { error } = await supabase.rpc("admin_delete_transaction", { _tx_id: tx.id, _admin_id: adminId });
+    if (error) return toast.error(error.message);
+    toast.success("Voafafa");
+    load();
+  };
+
+  const deleteGame = async (g: any) => {
+    if (!adminId) return;
+    if (!confirm(`Hamafa ny lalao Nº${g.ticket_number}?`)) return;
+    const { error } = await supabase.rpc("admin_delete_game", { _game_id: g.id, _admin_id: adminId });
+    if (error) return toast.error(error.message);
+    toast.success("Voafafa");
+    load();
+  };
+
+  const submitReset = async () => {
+    if (!resetTarget || !adminId) return;
+    const { error } = await supabase.rpc("admin_reset_user_balance", {
+      _user_id: resetTarget.user_id, _admin_id: adminId, _pin: resetPin
+    });
+    if (error) {
+      const msg = error.message.includes("pin_diso") ? "PIN diso" : error.message;
+      return toast.error(msg);
+    }
+    toast.success("Solde nampody amin'ny 0");
+    setResetTarget(null); setResetPin(""); setSelectedUser(null);
+    load();
+  };
+
   const filteredHistory = history.filter((h) => {
     if (!historySearch.trim()) return true;
     const q = historySearch.trim().toLowerCase();
@@ -368,6 +402,7 @@ export default function Admin() {
                   <div className="flex flex-col gap-1">
                     <Button size="sm" onClick={() => approveTx(t)} className="btn-gold"><Check className="w-4 h-4" /></Button>
                     <Button size="sm" variant="destructive" onClick={() => rejectTx(t)}><X className="w-4 h-4" /></Button>
+                    <Button size="sm" variant="outline" onClick={() => deleteTx(t)} title="Suprimer"><Trash2 className="w-4 h-4" /></Button>
                   </div>
                 </div>
               </div>

@@ -157,6 +157,7 @@ export type Database = {
           commission: number
           created_at: string
           current_turn: string | null
+          endgame_votes: Json | null
           expires_at: string | null
           finished_at: string | null
           game_mode: string
@@ -187,6 +188,7 @@ export type Database = {
           commission?: number
           created_at?: string
           current_turn?: string | null
+          endgame_votes?: Json | null
           expires_at?: string | null
           finished_at?: string | null
           game_mode?: string
@@ -217,6 +219,7 @@ export type Database = {
           commission?: number
           created_at?: string
           current_turn?: string | null
+          endgame_votes?: Json | null
           expires_at?: string | null
           finished_at?: string | null
           game_mode?: string

@@ -316,7 +316,17 @@ export default function Game() {
       .on("postgres_changes", { event: "*", schema: "public", table: "games", filter: `id=eq.${id}` },
         (p: any) => setServerGame(p.new))
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    // Polling fallback (1.5s) — raha sendra tara ny realtime, mba hifohazan'ny tour avy hatrany
+    const poll = setInterval(async () => {
+      const { data } = await supabase.from("games").select("*").eq("id", id).single();
+      if (data) setServerGame((prev: any) => {
+        if (!prev) return data;
+        const a = new Date(prev.updated_at ?? 0).getTime();
+        const b = new Date(data.updated_at ?? 0).getTime();
+        return b >= a ? data : prev;
+      });
+    }, 1500);
+    return () => { supabase.removeChannel(ch); clearInterval(poll); };
   }, [id]);
 
   useEffect(() => {

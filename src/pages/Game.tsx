@@ -117,15 +117,21 @@ export default function Game() {
         boneyard = d.boneyard;
       }
       const opener = chooseOpening(hands, mode);
-      // Remove opening tile from opener's hand and place on board
-      const openerHand = hands[opener.playerIndex].filter(
-        (t) => !(t[0] === opener.tile[0] && t[1] === opener.tile[1]),
-      );
-      hands[opener.playerIndex] = openerHand;
       const ids = getPlayerIds(currentGame);
       const openerId = ids[opener.playerIndex];
-      const nextId = ids[(opener.playerIndex + 1) % ids.length];
-      const board: Placed[] = [{ tile: opener.tile, flipped: false }];
+      let board: Placed[] = [];
+      let nextId = openerId;
+      if (opener.forced) {
+        // Remove forced opening tile from opener's hand and place on board
+        const openerHand = hands[opener.playerIndex].filter(
+          (t) => !(t[0] === opener.tile[0] && t[1] === opener.tile[1]),
+        );
+        hands[opener.playerIndex] = openerHand;
+        board = [{ tile: opener.tile, flipped: false }];
+        nextId = ids[(opener.playerIndex + 1) % ids.length];
+      }
+      // If not forced (hand mode or no qualifying double), opener keeps full hand
+      // and plays any tile of their choice on an empty board.
       const { error } = await updateGameState({
         player1_hand: hands[0],
         player2_hand: hands[1],

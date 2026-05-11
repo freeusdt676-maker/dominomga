@@ -795,6 +795,7 @@ export default function Game() {
             {opponents.map((o) => {
               const isTurn = game.current_turn === o.id;
               const initial = (o.name?.[0] ?? "?").toUpperCase();
+              const photo = profilePhotos[o.id];
               return (
                 <div
                   key={o.id}
@@ -803,9 +804,17 @@ export default function Game() {
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${isTurn ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
-                      {initial}
-                    </div>
+                    {photo ? (
+                      <img
+                        src={photo}
+                        alt={o.name}
+                        className={`w-7 h-7 rounded-full object-cover border-2 ${isTurn ? "border-primary" : "border-primary/30"}`}
+                      />
+                    ) : (
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${isTurn ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
+                        {initial}
+                      </div>
+                    )}
                     <span className={`text-[11px] font-bold ${isTurn ? "gold-text" : "text-foreground/80"}`}>
                       {isTurn ? "▶ " : ""}{o.name}
                       <span className="text-muted-foreground"> ({o.count})</span>

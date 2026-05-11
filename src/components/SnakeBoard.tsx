@@ -147,28 +147,51 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
       style={{ scrollbarWidth: "thin" }}
     >
       <div ref={innerRef} className="relative" style={{ width: innerW, height: innerH }}>
-        {items.map((it, i) => (
-          <div
-            key={i}
-            className="absolute animate-scale-in"
-            style={{
-              left: it.x + dx,
-              top: it.y + dy,
-              width: it.w,
-              height: it.h,
-              transition: "left 280ms ease, top 280ms ease",
-            }}
-          >
-            <DominoTile
-              a={it.a}
-              b={it.b}
-              size={tileSize}
-              horizontal={it.horizontal}
-              variant="white"
-              fluid
-            />
-          </div>
-        ))}
+        {items.map((it, i) => {
+          const isHead = i === 0; // vody (premier vato napetraka)
+          const isTail = items.length > 1 && i === items.length - 1; // rambony
+          const ringColor = isHead
+            ? "0 0 0 3px rgba(34,197,94,0.95), 0 0 14px 4px rgba(34,197,94,0.55)"
+            : isTail
+            ? "0 0 0 3px rgba(244,63,94,0.95), 0 0 14px 4px rgba(244,63,94,0.55)"
+            : undefined;
+          return (
+            <div
+              key={i}
+              className="absolute animate-scale-in"
+              style={{
+                left: it.x + dx,
+                top: it.y + dy,
+                width: it.w,
+                height: it.h,
+                transition: "left 280ms ease, top 280ms ease",
+                borderRadius: 6,
+                boxShadow: ringColor,
+              }}
+            >
+              <DominoTile
+                a={it.a}
+                b={it.b}
+                size={tileSize}
+                horizontal={it.horizontal}
+                variant="white"
+                fluid
+              />
+              {(isHead || isTail) && (
+                <span
+                  className="absolute -top-2 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide pointer-events-none"
+                  style={{
+                    background: isHead ? "rgb(34,197,94)" : "rgb(244,63,94)",
+                    color: "white",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
+                  }}
+                >
+                  {isHead ? "Vody" : "Rambony"}
+                </span>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

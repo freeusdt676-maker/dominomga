@@ -871,6 +871,44 @@ export default function Game() {
         </DialogContent>
       </Dialog>
 
+      {/* Endgame vote — Mbola hanohy / Tsy hanohy (target tratra) */}
+      <AlertDialog open={showEndgameVote}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>🏁 Tratra ny target — Mbola hanohy ve?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">
+                Tratra ny <b>{targetPts}</b> point. Samy mifidy ianareo:
+              </span>
+              <span className="block">• <b>Mbola hanohy</b> — averina amin'ny 0-0 ny score, mitohy ny lalao.</span>
+              <span className="block">• <b>Tsy hanohy</b> — <span className="text-destructive font-bold">ho resy avy hatrany</span> ilay nifidy izany; ny adversaire no handresy sy hahazo ny gain.</span>
+              {myVote && (
+                <span className="block pt-2 italic text-xs">
+                  Voarakitra ny safidinao: <b>{myVote === "continue" ? "Mbola hanohy" : "Tsy hanohy"}</b>. Miandry ny adversaire…
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button
+              variant="outline"
+              disabled={!!myVote}
+              onClick={() => submitEndgameVote("stop")}
+              className="border-destructive text-destructive hover:bg-destructive/10"
+            >
+              Tsy hanohy
+            </Button>
+            <Button
+              disabled={!!myVote}
+              onClick={() => submitEndgameVote("continue")}
+              className="btn-gold"
+            >
+              Mbola hanohy
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* TSIMANANA banner nesorina — tsy mibahana intsony, indikatera kely fotsiny ao amin'ny tanana */}
 
       {game.status === "waiting" && (

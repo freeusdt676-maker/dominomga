@@ -471,6 +471,11 @@ export default function Admin() {
                     {h.finished_at && <>Niafarany: {new Date(h.finished_at).toLocaleString()}</>}
                   </p>
                   <p className="text-[10px] text-primary mt-1">▶ Tsindrio hijery filaharana...</p>
+                  <div className="pt-1" onClick={(e) => e.stopPropagation()}>
+                    <Button size="sm" variant="outline" className="text-[10px] h-7" onClick={(e) => { e.stopPropagation(); deleteGame(h); }}>
+                      <Trash2 className="w-3 h-3 mr-1" />Suprimer
+                    </Button>
+                  </div>
                 </button>
               );
             })}
@@ -605,8 +610,26 @@ export default function Admin() {
                   <Unlock className="w-4 h-4 mr-1" />Débloquer
                 </Button>
               )}
+              <Button variant="outline" className="w-full mt-2 border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => { setResetTarget(selectedUser); setResetPin(""); }}>
+                <RotateCcw className="w-4 h-4 mr-1" />Réinitialiser solde (PIN)
+              </Button>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* RESET BALANCE — mila PIN 2583 */}
+      <Dialog open={!!resetTarget} onOpenChange={(o) => !o && setResetTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Réinitialiser solde — {resetTarget?.mvola_name}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">Ny solde dia hiverina 0 Ar. Ampidiro ny PIN administratif (2583) hanamafisana.</p>
+          <Input type="password" inputMode="numeric" maxLength={6} value={resetPin} onChange={(e) => setResetPin(e.target.value)} placeholder="PIN" />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResetTarget(null)}>Aoka</Button>
+            <Button variant="destructive" onClick={submitReset}>Hamafa solde</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

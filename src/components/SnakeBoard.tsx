@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { DominoTile } from "./DominoTile";
 import type { Placed } from "@/lib/dominoEngine";
 
-const SHORT = { xs: 24, sm: 36, md: 56 } as const;
+const SHORT = { xs: 44, sm: 56, md: 72 } as const;
 type Sz = keyof typeof SHORT;
 
 type Item = {

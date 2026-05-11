@@ -673,10 +673,11 @@ export default function Game() {
             <img
               src={profilePhotos[user?.id ?? ""] as string}
               alt={myName}
-              className="w-9 h-9 rounded-full object-cover border-2 border-[#ffe27a]/70 shadow"
+              onClick={() => setZoomedPhoto(profilePhotos[user?.id ?? ""] as string)}
+              className="w-11 h-11 rounded-full object-cover border-2 border-[#ffe27a]/70 shadow cursor-pointer active:scale-95 transition"
             />
           ) : (
-            <div className="w-9 h-9 rounded-full bg-[#ffe27a]/20 border-2 border-[#ffe27a]/70 flex items-center justify-center text-[11px] font-bold text-[#ffe27a]">
+            <div className="w-11 h-11 rounded-full bg-[#ffe27a]/20 border-2 border-[#ffe27a]/70 flex items-center justify-center text-sm font-bold text-[#ffe27a]">
               {(myName?.[0] ?? "?").toUpperCase()}
             </div>
           )}
@@ -716,10 +717,11 @@ export default function Game() {
             <img
               src={profilePhotos[opponents[0].id] as string}
               alt={opponents[0].name}
-              className="w-9 h-9 rounded-full object-cover border-2 border-[#ffe27a]/70 shadow"
+              onClick={() => setZoomedPhoto(profilePhotos[opponents[0].id] as string)}
+              className="w-11 h-11 rounded-full object-cover border-2 border-[#ffe27a]/70 shadow cursor-pointer active:scale-95 transition"
             />
           ) : (
-            <div className="w-9 h-9 rounded-full bg-[#ffe27a]/20 border-2 border-[#ffe27a]/70 flex items-center justify-center text-[11px] font-bold text-[#ffe27a]">
+            <div className="w-11 h-11 rounded-full bg-[#ffe27a]/20 border-2 border-[#ffe27a]/70 flex items-center justify-center text-sm font-bold text-[#ffe27a]">
               {(opponents[0].name?.[0] ?? "?").toUpperCase()}
             </div>
           ))}

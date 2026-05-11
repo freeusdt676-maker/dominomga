@@ -14,6 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { fmtAr, TURN_TIMEOUT_SEC } from "@/lib/constants";
 import { DominoTile, DominoBack } from "@/components/DominoTile";
 import { SnakeBoard } from "@/components/SnakeBoard";
@@ -74,6 +75,7 @@ export default function Game() {
   const [now, setNow] = useState(Date.now());
   const [isAbandoning, setIsAbandoning] = useState(false);
   const [confirmAbandon, setConfirmAbandon] = useState(false);
+  const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null);
   const autoActedRef = useRef<string | null>(null);
   const initLockRef = useRef(false);
   const autoPassRef = useRef<string | null>(null);

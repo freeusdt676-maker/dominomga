@@ -92,13 +92,24 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
 
     const r = compute(dir);
 
+    // Visual order: when chain runs right-to-left or bottom-to-top,
+    // the connecting end (a) must face the PREVIOUS tile, i.e. be on the
+    // right/bottom side of this tile. DominoTile draws `a` on the
+    // left/top half, so we swap a/b for those directions (skip doubles).
+    let va = a;
+    let vb = b;
+    if (!isDouble && (dir === "L" || dir === "U")) {
+      va = b;
+      vb = a;
+    }
+
     items.push({
       x: r.x,
       y: r.y,
       w: r.w,
       h: r.h,
-      a,
-      b,
+      a: va,
+      b: vb,
       horizontal: r.horiz ? !isDouble : isDouble,
       isDouble,
     });

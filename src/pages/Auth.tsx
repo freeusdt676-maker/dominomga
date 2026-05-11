@@ -12,6 +12,8 @@ import { DominoTile } from "@/components/DominoTile";
 import logo from "@/assets/logo.png";
 import { Camera, Shield, X } from "lucide-react";
 import { ADMIN_CODE, ADMIN_CODE_ALT } from "@/lib/constants";
+import { Link } from "react-router-dom";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function Auth() {
   const nav = useNavigate();
@@ -31,6 +33,7 @@ export default function Auth() {
   const [sPin, setSPin] = useState("");
   const [sPin2, setSPin2] = useState("");
   const [sSelfie, setSSelfie] = useState<string | null>(null);
+  const [acceptRules, setAcceptRules] = useState(false);
   const [camOpen, setCamOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -150,6 +153,7 @@ export default function Auth() {
     if (!/^\d{4}$/.test(sPin)) return toast.error("PIN: 4 chiffres");
     if (sPin !== sPin2) return toast.error("PIN tsy mitovy");
     if (!sSelfie) return toast.error("Maka sary selfie aloha azafady");
+    if (!acceptRules) return toast.error("Tsy maintsy ekenao ny fitsipika sy règle du jeu");
 
     setLoading(true);
     const cleanPhone = cleanPhoneIn;
@@ -174,6 +178,7 @@ export default function Auth() {
       setTab("login");
       setSName(""); setSBirth(""); setSPhone(""); setSPwd(""); setSPwd2("");
       setSPin(""); setSPin2(""); setSSelfie(null);
+      setAcceptRules(false);
     } catch (err: any) {
       setLoading(false);
       toast.error(String(err?.message ?? err));
@@ -282,6 +287,12 @@ export default function Auth() {
                 <Button type="submit" disabled={loading} className="w-full btn-mvola text-base py-6">
                   {loading ? "Andraso..." : "HISORATRA ANARANA"}
                 </Button>
+                <div className="flex items-start gap-2 pt-2 border-t border-primary/10">
+                  <Checkbox id="accept" checked={acceptRules} onCheckedChange={(v) => setAcceptRules(!!v)} className="mt-1" />
+                  <label htmlFor="accept" className="text-xs leading-relaxed cursor-pointer">
+                    Manaiky aho ny <Link to="/rules" target="_blank" className="text-primary underline font-bold">Fitsipika sy Règle du jeu</Link>: fitondran-tena mendrika, fahamatorana, anarana MVOLA marina, 18 taona+, compte tokana, fanajana ny ADMINISTRATIF.
+                  </label>
+                </div>
                 <p className="text-[11px] text-muted-foreground text-center mt-2">
                   Aorian'ny fanindriana, miandry validation amin'ny ADMINISTRATIF. Raha misy diso na banga, tsy ho tafiditra ny compte.
                 </p>

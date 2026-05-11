@@ -1108,7 +1108,7 @@ export default function Game() {
                     b={t[1]}
                     size={handTileSize}
                     fluid
-                    onClick={() => isMyTurn && placeable && setSelected(i === selected ? null : i)}
+                    onClick={() => isMyTurn && placeable && tryPlay(i)}
                     selected={selected === i}
                     disabled={!isMyTurn || !placeable}
                   />

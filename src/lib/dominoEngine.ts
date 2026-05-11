@@ -74,17 +74,8 @@ export function chooseOpening(
   hands: Tile[][],
   mode: "d120" | "d80" | "hand",
 ): { playerIndex: number; tile: Tile; forced: boolean } {
-  if (mode !== "hand") {
-    const order = mode === "d80" ? [6, 5, 4] : [0, 1, 2, 3];
-    for (const v of order) {
-      for (let i = 0; i < hands.length; i += 1) {
-        if (hands[i].some(([a, b]) => a === v && b === v)) {
-          return { playerIndex: i, tile: [v, v], forced: true };
-        }
-      }
-    }
-  }
-  // Fallback / hand mode: highest pip tile across all players, opener plays freely
+  // Tour rehetra (na d120, d80, na hand): tsy misy double terena.
+  // Ny mpilalao manana ny vato lehibe indrindra no manomboka, mametraka izay tiany.
   let best = { playerIndex: 0, tile: hands[0][0], score: -1 };
   for (let i = 0; i < hands.length; i += 1) {
     for (const t of hands[i]) {

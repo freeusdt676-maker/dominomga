@@ -14,6 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { fmtAr, TURN_TIMEOUT_SEC } from "@/lib/constants";
 import { DominoTile, DominoBack } from "@/components/DominoTile";
 import { SnakeBoard } from "@/components/SnakeBoard";
@@ -74,6 +75,7 @@ export default function Game() {
   const [now, setNow] = useState(Date.now());
   const [isAbandoning, setIsAbandoning] = useState(false);
   const [confirmAbandon, setConfirmAbandon] = useState(false);
+  const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null);
   const autoActedRef = useRef<string | null>(null);
   const initLockRef = useRef(false);
   const autoPassRef = useRef<string | null>(null);
@@ -229,20 +231,25 @@ export default function Game() {
       } else {
         const d = deal(seed); h1 = d.p1; h2 = d.p2; boneyard = d.boneyard;
       }
-      // Re-pick opener for the new round
-      const opener = chooseOpening(pc === 3 ? [h1, h2, h3] : [h1, h2], mode);
-      const hands = pc === 3 ? [h1, h2, h3] : [h1, h2];
-      hands[opener.playerIndex] = hands[opener.playerIndex].filter(
-        (t) => !(t[0] === opener.tile[0] && t[1] === opener.tile[1]),
-      );
+      // Tour 2+: tsy misy double terena. Topon'ny tour mihodina automatique
+      // makany ANKAVIA (= mpilalao manaraka eo amin'ny lisitra).
       const ids = pc === 3 ? [game.player1_id, game.player2_id, game.player3_id] : [game.player1_id, game.player2_id];
-      const nextId = ids[(opener.playerIndex + 1) % ids.length];
+      // Round-1 opener: re-derive deterministically from the round-1 seed
+      const r1Seed = `${game.ticket_number || game.id}-r1`;
+      const r1Deal = pc === 3 ? deal3(r1Seed) : deal(r1Seed);
+      const r1Hands = pc === 3
+        ? [(r1Deal as any).p1, (r1Deal as any).p2, (r1Deal as any).p3]
+        : [(r1Deal as any).p1, (r1Deal as any).p2];
+      const r1OpenerIdx = chooseOpening(r1Hands, mode).playerIndex;
+      const openerIdx = (r1OpenerIdx + (nextRound - 1)) % ids.length;
+      const hands = pc === 3 ? [h1, h2, h3] : [h1, h2];
+      const nextId = ids[openerIdx];
       const updateNext: any = {
         round_number: nextRound,
         player1_hand: hands[0],
         player2_hand: hands[1],
         boneyard,
-        board_state: [{ tile: opener.tile, flipped: false }],
+        board_state: [],
         current_turn: nextId,
         turn_started_at: new Date().toISOString(),
         passes: 0,
@@ -279,13 +286,16 @@ export default function Game() {
       } else {
         const d = deal(seed); h1 = d.p1; h2 = d.p2; boneyard = d.boneyard;
       }
-      const opener = chooseOpening(pc === 3 ? [h1, h2, h3] : [h1, h2], mode);
-      const hands = pc === 3 ? [h1, h2, h3] : [h1, h2];
-      hands[opener.playerIndex] = hands[opener.playerIndex].filter(
-        (t) => !(t[0] === opener.tile[0] && t[1] === opener.tile[1]),
-      );
       const ids = pc === 3 ? [game.player1_id, game.player2_id, game.player3_id] : [game.player1_id, game.player2_id];
-      const nextId = ids[(opener.playerIndex + 1) % ids.length];
+      const r1Seed = `${game.ticket_number || game.id}-r1`;
+      const r1Deal = pc === 3 ? deal3(r1Seed) : deal(r1Seed);
+      const r1Hands = pc === 3
+        ? [(r1Deal as any).p1, (r1Deal as any).p2, (r1Deal as any).p3]
+        : [(r1Deal as any).p1, (r1Deal as any).p2];
+      const r1OpenerIdx = chooseOpening(r1Hands, mode).playerIndex;
+      const openerIdx = (r1OpenerIdx + (nextRound - 1)) % ids.length;
+      const hands = pc === 3 ? [h1, h2, h3] : [h1, h2];
+      const nextId = ids[openerIdx];
       setRoundBanner(`Mitovy vato — tour vaovao`);
       setTimeout(() => setRoundBanner(null), 3500);
       const updateNext: any = {
@@ -293,7 +303,7 @@ export default function Game() {
         player1_hand: hands[0],
         player2_hand: hands[1],
         boneyard,
-        board_state: [{ tile: opener.tile, flipped: false }],
+        board_state: [],
         current_turn: nextId,
         turn_started_at: new Date().toISOString(),
         passes: 0,
@@ -663,10 +673,11 @@ export default function Game() {
             <img
               src={profilePhotos[user?.id ?? ""] as string}
               alt={myName}
-              className="w-9 h-9 rounded-full object-cover border-2 border-[#ffe27a]/70 shadow"
+              onClick={() => setZoomedPhoto(profilePhotos[user?.id ?? ""] as string)}
+              className="w-11 h-11 rounded-full object-cover border-2 border-[#ffe27a]/70 shadow cursor-pointer active:scale-95 transition"
             />
           ) : (
-            <div className="w-9 h-9 rounded-full bg-[#ffe27a]/20 border-2 border-[#ffe27a]/70 flex items-center justify-center text-[11px] font-bold text-[#ffe27a]">
+            <div className="w-11 h-11 rounded-full bg-[#ffe27a]/20 border-2 border-[#ffe27a]/70 flex items-center justify-center text-sm font-bold text-[#ffe27a]">
               {(myName?.[0] ?? "?").toUpperCase()}
             </div>
           )}
@@ -706,10 +717,11 @@ export default function Game() {
             <img
               src={profilePhotos[opponents[0].id] as string}
               alt={opponents[0].name}
-              className="w-9 h-9 rounded-full object-cover border-2 border-[#ffe27a]/70 shadow"
+              onClick={() => setZoomedPhoto(profilePhotos[opponents[0].id] as string)}
+              className="w-11 h-11 rounded-full object-cover border-2 border-[#ffe27a]/70 shadow cursor-pointer active:scale-95 transition"
             />
           ) : (
-            <div className="w-9 h-9 rounded-full bg-[#ffe27a]/20 border-2 border-[#ffe27a]/70 flex items-center justify-center text-[11px] font-bold text-[#ffe27a]">
+            <div className="w-11 h-11 rounded-full bg-[#ffe27a]/20 border-2 border-[#ffe27a]/70 flex items-center justify-center text-sm font-bold text-[#ffe27a]">
               {(opponents[0].name?.[0] ?? "?").toUpperCase()}
             </div>
           ))}
@@ -762,6 +774,21 @@ export default function Game() {
         </AlertDialogContent>
       </AlertDialog>
 
+      <Dialog open={!!zoomedPhoto} onOpenChange={(o) => !o && setZoomedPhoto(null)}>
+        <DialogContent
+          className="max-w-[92vw] sm:max-w-md p-0 bg-transparent border-0 shadow-none"
+          onClick={() => setZoomedPhoto(null)}
+        >
+          {zoomedPhoto && (
+            <img
+              src={zoomedPhoto}
+              alt="Profil"
+              className="w-full h-auto rounded-xl object-contain animate-scale-in cursor-zoom-out border-4 border-[#ffe27a]/70 shadow-2xl"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* TSIMANANA banner nesorina — tsy mibahana intsony, indikatera kely fotsiny ao amin'ny tanana */}
 
       {game.status === "waiting" && (
@@ -808,10 +835,11 @@ export default function Game() {
                       <img
                         src={photo}
                         alt={o.name}
-                        className={`w-7 h-7 rounded-full object-cover border-2 ${isTurn ? "border-primary" : "border-primary/30"}`}
+                        onClick={() => setZoomedPhoto(photo)}
+                        className={`w-9 h-9 rounded-full object-cover border-2 cursor-pointer active:scale-95 transition ${isTurn ? "border-primary" : "border-primary/30"}`}
                       />
                     ) : (
-                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${isTurn ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold ${isTurn ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
                         {initial}
                       </div>
                     )}

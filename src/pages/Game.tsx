@@ -7,6 +7,7 @@ import { ArrowLeft, Loader2, Home as HomeIcon, Clock, Flag, Pizza, Rabbit } from
 import { fmtAr, TURN_TIMEOUT_SEC } from "@/lib/constants";
 import { DominoTile, DominoBack } from "@/components/DominoTile";
 import { SnakeBoard } from "@/components/SnakeBoard";
+import { RadioPlayer } from "@/components/RadioPlayer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Tile, Placed, deal, deal3, ends, canPlace, place, pipsTotal, hasMove, chooseOpening,
@@ -747,6 +748,7 @@ export default function Game() {
           {/* Latabatra — felt poker, snake path mihodina amin'ny sisiny */}
           <div className="relative flex-1 px-3 py-3 min-h-[260px]">
             {/* Floating side action buttons */}
+            <RadioPlayer />
             <button
               type="button"
               className="fab-circle absolute left-2 top-1/2 -translate-y-1/2 z-20"

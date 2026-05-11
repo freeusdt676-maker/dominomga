@@ -562,6 +562,19 @@ export default function Game() {
     });
   };
 
+  const handleTileTap = (idx: number) => {
+    if (!isMyTurn) return;
+    const tile = myHand[idx];
+    const possible = canPlace(board, tile);
+    if (!possible) return;
+    if (possible === "either" && board.length > 0) {
+      setSelected(idx);
+      return;
+    }
+    setSelected(null);
+    void tryPlay(idx, possible === "left" || possible === "right" ? possible : undefined);
+  };
+
   const autoPass = async () => {
     if (!isMyTurn || !game || !user) return;
     const oppId = nextTurnId(game, user.id);
@@ -666,11 +679,23 @@ export default function Game() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMyTurn, myHand, board, game?.turn_started_at, isRevealing]);
 
+  useEffect(() => {
+    if (selected === null) return;
+    if (!isMyTurn || !myHand[selected]) {
+      setSelected(null);
+      return;
+    }
+    if (canPlace(board, myHand[selected]) !== "either") {
+      setSelected(null);
+    }
+  }, [selected, isMyTurn, myHand, board]);
+
   if (!game) return <div className="min-h-screen felt-bg flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
   const e = ends(board);
-  const canLeft = selected !== null && e ? canPlace(board, myHand[selected]) === "left" || canPlace(board, myHand[selected]) === "either" : false;
-  const canRight = selected !== null && e ? canPlace(board, myHand[selected]) === "right" || canPlace(board, myHand[selected]) === "either" : false;
+  const selectedPlacement = selected !== null && myHand[selected] ? canPlace(board, myHand[selected]) : null;
+  const canLeft = selectedPlacement === "left" || selectedPlacement === "either";
+  const canRight = selectedPlacement === "right" || selectedPlacement === "either";
   const noMove = isMyTurn && !hasMove(myHand, board);
   const gameMode = (game?.game_mode ?? "d120") as GameMode;
   const scoreOf = (uid: string): number => {
@@ -1061,7 +1086,7 @@ export default function Game() {
                 <SnakeBoard board={board} tileSize={boardTileSize as "xs" | "sm"} />
               )}
 
-              {selected !== null && isMyTurn && (
+              {selected !== null && isMyTurn && (canLeft || canRight) && (
                 <div className="absolute left-1/2 -translate-x-1/2 bottom-2 z-10 flex items-center gap-2 bg-black/40 px-2 py-1 rounded-lg backdrop-blur-sm">
                   <span className="text-[10px] text-[#ffe27a]">Voafidy:</span>
                   <DominoTile
@@ -1071,6 +1096,22 @@ export default function Game() {
                     horizontal={myHand[selected][0] !== myHand[selected][1]}
                     variant="white"
                   />
+                  <button
+                    type="button"
+                    onClick={() => void tryPlay(selected, "left")}
+                    disabled={!canLeft}
+                    className="px-2 py-1 rounded-md text-[10px] font-bold bg-[#d4a52c] text-[#0a2818] disabled:opacity-40"
+                  >
+                    Akavia
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void tryPlay(selected, "right")}
+                    disabled={!canRight}
+                    className="px-2 py-1 rounded-md text-[10px] font-bold bg-[#d4a52c] text-[#0a2818] disabled:opacity-40"
+                  >
+                    Akavanana
+                  </button>
                 </div>
               )}
             </div>
@@ -1098,7 +1139,7 @@ export default function Game() {
                     b={t[1]}
                     size={handTileSize}
                     fluid
-                    onClick={() => isMyTurn && placeable && tryPlay(i)}
+                    onClick={() => isMyTurn && placeable && handleTileTap(i)}
                     selected={selected === i}
                     disabled={!isMyTurn || !placeable}
                   />

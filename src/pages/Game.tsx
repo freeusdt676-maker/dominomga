@@ -286,13 +286,16 @@ export default function Game() {
       } else {
         const d = deal(seed); h1 = d.p1; h2 = d.p2; boneyard = d.boneyard;
       }
-      const opener = chooseOpening(pc === 3 ? [h1, h2, h3] : [h1, h2], mode);
-      const hands = pc === 3 ? [h1, h2, h3] : [h1, h2];
-      hands[opener.playerIndex] = hands[opener.playerIndex].filter(
-        (t) => !(t[0] === opener.tile[0] && t[1] === opener.tile[1]),
-      );
       const ids = pc === 3 ? [game.player1_id, game.player2_id, game.player3_id] : [game.player1_id, game.player2_id];
-      const nextId = ids[(opener.playerIndex + 1) % ids.length];
+      const r1Seed = `${game.ticket_number || game.id}-r1`;
+      const r1Deal = pc === 3 ? deal3(r1Seed) : deal(r1Seed);
+      const r1Hands = pc === 3
+        ? [(r1Deal as any).p1, (r1Deal as any).p2, (r1Deal as any).p3]
+        : [(r1Deal as any).p1, (r1Deal as any).p2];
+      const r1OpenerIdx = chooseOpening(r1Hands, mode).playerIndex;
+      const openerIdx = (r1OpenerIdx + (nextRound - 1)) % ids.length;
+      const hands = pc === 3 ? [h1, h2, h3] : [h1, h2];
+      const nextId = ids[openerIdx];
       setRoundBanner(`Mitovy vato — tour vaovao`);
       setTimeout(() => setRoundBanner(null), 3500);
       const updateNext: any = {
@@ -300,7 +303,7 @@ export default function Game() {
         player1_hand: hands[0],
         player2_hand: hands[1],
         boneyard,
-        board_state: [{ tile: opener.tile, flipped: false }],
+        board_state: [],
         current_turn: nextId,
         turn_started_at: new Date().toISOString(),
         passes: 0,

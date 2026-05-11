@@ -589,6 +589,9 @@ export default function Game() {
     if (isRevealing) return;
     // Rehefa lany ny 20s (na ahy na adversaire), ny Bot no mandefa avy hatrany
     if (elapsed < TURN_TIMEOUT_SEC) return;
+    // VATO VOALOHANY an'ny tour: ny pilalao topon'ny tour ihany no afaka mametraka.
+    // Tsy mety raha ny bot no manao izany — andraso ny pilalao.
+    if ((board?.length ?? 0) === 0) return;
     const key = `${game.id}-${game.turn_started_at}-${game.current_turn}`;
     if (autoActedRef.current === key) return;
     autoActedRef.current = key;

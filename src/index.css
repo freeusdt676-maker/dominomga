@@ -169,6 +169,21 @@
     font-weight: 700;
   }
 
+  /* Domino panel — same shape as ludo-panel but green-felt themed */
+  .domino-panel {
+    background: linear-gradient(180deg, hsl(150 55% 22%) 0%, hsl(155 65% 10%) 100%);
+    border: 2px solid #d4a52c;
+    box-shadow: 0 0 0 2px hsl(155 65% 10%), 0 8px 24px -8px rgba(0,0,0,0.6);
+  }
+  .domino-title {
+    background: linear-gradient(180deg, #ffe27a 0%, #d4a52c 60%, #8a5a0a 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 1px 0 rgba(0,0,0,0.4);
+    letter-spacing: 0.05em;
+  }
+
   /* ===== MVola theme (jaune/orange) ===== */
   .mvola-bg {
     background: linear-gradient(135deg, #ffd200 0%, #f7971e 60%, #ee5a24 100%);

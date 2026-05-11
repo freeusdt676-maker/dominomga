@@ -2,3 +2,6 @@ project_id = "taucobvazpwzzhmapekh"
 
 [functions.signup-kyc]
 verify_jwt = false
+
+[functions.admin-delete-user]
+verify_jwt = true

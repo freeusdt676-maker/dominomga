@@ -71,7 +71,14 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, sans-serif;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
+  html, body, #root { min-height: 100vh; min-height: 100dvh; }
   h1, h2, h3, h4, .font-display {
     font-family: 'Playfair Display', serif;
     letter-spacing: -0.02em;

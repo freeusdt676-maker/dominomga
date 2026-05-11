@@ -244,10 +244,9 @@ export default function Game() {
       } else {
         const d = deal(seed); h1 = d.p1; h2 = d.p2; boneyard = d.boneyard;
       }
-      // Tour 2+: tsy misy double terena. Topon'ny tour mihodina automatique
-      // makany ANKAVIA (= mpilalao manaraka eo amin'ny lisitra).
+      // Tour 2+: tsy misy double terena, ny topon'ny tour no mametraka izay tiany.
+      // Mihodina automatique makany ANKAVIA isaky ny tour.
       const ids = pc === 3 ? [game.player1_id, game.player2_id, game.player3_id] : [game.player1_id, game.player2_id];
-      // Round-1 opener: re-derive deterministically from the round-1 seed
       const r1Seed = `${game.ticket_number || game.id}-r1`;
       const r1Deal = pc === 3 ? deal3(r1Seed) : deal(r1Seed);
       const r1Hands = pc === 3

@@ -226,6 +226,12 @@ export default function Game() {
 
     setTimeout(async () => {
       if (instantWin) {
+        // 2-player: ask both players "Mbola hanohy / Tsy hanohy" before settling.
+        // 3-player: settle immediately as before.
+        if (pc === 2 && targetReached) {
+          await supabase.from("games").update({ endgame_votes: {}, reveal_until: null }).eq("id", game.id);
+          return;
+        }
         await supabase.rpc("settle_game", { _game_id: game.id, _winner: winnerId });
         return;
       }

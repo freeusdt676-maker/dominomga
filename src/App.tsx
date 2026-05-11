@@ -13,6 +13,7 @@ import Game from "./pages/Game";
 import Admin from "./pages/Admin";
 import LudoLobby from "./pages/LudoLobby";
 import LudoGame from "./pages/LudoGame";
+import Discussions from "./pages/Discussions";
 import { AuthProvider } from "./contexts/AuthContext";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/admin" element={<Admin />} />
             <Route path="/ludo" element={<LudoLobby />} />
             <Route path="/ludo/:id" element={<LudoGame />} />
+            <Route path="/discussions" element={<Discussions />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

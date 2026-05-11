@@ -243,6 +243,27 @@ export type Database = {
         }
         Relationships: []
       }
+      lobby_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          sender_id?: string
+        }
+        Relationships: []
+      }
       ludo_games: {
         Row: {
           commission: number
@@ -544,13 +565,37 @@ export type Database = {
         Args: { _admin_id: string; _tx_id: string }
         Returns: Json
       }
+      admin_delete_chat_message: {
+        Args: { _admin_id: string; _msg_id: string }
+        Returns: Json
+      }
+      admin_delete_game: {
+        Args: { _admin_id: string; _game_id: string }
+        Returns: Json
+      }
+      admin_delete_lobby_message: {
+        Args: { _admin_id: string; _msg_id: string }
+        Returns: Json
+      }
+      admin_delete_transaction: {
+        Args: { _admin_id: string; _tx_id: string }
+        Returns: Json
+      }
       admin_reject_tx: {
         Args: { _admin_id: string; _tx_id: string }
+        Returns: Json
+      }
+      admin_reset_user_balance: {
+        Args: { _admin_id: string; _pin: string; _user_id: string }
         Returns: Json
       }
       admin_send_broadcast: {
         Args: { _admin_id: string; _content: string }
         Returns: Json
+      }
+      admin_total_player_balance: {
+        Args: { _admin_id: string }
+        Returns: number
       }
       admin_unblock_user: {
         Args: { _admin_id: string; _user_id: string }

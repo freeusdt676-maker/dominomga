@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Check, X, Megaphone, Wallet as WalletIcon, UserCheck, Eye, EyeOff, MessageSquare, ArrowDownToLine, ArrowUpFromLine, History, Search, Unlock } from "lucide-react";
+import { ArrowLeft, Check, X, Megaphone, Wallet as WalletIcon, UserCheck, Eye, EyeOff, MessageSquare, ArrowDownToLine, ArrowUpFromLine, History, Search, Unlock, Trash2, RotateCcw } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 import { toast } from "sonner";
 import { DominoTile } from "@/components/DominoTile";
@@ -22,6 +22,8 @@ export default function Admin() {
   const [resets, setResets] = useState<any[]>([]);
   const [broadcast, setBroadcast] = useState("");
   const [adminBalance, setAdminBalance] = useState(0);
+  const [totalPlayerBalance, setTotalPlayerBalance] = useState<number | null>(null);
+  const [showTotal, setShowTotal] = useState(false);
   const [showSecrets, setShowSecrets] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [rejectFor, setRejectFor] = useState<any | null>(null);
@@ -34,6 +36,8 @@ export default function Admin() {
   const [adminNames, setAdminNames] = useState<Record<string, string>>({});
   const [selectedGame, setSelectedGame] = useState<any | null>(null);
   const [gameMoves, setGameMoves] = useState<any[]>([]);
+  const [resetTarget, setResetTarget] = useState<any | null>(null);
+  const [resetPin, setResetPin] = useState("");
   const adminId = user?.id ?? resolvedAdminId;
 
   useEffect(() => {
@@ -111,6 +115,8 @@ export default function Admin() {
     if (aid) {
       const { data: aw } = await supabase.from("admin_wallets").select("balance").eq("admin_id", aid).maybeSingle();
       setAdminBalance(Number(aw?.balance ?? 0));
+      const { data: tot } = await supabase.rpc("admin_total_player_balance", { _admin_id: aid });
+      setTotalPlayerBalance(Number(tot ?? 0));
     }
 
     // Historique ny lalao rehetra
@@ -212,6 +218,38 @@ export default function Admin() {
     load();
   };
 
+  const deleteTx = async (tx: any) => {
+    if (!adminId) return;
+    if (!confirm("Hamafa ity transaction ity?")) return;
+    const { error } = await supabase.rpc("admin_delete_transaction", { _tx_id: tx.id, _admin_id: adminId });
+    if (error) return toast.error(error.message);
+    toast.success("Voafafa");
+    load();
+  };
+
+  const deleteGame = async (g: any) => {
+    if (!adminId) return;
+    if (!confirm(`Hamafa ny lalao Nº${g.ticket_number}?`)) return;
+    const { error } = await supabase.rpc("admin_delete_game", { _game_id: g.id, _admin_id: adminId });
+    if (error) return toast.error(error.message);
+    toast.success("Voafafa");
+    load();
+  };
+
+  const submitReset = async () => {
+    if (!resetTarget || !adminId) return;
+    const { error } = await supabase.rpc("admin_reset_user_balance", {
+      _user_id: resetTarget.user_id, _admin_id: adminId, _pin: resetPin
+    });
+    if (error) {
+      const msg = error.message.includes("pin_diso") ? "PIN diso" : error.message;
+      return toast.error(msg);
+    }
+    toast.success("Solde nampody amin'ny 0");
+    setResetTarget(null); setResetPin(""); setSelectedUser(null);
+    load();
+  };
+
   const filteredHistory = history.filter((h) => {
     if (!historySearch.trim()) return true;
     const q = historySearch.trim().toLowerCase();
@@ -255,6 +293,21 @@ export default function Admin() {
             {showSecrets ? <><EyeOff className="w-4 h-4 mr-1" />Hafenina</> : <><Eye className="w-4 h-4 mr-1" />Code</>}
           </Button>
         </div>
+
+        <button
+          onClick={() => setShowTotal((v) => !v)}
+          className="card-felt rounded-xl p-3 mb-4 w-full text-left border border-primary/30 hover:bg-primary/5 transition"
+        >
+          <p className="text-xs text-muted-foreground">💰 Solde mpilalao (kitiho hijery)</p>
+          {showTotal ? (
+            <p className="text-2xl font-display gold-text font-bold">
+              {fmtAr(totalPlayerBalance ?? 0)}
+            </p>
+          ) : (
+            <p className="text-2xl font-display gold-text font-bold tracking-widest">••••••</p>
+          )}
+          <p className="text-[10px] text-muted-foreground mt-1">Fitambaran'ny solde rehetran'ny mpilalao</p>
+        </button>
 
         <Tabs defaultValue="users">
           <TabsList className="grid grid-cols-5 w-full text-[10px]">
@@ -349,6 +402,7 @@ export default function Admin() {
                   <div className="flex flex-col gap-1">
                     <Button size="sm" onClick={() => approveTx(t)} className="btn-gold"><Check className="w-4 h-4" /></Button>
                     <Button size="sm" variant="destructive" onClick={() => rejectTx(t)}><X className="w-4 h-4" /></Button>
+                    <Button size="sm" variant="outline" onClick={() => deleteTx(t)} title="Suprimer"><Trash2 className="w-4 h-4" /></Button>
                   </div>
                 </div>
               </div>
@@ -417,6 +471,11 @@ export default function Admin() {
                     {h.finished_at && <>Niafarany: {new Date(h.finished_at).toLocaleString()}</>}
                   </p>
                   <p className="text-[10px] text-primary mt-1">▶ Tsindrio hijery filaharana...</p>
+                  <div className="pt-1" onClick={(e) => e.stopPropagation()}>
+                    <Button size="sm" variant="outline" className="text-[10px] h-7" onClick={(e) => { e.stopPropagation(); deleteGame(h); }}>
+                      <Trash2 className="w-3 h-3 mr-1" />Suprimer
+                    </Button>
+                  </div>
                 </button>
               );
             })}
@@ -551,8 +610,26 @@ export default function Admin() {
                   <Unlock className="w-4 h-4 mr-1" />Débloquer
                 </Button>
               )}
+              <Button variant="outline" className="w-full mt-2 border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => { setResetTarget(selectedUser); setResetPin(""); }}>
+                <RotateCcw className="w-4 h-4 mr-1" />Réinitialiser solde (PIN)
+              </Button>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* RESET BALANCE — mila PIN 2583 */}
+      <Dialog open={!!resetTarget} onOpenChange={(o) => !o && setResetTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Réinitialiser solde — {resetTarget?.mvola_name}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">Ny solde dia hiverina 0 Ar. Ampidiro ny PIN administratif (2583) hanamafisana.</p>
+          <Input type="password" inputMode="numeric" maxLength={6} value={resetPin} onChange={(e) => setResetPin(e.target.value)} placeholder="PIN" />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResetTarget(null)}>Aoka</Button>
+            <Button variant="destructive" onClick={submitReset}>Hamafa solde</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

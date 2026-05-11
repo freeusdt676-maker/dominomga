@@ -7,7 +7,7 @@ import { fmtAr, ADMIN_CODE, ADMIN_CODE_ALT } from "@/lib/constants";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Wallet, Users, Trophy, MessageCircle, LogOut, Shield } from "lucide-react";
+import { Wallet, Users, Trophy, MessageCircle, LogOut, Shield, MessagesSquare } from "lucide-react";
 import logo from "@/assets/logo.png";
 import MessageInbox from "@/components/MessageInbox";
 
@@ -181,31 +181,34 @@ export default function Home() {
         </div>
 
         <Link to="/lobby">
-          <div className="card-felt rounded-2xl p-6 hover:scale-[1.01] transition cursor-pointer">
+          <div className="rounded-2xl p-6 hover:scale-[1.01] transition cursor-pointer domino-panel">
             <div className="flex items-center gap-3">
-              <Trophy className="w-10 h-10 text-primary" />
+              <span className="text-3xl">🁫</span>
               <div className="flex-1">
-                <h3 className="font-display text-xl font-bold">Milalao</h3>
-                <p className="text-sm text-muted-foreground">Mitady adversaire (cote x2)</p>
+                <h3 className="font-display text-xl font-bold domino-title">DOMINO</h3>
+                <p className="text-sm text-yellow-100/80">2P · 3P — Mise sy Gain mitovy</p>
               </div>
             </div>
           </div>
         </Link>
 
-        <Link to="/ludo">
-          <div className="rounded-2xl p-6 hover:scale-[1.01] transition cursor-pointer ludo-panel">
-            <div className="flex items-center gap-3">
-              <span className="text-3xl">🎲</span>
-              <div className="flex-1">
-                <h3 className="font-display text-xl font-bold ludo-title">LUDO MASTER</h3>
-                <p className="text-sm text-yellow-100/80">2P · 3P · 4P — mise sy gain mitovy</p>
-              </div>
+        <button
+          type="button"
+          onClick={() => toast.info("Mbola eo tsy mandeha ny ludo tompoko 🙏")}
+          className="w-full text-left rounded-2xl p-6 hover:scale-[1.01] transition cursor-pointer ludo-panel"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">🎲</span>
+            <div className="flex-1">
+              <h3 className="font-display text-xl font-bold ludo-title">LUDO MASTER</h3>
+              <p className="text-sm text-yellow-100/80">2P · 3P · 4P — mise sy gain mitovy</p>
             </div>
           </div>
-        </Link>
+        </button>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <Link to="/lobby"><div className="card-felt rounded-xl p-4 text-center"><Users className="w-6 h-6 mx-auto mb-2 text-primary" /><p className="text-sm">En ligne</p></div></Link>
+          <Link to="/discussions"><div className="card-felt rounded-xl p-4 text-center"><MessagesSquare className="w-6 h-6 mx-auto mb-2 text-primary" /><p className="text-sm">Discussions</p></div></Link>
           <Link to="/admin-chat"><div className="card-felt rounded-xl p-4 text-center"><MessageCircle className="w-6 h-6 mx-auto mb-2 text-primary" /><p className="text-sm">Chat Admin</p></div></Link>
         </div>
 

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
+import { ArrowLeft, ArrowDownToLine, ArrowUpFromLine, Copy } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 import { toast } from "sonner";
 
@@ -20,6 +20,19 @@ export default function Wallet() {
   const [pin, setPin] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawPhone, setWithdrawPhone] = useState("");
+  const [withdrawName, setWithdrawName] = useState("");
+
+  const ADMIN_PHONE = "0345023006";
+  const ADMIN_NAME = "Jean Rolland";
+
+  const copy = async (txt: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(txt);
+      toast.success(`${label} voakopia ✓`);
+    } catch {
+      toast.error("Tsy afaka nikopia");
+    }
+  };
 
   const load = async () => {
     if (!user) return;
@@ -41,22 +54,33 @@ export default function Wallet() {
   };
 
   const submitWithdraw = async () => {
+    if (!user) return toast.error("Tsy nahita compte");
     const a = Number(withdrawAmount);
     if (a < 1000) return toast.error("Min 1000 Ar");
     if (a > balance) return toast.error("Solde tsy ampy");
-    if (!/^03[2-48]\d{7}$/.test(withdrawPhone)) return toast.error("Numéro Telma diso (034 na 038)");
+    const cleanPhone = withdrawPhone.replace(/\s/g, "");
+    if (!/^0\d{9}$/.test(cleanPhone)) return toast.error("Numéro téléphone diso (10 chiffres)");
+    if (!withdrawName.trim()) return toast.error("Anarana certifié MVOLA ilaina");
     if (!/^\d{4,6}$/.test(pin)) return toast.error("PIN diso");
 
     // Verify PIN against profiles.pin_plain (set during signup)
-    const { data: prof } = await supabase.from("profiles").select("pin_plain").eq("user_id", user!.id).maybeSingle();
-    if (!prof?.pin_plain || prof.pin_plain !== pin) return toast.error("PIN diso");
+    const { data: prof, error: pErr } = await supabase
+      .from("profiles").select("pin_plain").eq("user_id", user.id).maybeSingle();
+    if (pErr) return toast.error("Tsy nahita profile: " + pErr.message);
+    if (!prof?.pin_plain) return toast.error("Tsy mbola voafaritra ny PIN-nao");
+    if (prof.pin_plain !== pin) return toast.error("PIN diso");
 
     const { error } = await supabase.from("transactions").insert({
-      user_id: user!.id, type: "withdrawal", amount: a, mvola_phone: withdrawPhone, status: "pending"
+      user_id: user.id,
+      type: "withdrawal",
+      amount: a,
+      mvola_phone: cleanPhone,
+      mvola_reference: withdrawName.trim(),
+      status: "pending",
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error("Erreur: " + error.message);
     toast.success("Demande retrait alefa");
-    setWithdrawAmount(""); setWithdrawPhone(""); setPin(""); load();
+    setWithdrawAmount(""); setWithdrawPhone(""); setWithdrawName(""); setPin(""); load();
   };
 
   return (
@@ -79,20 +103,44 @@ export default function Wallet() {
           </TabsList>
 
           <TabsContent value="deposit" className="space-y-3 mt-4">
-            <p className="text-xs text-muted-foreground">
-              1. Mandefa MVOLA mankamin'ny numéro admin<br/>
-              2. Mametraka ny montant sy référence MVOLA eto ambany<br/>
-              3. Ny admin no manamarina (mahazo notification ianao)
-            </p>
-            <div><Label>Montant (Ar)</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="1000" /></div>
+            <div className="rounded-xl bg-primary/10 border border-primary/30 p-3 text-xs space-y-2">
+              <p className="font-bold gold-text">📥 Famolavolana Dépôt</p>
+              <p>1. Mandefa MVOLA amin'ny numéro administratif eto ambany.</p>
+              <div className="flex items-center justify-between bg-card/60 rounded-lg p-2 border border-primary/20">
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Numéro téléphone</p>
+                  <p className="font-mono font-bold gold-text">{ADMIN_PHONE}</p>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => copy(ADMIN_PHONE, "Numéro")}>
+                  <Copy className="w-3 h-3 mr-1" />Copier
+                </Button>
+              </div>
+              <div className="flex items-center justify-between bg-card/60 rounded-lg p-2 border border-primary/20">
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Anarana certifié MVOLA</p>
+                  <p className="font-bold gold-text">{ADMIN_NAME}</p>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => copy(ADMIN_NAME, "Anarana")}>
+                  <Copy className="w-3 h-3 mr-1" />Copier
+                </Button>
+              </div>
+              <p>2. Avereno eto amin'ny formulaire ny montant sy référence MVOLA.</p>
+              <p>3. Ny administratif no hanamarina (mahazo notification ianao).</p>
+            </div>
+            <div><Label>Montant (Ar)</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="100000" /></div>
             <div><Label>Référence transaction MVOLA</Label><Input value={ref} onChange={(e) => setRef(e.target.value)} placeholder="MP..." /></div>
             <Button className="w-full btn-gold" onClick={submitDeposit}>Mandefa demande</Button>
           </TabsContent>
 
           <TabsContent value="withdraw" className="space-y-3 mt-4">
-            <div><Label>Montant (Ar)</Label><Input type="number" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} /></div>
-            <div><Label>Numéro Telma</Label><Input value={withdrawPhone} onChange={(e) => setWithdrawPhone(e.target.value)} placeholder="034XXXXXXX" /></div>
-            <div><Label>Code PIN</Label><Input type="password" inputMode="numeric" maxLength={6} value={pin} onChange={(e) => setPin(e.target.value)} /></div>
+            <div className="rounded-xl bg-primary/10 border border-primary/30 p-3 text-xs">
+              <p className="font-bold gold-text mb-1">📤 Famolavolana Retrait</p>
+              <p>Soraty ny numéro téléphone sy ny anarana certifié MVOLA handefasana ny vola, dia ampidiro ny PIN-nao.</p>
+            </div>
+            <div><Label>Montant (Ar)</Label><Input type="number" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} placeholder="10000" /></div>
+            <div><Label>Numéro téléphone (handefasana ny vola)</Label><Input inputMode="tel" value={withdrawPhone} onChange={(e) => setWithdrawPhone(e.target.value)} placeholder="034XXXXXXX" /></div>
+            <div><Label>Anarana certifié MVOLA</Label><Input value={withdrawName} onChange={(e) => setWithdrawName(e.target.value)} placeholder="Jean Claude" /></div>
+            <div><Label>Code PIN</Label><Input type="password" inputMode="numeric" maxLength={6} value={pin} onChange={(e) => setPin(e.target.value)} placeholder="1234" /></div>
             <Button className="w-full btn-gold" onClick={submitWithdraw}>Mangataka retrait</Button>
           </TabsContent>
         </Tabs>

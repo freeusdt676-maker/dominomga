@@ -714,6 +714,21 @@ export default function Game() {
     nav("/lobby", { replace: true });
   };
 
+  const submitEndgameVote = async (choice: "continue" | "stop") => {
+    if (!game || !user) return;
+    const votes = (game.endgame_votes as Record<string, "continue" | "stop"> | null) ?? {};
+    if (votes[user.id]) return; // already voted
+    const next = { ...votes, [user.id]: choice };
+    await supabase.from("games").update({ endgame_votes: next }).eq("id", game.id);
+  };
+
+  const endgameVotes = (game?.endgame_votes as Record<string, "continue" | "stop"> | null) ?? null;
+  const showEndgameVote =
+    !!endgameVotes &&
+    game?.status === "in_progress" &&
+    Number(game?.players_count ?? 2) === 2;
+  const myVote = endgameVotes && user ? endgameVotes[user.id] : undefined;
+
   // Sary kely kokoa amin'ny mobile mba tsy hifanaikitra
   const handTileSize = isMobile ? "md" : "lg";
   const boardTileSize = isMobile ? "xs" : "sm";

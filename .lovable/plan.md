@@ -1,73 +1,48 @@
-# Tetik'asa
+# Plan finition Domino MGA
 
-## 1) Domino — chronomètre 20s tsy mikatso intsony
+Ireto manaraka ireto ny asa rehetra hatao mba hamarana ny app. Atao tsirairay araka ny lisitra.
 
-Ao amin'ny `src/pages/Game.tsx`:
+## 1. Home (`src/pages/Home.tsx`)
+- Soloy ny soratra "Mitady adversaire (cote x2)" ho **"Domino · 2P 3P · Mise sy Gain mitovy"**.
+- Hovaina ho **bokotra mitovy endrika amin'ny LUDO MASTER** (gradient/border mitovy), asio **logo kely domino** (ikon-domino kely eo akaikin'ny anarana). Ny anatin'ny lalao tsy miova.
+- Bokotra LUDO MASTER: rehefa kitihina dia tsy mandeha amin'ny `/ludo-lobby` fa mampiseho toast/dialog hoe **"Mbola eo tsy mandeha ny ludo tompoko 🙏"**.
 
-- Rehefa tapitra ny 20s ny mpilalao ankehitriny:
-  - Raha **manana** piesy mety apetraka → ny système no mametraka **automatique** ny piesy mety (mifidy ilay manan-pip ambony indrindra).
-  - Raha **tsy manana** → mametraka **TSIMANANA** ho azy (pass), avadika amin'ny manaraka ny tour.
-- Esorina ny banner "TSIMANANA IZAHO" mibahana ny écran. Atao toast kely fotsiny.
-- Ny `autoPassRef` izay efa misy dia ataovy: handle "auto-play OR auto-pass" miaraka.
-- Ataovy mahomby na mpilalao iza na iza no diso (tsy ho an'ny tena ihany).
+## 2. Admin (`src/pages/Admin.tsx`)
+- Eo amin'ny lohany (akaikin'ny "Wallet Admin") asio **boaty kely "Solde mpilalao"**: rehefa kitihina dia mipoitra ny **fitambaran'ny solde rehetran'ny mpilalao en Ar** (somme `wallets.balance` afa-tsy ny admin).
+- Onglet **Transactions** sy **Historique**: amin'ny isaky ny kara, asio **bokotra "Suprimer"** kely (icône poubelle). Rehefa kitihina, mipoitra dialog "OK / Annuler" hanamafy alohan'ny famafana.
+- Eo akaikin'ny solde mpilalao tsirairay (onglet Mpilalao), asio **bokotra "Réinitialiser solde"**: averina 0 Ar ny solde, fa **mila PIN 2583** (tsy OK fotsiny) alohan'ny hanao izany.
 
-## 2) Domino — Split screen (mpilalao roa adversaire ambony)
+## 3. Chat Admin (`src/pages/AdminChat.tsx`)
+- Asio **bokotra "Suprimer"** isaky ny hafatra (mila confirmation).
+- **Sonnerie/notification** rehefa misy hafatra tonga (audio kely + vibration raha azo atao).
+- **Loko**: hafatra tonga = **maitso (vert)**, hafatra mivoaka = **mavo (gold/jaune)** araka ny efa misy.
+- **Position bulles**: hafatra tonga = **akavanana**, hafatra mivoaka = **akavia** (mifanohitra amin'izao misy izao).
 
-Amin'ny mode 3P sy 4P:
+## 4. Wallet Dépôt & Retrait (`src/pages/Wallet.tsx`)
+- **Dépôt**: asio panneau famaritana mazava amin'ny endrika "chat/info":
+  - Montant ohatra: 100 000 Ar
+  - Numéro téléphone admin: **0345023006** (asio bokotra **Copier**)
+  - Anarana certifié MVOLA: **Jean Rolland** (asio bokotra **Copier**)
+  - Référence MVOLA = référence ny vola nalefa
+- **Retrait**: asio toy izany koa:
+  - Numéro téléphone handefasana ny vola
+  - Anarana certifié MVOLA handefasana ny vola
+  - Code PIN
+- Amboary ny **bokotra "Mangataka retrait"** mba hiasa tsara (jereo ny RLS amin'ny `transactions` sy ny olana mety mahatonga azy tsy mandeha — mety nahodina ny insert na ny check PIN).
 
-- Ny faritra ambony (adversaires' hands) dia zaraina **roa mitovy refy** — ilany havia: profil + dos piesy mpilalao A; ilany havanana: profil + dos piesy mpilalao B.
-- Profil = `mvola_name` + avatar circulaire (initiale) + isan'ny piesy.
-- Apetraka mihodina (rotated -90°/90°) ny dos piesy mba miendrika lalao Domino tena izy.
+## 5. Chat mpilalao samy mpilalao (vaovao)
+- Asio **bokotra "Discussions"** ao amin'ny Home.
+- Mpilalao mahazo mifampiresaka. **Admin ihany no mahazo mamafa hafatra** an'ny olon-kafa; ny mpilalao mahazo mamafa ny hafatra-ny manokana ihany.
 
-## 3) Inscription vaovao — MVola style
+## 6. Fafa compte rehetra (mise à jour)
+- Fafao **ny compte rehetra** ato amin'ny app (auth.users + profiles + wallets + transactions...) **afa-tsy ny compte Administratif** miankina amin'ny numéro **0345023006**.
+- Ny mpilalao voafafa dia afaka manao inscription vaovao.
 
-Ao amin'ny `src/pages/Auth.tsx` — onglet "Inscription" averina amboarina:
+## Technical notes
+- **#6** mitaky migration SQL (DELETE cascade fa tsy ny admin user_id). Hatao am-pitandremana.
+- **#3** sonnerie: hampiasa audio kely (efa misy `src/lib/sfx.ts`).
+- **#4** PIN check anatin'ny `wallet-pin` edge function efa misy — hojerena raha mandeha tsara.
+- **#5** mitaky table `chat_messages` efa misy + RLS vaovao hahafahan'ny mpilalao mifampiresaka (private rooms na public).
 
-| Saha | Placeholder | Validation |
-|------|------------|------------|
-| NUMÉRO TÉLÉPHONE | `038/034 XXXXXXX` | regex 10 chiffres, manomboka 034/038 |
-| ANARANA CERTIFIÉ MVOLA | `Jean Claude` | tsy maintsy ≥ 3 litera |
-| DATY NAHATERAHANA | `YYYY/MM/JJ` | ≥ 18 taona |
-| SEXE | dropdown LAHY/VAVY/HAFA | required |
-| MOT DE PASSE | `DE4erStv.` | ≥ 6 + isan-karazany |
-| CONFIRMER MOT DE PASSE | `DE4erStv.` | mitovy |
-| PIN | `1234` | 4 chiffres |
-| CONFIRMER PIN | `1234` | mitovy |
-| SELFIE | bokotra "MAKA SARY" (camera) | sary tsy maintsy alaina |
-
-Bokotra farany: **HISORATRA ANARANA** (loko jaune MVola).
-
-Aorian'ny submit: `account_status = 'pending'` (efa misy amin'ny base) → tsy afaka miditra raha tsy ankatoavin'ny Admin. Hampiana hafatra mazava: "Miandry validation amin'ny ADM".
-
-## 4) ADM — Mitazona ireo daty rehetra
-
-Ao amin'ny `src/pages/Admin.tsx`, raha mbola tsy mampiseho ny donnée fenoin'ny user (selfie, daty nahaterahana, sexe, pin/password plain), ampidirina ao amin'ny carte KYC ireo. Tsy mila migration vaovao satria efa voatahiry ao amin'ny `profiles` / metadata izy ireo.
-
-## 5) MVola theme
-
-Ampiana `mvola-theme` token vaovao ao amin'ny `src/index.css`:
-
-- `--mvola-yellow: 48 100% 50%` (jaune MVola)
-- `--mvola-orange: 25 95% 53%`
-- Class `.btn-mvola`, `.mvola-gradient`, `.mvola-ring`.
-
-Hampiasaina amin'ny:
-- Bokotra "HISORATRA ANARANA"
-- Header banner an'ny inscription
-- Carte KYC ao amin'ny Admin
-
-Tsy hovaina ny Domino theme (vert/gold) sy Ludo theme (purple/gold).
-
-## Fanontaniana 1 — Selfie storage
-
-Ny selfie hampidirina ao amin'ny bucket `selfies` efa misy via edge function `signup-kyc` (efa misy). **Ampiasaina io edge function io ve sa hosoloana ny `supabase.auth.signUp` mahazatra?**
-
-Soso-kevitra: ampiasao `signup-kyc` satria efa hahafahana mametraka selfie + metadata sady auto-confirm — aoka tsy hisy email verification.
-
-## Fanontaniana 2 — Domino split screen amin'ny 2P
-
-Amin'ny lalao 2P (mpilalao tokana adversaire), ny "split screen" tsy mihatra. Ny écran ambony dia ho an'ilay adversaire tokana ihany — **OK ve?**
-
----
-
-Raha mitombina ny valiny, atao avy hatrany ny implémentation amin'ny lalana iray.
+## Fanontaniana iray alohan'ny hanombohana
+Ny **chat mpilalao samy mpilalao** ve atao **public (room iray ho an'ny rehetra)** sa **private (DM mpilalao iray amin'ny iray)**? Manova ny fanaovana azy izany.

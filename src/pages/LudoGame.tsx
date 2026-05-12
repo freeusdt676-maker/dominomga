@@ -303,11 +303,11 @@ export default function LudoGame() {
   const DiceIcons = [Dice1, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6];
 
   return (
-    <div className="min-h-screen ludo-bg pb-24">
-      <header className="p-3 flex items-center gap-3 border-b border-yellow-500/30">
+    <div className="h-screen w-screen ludo-bg flex flex-col overflow-hidden">
+      <header className="p-2 flex items-center gap-2 border-b border-yellow-500/30 shrink-0">
         <Button variant="ghost" size="icon" onClick={() => nav("/")}><ArrowLeft /></Button>
         <div className="flex-1">
-          <h1 className="font-display text-base font-bold ludo-title">LUDO MASTER</h1>
+          <h1 className="font-display text-sm font-bold ludo-title">LUDO MASTER</h1>
           <p className="text-[10px] text-yellow-100/70">
             Ticket: <b>{g.ticket_number ?? "—"}</b> · Mise: <b>{fmtAr(g.stake)}</b> · Pot: <b>{fmtAr(Math.round(g.stake * 0.9 * g.players_count))}</b>
           </p>
@@ -315,7 +315,7 @@ export default function LudoGame() {
       </header>
 
       {/* Players bar — chaque joueur a son propre dé à côté du profil */}
-      <div className="px-3 pt-3 grid grid-cols-2 gap-2">
+      <div className="px-2 pt-2 grid grid-cols-2 gap-1.5 shrink-0">
         {seats2.map((s) => {
           const uid = seatToUid(s);
           const isTurn = g.current_turn_seat === s && g.status === "in_progress";
@@ -325,7 +325,7 @@ export default function LudoGame() {
           return (
             <div
               key={s}
-              className={`rounded-xl p-2 border-2 flex items-center gap-2 ${isTurn ? "border-yellow-300 ring-2 ring-yellow-300/40" : "border-yellow-500/20"}`}
+              className={`rounded-lg p-1.5 border-2 flex items-center gap-2 ${isTurn ? "border-yellow-300 ring-2 ring-yellow-300/40" : "border-yellow-500/20"}`}
               style={{ background: SEAT_COLOR[s] + "33" }}
             >
               <div className="flex-1 min-w-0">
@@ -351,14 +351,14 @@ export default function LudoGame() {
                   <button
                     onClick={handleRoll}
                     disabled={rolling}
-                    className={`w-12 h-12 rounded-lg bg-white border-2 border-yellow-400 flex items-center justify-center text-purple-900 shadow-lg active:scale-95 transition ${isAnim ? "dice-rolling" : ""}`}
+                    className={`w-11 h-11 rounded-lg bg-white border-2 border-yellow-400 flex items-center justify-center text-purple-900 shadow-lg active:scale-95 transition ${isAnim ? "dice-rolling" : ""}`}
                     aria-label="Roll dice"
                   >
                     <DiceFace className="w-7 h-7" />
                   </button>
                 ) : (
                   <div
-                    className={`w-12 h-12 rounded-lg flex items-center justify-center ${isTurn ? "bg-white text-purple-900 border-2 border-yellow-400 shadow-lg" : "bg-white/20 text-yellow-100/60 border border-yellow-500/30"} ${isAnim ? "dice-rolling" : ""}`}
+                    className={`w-11 h-11 rounded-lg flex items-center justify-center ${isTurn ? "bg-white text-purple-900 border-2 border-yellow-400 shadow-lg" : "bg-white/20 text-yellow-100/60 border border-yellow-500/30"} ${isAnim ? "dice-rolling" : ""}`}
                   >
                     {isTurn && g.last_dice ? <DiceFace className="w-7 h-7" /> : <span className="text-xl">•</span>}
                   </div>
@@ -369,34 +369,37 @@ export default function LudoGame() {
         })}
       </div>
 
-      {/* Board */}
-      <div className="px-2 pt-3">
-        <LudoBoard
-          pawns={g.pawns ?? []}
-          playersCount={g.players_count}
-          movableSeat={isMyTurn ? g.current_turn_seat : null}
-          movablePawns={movable}
-          onPawnClick={handlePawn}
-          activeSeatList={seats}
-        />
+      {/* Board — fills remaining space, plein écran */}
+      <div className="flex-1 min-h-0 flex items-center justify-center p-2">
+        <div className="w-full h-full max-w-[min(100vw,calc(100vh-220px))] aspect-square">
+          <LudoBoard
+            pawns={g.pawns ?? []}
+            playersCount={g.players_count}
+            movableSeat={isMyTurn ? g.current_turn_seat : null}
+            movablePawns={movable}
+            onPawnClick={handlePawn}
+            activeSeatList={seats}
+          />
+        </div>
       </div>
 
-      {/* Status bar (no shared dice — each player has their own above) */}
-      <div className="fixed bottom-0 left-0 right-0 p-3 ludo-panel border-t border-yellow-500/40">
+      {/* Status bar */}
+      <div className="shrink-0 p-2 ludo-panel border-t border-yellow-500/40">
         <div className="max-w-lg mx-auto text-center">
           {g.status === "waiting" && (
-            <p className="text-yellow-100 text-sm">Miandry mpilalao... ({[g.player1_id, g.player2_id, g.player3_id, g.player4_id].filter(Boolean).length}/{g.players_count})</p>
+            <p className="text-yellow-100 text-xs">Miandry mpilalao... ({[g.player1_id, g.player2_id, g.player3_id, g.player4_id].filter(Boolean).length}/{g.players_count})</p>
           )}
-          {g.status === "finished" && <p className="text-yellow-300 font-bold text-sm">🏆 Mpandresy: {winnerName}</p>}
+          {g.status === "finished" && <p className="text-yellow-300 font-bold text-xs">🏆 Mpandresy: {winnerName}</p>}
           {g.status === "in_progress" && (
             isMyTurn ? (
               g.dice_rolled
-                ? <p className="text-yellow-100 text-sm">{movable.length > 0 ? "Misafidiana pion azonao ampihetsiketsehina" : "Tsy misy fihetsiketsehana — andrasana..."}</p>
-                : <p className="text-yellow-200 text-sm font-bold">▶ Andao tehirizo ny dé!</p>
+                ? <p className="text-yellow-100 text-xs">{movable.length > 0 ? "Safidio pion azo ampihetsiketsehina" : "Tsy misy fihetsika — andrasana..."}</p>
+                : <p className="text-yellow-200 text-xs font-bold">▶ Tsipazo ny dé!</p>
             ) : (
-              <p className="text-yellow-100/80 text-sm">Andrasana ny <b>{SEAT_NAME[g.current_turn_seat]}</b>...</p>
+              <p className="text-yellow-100/80 text-xs">Andrasana ny <b>{SEAT_NAME[g.current_turn_seat]}</b>...</p>
             )
           )}
+          <p className="text-[9px] text-yellow-100/40 mt-1">Crédit · DOMINO MGA × LOVABLE AI · Beta v1</p>
         </div>
       </div>
     </div>

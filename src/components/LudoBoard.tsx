@@ -6,6 +6,7 @@ type Props = {
   movableSeat?: number | null;
   movablePawns?: number[];
   onPawnClick?: (pawnIdx: number) => void;
+  activeSeatList?: number[];
 };
 
 const SIZE = 600; // SVG viewport
@@ -18,7 +19,7 @@ function cellRect(col: number, row: number, fill: string, stroke = "#1c1235") {
   );
 }
 
-export default function LudoBoard({ pawns, playersCount, movableSeat, movablePawns, onPawnClick }: Props) {
+export default function LudoBoard({ pawns, playersCount, movableSeat, movablePawns, onPawnClick, activeSeatList }: Props) {
   // Base areas (6x6 squares at corners)
   const bases = [
     { seat: 1, x: 0, y: 9, color: SEAT_COLOR[1] },
@@ -26,7 +27,7 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
     { seat: 3, x: 9, y: 0, color: SEAT_COLOR[3] },
     { seat: 4, x: 9, y: 9, color: SEAT_COLOR[4] },
   ];
-  const activeSeatsArr = activeSeats(playersCount);
+  const activeSeatsArr = activeSeatList ?? activeSeats(playersCount);
 
   // Determine cell color (white default, or seat-colored for start/home column)
   const cellFill = (col: number, row: number): string => {

@@ -283,6 +283,7 @@ export type Database = {
           player3_id: string | null
           player4_id: string | null
           players_count: number
+          seat_assignment: Json | null
           stake: number
           status: Database["public"]["Enums"]["game_status"]
           ticket_number: string | null
@@ -305,6 +306,7 @@ export type Database = {
           player3_id?: string | null
           player4_id?: string | null
           players_count?: number
+          seat_assignment?: Json | null
           stake: number
           status?: Database["public"]["Enums"]["game_status"]
           ticket_number?: string | null
@@ -327,6 +329,7 @@ export type Database = {
           player3_id?: string | null
           player4_id?: string | null
           players_count?: number
+          seat_assignment?: Json | null
           stake?: number
           status?: Database["public"]["Enums"]["game_status"]
           ticket_number?: string | null
@@ -641,6 +644,7 @@ export type Database = {
       }
       ludo_cancel_waiting: { Args: { _game_id: string }; Returns: Json }
       ludo_initial_pawns: { Args: { _n: number }; Returns: Json }
+      ludo_initial_pawns_for: { Args: { _seats: Json }; Returns: Json }
       ludo_join_and_start: {
         Args: { _game_id: string; _user: string }
         Returns: Json

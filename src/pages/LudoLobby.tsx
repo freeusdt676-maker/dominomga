@@ -94,9 +94,18 @@ export default function LudoLobby() {
     const { data: w } = await supabase.from("wallets").select("balance").eq("user_id", user.id).single();
     if (Number(w?.balance ?? 0) < stake) return toast.error("Tsy ampy ny solde");
     setPlacing(true);
+    // 2P: random variant Maitso vs Manga ([1,3]) NA Mena vs Mavo ([2,4])
+    let seat_assignment: number[] | null = null;
+    if (playersCount === 2) {
+      seat_assignment = Math.random() < 0.5 ? [1, 3] : [2, 4];
+    } else if (playersCount === 3) {
+      seat_assignment = [1, 2, 3];
+    } else {
+      seat_assignment = [1, 2, 3, 4];
+    }
     const { data: g, error } = await supabase
       .from("ludo_games" as any)
-      .insert({ player1_id: user.id, stake, status: "waiting", players_count: playersCount } as any)
+      .insert({ player1_id: user.id, stake, status: "waiting", players_count: playersCount, seat_assignment } as any)
       .select("id")
       .single();
     setPlacing(false);

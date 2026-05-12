@@ -142,3 +142,15 @@ function rotate(seat: number, playersCount: number): number {
   const i = seats.indexOf(seat);
   return seats[(i + 1) % seats.length];
 }
+
+// Variant-aware rotation that uses an explicit seats list (e.g. [1,3] or [2,4] for 2P).
+export function nextSeatFromList(currentSeat: number, seats: number[], gotSix: boolean, captured: number, consecutiveSixes: number) {
+  const rotateList = (s: number) => {
+    const i = seats.indexOf(s);
+    return seats[(i + 1) % seats.length];
+  };
+  const bonus = (gotSix && consecutiveSixes < 3) || captured > 0;
+  if (bonus && gotSix && consecutiveSixes >= 3) return { seat: rotateList(currentSeat), resetSixes: true };
+  if (bonus) return { seat: currentSeat, resetSixes: false };
+  return { seat: rotateList(currentSeat), resetSixes: true };
+}

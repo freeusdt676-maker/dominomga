@@ -7,7 +7,7 @@ import { ArrowLeft, Loader2, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, ChevronDo
 import LudoBoard from "@/components/LudoBoard";
 import {
   activeSeats, applyMove, legalMoves, nextSeat, rollDice, seatHasFinished,
-  SEAT_COLOR, SEAT_NAME, type Pawn,
+  SEAT_COLOR, SEAT_NAME, nextSeatFromList, type Pawn,
 } from "@/lib/ludoEngine";
 import { fmtAr } from "@/lib/constants";
 import { sfx } from "@/lib/sfx";
@@ -30,6 +30,7 @@ type LG = {
   winner_id: string | null;
   ticket_number: string | null;
   turn_started_at: string | null;
+  seat_assignment: number[] | null;
 };
 
 export default function LudoGame() {
@@ -83,10 +84,13 @@ export default function LudoGame() {
 
   const mySeat = useMemo<number | null>(() => {
     if (!g || !user) return null;
-    if (user.id === g.player1_id) return 1;
-    if (user.id === g.player2_id) return 2;
-    if (user.id === g.player3_id) return 3;
-    if (user.id === g.player4_id) return 4;
+    const seats = (g.seat_assignment && g.seat_assignment.length)
+      ? g.seat_assignment
+      : activeSeats(g.players_count);
+    if (user.id === g.player1_id) return seats[0] ?? null;
+    if (user.id === g.player2_id) return seats[1] ?? null;
+    if (user.id === g.player3_id) return seats[2] ?? null;
+    if (user.id === g.player4_id) return seats[3] ?? null;
     return null;
   }, [g, user]);
 
@@ -98,11 +102,13 @@ export default function LudoGame() {
 
   const seatToUid = (seat: number): string | null => {
     if (!g) return null;
-    if (seat === 1) return g.player1_id;
-    if (seat === 2) return g.player2_id;
-    if (seat === 3) return g.player3_id;
-    if (seat === 4) return g.player4_id;
-    return null;
+    const seats = (g.seat_assignment && g.seat_assignment.length)
+      ? g.seat_assignment
+      : activeSeats(g.players_count);
+    const slot = seats.indexOf(seat);
+    if (slot < 0) return null;
+    const players = [g.player1_id, g.player2_id, g.player3_id, g.player4_id];
+    return players[slot] ?? null;
   };
 
   const handleRoll = async () => {
@@ -127,7 +133,7 @@ export default function LudoGame() {
       const moves = legalMoves(g.pawns ?? [], g.current_turn_seat, dice);
       if (moves.length === 0) {
         const sixes = dice === 6 ? g.consecutive_sixes + 1 : 0;
-        const { seat: ns } = nextSeat(g.current_turn_seat, g.players_count, dice === 6, 0, sixes);
+        const { seat: ns } = nextSeatFromList(g.current_turn_seat, seats, dice === 6, 0, sixes);
         await supabase.rpc("ludo_update_state" as any, {
           _game_id: g.id,
           _current_turn_seat: ns,
@@ -160,7 +166,7 @@ export default function LudoGame() {
       return;
     }
     const sixes = dice === 6 ? g.consecutive_sixes : 0;
-    const { seat: ns, resetSixes } = nextSeat(g.current_turn_seat, g.players_count, dice === 6, res.captured, sixes);
+    const { seat: ns, resetSixes } = nextSeatFromList(g.current_turn_seat, seats, dice === 6, res.captured, sixes);
     await supabase.rpc("ludo_update_state" as any, {
       _game_id: g.id,
       _pawns: res.pawns,
@@ -180,14 +186,15 @@ export default function LudoGame() {
 
   // Designated bot operator: lowest-seat connected player whose seat != current_turn_seat.
   // Falls back to any player. Ensures only ONE client triggers the bot.
-  const seats = g ? activeSeats(g.players_count) : [];
+  const seats: number[] = g
+    ? ((g.seat_assignment && g.seat_assignment.length) ? g.seat_assignment : activeSeats(g.players_count))
+    : [];
   const seatToUidLocal = (seat: number): string | null => {
     if (!g) return null;
-    if (seat === 1) return g.player1_id;
-    if (seat === 2) return g.player2_id;
-    if (seat === 3) return g.player3_id;
-    if (seat === 4) return g.player4_id;
-    return null;
+    const slot = seats.indexOf(seat);
+    if (slot < 0) return null;
+    const players = [g.player1_id, g.player2_id, g.player3_id, g.player4_id];
+    return players[slot] ?? null;
   };
   const operatorSeat = g
     ? (seats.find((s) => s !== g.current_turn_seat) ?? seats[0])
@@ -215,7 +222,7 @@ export default function LudoGame() {
         const moves = legalMoves(g.pawns ?? [], g.current_turn_seat, dice);
         if (moves.length === 0) {
           const sixes = dice === 6 ? g.consecutive_sixes + 1 : 0;
-          const { seat: ns } = nextSeat(g.current_turn_seat, g.players_count, dice === 6, 0, sixes);
+          const { seat: ns } = nextSeatFromList(g.current_turn_seat, seats, dice === 6, 0, sixes);
           await supabase.rpc("ludo_update_state" as any, {
             _game_id: g.id,
             _current_turn_seat: ns,
@@ -236,7 +243,7 @@ export default function LudoGame() {
             return;
           }
           const sixes = dice === 6 ? g.consecutive_sixes : 0;
-          const { seat: ns, resetSixes } = nextSeat(g.current_turn_seat, g.players_count, dice === 6, res.captured, sixes);
+          const { seat: ns, resetSixes } = nextSeatFromList(g.current_turn_seat, seats, dice === 6, res.captured, sixes);
           await supabase.rpc("ludo_update_state" as any, {
             _game_id: g.id,
             _pawns: res.pawns,
@@ -252,7 +259,7 @@ export default function LudoGame() {
         const moves = legalMoves(g.pawns ?? [], g.current_turn_seat, dice);
         if (moves.length === 0) {
           const sixes = dice === 6 ? g.consecutive_sixes : 0;
-          const { seat: ns } = nextSeat(g.current_turn_seat, g.players_count, false, 0, sixes);
+          const { seat: ns } = nextSeatFromList(g.current_turn_seat, seats, false, 0, sixes);
           await supabase.rpc("ludo_update_state" as any, {
             _game_id: g.id,
             _current_turn_seat: ns,
@@ -274,7 +281,7 @@ export default function LudoGame() {
           return;
         }
         const sixes = dice === 6 ? g.consecutive_sixes : 0;
-        const { seat: ns, resetSixes } = nextSeat(g.current_turn_seat, g.players_count, dice === 6, res.captured, sixes);
+        const { seat: ns, resetSixes } = nextSeatFromList(g.current_turn_seat, seats, dice === 6, res.captured, sixes);
         await supabase.rpc("ludo_update_state" as any, {
           _game_id: g.id,
           _pawns: res.pawns,
@@ -370,6 +377,7 @@ export default function LudoGame() {
           movableSeat={isMyTurn ? g.current_turn_seat : null}
           movablePawns={movable}
           onPawnClick={handlePawn}
+          activeSeatList={seats}
         />
       </div>
 

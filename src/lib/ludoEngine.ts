@@ -7,12 +7,12 @@ export type Seat = 1 | 2 | 3 | 4;
 
 export const SEAT_START: Record<number, number> = { 1: 39, 2: 0, 3: 13, 4: 26 };
 export const SEAT_COLOR: Record<number, string> = {
-  1: "#1d8bff", // blue
-  2: "#e23a3a", // red
-  3: "#1fb84a", // green
-  4: "#f4c424", // yellow
+  1: "#1f7fd6", // blue (PLAYER1, bottom-left) — Ludo Master classic
+  2: "#e63946", // red (PLAYER2, top-left)
+  3: "#2ecc71", // green (PLAYER3, top-right)
+  4: "#f4c419", // yellow (PLAYER4, bottom-right)
 };
-export const SEAT_NAME: Record<number, string> = { 1: "Blue", 2: "Red", 3: "Green", 4: "Yellow" };
+export const SEAT_NAME: Record<number, string> = { 1: "PLAYER1", 2: "PLAYER2", 3: "PLAYER3", 4: "PLAYER4" };
 
 // 52 track cells in order, [col,row] on a 15x15 grid (row 0 = top)
 export const TRACK: Array<[number, number]> = [

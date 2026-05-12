@@ -47,10 +47,10 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
   };
 
   return (
-    <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-full h-auto rounded-xl shadow-2xl" style={{ background: "linear-gradient(135deg, #2a1a4a, #1a0d2e)" }}>
-      {/* Outer ornate frame */}
-      <rect x={3} y={3} width={SIZE - 6} height={SIZE - 6} fill="none" stroke="#d4a52c" strokeWidth={6} rx={12} />
-      <rect x={10} y={10} width={SIZE - 20} height={SIZE - 20} fill="none" stroke="#7a5a14" strokeWidth={1.5} rx={8} />
+    <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-full h-full block" preserveAspectRatio="xMidYMid meet" style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #0b1d5c 100%)" }}>
+      {/* Outer ornate frame — Ludo Master style */}
+      <rect x={3} y={3} width={SIZE - 6} height={SIZE - 6} fill="none" stroke="#6ea8ff" strokeWidth={4} rx={10} />
+      <rect x={10} y={10} width={SIZE - 20} height={SIZE - 20} fill="none" stroke="#1a3580" strokeWidth={1.5} rx={6} />
 
       {/* Track cells */}
       {TRACK.map(([col, row], i) => (
@@ -71,12 +71,27 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
       {/* Bases */}
       {bases.map((b) => (
         <g key={`b-${b.seat}`}>
-          <rect x={b.x * CELL} y={b.y * CELL} width={6 * CELL} height={6 * CELL} fill={b.color} stroke="#1c1235" strokeWidth={2} />
-          <rect x={(b.x + 1) * CELL} y={(b.y + 1) * CELL} width={4 * CELL} height={4 * CELL} fill="#fafafa" stroke="#1c1235" />
+          <rect x={b.x * CELL} y={b.y * CELL} width={6 * CELL} height={6 * CELL} fill={b.color} stroke="#0b1d5c" strokeWidth={2} />
+          <rect x={(b.x + 1) * CELL} y={(b.y + 1) * CELL} width={4 * CELL} height={4 * CELL} fill="#fafafa" stroke="#0b1d5c" />
           {/* 4 pawn slots */}
           {BASE_SPOTS[b.seat].map(([cx, cy], i) => (
-            <circle key={i} cx={cx * CELL} cy={cy * CELL} r={CELL * 0.6} fill={b.color} stroke="#1c1235" strokeWidth={1.5} />
+            <circle key={i} cx={cx * CELL} cy={cy * CELL} r={CELL * 0.6} fill={b.color} stroke="#0b1d5c" strokeWidth={1.5} />
           ))}
+          {/* PLAYER label (top base = upside-down like reference) */}
+          {(() => {
+            const cx = (b.x + 3) * CELL;
+            const isTop = b.y === 0;
+            const cy = isTop ? (b.y + 0.7) * CELL : (b.y + 5.6) * CELL;
+            const rot = isTop ? 180 : 0;
+            return (
+              <text x={cx} y={cy} fontSize={CELL * 0.55} fontWeight={900} textAnchor="middle"
+                    fill="#fff" stroke="#0b1d5c" strokeWidth={1.2}
+                    transform={`rotate(${rot} ${cx} ${cy})`}
+                    style={{ fontFamily: "'Playfair Display', serif", letterSpacing: 1 }}>
+                PLAYER{b.seat}
+              </text>
+            );
+          })()}
           {/* Inactive seat overlay */}
           {!activeSeatsArr.includes(b.seat) && (
             <rect x={b.x * CELL} y={b.y * CELL} width={6 * CELL} height={6 * CELL} fill="#000" opacity={0.55} />

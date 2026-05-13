@@ -7,7 +7,7 @@ import { ArrowLeft, Loader2, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, ChevronDo
 import LudoBoard from "@/components/LudoBoard";
 import {
   activeSeats, applyMove, legalMoves, rollDice, seatHasFinished,
-  SEAT_COLOR, SEAT_NAME, nextSeatFromList, pawnXY, pawnTrackIdx, type Pawn,
+  SEAT_COLOR, SEAT_NAME, nextSeatFromList, pawnXY, type Pawn,
 } from "@/lib/ludoEngine";
 import { fmtAr } from "@/lib/constants";
 import { sfx } from "@/lib/sfx";

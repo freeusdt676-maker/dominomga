@@ -91,6 +91,29 @@ export default function LudoGame() {
     return () => clearInterval(t);
   }, []);
 
+  // Detect captures: any pawn whose pos went from >0 to 0 → emit a poof at its previous cell
+  useEffect(() => {
+    if (!g) return;
+    const prev = lastPawnsRef.current;
+    if (prev.length && g.pawns?.length) {
+      const fresh: Array<{ id: string; x: number; y: number }> = [];
+      for (const p of g.pawns) {
+        const old = prev.find((q) => q.seat === p.seat && q.idx === p.idx);
+        if (old && old.pos > 0 && p.pos === 0) {
+          const [x, y] = pawnXY(old);
+          fresh.push({ id: `${p.seat}-${p.idx}-${Date.now()}`, x, y });
+        }
+      }
+      if (fresh.length) {
+        sfx.capture();
+        setPoofs((cur) => [...cur, ...fresh]);
+        const ids = fresh.map((f) => f.id);
+        setTimeout(() => setPoofs((cur) => cur.filter((p) => !ids.includes(p.id))), 700);
+      }
+    }
+    lastPawnsRef.current = g.pawns ?? [];
+  }, [g?.pawns]);
+
   const mySeat = useMemo<number | null>(() => {
     if (!g || !user) return null;
     const seats = (g.seat_assignment && g.seat_assignment.length)

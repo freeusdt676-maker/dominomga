@@ -41,15 +41,20 @@ export default function LudoGame() {
   const nav = useNavigate();
   const [g, setG] = useState<LG | null>(null);
   const [names, setNames] = useState<Record<string, string>>({});
+  const [avatars, setAvatars] = useState<Record<string, string | null>>({});
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [rolling, setRolling] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [rollAnimSeat, setRollAnimSeat] = useState<number | null>(null);
+  const [poofs, setPoofs] = useState<Array<{ id: string; x: number; y: number }>>([]);
+  const lastPawnsRef = useRef<Pawn[]>([]);
   const botActedRef = (typeof window !== "undefined" ? (window as any) : {}) as any;
 
   const load = async () => {
     if (!id) return;
-    const { data } = await supabase.from("ludo_games" as any).select("*").eq("id", id).single();
-    if (!data) return;
+    const { data, error } = await supabase.from("ludo_games" as any).select("*").eq("id", id).single();
+    if (error || !data) { setLoadError(error?.message ?? "Tsy hita ny lalao"); return; }
+    setLoadError(null);
     // Defensive: normalize any pawn with pos<0 to 0 (base)
     const raw: any = data;
     const pawns = Array.isArray(raw.pawns) ? raw.pawns.map((p: any) => ({ ...p, pos: Number(p?.pos) < 0 ? 0 : Number(p?.pos) })) : [];
@@ -61,10 +66,12 @@ export default function LudoGame() {
       (data as any).player4_id,
     ].filter(Boolean) as string[];
     if (ids.length) {
-      const { data: ps } = await supabase.from("profiles").select("user_id, mvola_name").in("user_id", ids);
+      const { data: ps } = await supabase.from("profiles").select("user_id, mvola_name, avatar_url").in("user_id", ids);
       const m: Record<string, string> = {};
-      (ps ?? []).forEach((p: any) => { m[p.user_id] = p.mvola_name; });
+      const av: Record<string, string | null> = {};
+      (ps ?? []).forEach((p: any) => { m[p.user_id] = p.mvola_name; av[p.user_id] = p.avatar_url ?? null; });
       setNames(m);
+      setAvatars(av);
     }
   };
 

@@ -501,9 +501,11 @@ export default function LudoGame() {
 
       {/* Floating chat button — bottom right of game screen */}
       {g.status === "in_progress" && (
-        <div className="fixed bottom-16 right-3 z-30">
-          <GameChat gameId={g.id} names={names} />
-        </div>
+        <GameChat
+          gameId={g.id}
+          names={names}
+          triggerClassName="fab-circle fixed bottom-16 right-3 z-30 w-12 h-12"
+        />
       )}
     </div>
   );

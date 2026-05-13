@@ -10,9 +10,11 @@ const QUICKS = ["Salama", "Tsara!", "Mialà tsiny", "Misaotra", "Andraso kely", 
 export function GameChat({
   gameId,
   names,
+  triggerClassName,
 }: {
   gameId: string;
   names: Record<string, string>;
+  triggerClassName?: string;
 }) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
@@ -81,7 +83,7 @@ export function GameChat({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fab-circle absolute right-2 top-[calc(50%+56px)] -translate-y-1/2 z-20"
+        className={triggerClassName ?? "fab-circle absolute right-2 top-[calc(50%+56px)] -translate-y-1/2 z-20"}
         title="Chap"
       >
         <MessageCircle className="w-6 h-6" />

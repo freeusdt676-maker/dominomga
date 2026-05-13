@@ -253,4 +253,49 @@
 .pulse-ring { animation: ludo-pulse-ring 1.2s ease-out infinite; transform-origin: center; }
 
 /* Token hop: pawns transition smoothly between cells; LudoBoard adds a -translateY mid-flight */
-.pawn-group { transition: transform 360ms cubic-bezier(.34,1.56,.64,1); will-change: transform; }
+.pawn-group { transition: transform 520ms cubic-bezier(.22,.9,.3,1); will-change: transform; }
+
+/* Highlight legal landing cells */
+@keyframes ludo-cell-pulse {
+  0%,100% { opacity: 0.55; }
+  50%     { opacity: 0.95; }
+}
+.cell-legal { animation: ludo-cell-pulse 900ms ease-in-out infinite; }
+
+/* Capture poof */
+@keyframes ludo-poof {
+  0%   { opacity: 0.95; transform: scale(0.4); }
+  60%  { opacity: 0.75; transform: scale(1.4); }
+  100% { opacity: 0;    transform: scale(2.0); }
+}
+.poof { animation: ludo-poof 600ms ease-out forwards; transform-origin: center; }
+
+/* Profile chip — active turn glow */
+@keyframes ludo-profile-glow {
+  0%,100% { box-shadow: 0 0 0 2px rgba(255,226,122,0.9), 0 0 16px rgba(255,226,122,0.55); }
+  50%     { box-shadow: 0 0 0 3px rgba(255,226,122,1),   0 0 26px rgba(255,226,122,0.85); }
+}
+.profile-active { animation: ludo-profile-glow 1.4s ease-in-out infinite; }
+
+/* Big 3D dice button */
+.dice3d {
+  background:
+    linear-gradient(145deg, #ffffff 0%, #f0f0f0 55%, #cfcfcf 100%);
+  border: 3px solid #2c1356;
+  border-radius: 14px;
+  box-shadow:
+    0 6px 0 #6b5cb0,
+    0 10px 16px rgba(0,0,0,0.55),
+    inset 0 2px 0 rgba(255,255,255,0.9),
+    inset 0 -3px 0 rgba(0,0,0,0.18);
+  color: #2c1356;
+}
+.dice3d:active { transform: translateY(3px); box-shadow: 0 3px 0 #6b5cb0, 0 5px 8px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.9); }
+.dice3d.idle { opacity: 0.7; filter: grayscale(0.2); }
+
+/* Pulsing arrow above active dice */
+@keyframes ludo-arrow-strong {
+  0%,100% { transform: translate(-50%, 0)   scale(1); }
+  50%     { transform: translate(-50%, -10px) scale(1.18); }
+}
+.dice-arrow-strong { animation: ludo-arrow-strong 700ms ease-in-out infinite; }

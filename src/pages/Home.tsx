@@ -210,10 +210,9 @@ export default function Home() {
           </div>
         </Link>
 
-        <button
-          type="button"
-          onClick={() => toast.info("Mbola eo tsy mandeha ny ludo tompoko 🙏")}
-          className="w-full text-left rounded-2xl p-6 hover:scale-[1.01] transition cursor-pointer ludo-panel"
+        <Link
+          to="/ludo"
+          className="w-full text-left rounded-2xl p-6 hover:scale-[1.01] transition cursor-pointer ludo-panel block"
         >
           <div className="flex items-center gap-3">
             <span className="text-3xl">🎲</span>
@@ -222,7 +221,7 @@ export default function Home() {
               <p className="text-sm text-yellow-100/80">2P · 3P · 4P — mise sy gain mitovy</p>
             </div>
           </div>
-        </button>
+        </Link>
 
         <div className="grid grid-cols-3 gap-3">
           <Link to="/lobby"><div className="card-felt rounded-xl p-4 text-center"><Users className="w-6 h-6 mx-auto mb-2 text-primary" /><p className="text-sm">En ligne</p></div></Link>

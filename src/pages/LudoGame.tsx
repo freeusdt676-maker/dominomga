@@ -328,95 +328,159 @@ export default function LudoGame() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [remainingSec, isOperator, g?.id, g?.current_turn_seat, g?.dice_rolled, g?.last_dice, turnStartMs]);
 
-  if (!g) return <div className="min-h-screen ludo-bg flex items-center justify-center"><Loader2 className="animate-spin text-yellow-300" /></div>;
+  if (loadError) {
+    return (
+      <div className="min-h-screen ludo-bg flex flex-col items-center justify-center gap-3 p-4">
+        <p className="text-yellow-200 text-sm text-center">Olana fampakarana ny lalao.<br/><span className="opacity-70 text-xs">{loadError}</span></p>
+        <Button onClick={() => { setLoadError(null); load(); }} className="ludo-btn">
+          <RefreshCw className="w-4 h-4 mr-1" /> Mamerina indray
+        </Button>
+        <Button variant="ghost" onClick={() => nav("/")} className="text-yellow-200">Hiverina</Button>
+      </div>
+    );
+  }
+  if (!g) {
+    return (
+      <div className="min-h-screen ludo-bg flex flex-col items-center justify-center gap-3">
+        <Loader2 className="animate-spin text-yellow-300 w-10 h-10" />
+        <p className="text-yellow-200/70 text-xs">Mampakatra ny lalao...</p>
+      </div>
+    );
+  }
 
-  const seats2 = seats;
   const winnerName = g.winner_id ? names[g.winner_id] ?? "?" : null;
   const DiceIcons = [Dice1, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6];
 
+  // Score per seat = number of pawns with pos === 57
+  const scoreOf = (seat: number) => (g.pawns ?? []).filter((p) => p.seat === seat && p.pos === 57).length;
+
+  // Compute legal landing target cells for current player after dice roll
+  const legalTargets: Array<[number, number]> = [];
+  if (isMyTurn && g.dice_rolled && g.last_dice && movable.length) {
+    for (const idx of movable) {
+      const pawn = (g.pawns ?? []).find((p) => p.seat === g.current_turn_seat && p.idx === idx);
+      if (!pawn) continue;
+      const sim: Pawn = { ...pawn, pos: pawn.pos <= 0 ? 1 : pawn.pos + g.last_dice };
+      const [x, y] = pawnXY(sim);
+      legalTargets.push([Math.floor(x), Math.floor(y)]);
+    }
+  }
+
+  // Profile chip for one seat — corners around the board
+  const ProfileChip = ({ seat, corner }: { seat: number; corner: "tl"|"tr"|"bl"|"br" }) => {
+    const uid = seatToUid(seat);
+    const isTurn = g.current_turn_seat === seat && g.status === "in_progress";
+    const isMe = mySeat === seat;
+    const DiceFace = isTurn && g.last_dice ? DiceIcons[g.last_dice] : Dice5;
+    const isAnim = rollAnimSeat === seat;
+    const cornerCls =
+      corner === "tl" ? "top-1 left-1 flex-row" :
+      corner === "tr" ? "top-1 right-1 flex-row-reverse" :
+      corner === "bl" ? "bottom-1 left-1 flex-row" :
+                       "bottom-1 right-1 flex-row-reverse";
+    const av = uid ? avatars[uid] : null;
+    const initial = (uid && names[uid] ? names[uid][0] : "?").toUpperCase();
+    return (
+      <div className={`absolute ${cornerCls} z-10 flex items-center gap-1.5`}>
+        {/* Avatar */}
+        <div
+          className={`relative w-11 h-11 rounded-full border-2 flex items-center justify-center overflow-hidden shrink-0 ${isTurn ? "profile-active" : ""}`}
+          style={{ borderColor: SEAT_COLOR[seat], background: SEAT_COLOR[seat] }}
+        >
+          {av ? (
+            <img src={av} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <span className="font-bold text-white text-base">{initial}</span>
+          )}
+          {/* Score badge */}
+          <span className="absolute -bottom-0.5 -right-0.5 bg-yellow-300 text-[9px] font-bold text-purple-900 rounded-full w-4 h-4 flex items-center justify-center border border-purple-900">
+            {scoreOf(seat)}
+          </span>
+        </div>
+        {/* Name + timer + dice */}
+        <div className={`flex flex-col ${corner.endsWith("r") ? "items-end" : "items-start"}`}>
+          <div className="flex items-center gap-1 max-w-[100px]">
+            <span className="text-[10px] font-bold text-yellow-50 truncate drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">
+              {uid ? (names[uid] ?? "...") : "miandry"}
+            </span>
+            {isTurn && (
+              <span className="text-[10px] font-bold text-yellow-300 drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">⏱{remainingSec}s</span>
+            )}
+          </div>
+          {/* Personal dice — only ACTIVE seat shows the big 3D dice with arrow */}
+          {isTurn && (
+            <div className="relative mt-0.5">
+              {!g.dice_rolled && (
+                <ChevronDown
+                  className="dice-arrow-strong absolute -top-4 left-1/2 w-5 h-5 text-yellow-300 drop-shadow-[0_2px_2px_rgba(0,0,0,0.7)]"
+                  strokeWidth={3}
+                />
+              )}
+              {isMe && !g.dice_rolled ? (
+                <button
+                  onClick={handleRoll}
+                  disabled={rolling}
+                  className={`dice3d w-12 h-12 flex items-center justify-center ${isAnim ? "dice-rolling" : ""}`}
+                  aria-label="Roll dice"
+                >
+                  <DiceFace className="w-8 h-8" />
+                </button>
+              ) : (
+                <div className={`dice3d w-12 h-12 flex items-center justify-center ${g.dice_rolled ? "" : "idle"} ${isAnim ? "dice-rolling" : ""}`}>
+                  {g.last_dice ? <DiceFace className="w-8 h-8" /> : <Dice5 className="w-8 h-8 opacity-40" />}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Map seats → corners. Engine layout: 1=bottom-left, 2=top-left, 3=top-right, 4=bottom-right.
+  const cornerForSeat: Record<number, "tl"|"tr"|"bl"|"br"> = { 1: "bl", 2: "tl", 3: "tr", 4: "br" };
+
   return (
-    <div className="h-screen w-screen ludo-bg flex flex-col overflow-hidden">
-      <header className="p-2 flex items-center gap-2 border-b border-yellow-500/30 shrink-0">
-        <Button variant="ghost" size="icon" onClick={() => nav("/")}><ArrowLeft /></Button>
-        <div className="flex-1">
-          <h1 className="font-display text-sm font-bold ludo-title">LUDO MASTER</h1>
-          <p className="text-[10px] text-yellow-100/70">
-            Ticket: <b>{g.ticket_number ?? "—"}</b> · Mise: <b>{fmtAr(g.stake)}</b> · Pot: <b>{fmtAr(Math.round(g.stake * 0.9 * g.players_count))}</b>
+    <div className="h-screen w-screen ludo-bg flex flex-col overflow-hidden relative">
+      {/* Top header — slim */}
+      <header className="p-1.5 flex items-center gap-2 border-b border-yellow-500/30 shrink-0 relative z-20">
+        <Button variant="ghost" size="icon" onClick={() => nav("/")} className="h-8 w-8"><ArrowLeft className="w-4 h-4" /></Button>
+        <div className="flex-1 min-w-0">
+          <h1 className="font-display text-xs font-bold ludo-title leading-tight">LUDO MASTER</h1>
+          <p className="text-[9px] text-yellow-100/70 truncate">
+            #{g.ticket_number ?? "—"} · Mise <b>{fmtAr(g.stake)}</b> · Pot <b>{fmtAr(Math.round(g.stake * 0.9 * g.players_count))}</b>
           </p>
         </div>
+        {/* Voice chat toggle — top center */}
+        {g.status === "in_progress" && <LudoVoiceChat gameId={g.id} />}
       </header>
 
-      {/* Players bar — chaque joueur a son propre dé à côté du profil */}
-      <div className="px-2 pt-2 grid grid-cols-2 gap-1.5 shrink-0">
-        {seats2.map((s) => {
-          const uid = seatToUid(s);
-          const isTurn = g.current_turn_seat === s && g.status === "in_progress";
-          const isMe = mySeat === s;
-          const DiceFace = isTurn && g.last_dice ? DiceIcons[g.last_dice] : Dice5;
-          const isAnim = rollAnimSeat === s;
-          return (
-            <div
-              key={s}
-              className={`rounded-lg p-1.5 border-2 flex items-center gap-2 ${isTurn ? "border-yellow-300 ring-2 ring-yellow-300/40" : "border-yellow-500/20"}`}
-              style={{ background: SEAT_COLOR[s] + "33" }}
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full" style={{ background: SEAT_COLOR[s] }} />
-                  <span className="text-xs font-bold text-yellow-50 truncate">
-                    {uid ? (names[uid] ?? "...") : <em className="opacity-60">miandry</em>}
-                  </span>
-                </div>
-                <p className="text-[10px] text-yellow-100/70">
-                  {SEAT_NAME[s]}{isTurn ? ` · ⏱ ${remainingSec}s` : ""}
-                </p>
-              </div>
-              {/* Personal dice + floating arrow when it's their turn to roll */}
-              <div className="relative">
-                {isTurn && !g.dice_rolled && (
-                  <ChevronDown
-                    className="dice-arrow absolute -top-5 left-1/2 -translate-x-1/2 w-6 h-6 text-yellow-300 drop-shadow-[0_2px_2px_rgba(0,0,0,0.6)]"
-                    strokeWidth={3}
-                  />
-                )}
-                {isTurn && isMe && !g.dice_rolled ? (
-                  <button
-                    onClick={handleRoll}
-                    disabled={rolling}
-                    className={`w-11 h-11 rounded-lg bg-white border-2 border-yellow-400 flex items-center justify-center text-purple-900 shadow-lg active:scale-95 transition ${isAnim ? "dice-rolling" : ""}`}
-                    aria-label="Roll dice"
-                  >
-                    <DiceFace className="w-7 h-7" />
-                  </button>
-                ) : (
-                  <div
-                    className={`w-11 h-11 rounded-lg flex items-center justify-center ${isTurn ? "bg-white text-purple-900 border-2 border-yellow-400 shadow-lg" : "bg-white/20 text-yellow-100/60 border border-yellow-500/30"} ${isAnim ? "dice-rolling" : ""}`}
-                  >
-                    {isTurn && g.last_dice ? <DiceFace className="w-7 h-7" /> : <span className="text-xl">•</span>}
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Board — fills remaining space, plein écran */}
+      {/* Board area — fills, with 4 corner profiles */}
       <div className="flex-1 min-h-0 flex items-center justify-center p-2">
-        <div className="w-full h-full max-w-[min(100vw,calc(100vh-220px))] aspect-square">
-          <LudoBoard
-            pawns={g.pawns ?? []}
-            playersCount={g.players_count}
-            movableSeat={isMyTurn ? g.current_turn_seat : null}
-            movablePawns={movable}
-            onPawnClick={handlePawn}
-            activeSeatList={seats}
-          />
+        <div className="relative w-full h-full max-w-[min(100vw,100vh-100px)] aspect-square">
+          {/* 4 corner profiles */}
+          {seats.map((s) => (
+            <ProfileChip key={s} seat={s} corner={cornerForSeat[s]} />
+          ))}
+
+          {/* Board itself, slightly inset to leave room for corners */}
+          <div className="absolute inset-0 p-12">
+            <LudoBoard
+              pawns={g.pawns ?? []}
+              playersCount={g.players_count}
+              movableSeat={isMyTurn ? g.current_turn_seat : null}
+              movablePawns={movable}
+              onPawnClick={handlePawn}
+              activeSeatList={seats}
+              legalTargets={legalTargets}
+              poofs={poofs}
+            />
+          </div>
         </div>
       </div>
 
       {/* Status bar */}
-      <div className="shrink-0 p-2 ludo-panel border-t border-yellow-500/40">
+      <div className="shrink-0 px-2 py-1.5 ludo-panel border-t border-yellow-500/40">
         <div className="max-w-lg mx-auto text-center">
           {g.status === "waiting" && (
             <p className="text-yellow-100 text-xs">Miandry mpilalao... ({[g.player1_id, g.player2_id, g.player3_id, g.player4_id].filter(Boolean).length}/{g.players_count})</p>
@@ -425,15 +489,22 @@ export default function LudoGame() {
           {g.status === "in_progress" && (
             isMyTurn ? (
               g.dice_rolled
-                ? <p className="text-yellow-100 text-xs">{movable.length > 0 ? "Safidio pion azo ampihetsiketsehina" : "Tsy misy fihetsika — andrasana..."}</p>
-                : <p className="text-yellow-200 text-xs font-bold">▶ Tsipazo ny dé!</p>
+                ? <p className="text-yellow-100 text-xs">{movable.length > 0 ? "Safidio pion mihazavazava" : "Tsy misy fihetsika..."}</p>
+                : <p className="text-yellow-200 text-xs font-bold">▶ Tsindrio ny dé!</p>
             ) : (
-              <p className="text-yellow-100/80 text-xs">Andrasana ny <b>{SEAT_NAME[g.current_turn_seat]}</b>...</p>
+              <p className="text-yellow-100/80 text-xs">Andrasana ny <b style={{ color: SEAT_COLOR[g.current_turn_seat] }}>{SEAT_NAME[g.current_turn_seat]}</b>...</p>
             )
           )}
-          <p className="text-[9px] text-yellow-100/40 mt-1">Crédit · DOMINO MGA × LOVABLE AI · Beta v1</p>
+          <p className="text-[8px] text-yellow-100/40">Crédit · DOMINO MGA × LOVABLE AI · Beta v1</p>
         </div>
       </div>
+
+      {/* Floating chat button — bottom right of game screen */}
+      {g.status === "in_progress" && (
+        <div className="fixed bottom-16 right-3 z-30">
+          <GameChat gameId={g.id} names={names} />
+        </div>
+      )}
     </div>
   );
 }

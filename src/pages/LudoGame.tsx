@@ -1,17 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, ChevronDown } from "lucide-react";
+import { ArrowLeft, Loader2, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, ChevronDown, RefreshCw } from "lucide-react";
 import LudoBoard from "@/components/LudoBoard";
 import {
-  activeSeats, applyMove, legalMoves, nextSeat, rollDice, seatHasFinished,
-  SEAT_COLOR, SEAT_NAME, nextSeatFromList, type Pawn,
+  activeSeats, applyMove, legalMoves, rollDice, seatHasFinished,
+  SEAT_COLOR, SEAT_NAME, nextSeatFromList, pawnXY, pawnTrackIdx, type Pawn,
 } from "@/lib/ludoEngine";
 import { fmtAr } from "@/lib/constants";
 import { sfx } from "@/lib/sfx";
 import { toast } from "sonner";
+import { GameChat } from "@/components/GameChat";
+import LudoVoiceChat from "@/components/LudoVoiceChat";
 
 type LG = {
   id: string;

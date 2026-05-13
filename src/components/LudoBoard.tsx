@@ -1,4 +1,4 @@
-import { TRACK, HOME_COL, BASE_SPOTS, SEAT_COLOR, SAFE_INDICES, type Pawn, pawnXY, SEAT_START, activeSeats } from "@/lib/ludoEngine";
+import { TRACK, HOME_COL, BASE_SPOTS, SEAT_COLOR, SAFE_INDICES, type Pawn, pawnXY, SEAT_START, activeSeats, pawnTrackIdx } from "@/lib/ludoEngine";
 
 type Props = {
   pawns: Pawn[];
@@ -7,6 +7,8 @@ type Props = {
   movablePawns?: number[];
   onPawnClick?: (pawnIdx: number) => void;
   activeSeatList?: number[];
+  legalTargets?: Array<[number, number]>;
+  poofs?: Array<{ id: string; x: number; y: number }>;
 };
 
 const SIZE = 600; // SVG viewport
@@ -19,7 +21,7 @@ function cellRect(col: number, row: number, fill: string, stroke = "#1c1235") {
   );
 }
 
-export default function LudoBoard({ pawns, playersCount, movableSeat, movablePawns, onPawnClick, activeSeatList }: Props) {
+export default function LudoBoard({ pawns, playersCount, movableSeat, movablePawns, onPawnClick, activeSeatList, legalTargets, poofs }: Props) {
   // Base areas (6x6 squares at corners)
   const bases = [
     { seat: 1, x: 0, y: 9, color: SEAT_COLOR[1] },
@@ -67,6 +69,23 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
           <g key={`h-${seat}-${i}`}>{cellRect(col, row, SEAT_COLOR[seat])}</g>
         ))
       )}
+
+      {/* Legal landing cell highlights */}
+      {legalTargets?.map(([col, row], i) => (
+        <rect
+          key={`legal-${i}`}
+          x={col * CELL + 1}
+          y={row * CELL + 1}
+          width={CELL - 2}
+          height={CELL - 2}
+          fill="none"
+          stroke="#ffe27a"
+          strokeWidth={3}
+          rx={3}
+          className="cell-legal"
+          pointerEvents="none"
+        />
+      ))}
 
       {/* Bases */}
       {bases.map((b) => (
@@ -213,6 +232,14 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
           );
         });
       })()}
+
+      {/* Capture poof effects */}
+      {poofs?.map((p) => (
+        <g key={p.id} transform={`translate(${p.x * CELL} ${p.y * CELL})`} pointerEvents="none">
+          <circle r={CELL * 0.7} fill="#ffe27a" className="poof" />
+          <circle r={CELL * 0.45} fill="#fff" className="poof" />
+        </g>
+      ))}
     </svg>
   );
 }

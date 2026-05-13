@@ -1,4 +1,4 @@
-import { TRACK, HOME_COL, BASE_SPOTS, SEAT_COLOR, SAFE_INDICES, type Pawn, pawnXY, SEAT_START, activeSeats, pawnTrackIdx } from "@/lib/ludoEngine";
+import { TRACK, HOME_COL, BASE_SPOTS, SEAT_COLOR, SAFE_INDICES, type Pawn, pawnXY, SEAT_START, activeSeats } from "@/lib/ludoEngine";
 
 type Props = {
   pawns: Pawn[];

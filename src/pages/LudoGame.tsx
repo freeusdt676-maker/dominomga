@@ -420,14 +420,14 @@ export default function LudoGame() {
                 <button
                   onClick={handleRoll}
                   disabled={rolling}
-                  className={`dice3d w-12 h-12 flex items-center justify-center ${isAnim ? "dice-rolling" : ""}`}
+                  className={`dice-cube w-16 h-16 flex items-center justify-center ${isAnim ? "dice-cube-rolling" : ""}`}
                   aria-label="Roll dice"
                 >
-                  <DiceFace className="w-8 h-8" />
+                  <DiceFace className="w-11 h-11" />
                 </button>
               ) : (
-                <div className={`dice3d w-12 h-12 flex items-center justify-center ${g.dice_rolled ? "" : "idle"} ${isAnim ? "dice-rolling" : ""}`}>
-                  {g.last_dice ? <DiceFace className="w-8 h-8" /> : <Dice5 className="w-8 h-8 opacity-40" />}
+                <div className={`dice-cube w-16 h-16 flex items-center justify-center ${g.dice_rolled ? "" : "idle"} ${isAnim ? "dice-cube-rolling" : ""}`}>
+                  {g.last_dice ? <DiceFace className="w-11 h-11" /> : <Dice5 className="w-11 h-11 opacity-40" />}
                 </div>
               )}
             </div>
@@ -507,6 +507,56 @@ export default function LudoGame() {
           triggerClassName="fab-circle fixed bottom-16 right-3 z-30 w-12 h-12"
         />
       )}
+
+      {/* Winner overlay + auto return to lobby */}
+      {g.status === "finished" && g.winner_id && (
+        <WinnerOverlay
+          winnerName={winnerName ?? "?"}
+          isMe={user?.id === g.winner_id}
+          onDone={() => nav("/ludo")}
+        />
+      )}
+    </div>
+  );
+}
+
+function WinnerOverlay({ winnerName, isMe, onDone }: { winnerName: string; isMe: boolean; onDone: () => void }) {
+  const [count, setCount] = useState(6);
+  useEffect(() => {
+    sfx.win();
+    const t = setInterval(() => setCount((c) => Math.max(0, c - 1)), 1000);
+    const done = setTimeout(onDone, 6000);
+    return () => { clearInterval(t); clearTimeout(done); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const colors = ["#ffe27a", "#2ecc71", "#1f7fd6", "#e63946", "#f4c419", "#9b59b6"];
+  const pieces = Array.from({ length: 60 }, (_, i) => i);
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm">
+      {/* confetti */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {pieces.map((i) => {
+          const left = Math.random() * 100;
+          const dur = 2.2 + Math.random() * 2.5;
+          const delay = Math.random() * 1.2;
+          const bg = colors[i % colors.length];
+          return (
+            <span
+              key={i}
+              className="confetti-piece"
+              style={{ left: `${left}%`, background: bg, animationDuration: `${dur}s`, animationDelay: `${delay}s` }}
+            />
+          );
+        })}
+      </div>
+      <div className="win-pop relative text-center px-6 py-8 ludo-panel rounded-3xl">
+        <div className="text-6xl mb-2 win-shine">🏆</div>
+        <h2 className="ludo-title text-3xl font-display font-black mb-1">
+          {isMe ? "Ianao no MPANDRESY!" : "Mpandresy"}
+        </h2>
+        <p className="text-yellow-100 text-base font-bold">{winnerName}</p>
+        <p className="text-yellow-100/70 text-xs mt-3">Hiverina amin'ny lobby afaka {count}s…</p>
+      </div>
     </div>
   );
 }

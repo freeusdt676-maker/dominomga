@@ -20,6 +20,7 @@ import { DominoTile, DominoBack } from "@/components/DominoTile";
 import { SnakeBoard } from "@/components/SnakeBoard";
 import { RadioPlayer } from "@/components/RadioPlayer";
 import { GameChat } from "@/components/GameChat";
+import LudoVoiceChat from "@/components/LudoVoiceChat";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Tile, Placed, deal, deal3, ends, canPlace, place, pipsTotal, hasMove, chooseOpening,
@@ -1052,6 +1053,11 @@ export default function Game() {
             {/* Floating side action buttons */}
             <RadioPlayer />
             {id && <GameChat gameId={id} names={profileNames} />}
+            {id && game?.status === "in_progress" && (
+              <div className="absolute left-1/2 -translate-x-1/2 -top-1 z-30">
+                <LudoVoiceChat gameId={id} />
+              </div>
+            )}
             <button
               type="button"
               className="fab-circle absolute left-2 top-1/2 -translate-y-1/2 z-20"

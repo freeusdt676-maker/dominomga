@@ -345,7 +345,13 @@ export default function Game() {
     const winnerId = totals[0].id;
     const sumOthers = totals.slice(1).reduce((s, x) => s + x.p, 0);
     const points = sumOthers - totals[0].p;
-    await finishRound(winnerId, points, null);
+    const winnerName = (profileNames[winnerId] ?? "Mpandresy");
+    await finishRound(
+      winnerId,
+      points,
+      null,
+      `${winnerName} — Bloqué (vato kely indrindra) +${points}`,
+    );
   };
 
   // Hipoitra ny banniere TICKET Nº...ACCEPTÉ raha vao tafapetraka ny ticket

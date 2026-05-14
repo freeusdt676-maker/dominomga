@@ -138,22 +138,28 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
           groups.get(key)!.push(i);
         });
         const offsets: Record<number, [number, number]> = {};
+        const scales: Record<number, number> = {};
         groups.forEach((idxs) => {
           const n = idxs.length;
           if (n === 1) {
             offsets[idxs[0]] = [0, 0];
+            scales[idxs[0]] = 1;
           } else {
             // Fan in a small circle so pieces don't overlap
-            const ring = CELL * 0.32;
+            // Tighter ring + scale-down so the whole stack still fits inside one cell
+            const ring = CELL * 0.18;
+            const s = n === 2 ? 0.72 : n === 3 ? 0.6 : 0.52;
             idxs.forEach((idx, k) => {
               const ang = (-Math.PI / 2) + (k * 2 * Math.PI) / n;
               offsets[idx] = [Math.cos(ang) * ring, Math.sin(ang) * ring];
+              scales[idx] = s;
             });
           }
         });
         return pawns.map((p, i) => {
           const [cx, cy] = pawnXY(p);
           const [ox, oy] = offsets[i] ?? [0, 0];
+          const sc = scales[i] ?? 1;
           const x = cx * CELL + ox;
           const y = cy * CELL + oy;
           const movable = movableSeat === p.seat && movablePawns?.includes(p.idx);
@@ -171,7 +177,7 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
             <g
               key={stableKey}
               className="pawn-group"
-              transform={`translate(${x} ${y})`}
+              transform={`translate(${x} ${y}) scale(${sc})`}
               onClick={() => movable && onPawnClick?.(p.idx)}
               style={{ cursor: movable ? "pointer" : "default" }}
             >

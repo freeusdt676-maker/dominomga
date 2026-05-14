@@ -228,13 +228,20 @@ export default function LudoGame() {
     const players = [g.player1_id, g.player2_id, g.player3_id, g.player4_id];
     return players[slot] ?? null;
   };
-  const operatorSeat = g
-    ? (seats.find((s) => s !== g.current_turn_seat) ?? seats[0])
-    : null;
-  const isOperator = !!user && !!g && seatToUidLocal(operatorSeat ?? 0) === user.id;
+  // Any connected player in the game may fire the bot when the timer runs out.
+  // This guarantees absent / disconnected players still get auto-played, even
+  // if the "designated operator" is also offline. Per-client idempotency key
+  // (__ludoBotKey) keeps each browser from firing the same turn twice; the
+  // realtime channel + turn_started_at change naturally serializes turns.
+  const isOperator = !!user && !!g && [
+    g.player1_id, g.player2_id, g.player3_id, g.player4_id,
+  ].includes(user.id);
 
   useEffect(() => {
     if (!g || g.status !== "in_progress" || !user) return;
+    // Don't fire until a turn has actually started (avoid spamming when
+    // turn_started_at is still null right after game creation).
+    if (!g.turn_started_at) return;
     if (remainingSec > 0) return;
     if (!isOperator) return;
     const key = `${g.id}-${g.current_turn_seat}-${g.dice_rolled ? "m" : "r"}-${turnStartMs}`;

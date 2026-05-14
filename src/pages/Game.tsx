@@ -187,6 +187,7 @@ export default function Game() {
     winnerId: string,
     points: number,
     lastTile: Tile | null,
+    reasonOverride?: string,
   ) => {
     if (!game) return;
     const key = `${game.id}-r${game.round_number ?? 1}-end`;
@@ -210,12 +211,27 @@ export default function Game() {
     const handMode = mode === "hand";
     const instantWin = isDouble6Win || dateMatch || handMode || targetReached;
 
+    // Build a human-readable "porofo" of how this round was won, for the replay banner.
+    const winnerName = (profileNames[winnerId] ?? "Mpandresy");
+    const reason: string = reasonOverride
+      ?? (isDouble6Win
+        ? `${winnerName} — niala 6/6 (paire de six) +${points}`
+        : dateMatch
+          ? `${winnerName} — Maty datinandro ${today} +${points}`
+          : handMode
+            ? `${winnerName} — Maty atànana +${points}`
+            : targetReached
+              ? `${winnerName} — Tonga ${target} • Mpandresy lalao`
+              : points > 0
+                ? `${winnerName} — +${points} (vato sisa amin'ny hafa)`
+                : `${winnerName} — Mpandresy ny tour`);
+
     const REVEAL_MS = 3000;
     const revealUntil = new Date(Date.now() + REVEAL_MS).toISOString();
     setRoundBanner(
       pc === 3
-        ? `Tour vita +${points} • ${newScoreP1}-${newScoreP2}-${newScoreP3}`
-        : `Tour vita +${points} • ${newScoreP1} - ${newScoreP2}`,
+        ? `${reason} • ${newScoreP1}-${newScoreP2}-${newScoreP3}`
+        : `${reason} • ${newScoreP1} - ${newScoreP2}`,
     );
     setTimeout(() => setRoundBanner(null), REVEAL_MS + 500);
     const updatePayload: any = {

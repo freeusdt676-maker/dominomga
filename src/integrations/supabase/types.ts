@@ -571,6 +571,22 @@ export type Database = {
         Args: { _admin_id: string; _tx_id: string }
         Returns: Json
       }
+      admin_cancel_all_active_games: {
+        Args: { _admin_id: string; _pin: string }
+        Returns: Json
+      }
+      admin_cancel_domino_game: {
+        Args: { _admin_id: string; _game_id: string; _pin: string }
+        Returns: Json
+      }
+      admin_cancel_game_by_ticket: {
+        Args: { _admin_id: string; _pin: string; _ticket: string }
+        Returns: Json
+      }
+      admin_cancel_ludo_game: {
+        Args: { _admin_id: string; _game_id: string; _pin: string }
+        Returns: Json
+      }
       admin_delete_chat_message: {
         Args: { _admin_id: string; _msg_id: string }
         Returns: Json

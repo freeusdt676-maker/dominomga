@@ -40,7 +40,14 @@ export default function Admin() {
   const [resetPin, setResetPin] = useState("");
   const [commissionResetOpen, setCommissionResetOpen] = useState(false);
   const [commissionPin, setCommissionPin] = useState("");
+  const [cancelTicketInput, setCancelTicketInput] = useState("");
+  const [cancelPin, setCancelPin] = useState("");
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelAllOpen, setCancelAllOpen] = useState(false);
+  const [cancelAllPin, setCancelAllPin] = useState("");
   const adminId = user?.id ?? resolvedAdminId;
+  const normalizeTicket = (value: string) => value.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+  const detectedCancelGame = history.find((item) => normalizeTicket(item.ticket_number ?? "") === normalizeTicket(cancelTicketInput));
 
   useEffect(() => {
     if (!user?.id && codeOk && !resolvedAdminId) {
@@ -121,18 +128,42 @@ export default function Admin() {
       setTotalPlayerBalance(Number(tot ?? 0));
     }
 
-    // Historique ny lalao rehetra
+    // Historique Domino + Ludo
     const { data: hg } = await supabase
       .from("games")
-      .select("id, ticket_number, stake, player1_id, player2_id, winner_id, status, created_at, finished_at, turn_started_at")
+      .select("id, ticket_number, stake, player1_id, player2_id, player3_id, winner_id, status, created_at, finished_at, turn_started_at, players_count")
       .not("ticket_number", "is", null)
       .order("created_at", { ascending: false })
       .limit(500);
-    setHistory((hg ?? []).map((g: any) => ({
-      ...g,
-      _p1: profMap[g.player1_id]?.mvola_name ?? "?",
-      _p2: profMap[g.player2_id]?.mvola_name ?? "?",
-    })));
+    const { data: lg } = await supabase
+      .from("ludo_games" as any)
+      .select("id, ticket_number, stake, player1_id, player2_id, player3_id, player4_id, winner_id, status, created_at, finished_at, turn_started_at, players_count")
+      .not("ticket_number", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(500);
+
+    const dominoHistory = (hg ?? []).map((game: any) => ({
+      ...game,
+      game_kind: "domino",
+      _players: [game.player1_id, game.player2_id, game.player3_id]
+        .filter(Boolean)
+        .map((id: string) => profMap[id]?.mvola_name ?? "?"),
+      _winnerName: game.winner_id ? (profMap[game.winner_id]?.mvola_name ?? "?") : null,
+    }));
+    const ludoHistory = (lg ?? []).map((game: any) => ({
+      ...game,
+      game_kind: "ludo",
+      _players: [game.player1_id, game.player2_id, game.player3_id, game.player4_id]
+        .filter(Boolean)
+        .map((id: string) => profMap[id]?.mvola_name ?? "?"),
+      _winnerName: game.winner_id ? (profMap[game.winner_id]?.mvola_name ?? "?") : null,
+    }));
+
+    setHistory(
+      [...dominoHistory, ...ludoHistory].sort(
+        (a: any, b: any) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime(),
+      ),
+    );
   };
 
   useEffect(() => { if (allowed) load(); }, [allowed, user, resolvedAdminId]);
@@ -230,13 +261,39 @@ export default function Admin() {
     load();
   };
 
-  const deleteGame = async (g: any) => {
-    if (!adminId) return;
-    if (!confirm(`Hamafa ny lalao Nº${g.ticket_number}?`)) return;
-    const { error } = await supabase.rpc("admin_delete_game", { _game_id: g.id, _admin_id: adminId });
-    if (error) return toast.error(error.message);
-    toast.success("Voafafa");
-    load();
+  const cancelGameByTicket = async () => {
+    if (!adminId) return toast.error("Mbola tsy vita ny fanamarinana admin, andraso kely");
+    const ticket = (detectedCancelGame?.ticket_number ?? cancelTicketInput).trim();
+    if (!ticket) return toast.error("Ampidiro ny numéro ticket");
+    const { data, error } = await supabase.rpc("admin_cancel_game_by_ticket", { _ticket: ticket, _admin_id: adminId, _pin: cancelPin });
+    if (error) {
+      const msg = error.message.includes("pin_diso")
+        ? "Code administratif diso"
+        : error.message.includes("ticket_not_found")
+          ? "Tsy hita io ticket io"
+          : error.message.includes("already_closed")
+            ? "Efa vita na efa annulé io lalao io"
+            : error.message;
+      return toast.error(msg);
+    }
+    toast.success(`Voa-annulé ny ${String((data as any)?.kind ?? "jeu").toUpperCase()} Nº${ticket}`);
+    setCancelOpen(false);
+    setCancelPin("");
+    setCancelTicketInput("");
+    await load();
+  };
+
+  const cancelAllActiveGames = async () => {
+    if (!adminId) return toast.error("Mbola tsy vita ny fanamarinana admin, andraso kely");
+    const { data, error } = await supabase.rpc("admin_cancel_all_active_games", { _admin_id: adminId, _pin: cancelAllPin });
+    if (error) {
+      const msg = error.message.includes("pin_diso") ? "Code administratif diso" : error.message;
+      return toast.error(msg);
+    }
+    toast.success(`Jeux annulés: ${Number((data as any)?.total_cancelled ?? 0)}`);
+    setCancelAllOpen(false);
+    setCancelAllPin("");
+    await load();
   };
 
   const submitReset = async () => {
@@ -270,14 +327,16 @@ export default function Admin() {
     const q = historySearch.trim().toLowerCase();
     return (
       (h.ticket_number ?? "").toLowerCase().includes(q) ||
-      (h._p1 ?? "").toLowerCase().includes(q) ||
-      (h._p2 ?? "").toLowerCase().includes(q)
+      (h.game_kind ?? "").toLowerCase().includes(q) ||
+      (h._winnerName ?? "").toLowerCase().includes(q) ||
+      (h._players ?? []).join(" ").toLowerCase().includes(q)
     );
   });
 
   const openGameDetails = async (h: any) => {
     setSelectedGame(h);
     setGameMoves([]);
+    if (h.game_kind !== "domino") return;
     const { data: mv } = await supabase
       .from("game_moves")
       .select("*")
@@ -458,7 +517,46 @@ export default function Admin() {
 
           <TabsContent value="history" className="mt-3 space-y-2 max-h-[70vh] overflow-y-auto">
             <div className="card-felt rounded-xl p-3 mb-2 border-l-4 border-primary">
-              <p className="text-xs text-foreground/80 flex items-center gap-1"><History className="w-3 h-3" /><b>Historique ny lalao.</b> Karohy araka ny Numéro Ticket na anaran'ny mpilalao.</p>
+              <p className="text-xs text-foreground/80 flex items-center gap-1"><History className="w-3 h-3" /><b>Historique jeux Domino + Ludo.</b> Karohy araka ny Numéro Ticket, sokajy, na anaran'ny mpilalao.</p>
+            </div>
+            <div className="card-felt rounded-xl p-3 space-y-3 border border-destructive/30">
+              <div>
+                <p className="text-xs font-bold text-destructive">Annuler du jeu</p>
+                <p className="text-[11px] text-muted-foreground">Colle numéro ticket, hiseho automatique ny sokajy sy ny status, dia afaka averina amin'ny mpilalao ny mise rehetra.</p>
+              </div>
+              <Input
+                value={cancelTicketInput}
+                onChange={(e) => setCancelTicketInput(e.target.value)}
+                placeholder="Colle numéro ticket..."
+              />
+              {cancelTicketInput.trim() && (
+                detectedCancelGame ? (
+                  <div className="rounded-lg border border-primary/20 bg-card/40 p-3 text-xs space-y-1">
+                    <p><b>Type:</b> {detectedCancelGame.game_kind === "ludo" ? "Ludo" : "Domino"}</p>
+                    <p><b>Status:</b> {detectedCancelGame.status}</p>
+                    <p><b>Ticket:</b> Nº{detectedCancelGame.ticket_number}</p>
+                    <p><b>Mpilalao:</b> {(detectedCancelGame._players ?? []).join(" · ")}</p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-destructive">Tsy hita io numéro ticket io.</p>
+                )
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Button
+                  variant="destructive"
+                  disabled={!detectedCancelGame || !["waiting", "in_progress", "blocked"].includes(detectedCancelGame.status)}
+                  onClick={() => { setCancelPin(""); setCancelOpen(true); }}
+                >
+                  Annulé confirmer
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-destructive/50 text-destructive hover:bg-destructive/10"
+                  onClick={() => { setCancelAllPin(""); setCancelAllOpen(true); }}
+                >
+                  Annuler jeux en cours
+                </Button>
+              </div>
             </div>
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -471,9 +569,8 @@ export default function Admin() {
             </div>
             <p className="text-[10px] text-muted-foreground">{filteredHistory.length} / {history.length} lalao</p>
             {filteredHistory.map((h) => {
-              const winnerName = h.winner_id === h.player1_id ? h._p1 : h.winner_id === h.player2_id ? h._p2 : null;
-              const loserName = h.winner_id === h.player1_id ? h._p2 : h.winner_id === h.player2_id ? h._p1 : null;
               const start = h.turn_started_at ?? h.created_at;
+              const isCancelable = ["waiting", "in_progress", "blocked"].includes(h.status);
               return (
                 <button
                   key={h.id}
@@ -481,23 +578,25 @@ export default function Admin() {
                   className="w-full text-left card-felt rounded-xl p-3 text-xs space-y-1 hover:bg-primary/5 transition"
                 >
                   <div className="flex justify-between items-start">
-                    <p className="font-mono font-bold gold-text">Nº{h.ticket_number}</p>
+                    <p className="font-mono font-bold gold-text uppercase">{h.game_kind} · Nº{h.ticket_number}</p>
                     <span className={`px-2 py-0.5 rounded text-[10px] ${h.status === "finished" ? "bg-success/20 text-success" : h.status === "blocked" ? "bg-destructive/20 text-destructive" : "bg-muted/40"}`}>
                       {h.status}
                     </span>
                   </div>
-                  <p><b>{h._p1}</b> vs <b>{h._p2}</b></p>
+                  <p><b>{(h._players ?? []).join(" · ")}</b></p>
                   <p>Mise: <b className="gold-text">{fmtAr(h.stake)}</b></p>
-                  {winnerName && <p>🏆 Pandresy: <b className="text-success">{winnerName}</b> · Resy: {loserName}</p>}
+                  {h._winnerName && <p>🏆 Pandresy: <b className="text-success">{h._winnerName}</b></p>}
                   <p className="text-[10px] text-muted-foreground">
                     Niatomboka: {new Date(start).toLocaleString()}<br />
                     {h.finished_at && <>Niafarany: {new Date(h.finished_at).toLocaleString()}</>}
                   </p>
                   <p className="text-[10px] text-primary mt-1">▶ Tsindrio hijery filaharana...</p>
                   <div className="pt-1" onClick={(e) => e.stopPropagation()}>
-                    <Button size="sm" variant="outline" className="text-[10px] h-7" onClick={(e) => { e.stopPropagation(); deleteGame(h); }}>
-                      <Trash2 className="w-3 h-3 mr-1" />Suprimer
-                    </Button>
+                    {isCancelable && (
+                      <Button size="sm" variant="destructive" className="text-[10px] h-7" onClick={(e) => { e.stopPropagation(); setCancelTicketInput(h.ticket_number ?? ""); setCancelPin(""); setCancelOpen(true); }}>
+                        Annuler
+                      </Button>
+                    )}
                   </div>
                 </button>
               );
@@ -515,19 +614,21 @@ export default function Admin() {
           </DialogHeader>
           {selectedGame && (
             <div className="space-y-2 text-sm">
-              <Row label="Mpifanandrina" value={`${selectedGame._p1} vs ${selectedGame._p2}`} />
+              <Row label="Sokajy" value={selectedGame.game_kind === "ludo" ? "Ludo" : "Domino"} />
+              <Row label="Mpilalao" value={(selectedGame._players ?? []).join(" · ")} />
               <Row label="Mise" value={fmtAr(selectedGame.stake)} />
-              <Row label="Pandresy" value={selectedGame.winner_id === selectedGame.player1_id ? selectedGame._p1 : selectedGame.winner_id === selectedGame.player2_id ? selectedGame._p2 : "—"} />
+              <Row label="Pandresy" value={selectedGame._winnerName ?? "—"} />
+              <Row label="Status" value={selectedGame.status} />
               <Row label="Niatomboka" value={new Date(selectedGame.turn_started_at ?? selectedGame.created_at).toLocaleString()} />
               <Row label="Niafarany" value={selectedGame.finished_at ? new Date(selectedGame.finished_at).toLocaleString() : "—"} />
-              <div className="pt-2">
+              {selectedGame.game_kind === "domino" && <div className="pt-2">
                 <p className="text-xs font-bold gold-text mb-2">Filaharan'ny vato napetraka ({gameMoves.length})</p>
                 <div className="max-h-72 overflow-y-auto space-y-1">
                   {gameMoves.length === 0 && <p className="text-[11px] text-muted-foreground text-center py-3">Tsy misy hetsika voarakitra</p>}
                   {gameMoves.map((m, i) => {
                     const piece = m.piece as { tile?: [number, number]; flipped?: boolean } | null;
                     const tile = piece?.tile;
-                    const playerName = m.player_id === selectedGame.player1_id ? selectedGame._p1 : selectedGame._p2;
+                    const playerName = (selectedGame._players ?? [])[m.player_id === selectedGame.player1_id ? 0 : m.player_id === selectedGame.player2_id ? 1 : 2] ?? "?";
                     return (
                       <div key={m.id} className="flex items-center gap-2 rounded-lg border border-primary/20 p-2 bg-card/40">
                         <span className="text-[10px] font-mono text-muted-foreground w-6">{i + 1}.</span>
@@ -542,9 +643,44 @@ export default function Admin() {
                     );
                   })}
                 </div>
-              </div>
+              </div>}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={cancelOpen} onOpenChange={(o) => !o && setCancelOpen(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Annuler du jeu</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">Annulation administrative: tsimisy resy, tsimisy pandresy, miverina avokoa ny mise ary esorina koa ny commission 10%.</p>
+            <Row label="Ticket" value={detectedCancelGame?.ticket_number ? `Nº${detectedCancelGame.ticket_number}` : cancelTicketInput || "—"} mono />
+            <Row label="Sokajy" value={detectedCancelGame ? (detectedCancelGame.game_kind === "ludo" ? "Ludo" : "Domino") : "—"} />
+            <Row label="Status" value={detectedCancelGame?.status ?? "—"} />
+            <Input type="password" inputMode="numeric" maxLength={6} value={cancelPin} onChange={(e) => setCancelPin(e.target.value)} placeholder="Codé ADMINISTRATIF 2583" />
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCancelOpen(false)}>Annuler</Button>
+              <Button variant="destructive" disabled={!detectedCancelGame} onClick={cancelGameByTicket}>OK voafafa avy hatrany</Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={cancelAllOpen} onOpenChange={(o) => !o && setCancelAllOpen(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Annuler tous les jeux en cours</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">Foanana daholo ny Domino sy Ludo mbola mandeha na miandry amin'izao fotoana izao, ary averina amin'ny mpilalao tsirairay ny volany.</p>
+            <Input type="password" inputMode="numeric" maxLength={6} value={cancelAllPin} onChange={(e) => setCancelAllPin(e.target.value)} placeholder="Codé ADMINISTRATIF 2583" />
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCancelAllOpen(false)}>Annuler</Button>
+              <Button variant="destructive" onClick={cancelAllActiveGames}>Confirmer</Button>
+            </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 

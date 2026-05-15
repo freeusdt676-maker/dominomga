@@ -239,8 +239,6 @@ export default function LudoGame() {
 
   useEffect(() => {
     if (!g || g.status !== "in_progress" || !user) return;
-    // Don't fire until a turn has actually started (avoid spamming when
-    // turn_started_at is still null right after game creation).
     if (!g.turn_started_at) return;
     if (remainingSec > 0) return;
     if (!isOperator) return;
@@ -248,81 +246,77 @@ export default function LudoGame() {
     if (botActedRef.__ludoBotKey === key) return;
     botActedRef.__ludoBotKey = key;
 
+    const runRpc = async (payload: Record<string, unknown>) => {
+      const { error } = await supabase.rpc("ludo_update_state" as any, payload);
+      if (error) throw error;
+    };
+
+    const settleIfWinner = async (state: LG, nextPawns: Pawn[]) => {
+      if (!seatHasFinished(nextPawns, state.current_turn_seat)) return false;
+      const winnerUid = seatToUidLocal(state.current_turn_seat);
+      await runRpc({
+        _game_id: state.id,
+        _pawns: nextPawns,
+        _dice_rolled: false,
+        _last_dice: null,
+      });
+      if (winnerUid) {
+        const { error } = await supabase.rpc("ludo_settle" as any, { _game_id: state.id, _winner: winnerUid });
+        if (error) throw error;
+      }
+      return true;
+    };
+
     (async () => {
-      // Bot logic: if dice not rolled → roll. If no legal moves → next turn. If legal → play first.
-      if (!g.dice_rolled) {
+      const { data: fresh, error } = await supabase.from("ludo_games" as any).select("*").eq("id", g.id).single();
+      if (error || !fresh) throw error ?? new Error("ludo_refresh_failed");
+
+      const state: LG = {
+        ...(fresh as any),
+        pawns: Array.isArray((fresh as any).pawns)
+          ? (fresh as any).pawns.map((p: any) => ({ ...p, pos: Number(p?.pos) < 0 ? 0 : Number(p?.pos) }))
+          : [],
+      };
+      if (state.status !== "in_progress") return;
+      if (!state.turn_started_at) return;
+      if (state.current_turn_seat !== g.current_turn_seat) return;
+
+      const liveSeats = (state.seat_assignment && state.seat_assignment.length)
+        ? state.seat_assignment
+        : activeSeats(state.players_count);
+      if (!liveSeats.length) throw new Error("no_active_seats");
+
+      const seatToUidFresh = (seat: number): string | null => {
+        const slot = liveSeats.indexOf(seat);
+        if (slot < 0) return null;
+        return [state.player1_id, state.player2_id, state.player3_id, state.player4_id][slot] ?? null;
+      };
+
+      if (!state.dice_rolled) {
         const dice = rollDice();
-        await supabase.rpc("ludo_update_state" as any, {
-          _game_id: g.id,
-          _last_dice: dice,
-          _dice_rolled: true,
-          _consecutive_sixes: dice === 6 ? g.consecutive_sixes + 1 : 0,
-        });
-        const moves = legalMoves(g.pawns ?? [], g.current_turn_seat, dice);
+        const nextSixes = dice === 6 ? state.consecutive_sixes + 1 : 0;
+        const moves = legalMoves(state.pawns ?? [], state.current_turn_seat, dice);
+
         if (moves.length === 0) {
-          const sixes = dice === 6 ? g.consecutive_sixes + 1 : 0;
-          const { seat: ns } = nextSeatFromList(g.current_turn_seat, seats, dice === 6, 0, sixes);
-          await supabase.rpc("ludo_update_state" as any, {
-            _game_id: g.id,
+          const { seat: ns } = nextSeatFromList(state.current_turn_seat, liveSeats, dice === 6, 0, nextSixes);
+          await runRpc({
+            _game_id: state.id,
             _current_turn_seat: ns,
             _dice_rolled: false,
             _last_dice: null,
-            _consecutive_sixes: ns === g.current_turn_seat ? sixes : 0,
-            _turn_started_at: new Date().toISOString(),
-          });
-        } else {
-          const pawnIdx = moves[0];
-          const res = applyMove(g.pawns ?? [], g.current_turn_seat, pawnIdx, dice);
-          if (seatHasFinished(res.pawns, g.current_turn_seat)) {
-            const winnerUid = seatToUidLocal(g.current_turn_seat);
-            await supabase.rpc("ludo_update_state" as any, {
-              _game_id: g.id, _pawns: res.pawns, _dice_rolled: false, _last_dice: null,
-            });
-            if (winnerUid) await supabase.rpc("ludo_settle" as any, { _game_id: g.id, _winner: winnerUid });
-            return;
-          }
-          const sixes = dice === 6 ? g.consecutive_sixes : 0;
-          const { seat: ns, resetSixes } = nextSeatFromList(g.current_turn_seat, seats, dice === 6, res.captured, sixes);
-          await supabase.rpc("ludo_update_state" as any, {
-            _game_id: g.id,
-            _pawns: res.pawns,
-            _current_turn_seat: ns,
-            _dice_rolled: false,
-            _last_dice: null,
-            _consecutive_sixes: resetSixes ? 0 : sixes,
-            _turn_started_at: new Date().toISOString(),
-          });
-        }
-      } else if (g.last_dice) {
-        const dice = g.last_dice;
-        const moves = legalMoves(g.pawns ?? [], g.current_turn_seat, dice);
-        if (moves.length === 0) {
-          const sixes = dice === 6 ? g.consecutive_sixes : 0;
-          const { seat: ns } = nextSeatFromList(g.current_turn_seat, seats, false, 0, sixes);
-          await supabase.rpc("ludo_update_state" as any, {
-            _game_id: g.id,
-            _current_turn_seat: ns,
-            _dice_rolled: false,
-            _last_dice: null,
-            _consecutive_sixes: 0,
+            _consecutive_sixes: ns === state.current_turn_seat ? nextSixes : 0,
             _turn_started_at: new Date().toISOString(),
           });
           return;
         }
+
         const pawnIdx = moves[0];
-        const res = applyMove(g.pawns ?? [], g.current_turn_seat, pawnIdx, dice);
-        if (seatHasFinished(res.pawns, g.current_turn_seat)) {
-          const winnerUid = seatToUidLocal(g.current_turn_seat);
-          await supabase.rpc("ludo_update_state" as any, {
-            _game_id: g.id, _pawns: res.pawns, _dice_rolled: false, _last_dice: null,
-          });
-          if (winnerUid) await supabase.rpc("ludo_settle" as any, { _game_id: g.id, _winner: winnerUid });
-          return;
-        }
-        const sixes = dice === 6 ? g.consecutive_sixes : 0;
-        const { seat: ns, resetSixes } = nextSeatFromList(g.current_turn_seat, seats, dice === 6, res.captured, sixes);
-        await supabase.rpc("ludo_update_state" as any, {
-          _game_id: g.id,
+        const res = applyMove(state.pawns ?? [], state.current_turn_seat, pawnIdx, dice);
+        if (await settleIfWinner(state, res.pawns)) return;
+        const sixes = dice === 6 ? state.consecutive_sixes : 0;
+        const { seat: ns, resetSixes } = nextSeatFromList(state.current_turn_seat, liveSeats, dice === 6, res.captured, sixes);
+        await runRpc({
+          _game_id: state.id,
           _pawns: res.pawns,
           _current_turn_seat: ns,
           _dice_rolled: false,
@@ -330,8 +324,67 @@ export default function LudoGame() {
           _consecutive_sixes: resetSixes ? 0 : sixes,
           _turn_started_at: new Date().toISOString(),
         });
+        return;
       }
-    })().catch(() => {});
+
+      if (!state.last_dice) {
+        await runRpc({
+          _game_id: state.id,
+          _dice_rolled: false,
+          _last_dice: null,
+          _consecutive_sixes: 0,
+          _turn_started_at: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const dice = state.last_dice;
+      const moves = legalMoves(state.pawns ?? [], state.current_turn_seat, dice);
+      if (moves.length === 0) {
+        const sixes = dice === 6 ? state.consecutive_sixes : 0;
+        const { seat: ns } = nextSeatFromList(state.current_turn_seat, liveSeats, false, 0, sixes);
+        await runRpc({
+          _game_id: state.id,
+          _current_turn_seat: ns,
+          _dice_rolled: false,
+          _last_dice: null,
+          _consecutive_sixes: 0,
+          _turn_started_at: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const pawnIdx = moves[0];
+      const res = applyMove(state.pawns ?? [], state.current_turn_seat, pawnIdx, dice);
+      if (seatHasFinished(res.pawns, state.current_turn_seat)) {
+        const winnerUid = seatToUidFresh(state.current_turn_seat);
+        await runRpc({
+          _game_id: state.id,
+          _pawns: res.pawns,
+          _dice_rolled: false,
+          _last_dice: null,
+        });
+        if (winnerUid) {
+          const { error: settleError } = await supabase.rpc("ludo_settle" as any, { _game_id: state.id, _winner: winnerUid });
+          if (settleError) throw settleError;
+        }
+        return;
+      }
+
+      const sixes = dice === 6 ? state.consecutive_sixes : 0;
+      const { seat: ns, resetSixes } = nextSeatFromList(state.current_turn_seat, liveSeats, dice === 6, res.captured, sixes);
+      await runRpc({
+        _game_id: state.id,
+        _pawns: res.pawns,
+        _current_turn_seat: ns,
+        _dice_rolled: false,
+        _last_dice: null,
+        _consecutive_sixes: resetSixes ? 0 : sixes,
+        _turn_started_at: new Date().toISOString(),
+      });
+    })().catch(() => {
+      botActedRef.__ludoBotKey = null;
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [remainingSec, isOperator, g?.id, g?.current_turn_seat, g?.dice_rolled, g?.last_dice, turnStartMs]);
 

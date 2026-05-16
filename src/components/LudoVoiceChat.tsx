@@ -5,38 +5,54 @@ import voiceMic from "@/assets/voice-mic.png";
 import { toast } from "sonner";
 
 type Signal =
-  | { kind: "hello"; from: string }
   | { kind: "offer"; from: string; to: string; sdp: RTCSessionDescriptionInit }
   | { kind: "answer"; from: string; to: string; sdp: RTCSessionDescriptionInit }
   | { kind: "ice"; from: string; to: string; candidate: RTCIceCandidateInit };
 
+// Free public STUN + TURN (Open Relay / Metered) — works through most NATs.
 const ICE: RTCConfiguration = {
-  iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }],
+  iceServers: [
+    { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
+    {
+      urls: [
+        "turn:openrelay.metered.ca:80",
+        "turn:openrelay.metered.ca:443",
+        "turn:openrelay.metered.ca:443?transport=tcp",
+      ],
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+  ],
 };
 
 /**
- * Tiny WebRTC mesh per Ludo game.
- * Signaling = Supabase Realtime broadcast on channel `ludo-voice-{gameId}`.
- * - When ON: capture mic, dial every other player, attach remote audio elements.
- * - When OFF: tear down all PCs, mic stops, voice icon hides (replaced by a strike line).
+ * WebRTC mesh voice chat per game (Ludo OR Domino).
+ * Signaling: Supabase Realtime — Presence (peer discovery) + Broadcast (SDP/ICE).
+ * - Deterministic dialer election: lower user.id always offers.
+ * - Presence-based peer list = no race on "hello" packet ordering.
+ * - Public TURN fallback so users behind symmetric NATs still connect.
  */
 export default function LudoVoiceChat({ gameId }: { gameId: string }) {
   const { user } = useAuth();
   const [on, setOn] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [peerCount, setPeerCount] = useState(0);
   const localStreamRef = useRef<MediaStream | null>(null);
   const pcsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
+  const pendingIceRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
   const audiosRef = useRef<Map<string, HTMLAudioElement>>(new Map());
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const cleanup = () => {
     pcsRef.current.forEach((pc) => { try { pc.close(); } catch {} });
     pcsRef.current.clear();
+    pendingIceRef.current.clear();
     audiosRef.current.forEach((a) => { try { a.pause(); a.srcObject = null; a.remove(); } catch {} });
     audiosRef.current.clear();
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
     localStreamRef.current = null;
     if (channelRef.current) { try { supabase.removeChannel(channelRef.current); } catch {} channelRef.current = null; }
+    setPeerCount(0);
   };
 
   useEffect(() => () => cleanup(), []);
@@ -66,12 +82,23 @@ export default function LudoVoiceChat({ gameId }: { gameId: string }) {
         audiosRef.current.set(peer, audio);
       }
       audio.srcObject = e.streams[0];
+      audio.play().catch(() => {});
+    };
+    pc.oniceconnectionstatechange = () => {
+      const st = pc!.iceConnectionState;
+      if (st === "failed" || st === "disconnected" || st === "closed") {
+        try { pc!.close(); } catch {}
+        pcsRef.current.delete(peer);
+        const a = audiosRef.current.get(peer);
+        if (a) { try { a.pause(); a.srcObject = null; a.remove(); } catch {} audiosRef.current.delete(peer); }
+      }
     };
     return pc;
   };
 
   const dial = async (peer: string) => {
     if (!user) return;
+    if (pcsRef.current.has(peer)) return; // already negotiating
     const pc = ensurePc(peer);
     const offer = await pc.createOffer({ offerToReceiveAudio: true });
     await pc.setLocalDescription(offer);
@@ -82,36 +109,81 @@ export default function LudoVoiceChat({ gameId }: { gameId: string }) {
     if (!user || busy) return;
     setBusy(true);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      });
       localStreamRef.current = stream;
-      const ch = supabase.channel(`ludo-voice-${gameId}`, { config: { broadcast: { ack: false, self: false } } });
+      const ch = supabase.channel(`voice-${gameId}`, {
+        config: {
+          broadcast: { ack: false, self: false },
+          presence: { key: user.id },
+        },
+      });
       channelRef.current = ch;
+
       ch.on("broadcast", { event: "signal" }, async ({ payload }) => {
         const sig = payload as Signal;
         if (!user) return;
         if ("to" in sig && sig.to !== user.id) return;
         if (sig.from === user.id) return;
-        if (sig.kind === "hello") {
-          // Lower-id peer initiates to avoid glare
-          if (user.id < sig.from) await dial(sig.from);
-        } else if (sig.kind === "offer") {
-          const pc = ensurePc(sig.from);
-          await pc.setRemoteDescription(sig.sdp);
-          const ans = await pc.createAnswer();
-          await pc.setLocalDescription(ans);
-          send({ kind: "answer", from: user.id, to: sig.from, sdp: ans });
-        } else if (sig.kind === "answer") {
-          const pc = pcsRef.current.get(sig.from);
-          if (pc) await pc.setRemoteDescription(sig.sdp);
-        } else if (sig.kind === "ice") {
-          const pc = pcsRef.current.get(sig.from);
-          if (pc) { try { await pc.addIceCandidate(sig.candidate); } catch {} }
+        try {
+          if (sig.kind === "offer") {
+            const pc = ensurePc(sig.from);
+            await pc.setRemoteDescription(sig.sdp);
+            // flush queued ICE
+            const queued = pendingIceRef.current.get(sig.from) ?? [];
+            for (const c of queued) { try { await pc.addIceCandidate(c); } catch {} }
+            pendingIceRef.current.delete(sig.from);
+            const ans = await pc.createAnswer();
+            await pc.setLocalDescription(ans);
+            send({ kind: "answer", from: user.id, to: sig.from, sdp: ans });
+          } else if (sig.kind === "answer") {
+            const pc = pcsRef.current.get(sig.from);
+            if (pc) {
+              await pc.setRemoteDescription(sig.sdp);
+              const queued = pendingIceRef.current.get(sig.from) ?? [];
+              for (const c of queued) { try { await pc.addIceCandidate(c); } catch {} }
+              pendingIceRef.current.delete(sig.from);
+            }
+          } else if (sig.kind === "ice") {
+            const pc = pcsRef.current.get(sig.from);
+            if (pc && pc.remoteDescription) {
+              try { await pc.addIceCandidate(sig.candidate); } catch {}
+            } else {
+              const arr = pendingIceRef.current.get(sig.from) ?? [];
+              arr.push(sig.candidate);
+              pendingIceRef.current.set(sig.from, arr);
+            }
+          }
+        } catch (err) {
+          console.warn("[voice] signal handler error", err);
         }
       });
-      await new Promise<void>((resolve) => {
-        ch.subscribe((status) => { if (status === "SUBSCRIBED") resolve(); });
+
+      // Presence-driven dialing — every time the peer set changes,
+      // for each peer where my id < their id, dial them.
+      ch.on("presence", { event: "sync" }, () => {
+        if (!user) return;
+        const state = ch.presenceState();
+        const peers = Object.keys(state).filter((k) => k !== user.id);
+        setPeerCount(peers.length);
+        for (const p of peers) {
+          if (user.id < p && !pcsRef.current.has(p)) {
+            dial(p).catch(() => {});
+          }
+        }
       });
-      send({ kind: "hello", from: user.id });
+
+      await new Promise<void>((resolve, reject) => {
+        ch.subscribe(async (status) => {
+          if (status === "SUBSCRIBED") {
+            try { await ch.track({ online: true, ts: Date.now() }); } catch {}
+            resolve();
+          } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+            reject(new Error(status));
+          }
+        });
+      });
       setOn(true);
       toast.success("Voice chat misokatra 🎙️");
     } catch (e: any) {
@@ -140,7 +212,14 @@ export default function LudoVoiceChat({ gameId }: { gameId: string }) {
       }}
     >
       {on ? (
-        <img src={voiceMic} alt="Voice ON" className="w-10 h-10 drop-shadow-[0_2px_3px_rgba(0,0,0,0.5)]" />
+        <>
+          <img src={voiceMic} alt="Voice ON" className="w-10 h-10 drop-shadow-[0_2px_3px_rgba(0,0,0,0.5)]" />
+          {peerCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-emerald-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center border border-black/40">
+              {peerCount}
+            </span>
+          )}
+        </>
       ) : (
         <>
           <img src={voiceMic} alt="Voice OFF" className="w-10 h-10 opacity-30 grayscale" />

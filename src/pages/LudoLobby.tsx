@@ -89,11 +89,23 @@ export default function LudoLobby() {
   }, [user, nav]);
 
   const placeMise = async () => {
-    if (!user) return;
-    if (myWaiting) return toast.error("Efa manana mise vonona ianao");
-    const { data: w } = await supabase.from("wallets").select("balance").eq("user_id", user.id).single();
-    if (Number(w?.balance ?? 0) < stake) return toast.error("Tsy ampy ny solde");
+    if (!user || placing) return;
     setPlacing(true);
+    // Strict 1-room/user check straight from the DB to defeat double-clicks & stale state.
+    const { data: existing } = await supabase
+      .from("ludo_games" as any)
+      .select("id, status")
+      .or(`player1_id.eq.${user.id},player2_id.eq.${user.id},player3_id.eq.${user.id},player4_id.eq.${user.id}`)
+      .in("status", ["waiting", "in_progress"])
+      .limit(1);
+    if (existing && existing.length > 0) {
+      setPlacing(false);
+      toast.error("Efa manana lalao mandeha ianao — tsy mahazo Room vaovao");
+      load();
+      return;
+    }
+    const { data: w } = await supabase.from("wallets").select("balance").eq("user_id", user.id).single();
+    if (Number(w?.balance ?? 0) < stake) { setPlacing(false); return toast.error("Tsy ampy ny solde"); }
     // 2P: random variant Maitso vs Manga ([1,3]) NA Mena vs Mavo ([2,4])
     let seat_assignment: number[] | null = null;
     if (playersCount === 2) {
@@ -183,14 +195,14 @@ export default function LudoLobby() {
               </div>
               <Button size="sm" variant="destructive" onClick={cancelMyWaiting}><X className="w-4 h-4" /></Button>
             </div>
-          ) : !confirmed ? (
-            <Button className="ludo-btn w-full mt-3" onClick={() => setConfirmed(true)}>
-              3. Confirmer le demande
-            </Button>
           ) : (
-            <Button className="ludo-btn w-full mt-3" onClick={placeMise} disabled={placing}>
+            <Button
+              className="ludo-btn w-full mt-3"
+              onClick={placeMise}
+              disabled={placing}
+            >
               {placing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Coins className="w-4 h-4 mr-2" />}
-              Mise vonona — apetrao {fmtAr(stake)}
+              {placing ? "Andraso..." : `3. Confirmer le demande — ${fmtAr(stake)}`}
             </Button>
           )}
         </div>

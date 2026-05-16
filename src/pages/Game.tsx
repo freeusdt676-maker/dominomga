@@ -226,7 +226,7 @@ export default function Game() {
                 ? `${winnerName} — +${points} (vato sisa amin'ny hafa)`
                 : `${winnerName} — Mpandresy ny tour`);
 
-    const REVEAL_MS = 3000;
+    const REVEAL_MS = 5000;
     const revealUntil = new Date(Date.now() + REVEAL_MS).toISOString();
     setRoundBanner(
       pc === 3

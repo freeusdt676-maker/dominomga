@@ -47,6 +47,17 @@ export default function Wallet() {
     const a = Number(amount);
     if (a < 1000) return toast.error("Min 1000 Ar");
     if (!ref.trim()) return toast.error("Référence MVOLA ilaina");
+    // Block: at most ONE pending deposit/withdrawal per user.
+    const { data: pendings } = await supabase
+      .from("transactions")
+      .select("id, type")
+      .eq("user_id", user!.id)
+      .eq("status", "pending")
+      .in("type", ["deposit", "withdrawal"])
+      .limit(1);
+    if (pendings && pendings.length > 0) {
+      return toast.error("Mbola misy demande tsy mbola voavaha — andraso mialoha");
+    }
     const { error } = await supabase.from("transactions").insert({ user_id: user!.id, type: "deposit", amount: a, mvola_reference: ref.trim(), status: "pending" });
     if (error) return toast.error(error.message);
     toast.success("Demande alefa amin'ny admin");
@@ -62,6 +73,17 @@ export default function Wallet() {
     if (!/^0\d{9}$/.test(cleanPhone)) return toast.error("Numéro téléphone diso (10 chiffres)");
     if (!withdrawName.trim()) return toast.error("Anarana certifié MVOLA ilaina");
     if (!/^\d{4,6}$/.test(pin)) return toast.error("PIN diso");
+    // Block: at most ONE pending deposit/withdrawal per user.
+    const { data: pendings } = await supabase
+      .from("transactions")
+      .select("id, type")
+      .eq("user_id", user.id)
+      .eq("status", "pending")
+      .in("type", ["deposit", "withdrawal"])
+      .limit(1);
+    if (pendings && pendings.length > 0) {
+      return toast.error("Mbola misy demande tsy mbola voavaha — andraso mialoha");
+    }
 
     // Verify PIN against profiles.pin_plain (set during signup)
     const { data: prof, error: pErr } = await supabase

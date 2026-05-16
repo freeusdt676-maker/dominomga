@@ -140,10 +140,10 @@
     color: hsl(var(--primary-foreground));
     box-shadow: var(--shadow-gold);
   }
-  /* Ludo Master theme — purple/gold ornate */
+  /* Ludo Master theme — DARK (mainty) per user request */
   .ludo-bg {
     background:
-      radial-gradient(ellipse at top, #3a1c66 0%, #1a0d2e 70%);
+      radial-gradient(ellipse at top, #1a1a1a 0%, #050505 70%);
     color: #fff7d6;
   }
   .ludo-title {

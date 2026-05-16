@@ -151,6 +151,23 @@ export default function LudoGame() {
     // Let the spin play before locking the face
     await new Promise((r) => setTimeout(r, 650));
     const dice = rollDice();
+    // 3rd consecutive six → forfeit the turn entirely. Player CANNOT move.
+    if (dice === 6 && g.consecutive_sixes >= 2) {
+      const i = seats.indexOf(g.current_turn_seat);
+      const ns = seats[(i + 1) % seats.length];
+      await supabase.rpc("ludo_update_state" as any, {
+        _game_id: g.id,
+        _last_dice: dice,
+        _dice_rolled: false,
+        _current_turn_seat: ns,
+        _consecutive_sixes: 0,
+        _turn_started_at: new Date().toISOString(),
+      });
+      setRolling(false);
+      setTimeout(() => setRollAnimSeat(null), 100);
+      toast("6 fanintelony — very ny tour");
+      return;
+    }
     // Save roll
     await supabase.rpc("ludo_update_state" as any, {
       _game_id: g.id,
@@ -197,8 +214,20 @@ export default function LudoGame() {
       }
       return;
     }
+    // Bonus turn: rolled a 6 (under 3-six cap), captured, OR a pawn just reached home (pos 57)
     const sixes = dice === 6 ? g.consecutive_sixes : 0;
-    const { seat: ns, resetSixes } = nextSeatFromList(g.current_turn_seat, seats, dice === 6, res.captured, sixes);
+    const homeBonus = !!res.finishedPawn;
+    const gotBonus = (dice === 6 && sixes < 3) || res.captured > 0 || homeBonus;
+    let ns: number;
+    let resetSixes = false;
+    if (gotBonus) {
+      ns = g.current_turn_seat; // stay on the same player
+      resetSixes = !(dice === 6); // home/capture bonus shouldn't keep the 6-counter alive
+    } else {
+      const i = seats.indexOf(g.current_turn_seat);
+      ns = seats[(i + 1) % seats.length];
+      resetSixes = true;
+    }
     await supabase.rpc("ludo_update_state" as any, {
       _game_id: g.id,
       _pawns: res.pawns,
@@ -523,8 +552,8 @@ export default function LudoGame() {
             <ProfileChip key={s} seat={s} corner={cornerForSeat[s]} />
           ))}
 
-          {/* Board itself, slightly inset to leave room for corners */}
-          <div className="absolute inset-0 p-12">
+          {/* Board itself — plein écran, with minimal inset for corner profiles */}
+          <div className="absolute inset-0 pt-14 pb-14 px-2 sm:px-4">
             <LudoBoard
               pawns={g.pawns ?? []}
               playersCount={g.players_count}

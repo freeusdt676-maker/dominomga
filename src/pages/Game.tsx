@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, Home as HomeIcon, Clock, Flag, Pizza, Rabbit } from "lucide-react";
+import { ArrowLeft, Loader2, Home as HomeIcon, Clock, Flag } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,

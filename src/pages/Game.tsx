@@ -1204,3 +1204,83 @@ export default function Game() {
     </div>
   );
 }
+
+function DominoResultOverlay({
+  draw, iWon, netGain, pot, stake, winnerName, reasonText, myScore, onDone,
+}: {
+  draw: boolean; iWon: boolean; netGain: number; pot: number; stake: number;
+  winnerName: string; reasonText: string; myScore: number; onDone: () => void;
+}) {
+  const [count, setCount] = useState(5);
+  useEffect(() => {
+    sfx.win?.();
+    const t = setInterval(() => setCount((c) => Math.max(0, c - 1)), 1000);
+    const done = setTimeout(onDone, 5000);
+    return () => { clearInterval(t); clearTimeout(done); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const dust = Array.from({ length: 80 }, (_, i) => i);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm overflow-hidden">
+      {iWon && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {dust.map((i) => {
+            const left = Math.random() * 100;
+            const dur = 2.2 + Math.random() * 2.6;
+            const delay = Math.random() * 1.5;
+            const size = 4 + Math.random() * 6;
+            return (
+              <span
+                key={i}
+                className="gold-dust"
+                style={{ left: `${left}%`, width: `${size}px`, height: `${size}px`, animationDuration: `${dur}s`, animationDelay: `${delay}s` }}
+              />
+            );
+          })}
+        </div>
+      )}
+      <div className={`domino-win-pop relative w-[92%] max-w-md text-center rounded-3xl p-7 border-4 shadow-2xl ${
+        draw ? "border-yellow-400 bg-gradient-to-br from-amber-600 to-yellow-800"
+        : iWon ? "border-green-300 bg-gradient-to-br from-green-500 via-emerald-500 to-green-700 shadow-[0_0_80px_rgba(34,197,94,0.85)]"
+        : "border-red-300 bg-gradient-to-br from-red-500 via-rose-600 to-red-800 shadow-[0_0_80px_rgba(239,68,68,0.75)]"
+      }`}>
+        {draw ? (
+          <>
+            <p className="text-5xl mb-2">🤝</p>
+            <p className="font-display text-3xl font-black text-white">Lalao tapaka</p>
+          </>
+        ) : iWon ? (
+          <>
+            <p className="text-6xl mb-2">🏆</p>
+            <p className="font-display text-4xl font-black text-green-50 domino-win-glow tracking-wide">
+              Arabaina nandresy ianao!
+            </p>
+            <p className="font-display text-xl font-bold text-yellow-100 mt-3">
+              Ianao no nahatratra ny isa <b className="text-yellow-200">{myScore}</b>
+            </p>
+            <div className="mt-4 inline-flex flex-col items-center rounded-2xl bg-black/30 px-5 py-3 border border-yellow-200/40">
+              <p className="text-xs text-yellow-100/80">Gain</p>
+              <p className="font-display text-3xl font-black text-yellow-200 drop-shadow-lg">+{fmtAr(netGain)}</p>
+              <p className="text-[11px] text-yellow-100/70">(Pot azo: {fmtAr(pot)})</p>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-5xl mb-2">💔</p>
+            <p className="font-display text-3xl font-black text-white">Resy ianao</p>
+            <p className="text-sm text-white/90 mt-2">
+              {reasonText
+                ? <>Resy ianao satria <b>{reasonText}</b></>
+                : winnerName
+                  ? <>Resy ianao satria nandresy <b>{winnerName}</b></>
+                  : null}
+            </p>
+            <p className="font-display text-2xl font-black text-yellow-100 mt-3">-{fmtAr(stake)}</p>
+            <p className="text-[11px] text-white/80">(very ny mise napetrakao)</p>
+          </>
+        )}
+        <p className="text-[11px] text-white/80 mt-4 italic">Hiverina amin'ny lobby afaka {count}s…</p>
+      </div>
+    </div>
+  );
+}

@@ -418,6 +418,7 @@ export type Database = {
           password_plain: string | null
           phone: string
           pin_plain: string | null
+          player_number: number | null
           selfie_url: string | null
           updated_at: string
           user_id: string
@@ -437,6 +438,7 @@ export type Database = {
           password_plain?: string | null
           phone: string
           pin_plain?: string | null
+          player_number?: number | null
           selfie_url?: string | null
           updated_at?: string
           user_id: string
@@ -456,6 +458,7 @@ export type Database = {
           password_plain?: string | null
           phone?: string
           pin_plain?: string | null
+          player_number?: number | null
           selfie_url?: string | null
           updated_at?: string
           user_id?: string

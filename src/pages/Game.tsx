@@ -918,18 +918,16 @@ export default function Game() {
       )}
 
       {game.status === "in_progress" && (
-        <div className="px-3 py-2 bg-destructive/10 border-b border-destructive/30 flex justify-center">
-          <Button
-            variant="destructive"
-            size="sm"
-            className="w-full max-w-xs gap-2 font-bold shadow-lg"
-            onClick={() => setConfirmAbandon(true)}
-            disabled={isAbandoning}
-          >
-            {isAbandoning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Flag className="w-4 h-4" />}
-            {isAbandoning ? "Tapitra ny lalao..." : "Abandonné — Hiala amin'ny lalao"}
-          </Button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setConfirmAbandon(true)}
+          disabled={isAbandoning}
+          className="fixed bottom-3 left-3 z-30 h-9 px-3 rounded-full bg-destructive/85 text-destructive-foreground text-[11px] font-bold flex items-center gap-1 shadow-lg backdrop-blur active:scale-95 disabled:opacity-50"
+          title="Abandonné"
+        >
+          {isAbandoning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Flag className="w-3.5 h-3.5" />}
+          Abandonné
+        </button>
       )}
 
       <AlertDialog open={confirmAbandon} onOpenChange={setConfirmAbandon}>

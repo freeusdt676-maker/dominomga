@@ -1094,22 +1094,6 @@ export default function Game() {
                 <LudoVoiceChat gameId={id} />
               </div>
             )}
-            <button
-              type="button"
-              className="fab-circle absolute left-2 top-1/2 -translate-y-1/2 z-20"
-              title="Pizza"
-              onClick={() => sfx.move()}
-            >
-              <Pizza className="w-6 h-6" />
-            </button>
-            <button
-              type="button"
-              className="fab-circle absolute right-2 top-1/2 -translate-y-1/2 z-20"
-              title="Rabbit"
-              onClick={() => sfx.move()}
-            >
-              <Rabbit className="w-6 h-6" />
-            </button>
 
             <div className="felt-board relative w-full h-full min-h-[240px] mx-auto overflow-hidden">
               {board.length === 0 ? (

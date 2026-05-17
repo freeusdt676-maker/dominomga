@@ -194,7 +194,7 @@ export default function Home() {
               <p className="text-xs text-muted-foreground">Solde</p>
               <p className="text-3xl font-display gold-text font-bold">{fmtAr(balance)}</p>
             </div>
-            <Link to="/wallet"><Button className="btn-gold"><Wallet className="w-4 h-4 mr-2" />Wallet</Button></Link>
+            <Link to="/wallet"><Button className="btn-gold"><Wallet className="w-4 h-4 mr-2" />MVOLA</Button></Link>
           </div>
         </div>
 

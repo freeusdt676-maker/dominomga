@@ -207,13 +207,28 @@ export default function Game() {
       winnerId === game.player1_id ? newScoreP1 : winnerId === game.player2_id ? newScoreP2 : newScoreP3;
 
     const targetReached = target !== null && wScore >= target;
+    // "Tonga X nandeha irery" — nahatratra antsasaky ny target nefa 0 ihany hatrany ny adversaire rehetra.
+    const otherScores = pc === 3
+      ? [
+          winnerId !== game.player1_id ? newScoreP1 : null,
+          winnerId !== game.player2_id ? newScoreP2 : null,
+          winnerId !== game.player3_id ? newScoreP3 : null,
+        ].filter((s) => s !== null) as number[]
+      : [
+          winnerId !== game.player1_id ? newScoreP1 : null,
+          winnerId !== game.player2_id ? newScoreP2 : null,
+        ].filter((s) => s !== null) as number[];
+    const opponentsAllZero = otherScores.every((s) => Number(s ?? 0) === 0);
+    const half = target !== null ? Math.floor(target / 2) : null;
+    const aloneReached =
+      half !== null && wScore >= half && wScore < (target ?? Infinity) && opponentsAllZero;
     const dateMatch = points > 0 && points === today;
     const handMode = mode === "hand";
-    const instantWin = isDouble6Win || dateMatch || handMode || targetReached;
+    const instantWin = isDouble6Win || dateMatch || handMode || targetReached || aloneReached;
 
     // Build a human-readable "porofo" of how this round was won, for the replay banner.
     const winnerName = (profileNames[winnerId] ?? "Mpandresy");
-    const reason: string = reasonOverride
+    let reason: string = reasonOverride
       ?? (isDouble6Win
         ? `${winnerName} — niala 6/6 (paire de six) +${points}`
         : dateMatch
@@ -225,6 +240,9 @@ export default function Game() {
               : points > 0
                 ? `${winnerName} — +${points} (vato sisa amin'ny hafa)`
                 : `${winnerName} — Mpandresy ny tour`);
+    if (aloneReached && !targetReached) {
+      reason = `${winnerName} — Tonga ${wScore} nandeha irery (target ${target})`;
+    }
 
     const REVEAL_MS = 5000;
     const revealUntil = new Date(Date.now() + REVEAL_MS).toISOString();
@@ -238,6 +256,7 @@ export default function Game() {
       score_p1: newScoreP1,
       score_p2: newScoreP2,
       reveal_until: revealUntil,
+      last_reason: reason,
     };
     if (pc === 3) updatePayload.score_p3 = newScoreP3;
     await supabase.from("games").update(updatePayload).eq("id", game.id);
@@ -245,12 +264,9 @@ export default function Game() {
 
     setTimeout(async () => {
       if (instantWin) {
-        // 2-player: ask both players "Mbola hanohy / Tsy hanohy" before settling.
-        // 3-player: settle immediately as before.
-        if (pc === 2 && targetReached) {
-          await supabase.from("games").update({ endgame_votes: {}, reveal_until: null }).eq("id", game.id);
-          return;
-        }
+        // Tsy misy bokotra "Continuer" intsony: tonga dia mamarana ny lalao raha tratra ny target,
+        // miala 6/6, datinandro, na "tonga antsasaka irery". Ny écran fandresena dia mamerina
+        // automatique any amin'ny lobby aorian'ny 5s.
         await supabase.rpc("settle_game", { _game_id: game.id, _winner: winnerId });
         return;
       }

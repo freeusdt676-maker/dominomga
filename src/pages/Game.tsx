@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, Home as HomeIcon, Clock, Flag, Pizza, Rabbit } from "lucide-react";
+import { ArrowLeft, Loader2, Home as HomeIcon, Clock, Flag } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -207,13 +207,28 @@ export default function Game() {
       winnerId === game.player1_id ? newScoreP1 : winnerId === game.player2_id ? newScoreP2 : newScoreP3;
 
     const targetReached = target !== null && wScore >= target;
+    // "Tonga X nandeha irery" — nahatratra antsasaky ny target nefa 0 ihany hatrany ny adversaire rehetra.
+    const otherScores = pc === 3
+      ? [
+          winnerId !== game.player1_id ? newScoreP1 : null,
+          winnerId !== game.player2_id ? newScoreP2 : null,
+          winnerId !== game.player3_id ? newScoreP3 : null,
+        ].filter((s) => s !== null) as number[]
+      : [
+          winnerId !== game.player1_id ? newScoreP1 : null,
+          winnerId !== game.player2_id ? newScoreP2 : null,
+        ].filter((s) => s !== null) as number[];
+    const opponentsAllZero = otherScores.every((s) => Number(s ?? 0) === 0);
+    const half = target !== null ? Math.floor(target / 2) : null;
+    const aloneReached =
+      half !== null && wScore >= half && wScore < (target ?? Infinity) && opponentsAllZero;
     const dateMatch = points > 0 && points === today;
     const handMode = mode === "hand";
-    const instantWin = isDouble6Win || dateMatch || handMode || targetReached;
+    const instantWin = isDouble6Win || dateMatch || handMode || targetReached || aloneReached;
 
     // Build a human-readable "porofo" of how this round was won, for the replay banner.
     const winnerName = (profileNames[winnerId] ?? "Mpandresy");
-    const reason: string = reasonOverride
+    let reason: string = reasonOverride
       ?? (isDouble6Win
         ? `${winnerName} — niala 6/6 (paire de six) +${points}`
         : dateMatch
@@ -225,6 +240,9 @@ export default function Game() {
               : points > 0
                 ? `${winnerName} — +${points} (vato sisa amin'ny hafa)`
                 : `${winnerName} — Mpandresy ny tour`);
+    if (aloneReached && !targetReached) {
+      reason = `${winnerName} — Tonga ${wScore} nandeha irery (target ${target})`;
+    }
 
     const REVEAL_MS = 5000;
     const revealUntil = new Date(Date.now() + REVEAL_MS).toISOString();
@@ -238,6 +256,7 @@ export default function Game() {
       score_p1: newScoreP1,
       score_p2: newScoreP2,
       reveal_until: revealUntil,
+      last_reason: reason,
     };
     if (pc === 3) updatePayload.score_p3 = newScoreP3;
     await supabase.from("games").update(updatePayload).eq("id", game.id);
@@ -245,12 +264,9 @@ export default function Game() {
 
     setTimeout(async () => {
       if (instantWin) {
-        // 2-player: ask both players "Mbola hanohy / Tsy hanohy" before settling.
-        // 3-player: settle immediately as before.
-        if (pc === 2 && targetReached) {
-          await supabase.from("games").update({ endgame_votes: {}, reveal_until: null }).eq("id", game.id);
-          return;
-        }
+        // Tsy misy bokotra "Continuer" intsony: tonga dia mamarana ny lalao raha tratra ny target,
+        // miala 6/6, datinandro, na "tonga antsasaka irery". Ny écran fandresena dia mamerina
+        // automatique any amin'ny lobby aorian'ny 5s.
         await supabase.rpc("settle_game", { _game_id: game.id, _winner: winnerId });
         return;
       }
@@ -902,18 +918,16 @@ export default function Game() {
       )}
 
       {game.status === "in_progress" && (
-        <div className="px-3 py-2 bg-destructive/10 border-b border-destructive/30 flex justify-center">
-          <Button
-            variant="destructive"
-            size="sm"
-            className="w-full max-w-xs gap-2 font-bold shadow-lg"
-            onClick={() => setConfirmAbandon(true)}
-            disabled={isAbandoning}
-          >
-            {isAbandoning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Flag className="w-4 h-4" />}
-            {isAbandoning ? "Tapitra ny lalao..." : "Abandonné — Hiala amin'ny lalao"}
-          </Button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setConfirmAbandon(true)}
+          disabled={isAbandoning}
+          className="fixed bottom-3 left-3 z-30 h-9 px-3 rounded-full bg-destructive/85 text-destructive-foreground text-[11px] font-bold flex items-center gap-1 shadow-lg backdrop-blur active:scale-95 disabled:opacity-50"
+          title="Abandonné"
+        >
+          {isAbandoning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Flag className="w-3.5 h-3.5" />}
+          Abandonné
+        </button>
       )}
 
       <AlertDialog open={confirmAbandon} onOpenChange={setConfirmAbandon}>
@@ -1080,22 +1094,6 @@ export default function Game() {
                 <LudoVoiceChat gameId={id} />
               </div>
             )}
-            <button
-              type="button"
-              className="fab-circle absolute left-2 top-1/2 -translate-y-1/2 z-20"
-              title="Pizza"
-              onClick={() => sfx.move()}
-            >
-              <Pizza className="w-6 h-6" />
-            </button>
-            <button
-              type="button"
-              className="fab-circle absolute right-2 top-1/2 -translate-y-1/2 z-20"
-              title="Rabbit"
-              onClick={() => sfx.move()}
-            >
-              <Rabbit className="w-6 h-6" />
-            </button>
 
             <div className="felt-board relative w-full h-full min-h-[240px] mx-auto overflow-hidden">
               {board.length === 0 ? (
@@ -1182,45 +1180,107 @@ export default function Game() {
         const stake = Number(game.stake ?? 0);
         const pc = Number(game.players_count ?? 2);
         const commissionEach = Math.round(stake * 0.10);
-        const pot = (stake - commissionEach) * pc; // gross credited to winner
-        const netGain = pot - stake; // bonus on top of own stake
+        const pot = (stake - commissionEach) * pc;
+        const netGain = pot - stake;
         const iWon = game.winner_id === user?.id;
         const draw = !game.winner_id;
+        const winnerName = game.winner_id ? (profileNames[game.winner_id] ?? "Mpandresy") : "";
+        const myScoreNow = scoreOf(user?.id ?? "");
+        const reasonText: string = (game as any).last_reason ?? "";
         return (
-          <div className="flex-1 flex items-center justify-center p-4 animate-in fade-in zoom-in duration-500">
-            {draw ? (
-              <div className="card-felt rounded-2xl p-8 text-center max-w-sm">
-                <p className="font-display text-3xl gold-text mb-3">Lalao tapaka</p>
-                <Button className="btn-gold mt-4 w-full" onClick={() => nav("/lobby")}>Lalao hafa</Button>
-              </div>
-            ) : iWon ? (
-              <div className="w-full max-w-md text-center rounded-3xl p-8 border-4 border-green-400 bg-gradient-to-br from-green-500 via-emerald-500 to-green-700 shadow-[0_0_60px_rgba(34,197,94,0.7)]">
-                <p className="text-5xl mb-3">🏆</p>
-                <p className="font-display text-4xl font-black text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] tracking-wide">
-                  NANDRESY GAGNÉ
-                </p>
-                <p className="font-display text-3xl font-black text-yellow-200 mt-3 drop-shadow-lg">
-                  +{fmtAr(netGain)}
-                </p>
-                <p className="text-sm text-white/90 mt-1">(+ Pot azo: {fmtAr(pot)})</p>
-                <Button className="btn-gold mt-6 w-full" onClick={() => nav("/lobby")}>Lalao hafa</Button>
-              </div>
-            ) : (
-              <div className="w-full max-w-md text-center rounded-3xl p-8 border-4 border-red-400 bg-gradient-to-br from-red-500 via-rose-600 to-red-800 shadow-[0_0_60px_rgba(239,68,68,0.7)]">
-                <p className="text-5xl mb-3">💔</p>
-                <p className="font-display text-4xl font-black text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] tracking-wide">
-                  RESY
-                </p>
-                <p className="font-display text-3xl font-black text-yellow-100 mt-3 drop-shadow-lg">
-                  -{fmtAr(stake)}
-                </p>
-                <p className="text-sm text-white/90 mt-1">(very ny mise napetrakao)</p>
-                <Button className="btn-gold mt-6 w-full" onClick={() => nav("/lobby")}>Lalao hafa</Button>
-              </div>
-            )}
-          </div>
+          <DominoResultOverlay
+            draw={draw}
+            iWon={iWon}
+            netGain={netGain}
+            pot={pot}
+            stake={stake}
+            winnerName={winnerName}
+            reasonText={reasonText}
+            myScore={myScoreNow}
+            onDone={() => nav("/lobby", { replace: true })}
+          />
         );
       })()}
+    </div>
+  );
+}
+
+function DominoResultOverlay({
+  draw, iWon, netGain, pot, stake, winnerName, reasonText, myScore, onDone,
+}: {
+  draw: boolean; iWon: boolean; netGain: number; pot: number; stake: number;
+  winnerName: string; reasonText: string; myScore: number; onDone: () => void;
+}) {
+  const [count, setCount] = useState(5);
+  useEffect(() => {
+    sfx.win?.();
+    const t = setInterval(() => setCount((c) => Math.max(0, c - 1)), 1000);
+    const done = setTimeout(onDone, 5000);
+    return () => { clearInterval(t); clearTimeout(done); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const dust = Array.from({ length: 80 }, (_, i) => i);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm overflow-hidden">
+      {iWon && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {dust.map((i) => {
+            const left = Math.random() * 100;
+            const dur = 2.2 + Math.random() * 2.6;
+            const delay = Math.random() * 1.5;
+            const size = 4 + Math.random() * 6;
+            return (
+              <span
+                key={i}
+                className="gold-dust"
+                style={{ left: `${left}%`, width: `${size}px`, height: `${size}px`, animationDuration: `${dur}s`, animationDelay: `${delay}s` }}
+              />
+            );
+          })}
+        </div>
+      )}
+      <div className={`domino-win-pop relative w-[92%] max-w-md text-center rounded-3xl p-7 border-4 shadow-2xl ${
+        draw ? "border-yellow-400 bg-gradient-to-br from-amber-600 to-yellow-800"
+        : iWon ? "border-green-300 bg-gradient-to-br from-green-500 via-emerald-500 to-green-700 shadow-[0_0_80px_rgba(34,197,94,0.85)]"
+        : "border-red-300 bg-gradient-to-br from-red-500 via-rose-600 to-red-800 shadow-[0_0_80px_rgba(239,68,68,0.75)]"
+      }`}>
+        {draw ? (
+          <>
+            <p className="text-5xl mb-2">🤝</p>
+            <p className="font-display text-3xl font-black text-white">Lalao tapaka</p>
+          </>
+        ) : iWon ? (
+          <>
+            <p className="text-6xl mb-2">🏆</p>
+            <p className="font-display text-4xl font-black text-green-50 domino-win-glow tracking-wide">
+              Arabaina nandresy ianao!
+            </p>
+            <p className="font-display text-xl font-bold text-yellow-100 mt-3">
+              Ianao no nahatratra ny isa <b className="text-yellow-200">{myScore}</b>
+            </p>
+            <div className="mt-4 inline-flex flex-col items-center rounded-2xl bg-black/30 px-5 py-3 border border-yellow-200/40">
+              <p className="text-xs text-yellow-100/80">Gain</p>
+              <p className="font-display text-3xl font-black text-yellow-200 drop-shadow-lg">+{fmtAr(netGain)}</p>
+              <p className="text-[11px] text-yellow-100/70">(Pot azo: {fmtAr(pot)})</p>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-5xl mb-2">💔</p>
+            <p className="font-display text-3xl font-black text-white">Resy ianao</p>
+            <p className="text-sm text-white/90 mt-2">
+              {reasonText
+                ? <>Resy ianao satria <b>{reasonText}</b></>
+                : winnerName
+                  ? <>Resy ianao satria nandresy <b>{winnerName}</b></>
+                  : null}
+            </p>
+            <p className="font-display text-2xl font-black text-yellow-100 mt-3">-{fmtAr(stake)}</p>
+            <p className="text-[11px] text-white/80">(very ny mise napetrakao)</p>
+          </>
+        )}
+        <p className="text-[11px] text-white/80 mt-4 italic">Hiverina amin'ny lobby afaka {count}s…</p>
+      </div>
     </div>
   );
 }

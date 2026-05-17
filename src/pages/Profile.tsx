@@ -105,6 +105,11 @@ export default function Profile() {
           )}
           <h2 className="font-display text-2xl font-bold mt-3">{profile?.mvola_name ?? "..."}</h2>
           <p className="text-xs text-muted-foreground">{profile?.phone}</p>
+          {profile?.player_number != null && (
+            <p className="mt-2 inline-block rounded-full bg-primary/20 border border-primary/40 px-3 py-1 text-xs font-mono font-bold gold-text">
+              ID Nº {String(profile.player_number).padStart(4, "0")}
+            </p>
+          )}
         </div>
 
         <div className="grid grid-cols-3 gap-2">

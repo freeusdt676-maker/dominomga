@@ -19,6 +19,7 @@ export default function Admin() {
   const allowed = isAdmin || codeOk;
   const [pending, setPending] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [userSearch, setUserSearch] = useState("");
   const [resets, setResets] = useState<any[]>([]);
   const [broadcast, setBroadcast] = useState("");
   const [adminBalance, setAdminBalance] = useState(0);
@@ -414,9 +415,30 @@ export default function Admin() {
           <TabsContent value="users" className="space-y-2 mt-3 max-h-[70vh] overflow-y-auto">
             <div className="card-felt rounded-xl p-3 mb-2 border-l-4 border-primary">
               <p className="text-xs text-foreground/80">👥 <b>Lisitra ny mpilalao.</b> Tsindrio ny anarana hijery ny mombamomba azy. Marika mena = miandry fakatoavana.</p>
+              <div className="relative mt-2">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                  placeholder="ID (0001…), anarana, na numéro"
+                  className="pl-9"
+                />
+              </div>
             </div>
             {users.length === 0 && <p className="text-center text-muted-foreground py-6">Tsy mbola misy mpilalao</p>}
-            {users.map((u) => (
+            {users
+              .filter((u) => {
+                const q = userSearch.trim().toLowerCase();
+                if (!q) return true;
+                const idStr = u.player_number != null ? String(u.player_number).padStart(4, "0") : "";
+                return (
+                  idStr.includes(q) ||
+                  String(u.player_number ?? "").includes(q) ||
+                  (u.mvola_name ?? "").toLowerCase().includes(q) ||
+                  (u.phone ?? "").toLowerCase().includes(q)
+                );
+              })
+              .map((u) => (
               <button
                 key={u.user_id}
                 onClick={() => setSelectedUser(u)}
@@ -428,6 +450,11 @@ export default function Admin() {
                 <div className="flex items-center justify-between">
                   <p className="font-bold flex items-center gap-2">
                     <span className={`inline-block w-2 h-2 rounded-full ${u.is_online ? "bg-green-500" : "bg-muted"}`} />
+                    {u.player_number != null && (
+                      <span className="font-mono text-[10px] gold-text bg-primary/15 border border-primary/30 px-1.5 py-0.5 rounded">
+                        #{String(u.player_number).padStart(4, "0")}
+                      </span>
+                    )}
                     {u.mvola_name}
                   </p>
                   <p className="gold-text font-bold text-xs">{fmtAr(u._balance ?? 0)}</p>

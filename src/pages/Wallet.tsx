@@ -109,7 +109,7 @@ export default function Wallet() {
     <div className="min-h-screen felt-bg">
       <header className="p-4 flex items-center gap-3 border-b border-primary/20">
         <Button variant="ghost" size="icon" onClick={() => nav("/")}><ArrowLeft /></Button>
-        <h1 className="font-display text-xl font-bold gold-text">Wallet</h1>
+        <h1 className="font-display text-xl font-bold gold-text">MVOLA</h1>
       </header>
 
       <div className="p-4 max-w-lg mx-auto space-y-4">

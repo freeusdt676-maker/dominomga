@@ -162,6 +162,7 @@ export type Database = {
           finished_at: string | null
           game_mode: string
           id: string
+          last_reason: string | null
           passes: number
           player1_hand: Json | null
           player1_id: string
@@ -193,6 +194,7 @@ export type Database = {
           finished_at?: string | null
           game_mode?: string
           id?: string
+          last_reason?: string | null
           passes?: number
           player1_hand?: Json | null
           player1_id: string
@@ -224,6 +226,7 @@ export type Database = {
           finished_at?: string | null
           game_mode?: string
           id?: string
+          last_reason?: string | null
           passes?: number
           player1_hand?: Json | null
           player1_id?: string

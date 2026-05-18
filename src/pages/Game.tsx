@@ -691,7 +691,7 @@ export default function Game() {
         });
         return;
       }
-      const passes = (game.passes ?? 0) + 1;
+      const passes = (fresh.passes ?? 0) + 1;
       if (passes >= pc) {
         await finishBlocked();
         return;

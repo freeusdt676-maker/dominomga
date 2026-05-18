@@ -632,46 +632,46 @@ export default function Game() {
   };
 
   // Auto-action / Bot — rehefa lany ny 20s, mandeha ho azy ny lalao
-  // Ny mpilalao manana ny tour no manao voalohany; raha tsy mihetsika izy,
-  // ny client-n'ny adversaire no maka an-tanana (bot) aorian'ny 3s fanampiny.
   useEffect(() => {
     if (!game || !user) return;
     if (game.status !== "in_progress") return;
     if (!game.current_turn) return;
     if (isRevealing) return;
-    // Rehefa lany ny 20s (na ahy na adversaire), ny Bot no mandefa avy hatrany
     if (elapsed < TURN_TIMEOUT_SEC) return;
-    // VATO VOALOHANY an'ny tour: ny pilalao topon'ny tour ihany no afaka mametraka.
-    // Tsy mety raha ny bot no manao izany — andraso ny pilalao.
-    if ((board?.length ?? 0) === 0) return;
     const key = `${game.id}-${game.turn_started_at}-${game.current_turn}`;
     if (autoActedRef.current === key) return;
     autoActedRef.current = key;
 
     (async () => {
-      const turnId = game.current_turn as string;
-      const turnKey = getHandKey(game, turnId) as "player1_hand" | "player2_hand" | "player3_hand" | null;
-      if (!turnKey) return;
-      const turnHand: Tile[] = ((game[turnKey] as Tile[]) ?? []) as Tile[];
-      const oppId = nextTurnId(game, turnId);
-      const pc = Number(game.players_count ?? 2);
+      const { data: fresh, error } = await supabase.from("games").select("*").eq("id", game.id).single();
+      if (error || !fresh) throw error ?? new Error("game_refresh_failed");
+      if (fresh.status !== "in_progress") return;
+      if (!fresh.current_turn || fresh.turn_started_at !== game.turn_started_at) return;
 
-      const playableIdx = turnHand.findIndex((t) => canPlace(board, t) !== null);
+      const liveBoard: Placed[] = (fresh.board_state as Placed[]) ?? [];
+      const turnId = fresh.current_turn as string;
+      const turnKey = getHandKey(fresh, turnId) as "player1_hand" | "player2_hand" | "player3_hand" | null;
+      if (!turnKey) return;
+      const turnHand: Tile[] = ((fresh[turnKey] as Tile[]) ?? []) as Tile[];
+      const oppId = nextTurnId(fresh, turnId);
+      const pc = Number(fresh.players_count ?? 2);
+
+      const playableIdx = turnHand.findIndex((t) => canPlace(liveBoard, t) !== null);
       if (playableIdx >= 0) {
         const tile = turnHand[playableIdx];
-        const can = canPlace(board, tile);
+        const can = canPlace(liveBoard, tile);
         const chosenSide: "left" | "right" = can === "left" ? "left" : can === "right" ? "right" : "right";
-        const newBoard = place(board, tile, chosenSide);
+        const newBoard = place(liveBoard, tile, chosenSide);
         const newHand = turnHand.filter((_, i) => i !== playableIdx);
         if (newHand.length === 0) {
           await updateGameState({
             board_state: newBoard,
             [turnKey]: newHand,
           } as any);
-          const otherIds = getPlayerIds(game).filter((x) => x !== turnId);
+          const otherIds = getPlayerIds(fresh).filter((x) => x !== turnId);
           const otherTiles: Tile[] = otherIds.flatMap((id) => {
-            const k = getHandKey(game, id) as any;
-            return (game[k] as Tile[]) ?? [];
+            const k = getHandKey(fresh, id) as any;
+            return (fresh[k] as Tile[]) ?? [];
           });
           await finishRound(turnId, pipsTotal(otherTiles), tile);
           return;
@@ -701,7 +701,9 @@ export default function Game() {
         turn_started_at: new Date().toISOString(),
         passes,
       });
-    })();
+    })().catch(() => {
+      autoActedRef.current = null;
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elapsed, game?.turn_started_at, game?.status, game?.current_turn]);
 

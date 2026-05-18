@@ -324,6 +324,19 @@ export default function LudoGame() {
       if (!state.dice_rolled) {
         const dice = rollDice();
         const nextSixes = dice === 6 ? state.consecutive_sixes + 1 : 0;
+        if (dice === 6 && state.consecutive_sixes >= 2) {
+          const i = liveSeats.indexOf(state.current_turn_seat);
+          const ns = liveSeats[(i + 1) % liveSeats.length];
+          await runRpc({
+            _game_id: state.id,
+            _last_dice: dice,
+            _dice_rolled: false,
+            _current_turn_seat: ns,
+            _consecutive_sixes: 0,
+            _turn_started_at: new Date().toISOString(),
+          });
+          return;
+        }
         const moves = legalMoves(state.pawns ?? [], state.current_turn_seat, dice);
 
         if (moves.length === 0) {
@@ -593,7 +606,7 @@ export default function LudoGame() {
         <GameChat
           gameId={g.id}
           names={names}
-          triggerClassName="fab-circle fixed bottom-16 right-3 z-30 w-12 h-12"
+          triggerClassName="fab-circle fixed bottom-24 right-3 z-30 w-12 h-12"
         />
       )}
 

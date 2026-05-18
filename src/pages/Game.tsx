@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, Home as HomeIcon, Clock, Flag } from "lucide-react";
+import { ArrowLeft, Loader2, Home as HomeIcon, Clock, Flag, LogOut } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -922,11 +922,11 @@ export default function Game() {
           type="button"
           onClick={() => setConfirmAbandon(true)}
           disabled={isAbandoning}
-          className="fixed bottom-3 left-3 z-30 h-9 px-3 rounded-full bg-destructive/85 text-destructive-foreground text-[11px] font-bold flex items-center gap-1 shadow-lg backdrop-blur active:scale-95 disabled:opacity-50"
-          title="Abandonné"
+          className="fixed top-2 right-2 z-30 w-8 h-8 rounded-full bg-destructive/75 text-destructive-foreground flex items-center justify-center shadow backdrop-blur active:scale-95 disabled:opacity-50"
+          title="Hiala amin'ny lalao"
+          aria-label="Hiala amin'ny lalao"
         >
-          {isAbandoning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Flag className="w-3.5 h-3.5" />}
-          Abandonné
+          {isAbandoning ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
         </button>
       )}
 

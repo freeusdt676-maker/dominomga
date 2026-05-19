@@ -489,6 +489,37 @@ export default function PetanqueGame() {
     );
   }
 
+  if (g.status === "waiting") {
+    const isHost = user?.id === g.player1_id;
+    const cancel = async () => {
+      const { error } = await supabase.rpc("petanque_cancel_waiting" as any, { _game_id: g.id });
+      if (error) return toast.error(error.message);
+      toast("Nesorina");
+      nav("/petanque");
+    };
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 gap-5 text-center"
+        style={{ background: "linear-gradient(180deg,#0a2e1c 0%,#021008 100%)" }}>
+        <Loader2 className="w-10 h-10 animate-spin text-emerald-300" />
+        <h2 className="text-2xl font-bold text-emerald-200">Miandry mpifanandrina...</h2>
+        <p className="text-emerald-100/80 text-sm">
+          Mise: <b>{g.stake} Ar</b> · Pétanque 2P
+        </p>
+        <p className="text-emerald-100/50 text-xs max-w-xs">
+          Hita amin'ny lobby ny mise nataonao. Raha misy mpilalao miditra dia hanomboka avy hatrany.
+        </p>
+        <div className="flex gap-3 mt-2">
+          <Button variant="outline" onClick={() => nav("/petanque")} className="border-emerald-500/40 text-emerald-100">
+            <ArrowLeft className="w-4 h-4 mr-1" /> Miverina any amin'ny Lobby
+          </Button>
+          {isHost && (
+            <Button variant="destructive" onClick={cancel}>Annuler ny mise</Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   const remaining = g.state?.remaining ?? { p1: 3, p2: 3 };
 
   return (

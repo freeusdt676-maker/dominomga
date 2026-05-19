@@ -474,7 +474,7 @@ export default function PetanqueGame() {
           autoThrowRef.current = null;
           return;
         }
-        const fresh = data as GameRow;
+        const fresh = data as unknown as GameRow;
         if (fresh.status !== "in_progress" || fresh.state?.phase !== "aim") {
           autoThrowRef.current = null;
           return;

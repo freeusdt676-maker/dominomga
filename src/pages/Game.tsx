@@ -434,6 +434,25 @@ export default function Game() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!id || !game || game.status !== "in_progress") return;
+    const markAbandoned = () => {
+      if (document.visibilityState === "hidden") {
+        sessionStorage.setItem(ABANDONED_GAME_KEY, id);
+      }
+    };
+    document.addEventListener("visibilitychange", markAbandoned);
+    return () => document.removeEventListener("visibilitychange", markAbandoned);
+  }, [id, game?.status]);
+
+  useEffect(() => {
+    if (!id || !game) return;
+    if (game.status === "finished" || game.status === "cancelled" || game.status === "blocked") {
+      const stored = getAbandonedGameId();
+      if (stored === id) sessionStorage.removeItem(ABANDONED_GAME_KEY);
+    }
+  }, [game?.status, id]);
+
   // Endgame vote resolver — kicks in once both players have voted (2-player only).
   useEffect(() => {
     if (!game) return;

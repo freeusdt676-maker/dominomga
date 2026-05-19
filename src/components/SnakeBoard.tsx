@@ -37,93 +37,34 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
   const unit = SHORT[tileSize];
   const long = unit * 2;
   const pad = 8;
-  // Available row width inside the felt; turn when exceeding
-  const rowMax = Math.max(unit * 6, vp.w - pad * 2 - unit); // leave room for fab buttons
 
-  // Snake layout in "chain space" — we'll translate to fit later.
+  // Single-row HORIZONTAL chain (no zig-zag). The chain grows to the right;
+  // overflow scrolls horizontally and we auto-scroll to keep the latest tile in view.
   const items: Item[] = [];
-  let dir: "R" | "D" | "L" | "U" = "R";
-  let cx = 0; // chain pointer (next tile center)
-  let cy = 0;
-  let rowStartCx = 0;
-  let placedInRow = 0;
-
-  const place = (a: number, b: number) => {
-    const isDouble = a === b;
-
-    const compute = (d: typeof dir) => {
-      const horiz = d === "R" || d === "L";
-      const tileLong = isDouble ? unit : long;
-      const tileShort = isDouble ? long : unit;
-      const w = horiz ? tileLong : tileShort;
-      const h = horiz ? tileShort : tileLong;
-      const step = (isDouble ? unit : long) / 2;
-      let centerX = cx;
-      let centerY = cy;
-      if (d === "R") centerX = cx + step;
-      if (d === "L") centerX = cx - step;
-      if (d === "D") centerY = cy + step;
-      if (d === "U") centerY = cy - step;
-      const x = centerX - w / 2;
-      const y = centerY - h / 2;
-      return { horiz, w, h, x, y, centerX, centerY, step };
-    };
-
-    // Decide if we should turn before placing
-    if (items.length > 0 && (dir === "R" || dir === "L")) {
-      const probe = compute(dir);
-      const rowSpan = Math.abs(probe.centerX - rowStartCx);
-      if (rowSpan > rowMax) {
-        // turn down then reverse direction => U-turn (zig-zag)
-        dir = "D";
-        // step down by long to leave space for next row
-        cy += long;
-        // now flip horizontal direction for the new row
-        const next = compute(dir); // not used directly; we instead do row break:
-        void next;
-        dir = dir === "D" ? (placedInRow % 2 === 0 ? "L" : "R") : dir;
-        // Easier: alternate based on row count
-        const newRow = Math.round(cy / long);
-        dir = newRow % 2 === 1 ? "L" : "R";
-        rowStartCx = cx;
-        placedInRow = 0;
-      }
-    }
-
-    const r = compute(dir);
-
-    // Visual order: when chain runs right-to-left or bottom-to-top,
-    // the connecting end (a) must face the PREVIOUS tile, i.e. be on the
-    // right/bottom side of this tile. DominoTile draws `a` on the
-    // left/top half, so we swap a/b for those directions (skip doubles).
-    let va = a;
-    let vb = b;
-    if (!isDouble && (dir === "L" || dir === "U")) {
-      va = b;
-      vb = a;
-    }
-
-    items.push({
-      x: r.x,
-      y: r.y,
-      w: r.w,
-      h: r.h,
-      a: va,
-      b: vb,
-      horizontal: r.horiz ? !isDouble : isDouble,
-      isDouble,
-    });
-    cx = r.centerX + (dir === "R" ? r.step : dir === "L" ? -r.step : 0);
-    cy = r.centerY + (dir === "D" ? r.step : dir === "U" ? -r.step : 0);
-    placedInRow += 1;
-  };
+  let cx = 0; // running x cursor (left edge of next tile)
+  const cy = 0;
 
   for (const p of board) {
     const [aa, bb] = p.tile;
     const a = p.flipped ? bb : aa;
     const b = p.flipped ? aa : bb;
-    place(a, b);
+    const isDouble = a === b;
+    // Horizontal row: doubles are drawn vertical (perpendicular), non-doubles horizontal
+    const horiz = !isDouble;
+    const w = horiz ? long : unit;
+    const h = horiz ? unit : long;
+    items.push({ x: cx, y: cy - h / 2, w, h, a, b, horizontal: horiz, isDouble });
+    cx += w;
   }
+
+  // Auto-scroll so the last (newest) tile stays visible.
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    requestAnimationFrame(() => {
+      el.scrollTo({ left: el.scrollWidth, behavior: "smooth" });
+    });
+  }, [board.length]);
 
   // Translate everything to positive coords with padding
   let dx = pad, dy = pad, innerW = vp.w, innerH = vp.h;
@@ -136,14 +77,15 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
     const chainH = maxY - minY;
     innerW = Math.max(vp.w, chainW + pad * 2);
     innerH = Math.max(vp.h, chainH + pad * 2);
-    dx = (innerW - chainW) / 2 - minX;
+    // Left-align with padding so chain reads left→right; vertical centered.
+    dx = pad - minX;
     dy = (innerH - chainH) / 2 - minY;
   }
 
   return (
     <div
       ref={wrapRef}
-      className="relative w-full h-full overflow-auto"
+      className="relative w-full h-full overflow-x-auto overflow-y-hidden"
       style={{ scrollbarWidth: "thin" }}
     >
       <div ref={innerRef} className="relative" style={{ width: innerW, height: innerH }}>

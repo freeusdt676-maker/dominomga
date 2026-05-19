@@ -119,9 +119,9 @@ export default function Wallet() {
       </header>
 
       <div className="p-4 max-w-lg mx-auto space-y-4">
-        <div className="card-felt rounded-2xl p-6 text-center">
-          <p className="text-xs text-muted-foreground">Solde ankehitriny</p>
-          <p className="text-4xl font-display gold-text font-bold">{fmtAr(balance)}</p>
+        <div className="card-felt rounded-2xl p-5 text-center">
+          <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Solde ankehitriny</p>
+          <p className="text-2xl sm:text-3xl font-display gold-text font-bold mt-1">{fmtAr(balance)}</p>
         </div>
 
         <Tabs defaultValue="deposit" className="card-felt rounded-2xl p-4">

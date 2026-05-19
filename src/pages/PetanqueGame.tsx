@@ -34,9 +34,10 @@ type GameRow = {
   };
 };
 
-const TARGET_SCORE = 20;
+const TARGET_SCORE = 12;
 const BALLS_PER_PLAYER = 6;
 const FANI_SCORE = 6; // Si un joueur atteint 6 et l'autre est à 0 => victoire (Fani)
+const TURN_LIMIT_MS = 20_000;
 
 /* ---------- 3D Scene Components ---------- */
 
@@ -343,6 +344,26 @@ export default function PetanqueGame() {
     return () => { document.body.style.overflow = ""; };
   }, []);
 
+  useEffect(() => {
+    if (!id || !g || g.status !== "in_progress") return;
+    const markAbandoned = () => {
+      if (document.visibilityState === "hidden") {
+        sessionStorage.setItem("petanque_abandoned_game_id", id);
+      }
+    };
+    const markActive = () => {
+      if (document.visibilityState === "visible") {
+        sessionStorage.removeItem("petanque_abandoned_game_id");
+      }
+    };
+    document.addEventListener("visibilitychange", markAbandoned);
+    window.addEventListener("focus", markActive);
+    return () => {
+      document.removeEventListener("visibilitychange", markAbandoned);
+      window.removeEventListener("focus", markActive);
+    };
+  }, [id, g?.status]);
+
   // Load game + polling fallback (au cas où le realtime tarde)
   useEffect(() => {
     if (!id) return;
@@ -372,7 +393,7 @@ export default function PetanqueGame() {
     })();
   }, [g?.player1_id, g?.player2_id]);
 
-  // Settle: maty 20 OR Fani (6-0)
+  // Settle: maty 12 OR Fani (6-0)
   useEffect(() => {
     if (!g || g.status !== "in_progress") return;
     let winner: string | null = null;
@@ -434,25 +455,113 @@ export default function PetanqueGame() {
     requestAnimationFrame(loop);
   };
 
-  // ---- 20s auto-throw (robot) — current player only ----
+  // ---- 20s auto-throw (robot) — any connected player may trigger after server confirms timeout ----
   useEffect(() => {
-    if (!g || !user || !mySide) return;
+    if (!g || !user) return;
     if (g.status !== "in_progress") return;
     if (g.state?.phase !== "aim") return;
-    if (g.current_turn !== user.id) return;
     if (throwing) return;
     const startMs = g.turn_started_at ? new Date(g.turn_started_at).getTime() : Date.now();
     const key = `${g.id}-${g.turn_started_at ?? "0"}-${g.current_turn}`;
     if (autoThrowRef.current === key) return;
-    const delay = Math.max(0, 20_000 - (Date.now() - startMs));
+    const delay = Math.max(0, TURN_LIMIT_MS - (Date.now() - startMs));
     const t = setTimeout(() => {
       if (autoThrowRef.current === key) return;
       autoThrowRef.current = key;
-      const ba = Math.round((Math.random() - 0.5) * 40);
-      const bf = 40 + Math.round(Math.random() * 40);
-      setAngle(ba); setForce(bf);
-      setTimeout(() => { void doThrow(ba, bf); }, 60);
-      toast("⏱ Robot nanatsipy baolina (20s)");
+      (async () => {
+        const { data, error } = await supabase.from("petanque_games" as any).select("*").eq("id", g.id).single();
+        if (error || !data) {
+          autoThrowRef.current = null;
+          return;
+        }
+        const fresh = data as GameRow;
+        if (fresh.status !== "in_progress" || fresh.state?.phase !== "aim") {
+          autoThrowRef.current = null;
+          return;
+        }
+        const freshTurnMs = fresh.turn_started_at ? new Date(fresh.turn_started_at).getTime() : 0;
+        if (Date.now() - freshTurnMs < TURN_LIMIT_MS) {
+          autoThrowRef.current = null;
+          return;
+        }
+        if (!fresh.current_turn || !user || ![fresh.player1_id, fresh.player2_id].includes(user.id)) {
+          autoThrowRef.current = null;
+          return;
+        }
+        const throwSide: "p1" | "p2" | null = fresh.current_turn === fresh.player1_id ? "p1" : fresh.current_turn === fresh.player2_id ? "p2" : null;
+        if (!throwSide) {
+          autoThrowRef.current = null;
+          return;
+        }
+        const ba = Math.round((Math.random() - 0.5) * 40);
+        const bf = 40 + Math.round(Math.random() * 40);
+        const remaining = fresh.state?.remaining ?? { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER };
+        if (remaining[throwSide] <= 0) {
+          autoThrowRef.current = null;
+          return;
+        }
+        const rad = (ba * Math.PI) / 180;
+        const speed = 4 + (bf / 100) * 11;
+        const vx = Math.sin(rad) * speed;
+        const vz = Math.cos(rad) * speed;
+        const newBall: Ball = {
+          id: `bot_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          owner: throwSide,
+          x: 0,
+          z: -1.3,
+          vx,
+          vz,
+        };
+        const balls: Ball[] = [...(fresh.state?.balls ?? []).map((b) => ({ ...b, vx: 0, vz: 0 })), newBall];
+        const jack: Jack | null = fresh.state?.jack ? { ...fresh.state.jack } : null;
+        let moving = true;
+        let loops = 0;
+        while (moving && loops < 480) {
+          moving = stepPhysics(balls, jack, 1 / 60);
+          loops += 1;
+        }
+        const prevRemaining = fresh.state?.remaining ?? { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER };
+        const nextRemaining = { ...prevRemaining, [throwSide]: Math.max(0, prevRemaining[throwSide] - 1) };
+        let newScoreP1 = fresh.score_p1;
+        let newScoreP2 = fresh.score_p2;
+        let newRound = fresh.round_number;
+        let nextTurnUser: string | null = null;
+        let newBalls = balls.map((b) => ({ ...b, vx: 0, vz: 0 }));
+        let newJack = jack;
+        let roundRemaining = nextRemaining;
+        if (nextRemaining.p1 <= 0 && nextRemaining.p2 <= 0 && jack) {
+          const r = computeRoundScore(newBalls, jack);
+          if (r.winner === "p1") newScoreP1 += r.points;
+          if (r.winner === "p2") newScoreP2 += r.points;
+          newRound += 1;
+          newBalls = [];
+          newJack = { x: (Math.random() - 0.5) * 2, z: 6 + (Math.random() - 0.5) * 2 };
+          roundRemaining = { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER };
+          const next: "p1" | "p2" = r.winner === "p1" ? "p2" : "p1";
+          nextTurnUser = next === "p1" ? fresh.player1_id : fresh.player2_id;
+        } else {
+          const nx = nextThrower(newBalls, jack, nextRemaining, throwSide);
+          nextTurnUser = nx === "p1" ? fresh.player1_id : nx === "p2" ? fresh.player2_id : (throwSide === "p1" ? fresh.player2_id : fresh.player1_id);
+        }
+        await supabase.rpc("petanque_update_state" as any, {
+          _game_id: fresh.id,
+          _state: {
+            balls: newBalls,
+            jack: newJack,
+            phase: "aim",
+            remaining: roundRemaining,
+            lastThrower: throwSide,
+          },
+          _current_turn: nextTurnUser,
+          _turn_started_at: new Date().toISOString(),
+          _score_p1: newScoreP1,
+          _score_p2: newScoreP2,
+          _round_number: newRound,
+        });
+        toast("⏱ Robot nanatsipy baolina (20s)");
+      })().catch(() => {
+        autoThrowRef.current = null;
+      });
     }, delay);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps

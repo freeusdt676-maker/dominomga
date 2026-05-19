@@ -1132,13 +1132,16 @@ export default function Game() {
               {board.length === 0 ? (
                 <div className="absolute inset-0 flex items-center justify-center px-4">
                   {game.player2_id ? (
-                    <div className="flex flex-col items-center gap-3 text-center">
-                      <div className="relative flex h-24 w-24 items-center justify-center rounded-full border-2 border-dashed border-primary/50 bg-black/20 shadow-[0_0_28px_rgba(212,165,44,0.18)]">
-                        <span className="absolute -top-7 text-2xl text-primary animate-bounce">↓</span>
-                        <div className="h-12 w-6 rounded-md border border-primary/50 bg-primary/10" />
+                    <div className="flex flex-col items-center gap-2 text-center">
+                      {/* Big bouncing arrow pointing down to exact drop spot */}
+                      <span className="text-4xl text-primary animate-bounce drop-shadow-[0_0_10px_rgba(212,165,44,0.9)]">⬇</span>
+                      {/* Exact placeholder where the first tile will land */}
+                      <div className="relative flex h-16 w-28 items-center justify-center rounded-lg border-2 border-dashed border-primary bg-primary/15 shadow-[0_0_32px_rgba(212,165,44,0.5)] animate-pulse">
+                        <div className="h-10 w-20 rounded-md border border-primary/70 bg-primary/10" />
+                        <span className="absolute inset-0 rounded-lg ring-2 ring-primary/40 animate-ping" />
                       </div>
-                      <p className="text-sm text-[#ffe27a]/85 italic">
-                        {isMyTurn ? "Eto afovoany no hipetraka ny vato voalohany" : "Eto no hapetraky ny adversaire ny vato voalohany"}
+                      <p className="text-xs text-[#ffe27a] italic font-semibold tracking-wide">
+                        {isMyTurn ? "ETO no asiana ny vato voalohany" : "Eto no hapetraky ny adversaire ny vato voalohany"}
                       </p>
                     </div>
                   ) : (

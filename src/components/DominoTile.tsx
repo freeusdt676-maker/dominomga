@@ -73,7 +73,7 @@ export function DominoTile({
       disabled={disabled || !onClick}
       className={`relative ${fluid ? "w-full" : "shrink-0"} transition ${
         onClick && !disabled ? "cursor-pointer hover:-translate-y-1 active:scale-95" : "cursor-default"
-      } ${selected ? "ring-2 ring-primary -translate-y-2" : ""} ${disabled ? "opacity-50" : ""}`}
+      } ${selected ? "ring-2 ring-primary -translate-y-2" : ""} ${disabled && onClick ? "opacity-50" : ""}`}
       style={{
         width: fluid ? "100%" : tileW,
         height: fluid ? "auto" : tileH,

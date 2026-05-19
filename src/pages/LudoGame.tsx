@@ -93,6 +93,26 @@ export default function LudoGame() {
     setRollAnimSeat(null);
   };
 
+  useEffect(() => {
+    if (!id) return;
+    const markAbandoned = () => {
+      if (document.visibilityState === "hidden") {
+        sessionStorage.setItem(ABANDONED_GAME_KEY, id);
+      }
+    };
+    const markActive = () => {
+      if (document.visibilityState === "visible") {
+        sessionStorage.removeItem(ABANDONED_GAME_KEY);
+      }
+    };
+    document.addEventListener("visibilitychange", markAbandoned);
+    window.addEventListener("focus", markActive);
+    return () => {
+      document.removeEventListener("visibilitychange", markAbandoned);
+      window.removeEventListener("focus", markActive);
+    };
+  }, [id]);
+
   const armSafetyRelease = () => {
     clearRefTimeout(blockerSafetyRef);
     blockerSafetyRef.current = window.setTimeout(() => {

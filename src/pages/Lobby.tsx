@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { STAKE_LEVELS, fmtAr } from "@/lib/constants";
 import { ArrowLeft, Loader2, Coins, Users, X } from "lucide-react";
 import { toast } from "sonner";
+import { useThemeClass } from "@/hooks/use-theme-class";
 
 type WaitingGame = {
   id: string; player1_id: string; stake: number; created_at: string; game_mode?: string;

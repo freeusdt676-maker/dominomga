@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, Send, Shield, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { sfx } from "@/lib/sfx";
+import { useThemeClass } from "@/hooks/use-theme-class";
 
 export default function AdminChat() {
+  useThemeClass("mvola");
   const { user, isAdmin } = useAuth();
   const nav = useNavigate();
   const [messages, setMessages] = useState<any[]>([]);

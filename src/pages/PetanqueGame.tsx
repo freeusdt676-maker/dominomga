@@ -332,6 +332,10 @@ export default function PetanqueGame() {
   const [simJack, setSimJack] = useState<Jack | null>(null);
   const simRef = useRef<{ balls: Ball[]; jack: Jack | null } | null>(null);
   const autoThrowRef = useRef<string | null>(null);
+  // Drag-to-throw gesture state
+  const [drag, setDrag] = useState<{ dx: number; dy: number } | null>(null);
+  const dragStart = useRef<{ x: number; y: number } | null>(null);
+  const PULL_MAX = 180; // px — pull complet = 100% hery
 
   // Force portrait + fullscreen feel
   useEffect(() => {
@@ -389,14 +393,16 @@ export default function PetanqueGame() {
     setSimJack(g?.state?.jack ?? null);
   }, [g?.state, throwing]);
 
-  const doThrow = async () => {
+  const doThrow = async (overrideAngle?: number, overrideForce?: number) => {
     if (!g || !user || !mySide || throwing) return;
     const remaining = g.state?.remaining ?? { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER };
     if (remaining[mySide] <= 0) return toast.error("Tsy manana baolina intsony");
     setThrowing(true);
+    const useAngle = overrideAngle ?? angle;
+    const useForce = overrideForce ?? force;
     // initial conditions: from throw line (z=-1.3), angle relative to z axis
-    const rad = (angle * Math.PI) / 180;
-    const speed = 4 + (force / 100) * 11; // 4..15 m/s
+    const rad = (useAngle * Math.PI) / 180;
+    const speed = 4 + (useForce / 100) * 11; // 4..15 m/s
     const vx = Math.sin(rad) * speed;
     const vz = Math.cos(rad) * speed;
     const newBall: Ball = {
@@ -442,11 +448,10 @@ export default function PetanqueGame() {
     const t = setTimeout(() => {
       if (autoThrowRef.current === key) return;
       autoThrowRef.current = key;
-      // Random bot params
-      setAngle(Math.round((Math.random() - 0.5) * 40)); // -20..+20°
-      setForce(40 + Math.round(Math.random() * 40));    // 40..80%
-      // doThrow uses latest angle/force via closure of next render — defer a tick
-      setTimeout(() => { void doThrow(); }, 60);
+      const ba = Math.round((Math.random() - 0.5) * 40);
+      const bf = 40 + Math.round(Math.random() * 40);
+      setAngle(ba); setForce(bf);
+      setTimeout(() => { void doThrow(ba, bf); }, 60);
       toast("⏱ Robot nanatsipy baolina (20s)");
     }, delay);
     return () => clearTimeout(t);
@@ -596,38 +601,41 @@ export default function PetanqueGame() {
         </Suspense>
       </Canvas>
 
-      {/* Top overlay - glass orb player profiles */}
-      <div className="absolute top-0 left-0 right-0 p-3 flex items-start justify-between pointer-events-none">
-        <PlayerOrb
-          name={p1Profile?.mvola_name ?? "Mpilalao 1"}
-          score={g.score_p1}
-          remaining={remaining.p1}
-          color="#dc2626"
-          active={g.current_turn === g.player1_id}
-          side="left"
-        />
-        <div className="text-center pointer-events-none mt-2">
-          <div className="text-[10px] text-emerald-200/70 tracking-widest">ROUND {g.round_number}</div>
-          <div className="text-xl font-bold text-white drop-shadow-lg">{g.score_p1} : {g.score_p2}</div>
-          <div className="text-[10px] text-emerald-200/70">Maty {TARGET_SCORE} · Fani {FANI_SCORE}-0</div>
+      {/* Top overlay — solaitra mainty be zaraina roa */}
+      <div className="absolute top-0 left-0 right-0 bg-black/90 backdrop-blur-md border-b-2 border-white/15 shadow-2xl pointer-events-auto">
+        <div className="flex items-stretch">
+          <PlayerHalf
+            name={p1Profile?.mvola_name ?? "Mpilalao 1"}
+            avatarUrl={p1Profile?.avatar_url}
+            score={g.score_p1}
+            remaining={remaining.p1}
+            color="#dc2626"
+            active={g.current_turn === g.player1_id}
+            side="left"
+          />
+          <div className="flex flex-col items-center justify-center px-2 py-2 border-x border-white/15 min-w-[88px]">
+            <div className="text-[9px] text-white/60 tracking-widest font-semibold">ROUND {g.round_number}</div>
+            <div className="text-3xl font-black text-white leading-none my-0.5">{g.score_p1}<span className="text-white/40 mx-1">:</span>{g.score_p2}</div>
+            <div className="text-[9px] text-white/50 font-semibold">MATY {TARGET_SCORE} · FANI {FANI_SCORE}-0</div>
+            <button
+              onClick={() => nav("/")}
+              className="mt-1.5 w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center"
+              aria-label="Hiala"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-white" />
+            </button>
+          </div>
+          <PlayerHalf
+            name={p2Profile?.mvola_name ?? "Miandry..."}
+            avatarUrl={p2Profile?.avatar_url}
+            score={g.score_p2}
+            remaining={remaining.p2}
+            color="#2563eb"
+            active={g.current_turn === g.player2_id}
+            side="right"
+          />
         </div>
-        <PlayerOrb
-          name={p2Profile?.mvola_name ?? "Miandry..."}
-          score={g.score_p2}
-          remaining={remaining.p2}
-          color="#2563eb"
-          active={g.current_turn === g.player2_id}
-          side="right"
-        />
       </div>
-
-      {/* Back button (left) */}
-      <button
-        onClick={() => nav("/")}
-        className="absolute top-3 left-1/2 -translate-x-[50px] mt-16 w-9 h-9 rounded-full bg-black/40 backdrop-blur border border-white/20 flex items-center justify-center"
-      >
-        <ArrowLeft className="w-4 h-4 text-white" />
-      </button>
 
       {/* Pause button (bottom right) with seashell decor */}
       <button className="absolute bottom-4 right-4 w-14 h-14 rounded-full bg-emerald-500 border-2 border-white/40 flex items-center justify-center shadow-xl shadow-emerald-500/40">
@@ -638,37 +646,77 @@ export default function PetanqueGame() {
         </svg>
       </button>
 
-      {/* Bottom controls */}
+      {/* Drag-to-throw pad — toy ny mitarika tady */}
       {isMyTurn && !throwing && (
-        <div className="absolute bottom-20 left-0 right-0 px-4 pb-2 pointer-events-auto">
-          <div className="max-w-md mx-auto bg-black/55 backdrop-blur rounded-2xl p-3 border border-emerald-400/40 space-y-2">
-            <div>
-              <div className="flex justify-between text-[11px] text-emerald-200 mb-1">
-                <span>← Havia</span><span className="font-bold">Tady: {angle}°</span><span>Havanana →</span>
-              </div>
-              <input
-                type="range" min={-35} max={35} value={angle}
-                onChange={(e) => setAngle(Number(e.target.value))}
-                className="w-full accent-emerald-400"
-              />
+        <div
+          className="absolute bottom-0 left-0 right-0 h-[42%] touch-none select-none"
+          onPointerDown={(e) => {
+            (e.target as Element).setPointerCapture?.(e.pointerId);
+            dragStart.current = { x: e.clientX, y: e.clientY };
+            setDrag({ dx: 0, dy: 0 });
+          }}
+          onPointerMove={(e) => {
+            if (!dragStart.current) return;
+            const dx = e.clientX - dragStart.current.x;
+            const dy = e.clientY - dragStart.current.y;
+            setDrag({ dx, dy });
+            const pull = Math.max(0, Math.min(PULL_MAX, dy));
+            setForce(Math.round(10 + (pull / PULL_MAX) * 90));
+            setAngle(Math.max(-35, Math.min(35, -dx / 4)));
+          }}
+          onPointerUp={() => {
+            if (!dragStart.current) { setDrag(null); return; }
+            const d = drag;
+            dragStart.current = null;
+            setDrag(null);
+            if (!d) return;
+            const pull = Math.max(0, Math.min(PULL_MAX, d.dy));
+            if (pull < 24) return; // tariny kely loatra — tsy alefa
+            const f = Math.round(10 + (pull / PULL_MAX) * 90);
+            const a = Math.max(-35, Math.min(35, -d.dx / 4));
+            void doThrow(a, f);
+          }}
+          onPointerCancel={() => { dragStart.current = null; setDrag(null); }}
+        >
+          {/* HUD readout */}
+          <div className="absolute top-2 left-0 right-0 flex justify-center pointer-events-none">
+            <div className="bg-black/70 backdrop-blur px-4 py-1.5 rounded-full border border-emerald-400/40 flex items-center gap-3 text-xs font-bold">
+              <span className="text-emerald-200">Tady: <span className="text-white">{angle}°</span></span>
+              <span className="w-px h-3 bg-white/30" />
+              <span className="text-emerald-200">Hery: <span className="text-white">{force}%</span></span>
             </div>
-            <div>
-              <div className="flex justify-between text-[11px] text-emerald-200 mb-1">
-                <span>Hery</span><span className="font-bold">{force}%</span>
-              </div>
-              <input
-                type="range" min={10} max={100} value={force}
-                onChange={(e) => setForce(Number(e.target.value))}
-                className="w-full accent-emerald-400"
-              />
-            </div>
-            <button
-              onClick={doThrow}
-              className="w-full py-3 rounded-xl bg-gradient-to-b from-emerald-400 to-emerald-600 text-emerald-950 font-extrabold tracking-wide shadow-lg shadow-emerald-500/40 active:scale-95 transition"
-            >
-              🎯 ALEFA
-            </button>
           </div>
+          {/* Drag handle visual */}
+          <div className="absolute left-1/2 -translate-x-1/2 bottom-20 pointer-events-none">
+            <div
+              className="w-16 h-16 rounded-full shadow-2xl"
+              style={{
+                background: `radial-gradient(circle at 35% 30%, ${mySide === "p1" ? "#ff6b6b" : "#60a5fa"}, ${mySide === "p1" ? "#991b1b" : "#1e3a8a"})`,
+                transform: drag ? `translate(${drag.dx}px, ${Math.max(0, Math.min(PULL_MAX, drag.dy))}px)` : "none",
+                transition: drag ? "none" : "transform 240ms ease-out",
+                boxShadow: "0 8px 24px rgba(0,0,0,0.5), inset -4px -6px 12px rgba(0,0,0,0.35), inset 4px 4px 10px rgba(255,255,255,0.35)",
+              }}
+            />
+            {/* tension line */}
+            {drag && (drag.dy > 0) && (
+              <svg className="absolute top-8 left-8 overflow-visible pointer-events-none" width="1" height="1">
+                <line
+                  x1={0} y1={0}
+                  x2={drag.dx} y2={Math.max(0, Math.min(PULL_MAX, drag.dy))}
+                  stroke="rgba(34,255,102,0.9)" strokeWidth="3" strokeLinecap="round"
+                  strokeDasharray="6 4"
+                />
+              </svg>
+            )}
+          </div>
+          {/* Hint */}
+          {!drag && (
+            <div className="absolute bottom-2 left-0 right-0 text-center pointer-events-none">
+              <span className="inline-block px-4 py-2 rounded-full bg-emerald-500/85 text-emerald-950 font-bold text-xs shadow-lg">
+                ✋ Hazony ny baolina, dia taritina midina hatsipy
+              </span>
+            </div>
+          )}
         </div>
       )}
 
@@ -689,31 +737,48 @@ export default function PetanqueGame() {
   );
 }
 
-function PlayerOrb({ name, score, remaining, color, active, side }: {
-  name: string; score: number; remaining: number; color: string; active: boolean; side: "left" | "right";
+function PlayerHalf({ name, avatarUrl, score, remaining, color, active, side }: {
+  name: string; avatarUrl?: string | null; score: number; remaining: number; color: string; active: boolean; side: "left" | "right";
 }) {
+  const initial = (name ?? "?").trim().charAt(0).toUpperCase();
+  // boule mainty — accent loko ho an'ny mpilalao
+  const boules = (
+    <div className={`flex gap-1 ${side === "right" ? "flex-row-reverse" : ""}`}>
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div
+          key={i}
+          className="w-2.5 h-2.5 rounded-full border border-white/15"
+          style={{
+            background: i < remaining
+              ? `radial-gradient(circle at 35% 30%, ${color}, #0a0a0a 80%)`
+              : "rgba(255,255,255,0.05)",
+          }}
+        />
+      ))}
+    </div>
+  );
+  const avatar = (
+    <div
+      className={`relative w-12 h-12 rounded-full shrink-0 overflow-hidden border-2 ${
+        active ? "border-emerald-300 shadow-md shadow-emerald-300/40" : "border-white/25"
+      }`}
+      style={{ background: `radial-gradient(circle at 30% 30%, ${color}dd, ${color}55)` }}
+    >
+      {avatarUrl ? (
+        <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center text-white font-black text-lg">{initial}</div>
+      )}
+      {active && <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />}
+    </div>
+  );
   return (
-    <div className={`flex flex-col ${side === "right" ? "items-end" : "items-start"} pointer-events-none`}>
-      <div
-        className={`relative w-20 h-20 rounded-full backdrop-blur-md flex flex-col items-center justify-center border-2 transition ${
-          active ? "border-emerald-300 shadow-lg shadow-emerald-300/60 scale-105" : "border-white/30"
-        }`}
-        style={{
-          background: `radial-gradient(circle at 30% 30%, ${color}cc, ${color}55)`,
-        }}
-      >
-        <div className="text-[10px] text-white/90 font-semibold leading-tight truncate max-w-[68px] px-1">{name}</div>
-        <div className="text-xl font-extrabold text-white drop-shadow">{score}</div>
-        {active && <div className="absolute -bottom-1 w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />}
-      </div>
-      <div className={`mt-1.5 flex gap-1 ${side === "right" ? "flex-row-reverse" : ""}`}>
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div
-            key={i}
-            className="w-2.5 h-2.5 rounded-full border border-white/40"
-            style={{ background: i < remaining ? color : "transparent" }}
-          />
-        ))}
+    <div className={`flex-1 px-2.5 py-2 flex items-center gap-2 ${side === "right" ? "flex-row-reverse text-right" : "text-left"}`}>
+      {avatar}
+      <div className="min-w-0 flex-1">
+        <div className="text-[11px] text-white/90 font-bold truncate">{name}</div>
+        <div className="text-2xl font-black text-white leading-none">{score}</div>
+        <div className="mt-1">{boules}</div>
       </div>
     </div>
   );

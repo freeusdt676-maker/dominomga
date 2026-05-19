@@ -7,6 +7,7 @@ import { STAKE_LEVELS, fmtAr } from "@/lib/constants";
 import { ArrowLeft, Loader2, Coins, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { sfx } from "@/lib/sfx";
+import { useThemeClass } from "@/hooks/use-theme-class";
 
 type WaitingGame = {
   id: string; player1_id: string; stake: number; created_at: string;
@@ -15,6 +16,7 @@ type WaitingGame = {
 };
 
 export default function LudoLobby() {
+  useThemeClass("ludo");
   const { user } = useAuth();
   const nav = useNavigate();
   const [stake, setStake] = useState(STAKE_LEVELS[0]);

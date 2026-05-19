@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import {
   Ball, Jack, COURT, distance, stepPhysics, computeRoundScore, nextThrower,
 } from "@/lib/petanqueEngine";
+import { useThemeClass } from "@/hooks/use-theme-class";
 
 type GameRow = {
   id: string;
@@ -314,6 +315,7 @@ function AimArrow({ angleDeg, visible }: { angleDeg: number; visible: boolean })
 /* ---------- Main Page ---------- */
 
 export default function PetanqueGame() {
+  useThemeClass("petanque");
   const { id } = useParams();
   const nav = useNavigate();
   const { user } = useAuth();

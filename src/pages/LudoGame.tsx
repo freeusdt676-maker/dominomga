@@ -14,6 +14,7 @@ import { sfx } from "@/lib/sfx";
 import { toast } from "sonner";
 import { GameChat } from "@/components/GameChat";
 import LudoVoiceChat from "@/components/LudoVoiceChat";
+import { useThemeClass } from "@/hooks/use-theme-class";
 
 type LG = {
   id: string;
@@ -54,6 +55,7 @@ function normalizeGame(raw: any): LG {
 }
 
 export default function LudoGame() {
+  useThemeClass("ludo");
   const { id } = useParams();
   const { user } = useAuth();
   const nav = useNavigate();

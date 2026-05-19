@@ -18,6 +18,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { fmtAr, TURN_TIMEOUT_SEC } from "@/lib/constants";
 import { DominoTile, DominoBack } from "@/components/DominoTile";
 import { SnakeBoard } from "@/components/SnakeBoard";
+import { useThemeClass } from "@/hooks/use-theme-class";
 import { RadioPlayer } from "@/components/RadioPlayer";
 import { GameChat } from "@/components/GameChat";
 import LudoVoiceChat from "@/components/LudoVoiceChat";
@@ -63,6 +64,7 @@ function getHandKey(g: any, uid: string): "player1_hand" | "player2_hand" | "pla
 }
 
 export default function Game() {
+  useThemeClass("domino");
   const { id } = useParams();
   const { user } = useAuth();
   const nav = useNavigate();

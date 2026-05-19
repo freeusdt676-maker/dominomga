@@ -181,6 +181,22 @@ export default function Lobby() {
       </header>
 
       <div className="p-4 max-w-lg mx-auto space-y-4">
+        {activeGame && (
+          <div className="card-felt rounded-2xl p-4 border-2 border-primary/40 bg-primary/10">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold gold-text">Mbola misy lalao tsy vita</p>
+                <p className="text-xs text-muted-foreground">
+                  {activeGame.players_count}P · {activeGame.game_mode === "d80" ? "Maty 80" : activeGame.game_mode === "hand" ? "Atanana" : "Maty 120"} · {fmtAr(activeGame.stake)}
+                </p>
+              </div>
+              <Button className="btn-gold shrink-0" size="sm" onClick={() => nav(`/game/${activeGame.id}`)}>
+                Hanohy <span className="ml-1">🔵</span>
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div className="card-felt rounded-2xl p-4">
           <p className="text-sm text-muted-foreground mb-2">1. Mpilalao</p>
           <div className="grid grid-cols-2 gap-2 mb-4">

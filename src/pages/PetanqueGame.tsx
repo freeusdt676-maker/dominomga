@@ -737,31 +737,48 @@ export default function PetanqueGame() {
   );
 }
 
-function PlayerOrb({ name, score, remaining, color, active, side }: {
-  name: string; score: number; remaining: number; color: string; active: boolean; side: "left" | "right";
+function PlayerHalf({ name, avatarUrl, score, remaining, color, active, side }: {
+  name: string; avatarUrl?: string | null; score: number; remaining: number; color: string; active: boolean; side: "left" | "right";
 }) {
+  const initial = (name ?? "?").trim().charAt(0).toUpperCase();
+  // boule mainty — accent loko ho an'ny mpilalao
+  const boules = (
+    <div className={`flex gap-1 ${side === "right" ? "flex-row-reverse" : ""}`}>
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div
+          key={i}
+          className="w-2.5 h-2.5 rounded-full border border-white/15"
+          style={{
+            background: i < remaining
+              ? `radial-gradient(circle at 35% 30%, ${color}, #0a0a0a 80%)`
+              : "rgba(255,255,255,0.05)",
+          }}
+        />
+      ))}
+    </div>
+  );
+  const avatar = (
+    <div
+      className={`relative w-12 h-12 rounded-full shrink-0 overflow-hidden border-2 ${
+        active ? "border-emerald-300 shadow-md shadow-emerald-300/40" : "border-white/25"
+      }`}
+      style={{ background: `radial-gradient(circle at 30% 30%, ${color}dd, ${color}55)` }}
+    >
+      {avatarUrl ? (
+        <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center text-white font-black text-lg">{initial}</div>
+      )}
+      {active && <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />}
+    </div>
+  );
   return (
-    <div className={`flex flex-col ${side === "right" ? "items-end" : "items-start"} pointer-events-none`}>
-      <div
-        className={`relative w-20 h-20 rounded-full backdrop-blur-md flex flex-col items-center justify-center border-2 transition ${
-          active ? "border-emerald-300 shadow-lg shadow-emerald-300/60 scale-105" : "border-white/30"
-        }`}
-        style={{
-          background: `radial-gradient(circle at 30% 30%, ${color}cc, ${color}55)`,
-        }}
-      >
-        <div className="text-[10px] text-white/90 font-semibold leading-tight truncate max-w-[68px] px-1">{name}</div>
-        <div className="text-xl font-extrabold text-white drop-shadow">{score}</div>
-        {active && <div className="absolute -bottom-1 w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />}
-      </div>
-      <div className={`mt-1.5 flex gap-1 ${side === "right" ? "flex-row-reverse" : ""}`}>
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div
-            key={i}
-            className="w-2.5 h-2.5 rounded-full border border-white/40"
-            style={{ background: i < remaining ? color : "transparent" }}
-          />
-        ))}
+    <div className={`flex-1 px-2.5 py-2 flex items-center gap-2 ${side === "right" ? "flex-row-reverse text-right" : "text-left"}`}>
+      {avatar}
+      <div className="min-w-0 flex-1">
+        <div className="text-[11px] text-white/90 font-bold truncate">{name}</div>
+        <div className="text-2xl font-black text-white leading-none">{score}</div>
+        <div className="mt-1">{boules}</div>
       </div>
     </div>
   );

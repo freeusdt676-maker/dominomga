@@ -332,6 +332,10 @@ export default function PetanqueGame() {
   const [simJack, setSimJack] = useState<Jack | null>(null);
   const simRef = useRef<{ balls: Ball[]; jack: Jack | null } | null>(null);
   const autoThrowRef = useRef<string | null>(null);
+  // Drag-to-throw gesture state
+  const [drag, setDrag] = useState<{ dx: number; dy: number } | null>(null);
+  const dragStart = useRef<{ x: number; y: number } | null>(null);
+  const PULL_MAX = 180; // px — pull complet = 100% hery
 
   // Force portrait + fullscreen feel
   useEffect(() => {
@@ -389,14 +393,16 @@ export default function PetanqueGame() {
     setSimJack(g?.state?.jack ?? null);
   }, [g?.state, throwing]);
 
-  const doThrow = async () => {
+  const doThrow = async (overrideAngle?: number, overrideForce?: number) => {
     if (!g || !user || !mySide || throwing) return;
     const remaining = g.state?.remaining ?? { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER };
     if (remaining[mySide] <= 0) return toast.error("Tsy manana baolina intsony");
     setThrowing(true);
+    const useAngle = overrideAngle ?? angle;
+    const useForce = overrideForce ?? force;
     // initial conditions: from throw line (z=-1.3), angle relative to z axis
-    const rad = (angle * Math.PI) / 180;
-    const speed = 4 + (force / 100) * 11; // 4..15 m/s
+    const rad = (useAngle * Math.PI) / 180;
+    const speed = 4 + (useForce / 100) * 11; // 4..15 m/s
     const vx = Math.sin(rad) * speed;
     const vz = Math.cos(rad) * speed;
     const newBall: Ball = {
@@ -442,11 +448,10 @@ export default function PetanqueGame() {
     const t = setTimeout(() => {
       if (autoThrowRef.current === key) return;
       autoThrowRef.current = key;
-      // Random bot params
-      setAngle(Math.round((Math.random() - 0.5) * 40)); // -20..+20°
-      setForce(40 + Math.round(Math.random() * 40));    // 40..80%
-      // doThrow uses latest angle/force via closure of next render — defer a tick
-      setTimeout(() => { void doThrow(); }, 60);
+      const ba = Math.round((Math.random() - 0.5) * 40);
+      const bf = 40 + Math.round(Math.random() * 40);
+      setAngle(ba); setForce(bf);
+      setTimeout(() => { void doThrow(ba, bf); }, 60);
       toast("⏱ Robot nanatsipy baolina (20s)");
     }, delay);
     return () => clearTimeout(t);

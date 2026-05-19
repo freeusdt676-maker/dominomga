@@ -34,7 +34,9 @@ type GameRow = {
   };
 };
 
-const TARGET_SCORE = 12;
+const TARGET_SCORE = 20;
+const BALLS_PER_PLAYER = 6;
+const FANI_SCORE = 6; // Si un joueur atteint 6 et l'autre est à 0 => victoire (Fani)
 
 /* ---------- 3D Scene Components ---------- */
 
@@ -337,7 +339,7 @@ export default function PetanqueGame() {
     return () => { document.body.style.overflow = ""; };
   }, []);
 
-  // Load game
+  // Load game + polling fallback (au cas où le realtime tarde)
   useEffect(() => {
     if (!id) return;
     const load = async () => {
@@ -349,7 +351,9 @@ export default function PetanqueGame() {
       .on("postgres_changes", { event: "*", schema: "public", table: "petanque_games", filter: `id=eq.${id}` },
         (p: any) => { if (p.new) setG(p.new as GameRow); })
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    // Polling de secours toutes les 2s (essentiel pour le matchmaking si realtime ne livre pas)
+    const itv = setInterval(load, 2000);
+    return () => { supabase.removeChannel(ch); clearInterval(itv); };
   }, [id]);
 
   useEffect(() => {
@@ -364,13 +368,15 @@ export default function PetanqueGame() {
     })();
   }, [g?.player1_id, g?.player2_id]);
 
-  // Settle when someone reaches 12
+  // Settle: maty 20 OR Fani (6-0)
   useEffect(() => {
     if (!g || g.status !== "in_progress") return;
-    if (g.score_p1 >= TARGET_SCORE || g.score_p2 >= TARGET_SCORE) {
-      const winner = g.score_p1 >= TARGET_SCORE ? g.player1_id : g.player2_id;
-      if (winner) supabase.rpc("petanque_settle" as any, { _game_id: g.id, _winner: winner });
-    }
+    let winner: string | null = null;
+    if (g.score_p1 >= TARGET_SCORE) winner = g.player1_id;
+    else if (g.score_p2 >= TARGET_SCORE) winner = g.player2_id;
+    else if (g.score_p1 >= FANI_SCORE && g.score_p2 === 0) winner = g.player1_id;
+    else if (g.score_p2 >= FANI_SCORE && g.score_p1 === 0) winner = g.player2_id;
+    if (winner) supabase.rpc("petanque_settle" as any, { _game_id: g.id, _winner: winner });
   }, [g?.score_p1, g?.score_p2, g?.status]);
 
   const mySide: "p1" | "p2" | null = !g || !user ? null : user.id === g.player1_id ? "p1" : user.id === g.player2_id ? "p2" : null;
@@ -385,7 +391,7 @@ export default function PetanqueGame() {
 
   const doThrow = async () => {
     if (!g || !user || !mySide || throwing) return;
-    const remaining = g.state?.remaining ?? { p1: 3, p2: 3 };
+    const remaining = g.state?.remaining ?? { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER };
     if (remaining[mySide] <= 0) return toast.error("Tsy manana baolina intsony");
     setThrowing(true);
     // initial conditions: from throw line (z=-1.3), angle relative to z axis
@@ -449,7 +455,7 @@ export default function PetanqueGame() {
 
   const finishThrow = async (finalBalls: Ball[], finalJack: Jack | null, thrower: "p1" | "p2") => {
     if (!g) return;
-    const prevRemaining = g.state?.remaining ?? { p1: 3, p2: 3 };
+    const prevRemaining = g.state?.remaining ?? { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER };
     const remaining = { ...prevRemaining, [thrower]: Math.max(0, prevRemaining[thrower] - 1) };
     const sanitized = finalBalls.map(b => ({ ...b, vx: 0, vz: 0 }));
     let newScoreP1 = g.score_p1;
@@ -470,7 +476,7 @@ export default function PetanqueGame() {
       // reset for next round (alternate jack side)
       newBalls = [];
       newJack = { x: (Math.random() - 0.5) * 2, z: 6 + (Math.random() - 0.5) * 2 };
-      newRemaining = { p1: 3, p2: 3 };
+      newRemaining = { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER };
       // loser starts next round
       const next: "p1" | "p2" = r.winner === "p1" ? "p2" : "p1";
       nextTurnUser = next === "p1" ? g.player1_id : g.player2_id;
@@ -549,7 +555,7 @@ export default function PetanqueGame() {
     );
   }
 
-  const remaining = g.state?.remaining ?? { p1: 3, p2: 3 };
+  const remaining = g.state?.remaining ?? { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER };
 
   return (
     <div className="fixed inset-0 bg-black overflow-hidden touch-none select-none">
@@ -603,7 +609,7 @@ export default function PetanqueGame() {
         <div className="text-center pointer-events-none mt-2">
           <div className="text-[10px] text-emerald-200/70 tracking-widest">ROUND {g.round_number}</div>
           <div className="text-xl font-bold text-white drop-shadow-lg">{g.score_p1} : {g.score_p2}</div>
-          <div className="text-[10px] text-emerald-200/70">Maty {TARGET_SCORE}</div>
+          <div className="text-[10px] text-emerald-200/70">Maty {TARGET_SCORE} · Fani {FANI_SCORE}-0</div>
         </div>
         <PlayerOrb
           name={p2Profile?.mvola_name ?? "Miandry..."}
@@ -701,10 +707,10 @@ function PlayerOrb({ name, score, remaining, color, active, side }: {
         {active && <div className="absolute -bottom-1 w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />}
       </div>
       <div className={`mt-1.5 flex gap-1 ${side === "right" ? "flex-row-reverse" : ""}`}>
-        {[0, 1, 2].map((i) => (
+        {Array.from({ length: 6 }).map((_, i) => (
           <div
             key={i}
-            className="w-3 h-3 rounded-full border border-white/40"
+            className="w-2.5 h-2.5 rounded-full border border-white/40"
             style={{ background: i < remaining ? color : "transparent" }}
           />
         ))}

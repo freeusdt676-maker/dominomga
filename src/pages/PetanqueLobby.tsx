@@ -103,7 +103,7 @@ export default function PetanqueLobby() {
     setPlacing(false);
     if (error || !g) return toast.error(error?.message ?? "Tsy nahomby");
     toast.success("Vonona — miandry mpifanandrina");
-    load();
+    nav(`/petanque/${(g as any).id}`);
   };
 
   const cancelMyWaiting = async () => {

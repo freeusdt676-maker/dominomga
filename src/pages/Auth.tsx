@@ -59,14 +59,22 @@ export default function Auth() {
     setLoading(true);
     const cleanPhone = phone.trim().replace(/\s/g, "");
     const cleanPwd = password.trim();
+    // Anti-brute-force: jereo aloha raha mihidy
+    const { data: lockData } = await supabase.rpc("check_login_lockout", { _phone: cleanPhone });
+    if (lockData && typeof lockData === "object" && (lockData as any).locked) {
+      setLoading(false);
+      return toast.error("Voasakana 15 min noho ny fanandramana diso be loatra. Andraso.");
+    }
     const { data, error } = await supabase.auth.signInWithPassword({ email: phoneToEmail(cleanPhone), password: cleanPwd });
     setLoading(false);
     if (error) {
+      await supabase.rpc("record_login_attempt", { _phone: cleanPhone, _success: false });
       if (error.message?.toLowerCase().includes("not confirmed")) {
         return toast.error("Mbola eo am-panamarinana ny mombamomba anao ny Admin.");
       }
       return toast.error("Numéro na mot de passe diso");
     }
+    await supabase.rpc("record_login_attempt", { _phone: cleanPhone, _success: true });
     // Mijery raha pending
     if (data.user) {
       const { data: prof } = await supabase.from("profiles").select("account_status").eq("user_id", data.user.id).maybeSingle();

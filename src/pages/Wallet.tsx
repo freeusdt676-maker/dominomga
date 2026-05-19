@@ -119,6 +119,31 @@ export default function Wallet() {
       </header>
 
       <div className="p-4 max-w-lg mx-auto space-y-4">
+        {/* Numéro & anarana administratif — BIG en haut */}
+        <div className="card-felt rounded-2xl p-5 space-y-3 border-2 border-primary/40">
+          <p className="text-[11px] uppercase tracking-widest text-muted-foreground text-center">
+            Numéro administratif MVOLA
+          </p>
+          <button
+            onClick={() => copy(ADMIN_PHONE, "Numéro")}
+            className="w-full flex items-center justify-between gap-3 bg-background/40 rounded-xl p-3 border border-primary/30 hover:border-primary transition"
+          >
+            <p className="font-mono font-extrabold gold-text text-3xl sm:text-4xl tracking-wider">
+              {ADMIN_PHONE}
+            </p>
+            <Copy className="w-5 h-5 text-primary shrink-0" />
+          </button>
+          <button
+            onClick={() => copy(ADMIN_NAME, "Anarana")}
+            className="w-full flex items-center justify-between gap-3 bg-background/40 rounded-xl p-3 border border-primary/30 hover:border-primary transition"
+          >
+            <p className="font-display font-extrabold gold-text text-2xl sm:text-3xl">
+              {ADMIN_NAME}
+            </p>
+            <Copy className="w-5 h-5 text-primary shrink-0" />
+          </button>
+        </div>
+
         <div className="card-felt rounded-2xl p-5 text-center">
           <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Solde ankehitriny</p>
           <p className="text-2xl sm:text-3xl font-display gold-text font-bold mt-1">{fmtAr(balance)}</p>

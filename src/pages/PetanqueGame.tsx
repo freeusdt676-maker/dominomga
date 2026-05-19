@@ -20,6 +20,7 @@ type GameRow = {
   stake: number;
   status: string;
   current_turn: string | null;
+  turn_started_at?: string | null;
   winner_id: string | null;
   score_p1: number;
   score_p2: number;

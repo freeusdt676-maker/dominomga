@@ -148,6 +148,20 @@ export default function PetanqueLobby() {
       </header>
 
       <div className="p-4 max-w-lg mx-auto space-y-4">
+        {activeGame && (
+          <div className="rounded-2xl p-4 border border-emerald-400/50 bg-emerald-500/10 backdrop-blur">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="font-bold text-emerald-200 text-sm">Mbola misy partie Pétanque tsy vita</p>
+                <p className="text-xs text-emerald-100/70">Duel 2P · {fmtAr(activeGame.stake)}</p>
+              </div>
+              <Button className="shrink-0 bg-emerald-500 text-emerald-950 hover:bg-emerald-400 font-bold" size="sm" onClick={() => nav(`/petanque/${activeGame.id}`)}>
+                Hanohy <span className="ml-1">🔵</span>
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div className="rounded-2xl p-4 border border-emerald-500/30 bg-emerald-950/40 backdrop-blur">
           <p className="text-sm text-emerald-100/80 mb-2">1. Mise</p>
           <div className="grid grid-cols-5 gap-2 mb-4">

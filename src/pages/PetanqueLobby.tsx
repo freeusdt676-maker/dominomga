@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { fmtAr } from "@/lib/constants";
 import { ArrowLeft, Loader2, Coins, Users, X } from "lucide-react";
 import { toast } from "sonner";
+import { useThemeClass } from "@/hooks/use-theme-class";
 
 const PETANQUE_STAKES = [1000, 2000, 3000, 5000, 10000];
 
@@ -15,6 +16,7 @@ type WaitingGame = {
 };
 
 export default function PetanqueLobby() {
+  useThemeClass("petanque");
   const { user } = useAuth();
   const nav = useNavigate();
   const [stake, setStake] = useState(PETANQUE_STAKES[0]);

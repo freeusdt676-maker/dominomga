@@ -47,6 +47,7 @@ export default function LudoGame() {
   const [now, setNow] = useState(Date.now());
   const [rollAnimSeat, setRollAnimSeat] = useState<number | null>(null);
   const [poofs, setPoofs] = useState<Array<{ id: string; x: number; y: number }>>([]);
+  const [acting, setActing] = useState(false);
   const lastPawnsRef = useRef<Pawn[]>([]);
   const botActedRef = (typeof window !== "undefined" ? (window as any) : {}) as any;
 
@@ -196,22 +197,26 @@ export default function LudoGame() {
   };
 
   const handlePawn = async (pawnIdx: number) => {
-    if (!g || !isMyTurn || !g.dice_rolled || !g.last_dice) return;
+    if (!g || !isMyTurn || !g.dice_rolled || !g.last_dice || acting) return;
+    setActing(true);
     const dice = g.last_dice;
     const res = applyMove(g.pawns ?? [], g.current_turn_seat, pawnIdx, dice);
+    // Optimistic local update so the pawn moves immediately on screen
+    setG((cur) => (cur ? { ...cur, pawns: res.pawns } : cur));
     if (res.captured > 0) sfx.capture(); else sfx.move();
     // Check victory
     if (seatHasFinished(res.pawns, g.current_turn_seat)) {
       const winnerUid = seatToUid(g.current_turn_seat);
       sfx.win();
       await supabase.rpc("ludo_update_state" as any, {
-        _game_id: g.id, _pawns: res.pawns, _dice_rolled: false, _last_dice: null,
+        _game_id: g.id, _pawns: res.pawns, _dice_rolled: false,
       });
       if (winnerUid) {
         const { error } = await supabase.rpc("ludo_settle" as any, { _game_id: g.id, _winner: winnerUid });
         if (error) toast.error(error.message);
         else toast.success("Resy ny lalao!");
       }
+      setActing(false);
       return;
     }
     // Bonus turn: rolled a 6 (under 3-six cap), captured, OR a pawn just reached home (pos 57)
@@ -228,15 +233,16 @@ export default function LudoGame() {
       ns = seats[(i + 1) % seats.length];
       resetSixes = true;
     }
-    await supabase.rpc("ludo_update_state" as any, {
+    const { error: moveErr } = await supabase.rpc("ludo_update_state" as any, {
       _game_id: g.id,
       _pawns: res.pawns,
       _current_turn_seat: ns,
       _dice_rolled: false,
-      _last_dice: null,
       _consecutive_sixes: resetSixes ? 0 : sixes,
       _turn_started_at: new Date().toISOString(),
     });
+    if (moveErr) toast.error(moveErr.message);
+    setActing(false);
   };
 
   // ---- 10s turn timer + bot auto-play ----

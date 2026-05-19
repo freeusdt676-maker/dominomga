@@ -9,8 +9,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, ArrowDownToLine, ArrowUpFromLine, Copy, ShieldAlert } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 import { toast } from "sonner";
+import { useThemeClass } from "@/hooks/use-theme-class";
 
 export default function Wallet() {
+  useThemeClass("mvola");
   const { user } = useAuth();
   const nav = useNavigate();
   const [balance, setBalance] = useState(0);

@@ -8,27 +8,28 @@
 
 @layer base {
   :root {
-    --background: 155 45% 6%;
-    --foreground: 45 60% 92%;
+    /* MVola-inspired light theme: white background, yellow primary, teal accent */
+    --background: 0 0% 100%;
+    --foreground: 220 15% 12%;
 
-    --card: 155 40% 9%;
-    --card-foreground: 45 60% 92%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 12%;
 
-    --popover: 155 40% 9%;
-    --popover-foreground: 45 60% 92%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 12%;
 
-    --primary: 45 65% 54%;
-    --primary-foreground: 155 50% 8%;
-    --primary-glow: 45 80% 65%;
+    --primary: 48 100% 50%;
+    --primary-foreground: 220 20% 10%;
+    --primary-glow: 48 100% 65%;
 
-    --secondary: 155 35% 18%;
-    --secondary-foreground: 45 60% 92%;
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 220 15% 12%;
 
-    --muted: 155 25% 14%;
-    --muted-foreground: 45 20% 70%;
+    --muted: 210 20% 96%;
+    --muted-foreground: 220 10% 45%;
 
-    --accent: 45 70% 50%;
-    --accent-foreground: 155 50% 8%;
+    --accent: 175 70% 38%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 75% 50%;
     --destructive-foreground: 45 60% 92%;
@@ -36,17 +37,17 @@
     --success: 142 70% 45%;
     --success-foreground: 0 0% 100%;
 
-    --border: 45 30% 25%;
-    --input: 155 30% 14%;
-    --ring: 45 65% 54%;
+    --border: 220 15% 90%;
+    --input: 220 15% 92%;
+    --ring: 48 100% 50%;
 
     --radius: 0.75rem;
 
-    --gradient-felt: radial-gradient(ellipse at center, hsl(155 45% 14%) 0%, hsl(155 50% 6%) 100%);
-    --gradient-gold: linear-gradient(135deg, hsl(45 70% 60%), hsl(45 80% 45%));
-    --gradient-card: linear-gradient(180deg, hsl(155 40% 11%), hsl(155 45% 7%));
-    --shadow-gold: 0 4px 20px -4px hsl(45 65% 54% / 0.4);
-    --shadow-deep: 0 10px 40px -10px hsl(155 80% 4% / 0.8);
+    --gradient-felt: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(48 100% 96%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(48 100% 60%), hsl(42 100% 50%));
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(210 20% 98%));
+    --shadow-gold: 0 4px 20px -4px hsl(48 100% 50% / 0.45);
+    --shadow-deep: 0 10px 40px -10px hsl(220 30% 20% / 0.18);
 
     /* Premium luxe tokens */
     --gold-1: 48 88% 72%;
@@ -58,19 +59,19 @@
     --shadow-inset-gold: inset 0 1px 0 hsl(var(--gold-1) / 0.45), inset 0 -1px 0 hsl(0 0% 0% / 0.4);
     --hairline: hsl(var(--gold-1) / 0.18);
 
-    --sidebar-background: 155 45% 6%;
-    --sidebar-foreground: 45 60% 92%;
-    --sidebar-primary: 45 65% 54%;
-    --sidebar-primary-foreground: 155 50% 8%;
-    --sidebar-accent: 155 35% 14%;
-    --sidebar-accent-foreground: 45 60% 92%;
-    --sidebar-border: 45 30% 20%;
-    --sidebar-ring: 45 65% 54%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 15% 12%;
+    --sidebar-primary: 48 100% 50%;
+    --sidebar-primary-foreground: 220 20% 10%;
+    --sidebar-accent: 210 20% 96%;
+    --sidebar-accent-foreground: 220 15% 12%;
+    --sidebar-border: 220 15% 90%;
+    --sidebar-ring: 48 100% 50%;
   }
 
   .dark {
-    --background: 155 45% 6%;
-    --foreground: 45 60% 92%;
+    --background: 0 0% 100%;
+    --foreground: 220 15% 12%;
   }
 }
 

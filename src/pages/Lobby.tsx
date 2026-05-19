@@ -78,11 +78,15 @@ export default function Lobby() {
   useEffect(() => {
     if (!user) return;
     load();
+    // Debounced reload: collapse bursts of events into a single fetch.
+    let t: any = null;
+    const debounced = () => { if (t) clearTimeout(t); t = setTimeout(load, 250); };
+    // Filter to waiting rooms only — drastically reduces event volume at scale.
     const ch = supabase.channel("lobby-rt")
-      .on("postgres_changes", { event: "*", schema: "public", table: "games" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "games", filter: "status=eq.waiting" }, debounced)
       .subscribe();
-    const itv = setInterval(load, 2000);
-    return () => { supabase.removeChannel(ch); clearInterval(itv); };
+    const itv = setInterval(load, 5000);
+    return () => { supabase.removeChannel(ch); clearInterval(itv); if (t) clearTimeout(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 

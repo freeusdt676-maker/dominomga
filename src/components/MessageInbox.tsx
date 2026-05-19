@@ -33,11 +33,12 @@ export default function MessageInbox() {
       setUnread(u);
     };
     load();
+    // Scoped subscription: only events targeting THIS user (admin broadcasts caught via interval poll).
     const ch = supabase
       .channel("inbox-" + user.id)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages" }, () => load())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages", filter: `recipient_id=eq.${user.id}` }, () => load())
       .subscribe();
-    const itv = setInterval(load, 15000);
+    const itv = setInterval(load, 20000);
     const onFocus = () => load();
     window.addEventListener("focus", onFocus);
     return () => { supabase.removeChannel(ch); clearInterval(itv); window.removeEventListener("focus", onFocus); };

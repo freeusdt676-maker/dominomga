@@ -63,17 +63,21 @@ export default function Home() {
 
     redirectToActiveGame();
 
-    const ch = supabase.channel(`home-games-${user.id}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "games" },
-        () => redirectToActiveGame(),
-      )
+    // Only listen to MY games (huge reduction in fanout at scale).
+    const ch1 = supabase.channel(`home-games-p1-${user.id}`)
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "games", filter: `player1_id=eq.${user.id}` },
+        () => redirectToActiveGame())
       .subscribe();
-
-    const itv = setInterval(redirectToActiveGame, 2500);
+    const ch2 = supabase.channel(`home-games-p2-${user.id}`)
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "games", filter: `player2_id=eq.${user.id}` },
+        () => redirectToActiveGame())
+      .subscribe();
+    const itv = setInterval(redirectToActiveGame, 6000);
     return () => {
-      supabase.removeChannel(ch);
+      supabase.removeChannel(ch1);
+      supabase.removeChannel(ch2);
       clearInterval(itv);
     };
   }, [user, nav]);

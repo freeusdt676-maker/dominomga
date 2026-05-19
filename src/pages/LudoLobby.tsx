@@ -64,11 +64,13 @@ export default function LudoLobby() {
   useEffect(() => {
     if (!user) return;
     load();
+    let t: any = null;
+    const debounced = () => { if (t) clearTimeout(t); t = setTimeout(load, 250); };
     const ch = supabase.channel("ludo-lobby-rt")
-      .on("postgres_changes", { event: "*", schema: "public", table: "ludo_games" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "ludo_games", filter: "status=eq.waiting" }, debounced)
       .subscribe();
-    const itv = setInterval(load, 2500);
-    return () => { supabase.removeChannel(ch); clearInterval(itv); };
+    const itv = setInterval(load, 5000);
+    return () => { supabase.removeChannel(ch); clearInterval(itv); if (t) clearTimeout(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 

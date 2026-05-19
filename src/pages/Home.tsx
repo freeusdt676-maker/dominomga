@@ -249,6 +249,18 @@ export default function Home() {
               <span className="text-[hsl(var(--gold-1))] opacity-50 group-hover:opacity-100 transition text-xl">→</span>
             </div>
           </Link>
+
+          <Link to="/petanque" className="block luxe-card p-5 group transition hover:border-[hsl(var(--gold-1)/0.5)]">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-gradient-to-br from-[#1a5e3a] to-[#0a2e1c] border border-[hsl(var(--gold-1)/0.3)] text-3xl">🟢</div>
+              <div className="flex-1">
+                <p className="eyebrow">Tropical 3D</p>
+                <h3 className="font-serif-luxe text-2xl gold-luxe-text leading-tight">Pétanque MGA</h3>
+                <p className="text-xs text-muted-foreground mt-1">Duel 2P — Maty 12 · Décor Malagasy</p>
+              </div>
+              <span className="text-[hsl(var(--gold-1))] opacity-50 group-hover:opacity-100 transition text-xl">→</span>
+            </div>
+          </Link>
         </div>
 
         <div className="crest-divider px-2">

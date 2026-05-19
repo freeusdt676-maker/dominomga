@@ -501,6 +501,66 @@ export type Database = {
         }
         Relationships: []
       }
+      petanque_games: {
+        Row: {
+          commission: number
+          created_at: string
+          current_turn: string | null
+          finished_at: string | null
+          id: string
+          player1_id: string
+          player2_id: string | null
+          round_number: number
+          score_p1: number
+          score_p2: number
+          stake: number
+          state: Json
+          status: Database["public"]["Enums"]["game_status"]
+          ticket_number: string | null
+          turn_started_at: string | null
+          updated_at: string
+          winner_id: string | null
+        }
+        Insert: {
+          commission?: number
+          created_at?: string
+          current_turn?: string | null
+          finished_at?: string | null
+          id?: string
+          player1_id: string
+          player2_id?: string | null
+          round_number?: number
+          score_p1?: number
+          score_p2?: number
+          stake: number
+          state?: Json
+          status?: Database["public"]["Enums"]["game_status"]
+          ticket_number?: string | null
+          turn_started_at?: string | null
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Update: {
+          commission?: number
+          created_at?: string
+          current_turn?: string | null
+          finished_at?: string | null
+          id?: string
+          player1_id?: string
+          player2_id?: string | null
+          round_number?: number
+          score_p1?: number
+          score_p2?: number
+          stake?: number
+          state?: Json
+          status?: Database["public"]["Enums"]["game_status"]
+          ticket_number?: string | null
+          turn_started_at?: string | null
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           account_status: Database["public"]["Enums"]["account_status"]
@@ -734,6 +794,10 @@ export type Database = {
         Args: { _admin_id: string; _game_id: string; _pin: string }
         Returns: Json
       }
+      admin_cancel_petanque_game: {
+        Args: { _admin_id: string; _game_id: string; _pin: string }
+        Returns: Json
+      }
       admin_delete_chat_message: {
         Args: { _admin_id: string; _msg_id: string }
         Returns: Json
@@ -840,6 +904,28 @@ export type Database = {
           _game_id: string
           _last_dice?: number
           _pawns?: Json
+          _turn_started_at?: string
+        }
+        Returns: Json
+      }
+      petanque_cancel_waiting: { Args: { _game_id: string }; Returns: Json }
+      petanque_join_and_start: {
+        Args: { _game_id: string; _user: string }
+        Returns: Json
+      }
+      petanque_settle: {
+        Args: { _game_id: string; _winner: string }
+        Returns: Json
+      }
+      petanque_start_deduct: { Args: { _game_id: string }; Returns: Json }
+      petanque_update_state: {
+        Args: {
+          _current_turn?: string
+          _game_id: string
+          _round_number?: number
+          _score_p1?: number
+          _score_p2?: number
+          _state?: Json
           _turn_started_at?: string
         }
         Returns: Json

@@ -14,6 +14,8 @@ import Admin from "./pages/Admin";
 import AdminSecurity from "./pages/AdminSecurity";
 import LudoLobby from "./pages/LudoLobby";
 import LudoGame from "./pages/LudoGame";
+import PetanqueLobby from "./pages/PetanqueLobby";
+import PetanqueGame from "./pages/PetanqueGame";
 import Discussions from "./pages/Discussions";
 import Profile from "./pages/Profile";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -38,6 +40,8 @@ const App = () => (
             <Route path="/admin/security" element={<AdminSecurity />} />
             <Route path="/ludo" element={<LudoLobby />} />
             <Route path="/ludo/:id" element={<LudoGame />} />
+            <Route path="/petanque" element={<PetanqueLobby />} />
+            <Route path="/petanque/:id" element={<PetanqueGame />} />
             <Route path="/discussions" element={<Discussions />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="*" element={<NotFound />} />

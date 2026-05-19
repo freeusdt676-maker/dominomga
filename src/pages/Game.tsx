@@ -1149,12 +1149,24 @@ export default function Game() {
 
           {/* Tanako — lehibe sy mazava, mifanesy */}
           <div className="border-t-2 border-primary/30 bg-card/30 p-3">
-            <div className="flex items-center justify-between mb-2 px-1">
+            <div className="flex items-center justify-between mb-2 px-1 gap-2">
               <span className={`text-xs font-bold ${isMyTurn ? "gold-text" : "text-muted-foreground"}`}>
                 {isMyTurn ? `▶ ${myName} — andiany!` : `${myName} (${myHand.length})`}
               </span>
-              {noMove && (
-                <span className="text-[10px] text-muted-foreground italic">Pass auto…</span>
+              {isMyTurn && (
+                <button
+                  type="button"
+                  onClick={() => { if (noMove) void autoPass(); }}
+                  disabled={!noMove}
+                  className={`px-3 py-1.5 rounded-md text-[11px] font-extrabold uppercase tracking-wider border-2 transition active:scale-95 ${
+                    noMove
+                      ? "bg-destructive text-destructive-foreground border-destructive shadow-[0_0_12px_rgba(239,68,68,0.6)] animate-pulse"
+                      : "bg-black/30 text-muted-foreground border-muted-foreground/30 opacity-50 cursor-not-allowed"
+                  }`}
+                  title={noMove ? "Tsindrio mba handalo any amin'ny adversaire" : "Mbola manana vato azo apetraka ianao"}
+                >
+                  {noMove ? "⏭ Pass" : "Pass"}
+                </button>
               )}
             </div>
             <div className="grid grid-cols-7 gap-1 py-2 px-1 w-full">

@@ -36,18 +36,28 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
   const unit = SHORT[tileSize];
   const long = unit * 2;
   const pad = 12;
-  const gap = 2;
-  const maxRowW = Math.max(long * 2, vp.w - pad * 2);
+  const gap = 4;
+  const availW = Math.max(80, vp.w - pad * 2);
+  const availH = Math.max(80, vp.h - pad * 2);
+  const cellW = long + gap;
+  const cellH = long + gap;
 
-  const items: Item[] = [];
-  let x = 0;
-  let y = 0;
-  let row = 0;
-  let dir: 1 | -1 = 1;
-  let rowExtent = 0;
+  const maxColumns = Math.max(1, Math.floor((availW + gap) / cellW));
+  const columns = Math.max(1, Math.min(board.length || 1, maxColumns));
+  const rows = Math.max(1, Math.ceil((board.length || 1) / columns));
 
-  for (let i = 0; i < board.length; i++) {
-    const p = board[i];
+  const scale = Math.min(
+    1,
+    availW / Math.max(long, columns * cellW - gap),
+    availH / Math.max(long, rows * cellH - gap),
+  );
+
+  const layoutW = Math.max(long * scale, columns * cellW * scale - gap * scale);
+  const layoutH = Math.max(long * scale, rows * cellH * scale - gap * scale);
+  const offsetX = (vp.w - layoutW) / 2;
+  const offsetY = (vp.h - layoutH) / 2;
+
+  const items: Item[] = board.map((p, i) => {
     const [aa, bb] = p.tile;
     const a = p.flipped ? bb : aa;
     const b = p.flipped ? aa : bb;
@@ -55,60 +65,26 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
     const horizontal = !isDouble;
     const w = horizontal ? long : unit;
     const h = horizontal ? unit : long;
+    const row = Math.floor(i / columns);
+    const indexInRow = i % columns;
+    const countInRow = Math.min(columns, board.length - row * columns);
+    const snakeCol = row % 2 === 0 ? indexInRow : countInRow - 1 - indexInRow;
+    const rowWidth = countInRow * cellW - gap;
+    const rowOffsetX = (layoutW / scale - rowWidth) / 2;
+    const cellX = rowOffsetX + snakeCol * cellW;
+    const cellY = row * cellH;
 
-    const projectedRight = dir === 1 ? x + w : x;
-    const projectedLeft = dir === 1 ? x : x - w;
-    const needsWrap = i > 0 && (projectedRight > maxRowW || projectedLeft < 0);
-
-    if (needsWrap) {
-      row += 1;
-      y += rowExtent + gap;
-      dir = row % 2 === 0 ? 1 : -1;
-      x = dir === 1 ? 0 : maxRowW;
-      rowExtent = 0;
-    }
-
-    const left = dir === 1 ? x : x - w;
-    items.push({
-      x: left,
-      y,
+    return {
+      x: cellX + (long - w) / 2,
+      y: cellY + (long - h) / 2,
       w,
       h,
       a,
       b,
       horizontal,
       isDouble,
-    });
-
-    x = dir === 1 ? left + w + gap : left - gap;
-    rowExtent = Math.max(rowExtent, h);
-  }
-
-  // Bounding box
-  let chainW = 0, chainH = unit;
-  let minX = 0, minY = 0;
-  if (items.length > 0) {
-    minX = Math.min(...items.map((it) => it.x));
-    const maxX = Math.max(...items.map((it) => it.x + it.w));
-    minY = Math.min(...items.map((it) => it.y));
-    const maxY = Math.max(...items.map((it) => it.y + it.h));
-    chainW = maxX - minX;
-    chainH = maxY - minY;
-  }
-
-  // Scale to ALWAYS fit inside the container — never overflow / never hide.
-  const availW = Math.max(80, vp.w - pad * 2);
-  const availH = Math.max(80, vp.h - pad * 2);
-  const safeChainW = Math.max(chainW, long);
-  const safeChainH = Math.max(chainH, unit);
-  const scale = items.length === 0
-    ? 1
-    : Math.min(1, availW / safeChainW, availH / safeChainH);
-
-  const scaledW = safeChainW * scale;
-  const scaledH = safeChainH * scale;
-  const offsetX = (vp.w - scaledW) / 2 - minX * scale;
-  const offsetY = (vp.h - scaledH) / 2 - minY * scale;
+    };
+  });
 
   return (
     <div

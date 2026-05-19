@@ -11,8 +11,10 @@ import { ArrowLeft, Check, X, Megaphone, Wallet as WalletIcon, UserCheck, Eye, E
 import { fmtAr } from "@/lib/constants";
 import { toast } from "sonner";
 import { DominoTile } from "@/components/DominoTile";
+import { useThemeClass } from "@/hooks/use-theme-class";
 
 export default function Admin() {
+  useThemeClass("mvola");
   const { user, isAdmin } = useAuth();
   const nav = useNavigate();
   const codeOk = typeof window !== "undefined" && sessionStorage.getItem("admin_code_ok") === "1";

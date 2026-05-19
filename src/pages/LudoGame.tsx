@@ -59,6 +59,7 @@ export default function LudoGame() {
   const { id } = useParams();
   const { user } = useAuth();
   const nav = useNavigate();
+  const ABANDONED_GAME_KEY = "ludo_abandoned_game_id";
   const [g, setG] = useState<LG | null>(null);
   const [names, setNames] = useState<Record<string, string>>({});
   const [avatars, setAvatars] = useState<Record<string, string | null>>({});
@@ -170,6 +171,16 @@ export default function LudoGame() {
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 500);
     return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    const syncNow = () => setNow(Date.now());
+    document.addEventListener("visibilitychange", syncNow);
+    window.addEventListener("focus", syncNow);
+    return () => {
+      document.removeEventListener("visibilitychange", syncNow);
+      window.removeEventListener("focus", syncNow);
+    };
   }, []);
 
   // Detect captures: any pawn whose pos went from >0 to 0 → emit a poof at its previous cell
@@ -421,7 +432,7 @@ export default function LudoGame() {
   ].includes(user.id);
 
   useEffect(() => {
-    if (!g || g.status !== "in_progress" || !user) return;
+    if (!g || g.status !== "in_progress") return;
     if (!g.turn_started_at) return;
     if (remainingSec > 0) return;
     if (!isOperator) return;
@@ -460,9 +471,14 @@ export default function LudoGame() {
           ? (fresh as any).pawns.map((p: any) => ({ ...p, pos: Number(p?.pos) < 0 ? 0 : Number(p?.pos) }))
           : [],
       };
-      if (state.status !== "in_progress") return;
-      if (!state.turn_started_at) return;
+       if (state.status !== "in_progress") return;
+       if (!state.turn_started_at) return;
       if (state.current_turn_seat !== g.current_turn_seat) return;
+       const stateTurnStartMs = new Date(state.turn_started_at).getTime();
+       if (Date.now() - stateTurnStartMs < TURN_LIMIT * 1000) {
+         botActedRef.__ludoBotKey = null;
+         return;
+       }
 
       const liveSeats = (state.seat_assignment && state.seat_assignment.length)
         ? state.seat_assignment
@@ -609,7 +625,7 @@ export default function LudoGame() {
       load(true).catch(() => undefined);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [remainingSec, isOperator, g?.id, g?.current_turn_seat, g?.dice_rolled, g?.last_dice, turnStartMs]);
+  }, [remainingSec, isOperator, g?.id, g?.current_turn_seat, g?.dice_rolled, g?.last_dice, turnStartMs, g?.status]);
 
   if (loadError) {
     return (

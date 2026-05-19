@@ -15,6 +15,8 @@ type WaitingGame = {
   _name?: string;
 };
 
+type ResumeGame = { id: string; stake: number; players_count: number };
+
 export default function LudoLobby() {
   useThemeClass("ludo");
   const { user } = useAuth();
@@ -24,21 +26,23 @@ export default function LudoLobby() {
   const [confirmed, setConfirmed] = useState(false);
   const [waiting, setWaiting] = useState<WaitingGame[]>([]);
   const [myWaiting, setMyWaiting] = useState<WaitingGame | null>(null);
+  const [activeGame, setActiveGame] = useState<ResumeGame | null>(null);
   const [placing, setPlacing] = useState(false);
   const [joining, setJoining] = useState<string | null>(null);
+  const ABANDONED_GAME_KEY = "ludo_abandoned_game_id";
 
   const load = async () => {
     if (!user) return;
-    // Auto-redirect raha efa miditra in_progress
+    const abandonedGameId = sessionStorage.getItem(ABANDONED_GAME_KEY);
     const { data: mine } = await supabase
       .from("ludo_games" as any)
-      .select("id")
+      .select("id, stake, players_count")
       .or(`player1_id.eq.${user.id},player2_id.eq.${user.id},player3_id.eq.${user.id},player4_id.eq.${user.id}`)
       .eq("status", "in_progress")
       .order("updated_at", { ascending: false })
       .limit(1);
-    const m: any = mine?.[0];
-    if (m?.id) { nav(`/ludo/${m.id}`); return; }
+    const m: any = mine?.find((row: any) => row.id !== abandonedGameId) ?? mine?.[0] ?? null;
+    setActiveGame(m ? { id: m.id, stake: Number(m.stake ?? 0), players_count: Number(m.players_count ?? 4) } : null);
 
     const { data: gs } = await supabase
       .from("ludo_games" as any)
@@ -85,12 +89,12 @@ export default function LudoLobby() {
         (p: any) => {
           if (p.new?.status === "in_progress" && p.new?.id) {
             sfx.notify();
-            nav(`/ludo/${p.new.id}`);
+            setActiveGame({ id: p.new.id, stake: Number(p.new.stake ?? 0), players_count: Number(p.new.players_count ?? 4) });
           }
         })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [user, nav]);
+  }, [user]);
 
   const placeMise = async () => {
     if (!user || placing) return;

@@ -33,7 +33,25 @@ type LG = {
   ticket_number: string | null;
   turn_started_at: string | null;
   seat_assignment: number[] | null;
+  updated_at: string;
 };
+
+const TURN_LIMIT = 10;
+const MOVE_ANIMATION_MS = 520;
+const QUICK_PASS_DELAY_MS = 850;
+const BLOCKER_SAFETY_MS = 8000;
+
+function normalizeGame(raw: any): LG {
+  return {
+    ...raw,
+    pawns: Array.isArray(raw?.pawns)
+      ? raw.pawns.map((p: any) => ({ ...p, pos: Number(p?.pos) < 0 ? 0 : Number(p?.pos) }))
+      : [],
+    seat_assignment: Array.isArray(raw?.seat_assignment)
+      ? raw.seat_assignment.map((seat: any) => Number(seat))
+      : null,
+  } as LG;
+}
 
 export default function LudoGame() {
   const { id } = useParams();
@@ -49,40 +67,100 @@ export default function LudoGame() {
   const [poofs, setPoofs] = useState<Array<{ id: string; x: number; y: number }>>([]);
   const [acting, setActing] = useState(false);
   const lastPawnsRef = useRef<Pawn[]>([]);
+  const loadSeqRef = useRef(0);
+  const rollAnimResetRef = useRef<number | null>(null);
+  const autoResolveRef = useRef<number | null>(null);
+  const blockerSafetyRef = useRef<number | null>(null);
+  const phaseKeyRef = useRef<string | null>(null);
   const botActedRef = (typeof window !== "undefined" ? (window as any) : {}) as any;
 
-  const load = async () => {
-    if (!id) return;
-    const { data, error } = await supabase.from("ludo_games" as any).select("*").eq("id", id).single();
-    if (error || !data) { setLoadError(error?.message ?? "Tsy hita ny lalao"); return; }
-    setLoadError(null);
-    // Defensive: normalize any pawn with pos<0 to 0 (base)
-    const raw: any = data;
-    const pawns = Array.isArray(raw.pawns) ? raw.pawns.map((p: any) => ({ ...p, pos: Number(p?.pos) < 0 ? 0 : Number(p?.pos) })) : [];
-    setG({ ...raw, pawns } as any);
-    const ids = [
-      (data as any).player1_id,
-      (data as any).player2_id,
-      (data as any).player3_id,
-      (data as any).player4_id,
-    ].filter(Boolean) as string[];
-    if (ids.length) {
-      const { data: ps } = await supabase.from("profiles").select("user_id, mvola_name, avatar_url").in("user_id", ids);
-      const m: Record<string, string> = {};
-      const av: Record<string, string | null> = {};
-      (ps ?? []).forEach((p: any) => { m[p.user_id] = p.mvola_name; av[p.user_id] = p.avatar_url ?? null; });
-      setNames(m);
-      setAvatars(av);
+  const clearRefTimeout = (ref: React.MutableRefObject<number | null>) => {
+    if (ref.current !== null) {
+      window.clearTimeout(ref.current);
+      ref.current = null;
     }
   };
 
+  const clearUiBlockers = () => {
+    clearRefTimeout(rollAnimResetRef);
+    clearRefTimeout(autoResolveRef);
+    clearRefTimeout(blockerSafetyRef);
+    setRolling(false);
+    setActing(false);
+    setRollAnimSeat(null);
+  };
+
+  const armSafetyRelease = () => {
+    clearRefTimeout(blockerSafetyRef);
+    blockerSafetyRef.current = window.setTimeout(() => {
+      setRolling(false);
+      setActing(false);
+      setRollAnimSeat(null);
+    }, BLOCKER_SAFETY_MS);
+  };
+
+  const hydrateProfiles = async (game: Partial<LG>) => {
+    const ids = [game.player1_id, game.player2_id, game.player3_id, game.player4_id].filter(Boolean) as string[];
+    if (!ids.length) return;
+    const { data: ps } = await supabase.from("profiles").select("user_id, mvola_name, avatar_url").in("user_id", ids);
+    if (!ps?.length) return;
+    const nextNames: Record<string, string> = {};
+    const nextAvatars: Record<string, string | null> = {};
+    ps.forEach((p: any) => {
+      nextNames[p.user_id] = p.mvola_name;
+      nextAvatars[p.user_id] = p.avatar_url ?? null;
+    });
+    setNames((prev) => ({ ...prev, ...nextNames }));
+    setAvatars((prev) => ({ ...prev, ...nextAvatars }));
+  };
+
+  const applyIncomingGame = (raw: any, forceUnlock = false) => {
+    const next = normalizeGame(raw);
+    const nextPhaseKey = [
+      next.status,
+      next.current_turn_seat,
+      next.dice_rolled ? "move" : "roll",
+      next.turn_started_at ?? "na",
+      next.last_dice ?? "na",
+      next.updated_at ?? "na",
+    ].join(":");
+    if (forceUnlock || phaseKeyRef.current !== nextPhaseKey) {
+      phaseKeyRef.current = nextPhaseKey;
+      clearUiBlockers();
+    }
+    setLoadError(null);
+    setG(next);
+    hydrateProfiles(next).catch(() => undefined);
+  };
+
+  const load = async (forceUnlock = false) => {
+    if (!id) return;
+    const seq = ++loadSeqRef.current;
+    const { data, error } = await supabase.from("ludo_games" as any).select("*").eq("id", id).single();
+    if (seq !== loadSeqRef.current) return;
+    if (error || !data) {
+      setLoadError(error?.message ?? "Tsy hita ny lalao");
+      return;
+    }
+    applyIncomingGame(data, forceUnlock);
+  };
+
   useEffect(() => {
-    load();
+    load(true);
     if (!id) return;
     const ch = supabase.channel(`ludo-${id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "ludo_games", filter: `id=eq.${id}` }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "ludo_games", filter: `id=eq.${id}` }, (payload: any) => {
+        if (payload.new) {
+          applyIncomingGame(payload.new);
+          return;
+        }
+        load(true);
+      })
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => {
+      clearUiBlockers();
+      supabase.removeChannel(ch);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -146,107 +224,171 @@ export default function LudoGame() {
 
   const handleRoll = async () => {
     if (!g || !isMyTurn || g.dice_rolled || rolling) return;
+    const state = g;
+    const rollAt = new Date().toISOString();
     setRolling(true);
-    setRollAnimSeat(g.current_turn_seat);
+    setRollAnimSeat(state.current_turn_seat);
+    armSafetyRelease();
     sfx.dice();
-    // Let the spin play before locking the face
-    await new Promise((r) => setTimeout(r, 650));
-    const dice = rollDice();
-    // 3rd consecutive six → forfeit the turn entirely. Player CANNOT move.
-    if (dice === 6 && g.consecutive_sixes >= 2) {
-      const i = seats.indexOf(g.current_turn_seat);
-      const ns = seats[(i + 1) % seats.length];
-      await supabase.rpc("ludo_update_state" as any, {
-        _game_id: g.id,
-        _last_dice: dice,
-        _dice_rolled: false,
-        _current_turn_seat: ns,
-        _consecutive_sixes: 0,
-        _turn_started_at: new Date().toISOString(),
-      });
-      setRolling(false);
-      setTimeout(() => setRollAnimSeat(null), 100);
-      toast("6 fanintelony — very ny tour");
-      return;
-    }
-    // Save roll
-    await supabase.rpc("ludo_update_state" as any, {
-      _game_id: g.id,
-      _last_dice: dice,
-      _dice_rolled: true,
-      _consecutive_sixes: dice === 6 ? g.consecutive_sixes + 1 : 0,
-    });
-    setRolling(false);
-    setTimeout(() => setRollAnimSeat(null), 100);
-    // If no legal moves → auto end turn
-    setTimeout(async () => {
-      const moves = legalMoves(g.pawns ?? [], g.current_turn_seat, dice);
-      if (moves.length === 0) {
-        const sixes = dice === 6 ? g.consecutive_sixes + 1 : 0;
-        const { seat: ns } = nextSeatFromList(g.current_turn_seat, seats, dice === 6, 0, sixes);
-        await supabase.rpc("ludo_update_state" as any, {
-          _game_id: g.id,
-          _current_turn_seat: ns,
+
+    try {
+      await new Promise((r) => setTimeout(r, 650));
+      const dice = rollDice();
+
+      if (dice === 6 && state.consecutive_sixes >= 2) {
+        const i = seats.indexOf(state.current_turn_seat);
+        const ns = seats[(i + 1) % seats.length];
+        setG((cur) => cur ? ({
+          ...cur,
+          last_dice: dice,
+          dice_rolled: false,
+          current_turn_seat: ns,
+          consecutive_sixes: 0,
+          turn_started_at: rollAt,
+        }) : cur);
+        const { error } = await supabase.rpc("ludo_update_state" as any, {
+          _game_id: state.id,
+          _last_dice: dice,
           _dice_rolled: false,
-          _last_dice: null,
-          _consecutive_sixes: ns === g.current_turn_seat ? sixes : 0,
-          _turn_started_at: new Date().toISOString(),
+          _current_turn_seat: ns,
+          _consecutive_sixes: 0,
+          _turn_started_at: rollAt,
         });
+        if (error) throw error;
+        toast("6 fanintelony — very ny tour");
+        return;
       }
-    }, 700);
+
+      const moves = legalMoves(state.pawns ?? [], state.current_turn_seat, dice);
+      const nextSixes = dice === 6 ? state.consecutive_sixes + 1 : 0;
+      setG((cur) => cur ? ({
+        ...cur,
+        last_dice: dice,
+        dice_rolled: true,
+        consecutive_sixes: nextSixes,
+        turn_started_at: rollAt,
+      }) : cur);
+
+      const { error } = await supabase.rpc("ludo_update_state" as any, {
+        _game_id: state.id,
+        _last_dice: dice,
+        _dice_rolled: true,
+        _consecutive_sixes: nextSixes,
+        _turn_started_at: rollAt,
+      });
+      if (error) throw error;
+
+      if (moves.length === 0) {
+        clearRefTimeout(autoResolveRef);
+        autoResolveRef.current = window.setTimeout(async () => {
+          try {
+            const { seat: ns } = nextSeatFromList(state.current_turn_seat, seats, dice === 6, 0, nextSixes);
+            const nextTurnAt = new Date().toISOString();
+            setG((cur) => cur ? ({
+              ...cur,
+              current_turn_seat: ns,
+              dice_rolled: false,
+              consecutive_sixes: ns === state.current_turn_seat ? nextSixes : 0,
+              turn_started_at: nextTurnAt,
+            }) : cur);
+            const { error: passError } = await supabase.rpc("ludo_update_state" as any, {
+              _game_id: state.id,
+              _current_turn_seat: ns,
+              _dice_rolled: false,
+              _consecutive_sixes: ns === state.current_turn_seat ? nextSixes : 0,
+              _turn_started_at: nextTurnAt,
+            });
+            if (passError) throw passError;
+          } catch {
+            await load(true);
+          } finally {
+            clearUiBlockers();
+          }
+        }, QUICK_PASS_DELAY_MS);
+      }
+    } catch (error: any) {
+      toast.error(error?.message ?? "Nisy olana tamin'ny dé");
+      await load(true);
+    } finally {
+      clearRefTimeout(blockerSafetyRef);
+      setRolling(false);
+      clearRefTimeout(rollAnimResetRef);
+      rollAnimResetRef.current = window.setTimeout(() => setRollAnimSeat(null), 100);
+    }
   };
 
   const handlePawn = async (pawnIdx: number) => {
     if (!g || !isMyTurn || !g.dice_rolled || !g.last_dice || acting) return;
+    const state = g;
+    const dice = state.last_dice;
+    const res = applyMove(state.pawns ?? [], state.current_turn_seat, pawnIdx, dice);
     setActing(true);
-    const dice = g.last_dice;
-    const res = applyMove(g.pawns ?? [], g.current_turn_seat, pawnIdx, dice);
-    // Optimistic local update so the pawn moves immediately on screen
+    armSafetyRelease();
     setG((cur) => (cur ? { ...cur, pawns: res.pawns } : cur));
     if (res.captured > 0) sfx.capture(); else sfx.move();
-    // Check victory
-    if (seatHasFinished(res.pawns, g.current_turn_seat)) {
-      const winnerUid = seatToUid(g.current_turn_seat);
-      sfx.win();
-      await supabase.rpc("ludo_update_state" as any, {
-        _game_id: g.id, _pawns: res.pawns, _dice_rolled: false,
-      });
-      if (winnerUid) {
-        const { error } = await supabase.rpc("ludo_settle" as any, { _game_id: g.id, _winner: winnerUid });
-        if (error) toast.error(error.message);
-        else toast.success("Resy ny lalao!");
+
+    try {
+      await new Promise((r) => setTimeout(r, MOVE_ANIMATION_MS));
+
+      if (seatHasFinished(res.pawns, state.current_turn_seat)) {
+        const winnerUid = seatToUid(state.current_turn_seat);
+        sfx.win();
+        const { error: updateError } = await supabase.rpc("ludo_update_state" as any, {
+          _game_id: state.id,
+          _pawns: res.pawns,
+          _dice_rolled: false,
+        });
+        if (updateError) throw updateError;
+        if (winnerUid) {
+          const { error: settleError } = await supabase.rpc("ludo_settle" as any, { _game_id: state.id, _winner: winnerUid });
+          if (settleError) throw settleError;
+          toast.success("Resy ny lalao!");
+        }
+        return;
       }
+
+      const sixes = dice === 6 ? state.consecutive_sixes : 0;
+      const gotBonus = (dice === 6 && sixes < 3) || res.captured > 0 || !!res.finishedPawn;
+      let ns: number;
+      let resetSixes = false;
+      if (gotBonus) {
+        ns = state.current_turn_seat;
+        resetSixes = !(dice === 6);
+      } else {
+        const i = seats.indexOf(state.current_turn_seat);
+        ns = seats[(i + 1) % seats.length];
+        resetSixes = true;
+      }
+
+      const nextTurnAt = new Date().toISOString();
+      setG((cur) => cur ? ({
+        ...cur,
+        pawns: res.pawns,
+        current_turn_seat: ns,
+        dice_rolled: false,
+        consecutive_sixes: resetSixes ? 0 : sixes,
+        turn_started_at: nextTurnAt,
+      }) : cur);
+
+      const { error: moveErr } = await supabase.rpc("ludo_update_state" as any, {
+        _game_id: state.id,
+        _pawns: res.pawns,
+        _current_turn_seat: ns,
+        _dice_rolled: false,
+        _consecutive_sixes: resetSixes ? 0 : sixes,
+        _turn_started_at: nextTurnAt,
+      });
+      if (moveErr) throw moveErr;
+    } catch (error: any) {
+      toast.error(error?.message ?? "Nisy olana tamin'ny fihetsiky ny pion");
+      await load(true);
+    } finally {
+      clearRefTimeout(blockerSafetyRef);
       setActing(false);
-      return;
     }
-    // Bonus turn: rolled a 6 (under 3-six cap), captured, OR a pawn just reached home (pos 57)
-    const sixes = dice === 6 ? g.consecutive_sixes : 0;
-    const homeBonus = !!res.finishedPawn;
-    const gotBonus = (dice === 6 && sixes < 3) || res.captured > 0 || homeBonus;
-    let ns: number;
-    let resetSixes = false;
-    if (gotBonus) {
-      ns = g.current_turn_seat; // stay on the same player
-      resetSixes = !(dice === 6); // home/capture bonus shouldn't keep the 6-counter alive
-    } else {
-      const i = seats.indexOf(g.current_turn_seat);
-      ns = seats[(i + 1) % seats.length];
-      resetSixes = true;
-    }
-    const { error: moveErr } = await supabase.rpc("ludo_update_state" as any, {
-      _game_id: g.id,
-      _pawns: res.pawns,
-      _current_turn_seat: ns,
-      _dice_rolled: false,
-      _consecutive_sixes: resetSixes ? 0 : sixes,
-      _turn_started_at: new Date().toISOString(),
-    });
-    if (moveErr) toast.error(moveErr.message);
-    setActing(false);
   };
 
   // ---- 10s turn timer + bot auto-play ----
-  const TURN_LIMIT = 10;
   const turnStartMs = g?.turn_started_at ? new Date(g.turn_started_at).getTime() : 0;
   const elapsedSec = Math.max(0, Math.floor((now - turnStartMs) / 1000));
   const remainingSec = Math.max(0, TURN_LIMIT - elapsedSec);
@@ -329,49 +471,66 @@ export default function LudoGame() {
 
       if (!state.dice_rolled) {
         const dice = rollDice();
+        const rollAt = new Date().toISOString();
         const nextSixes = dice === 6 ? state.consecutive_sixes + 1 : 0;
         if (dice === 6 && state.consecutive_sixes >= 2) {
           const i = liveSeats.indexOf(state.current_turn_seat);
           const ns = liveSeats[(i + 1) % liveSeats.length];
+          setG((cur) => cur ? ({
+            ...cur,
+            last_dice: dice,
+            dice_rolled: false,
+            current_turn_seat: ns,
+            consecutive_sixes: 0,
+            turn_started_at: rollAt,
+          }) : cur);
           await runRpc({
             _game_id: state.id,
             _last_dice: dice,
             _dice_rolled: false,
             _current_turn_seat: ns,
             _consecutive_sixes: 0,
-            _turn_started_at: new Date().toISOString(),
+            _turn_started_at: rollAt,
           });
           return;
         }
         const moves = legalMoves(state.pawns ?? [], state.current_turn_seat, dice);
 
+        setG((cur) => cur ? ({
+          ...cur,
+          last_dice: dice,
+          dice_rolled: true,
+          consecutive_sixes: nextSixes,
+          turn_started_at: rollAt,
+        }) : cur);
+        await runRpc({
+          _game_id: state.id,
+          _last_dice: dice,
+          _dice_rolled: true,
+          _consecutive_sixes: nextSixes,
+          _turn_started_at: rollAt,
+        });
+
         if (moves.length === 0) {
+          await new Promise((r) => setTimeout(r, QUICK_PASS_DELAY_MS));
           const { seat: ns } = nextSeatFromList(state.current_turn_seat, liveSeats, dice === 6, 0, nextSixes);
+          const nextTurnAt = new Date().toISOString();
+          setG((cur) => cur ? ({
+            ...cur,
+            current_turn_seat: ns,
+            dice_rolled: false,
+            consecutive_sixes: ns === state.current_turn_seat ? nextSixes : 0,
+            turn_started_at: nextTurnAt,
+          }) : cur);
           await runRpc({
             _game_id: state.id,
             _current_turn_seat: ns,
             _dice_rolled: false,
-            _last_dice: null,
             _consecutive_sixes: ns === state.current_turn_seat ? nextSixes : 0,
-            _turn_started_at: new Date().toISOString(),
+            _turn_started_at: nextTurnAt,
           });
           return;
         }
-
-        const pawnIdx = moves[0];
-        const res = applyMove(state.pawns ?? [], state.current_turn_seat, pawnIdx, dice);
-        if (await settleIfWinner(state, res.pawns)) return;
-        const sixes = dice === 6 ? state.consecutive_sixes : 0;
-        const { seat: ns, resetSixes } = nextSeatFromList(state.current_turn_seat, liveSeats, dice === 6, res.captured, sixes);
-        await runRpc({
-          _game_id: state.id,
-          _pawns: res.pawns,
-          _current_turn_seat: ns,
-          _dice_rolled: false,
-          _last_dice: null,
-          _consecutive_sixes: resetSixes ? 0 : sixes,
-          _turn_started_at: new Date().toISOString(),
-        });
         return;
       }
 
@@ -404,13 +563,14 @@ export default function LudoGame() {
 
       const pawnIdx = moves[0];
       const res = applyMove(state.pawns ?? [], state.current_turn_seat, pawnIdx, dice);
+      setG((cur) => cur ? ({ ...cur, pawns: res.pawns }) : cur);
+      await new Promise((r) => setTimeout(r, MOVE_ANIMATION_MS));
       if (seatHasFinished(res.pawns, state.current_turn_seat)) {
         const winnerUid = seatToUidFresh(state.current_turn_seat);
         await runRpc({
           _game_id: state.id,
           _pawns: res.pawns,
           _dice_rolled: false,
-          _last_dice: null,
         });
         if (winnerUid) {
           const { error: settleError } = await supabase.rpc("ludo_settle" as any, { _game_id: state.id, _winner: winnerUid });
@@ -421,17 +581,26 @@ export default function LudoGame() {
 
       const sixes = dice === 6 ? state.consecutive_sixes : 0;
       const { seat: ns, resetSixes } = nextSeatFromList(state.current_turn_seat, liveSeats, dice === 6, res.captured, sixes);
+      const nextTurnAt = new Date().toISOString();
+      setG((cur) => cur ? ({
+        ...cur,
+        pawns: res.pawns,
+        current_turn_seat: ns,
+        dice_rolled: false,
+        consecutive_sixes: resetSixes ? 0 : sixes,
+        turn_started_at: nextTurnAt,
+      }) : cur);
       await runRpc({
         _game_id: state.id,
         _pawns: res.pawns,
         _current_turn_seat: ns,
         _dice_rolled: false,
-        _last_dice: null,
         _consecutive_sixes: resetSixes ? 0 : sixes,
-        _turn_started_at: new Date().toISOString(),
+        _turn_started_at: nextTurnAt,
       });
     })().catch(() => {
       botActedRef.__ludoBotKey = null;
+      load(true).catch(() => undefined);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [remainingSec, isOperator, g?.id, g?.current_turn_seat, g?.dice_rolled, g?.last_dice, turnStartMs]);

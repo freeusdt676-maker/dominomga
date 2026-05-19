@@ -35,18 +35,16 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
 
   const unit = SHORT[tileSize];
   const long = unit * 2;
-  const pad = 6;
-
-  // SNAKE LAYOUT — tiles always TOUCH (no stacking above/below each other).
-  // Direction +1 = right, -1 = left. When the next tile would exceed the
-  // container width, we drop down by one row and reverse direction (U-turn).
-  // Doubles are drawn perpendicular to the running direction.
+  const pad = 12;
+  const gap = 2;
   const maxRowW = Math.max(long * 2, vp.w - pad * 2);
 
   const items: Item[] = [];
-  let cx = 0;
-  let cy = 0;
+  let x = 0;
+  let y = 0;
+  let row = 0;
   let dir: 1 | -1 = 1;
+  let rowExtent = 0;
 
   for (let i = 0; i < board.length; i++) {
     const p = board[i];
@@ -54,52 +52,36 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
     const a = p.flipped ? bb : aa;
     const b = p.flipped ? aa : bb;
     const isDouble = a === b;
-    const horiz = !isDouble; // doubles drawn vertical
-    const w = horiz ? long : unit;
-    const h = horiz ? unit : long;
+    const horizontal = !isDouble;
+    const w = horizontal ? long : unit;
+    const h = horizontal ? unit : long;
 
-    // edge of THIS tile if placed in current direction
-    const tileLeft = dir === 1 ? cx : cx - w;
-    const tileRight = tileLeft + w;
+    const projectedRight = dir === 1 ? x + w : x;
+    const projectedLeft = dir === 1 ? x : x - w;
+    const needsWrap = i > 0 && (projectedRight > maxRowW || projectedLeft < 0);
 
-    const overflowRight = dir === 1 && tileRight > maxRowW && i > 0;
-    const overflowLeft = dir === -1 && tileLeft < 0 && i > 0;
-
-    if (overflowRight || overflowLeft) {
-      // U-turn: place this tile rotated (vertical, perpendicular) at the edge,
-      // then continue back in the opposite direction on the next row.
-      const cornerW = unit;
-      const cornerH = long;
-      const cornerX = dir === 1 ? Math.min(cx, maxRowW - cornerW) : Math.max(cx - cornerW, 0);
-      const cornerY = cy - unit / 2;
-      items.push({
-        x: cornerX,
-        y: cornerY,
-        w: cornerW,
-        h: cornerH,
-        a,
-        b,
-        horizontal: false,
-        isDouble,
-      });
-      cy += cornerH - unit / 2 + 2;
-      dir = (dir === 1 ? -1 : 1) as 1 | -1;
-      // Start the new row from the corner column
-      cx = dir === 1 ? cornerX + cornerW : cornerX;
-      continue;
+    if (needsWrap) {
+      row += 1;
+      y += rowExtent + gap;
+      dir = row % 2 === 0 ? 1 : -1;
+      x = dir === 1 ? 0 : maxRowW;
+      rowExtent = 0;
     }
 
+    const left = dir === 1 ? x : x - w;
     items.push({
-      x: tileLeft,
-      y: cy - h / 2,
+      x: left,
+      y,
       w,
       h,
       a,
       b,
-      horizontal: horiz,
+      horizontal,
       isDouble,
     });
-    cx = dir === 1 ? cx + w : cx - w;
+
+    x = dir === 1 ? left + w + gap : left - gap;
+    rowExtent = Math.max(rowExtent, h);
   }
 
   // Bounding box
@@ -117,12 +99,14 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
   // Scale to ALWAYS fit inside the container — never overflow / never hide.
   const availW = Math.max(80, vp.w - pad * 2);
   const availH = Math.max(80, vp.h - pad * 2);
+  const safeChainW = Math.max(chainW, long);
+  const safeChainH = Math.max(chainH, unit);
   const scale = items.length === 0
     ? 1
-    : Math.min(1, availW / chainW, availH / chainH);
+    : Math.min(1, availW / safeChainW, availH / safeChainH);
 
-  const scaledW = chainW * scale;
-  const scaledH = chainH * scale;
+  const scaledW = safeChainW * scale;
+  const scaledH = safeChainH * scale;
   const offsetX = (vp.w - scaledW) / 2 - minX * scale;
   const offsetY = (vp.h - scaledH) / 2 - minY * scale;
 

@@ -424,6 +424,16 @@ export default function Game() {
     return () => clearInterval(t);
   }, []);
 
+  useEffect(() => {
+    const syncNow = () => setNow(Date.now());
+    document.addEventListener("visibilitychange", syncNow);
+    window.addEventListener("focus", syncNow);
+    return () => {
+      document.removeEventListener("visibilitychange", syncNow);
+      window.removeEventListener("focus", syncNow);
+    };
+  }, []);
+
   // Endgame vote resolver — kicks in once both players have voted (2-player only).
   useEffect(() => {
     if (!game) return;
@@ -1101,11 +1111,17 @@ export default function Game() {
 
             <div className="felt-board relative w-full h-full min-h-[240px] mx-auto overflow-hidden">
               {board.length === 0 ? (
-                <div className="absolute inset-0 flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center justify-center px-4">
                   {game.player2_id ? (
-                    <p className="text-sm text-[#ffe27a]/80 italic text-center px-4">
-                      {isMyTurn ? "Apetraho ny piesy voalohany" : "Miandry ny adversaire..."}
-                    </p>
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <div className="relative flex h-24 w-24 items-center justify-center rounded-full border-2 border-dashed border-primary/50 bg-black/20 shadow-[0_0_28px_rgba(212,165,44,0.18)]">
+                        <span className="absolute -top-7 text-2xl text-primary animate-bounce">↓</span>
+                        <div className="h-12 w-6 rounded-md border border-primary/50 bg-primary/10" />
+                      </div>
+                      <p className="text-sm text-[#ffe27a]/85 italic">
+                        {isMyTurn ? "Eto afovoany no hipetraka ny vato voalohany" : "Eto no hapetraky ny adversaire ny vato voalohany"}
+                      </p>
+                    </div>
                   ) : (
                     <p className="text-sm text-[#ffe27a]/80 italic text-center px-4">
                       Miandry adversaire hiditra hanomboka ny lalao...

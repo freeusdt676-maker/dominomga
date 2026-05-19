@@ -339,7 +339,7 @@ export default function PetanqueGame() {
     return () => { document.body.style.overflow = ""; };
   }, []);
 
-  // Load game
+  // Load game + polling fallback (au cas où le realtime tarde)
   useEffect(() => {
     if (!id) return;
     const load = async () => {
@@ -351,7 +351,9 @@ export default function PetanqueGame() {
       .on("postgres_changes", { event: "*", schema: "public", table: "petanque_games", filter: `id=eq.${id}` },
         (p: any) => { if (p.new) setG(p.new as GameRow); })
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    // Polling de secours toutes les 2s (essentiel pour le matchmaking si realtime ne livre pas)
+    const itv = setInterval(load, 2000);
+    return () => { supabase.removeChannel(ch); clearInterval(itv); };
   }, [id]);
 
   useEffect(() => {
@@ -705,10 +707,10 @@ function PlayerOrb({ name, score, remaining, color, active, side }: {
         {active && <div className="absolute -bottom-1 w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />}
       </div>
       <div className={`mt-1.5 flex gap-1 ${side === "right" ? "flex-row-reverse" : ""}`}>
-        {[0, 1, 2].map((i) => (
+        {Array.from({ length: 6 }).map((_, i) => (
           <div
             key={i}
-            className="w-3 h-3 rounded-full border border-white/40"
+            className="w-2.5 h-2.5 rounded-full border border-white/40"
             style={{ background: i < remaining ? color : "transparent" }}
           />
         ))}

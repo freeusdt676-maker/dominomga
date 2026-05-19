@@ -18,7 +18,6 @@ type Item = {
 
 export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSize?: Sz }) {
   const wrapRef = useRef<HTMLDivElement>(null);
-  const innerRef = useRef<HTMLDivElement>(null);
   const [vp, setVp] = useState({ w: 360, h: 240 });
 
   useEffect(() => {
@@ -27,7 +26,7 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
       if (!wrapRef.current) return;
       setVp({
         w: Math.max(200, wrapRef.current.clientWidth),
-        h: Math.max(200, wrapRef.current.clientHeight),
+        h: Math.max(160, wrapRef.current.clientHeight),
       });
     });
     ro.observe(wrapRef.current);
@@ -36,62 +35,106 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
 
   const unit = SHORT[tileSize];
   const long = unit * 2;
-  const pad = 8;
+  const pad = 6;
 
-  // Single-row HORIZONTAL chain (no zig-zag). The chain grows to the right;
-  // overflow scrolls horizontally and we auto-scroll to keep the latest tile in view.
+  // SNAKE LAYOUT — tiles always TOUCH (no stacking above/below each other).
+  // Direction +1 = right, -1 = left. When the next tile would exceed the
+  // container width, we drop down by one row and reverse direction (U-turn).
+  // Doubles are drawn perpendicular to the running direction.
+  const maxRowW = Math.max(long * 2, vp.w - pad * 2);
+
   const items: Item[] = [];
-  let cx = 0; // running x cursor (left edge of next tile)
-  const cy = 0;
+  let cx = 0;
+  let cy = 0;
+  let dir: 1 | -1 = 1;
 
-  for (const p of board) {
+  for (let i = 0; i < board.length; i++) {
+    const p = board[i];
     const [aa, bb] = p.tile;
     const a = p.flipped ? bb : aa;
     const b = p.flipped ? aa : bb;
     const isDouble = a === b;
-    // Horizontal row: doubles are drawn vertical (perpendicular), non-doubles horizontal
-    const horiz = !isDouble;
+    const horiz = !isDouble; // doubles drawn vertical
     const w = horiz ? long : unit;
     const h = horiz ? unit : long;
-    items.push({ x: cx, y: cy - h / 2, w, h, a, b, horizontal: horiz, isDouble });
-    cx += w;
-  }
 
-  // Auto-scroll so the last (newest) tile stays visible.
-  useEffect(() => {
-    const el = wrapRef.current;
-    if (!el) return;
-    requestAnimationFrame(() => {
-      el.scrollTo({ left: el.scrollWidth, behavior: "smooth" });
+    // edge of THIS tile if placed in current direction
+    const tileLeft = dir === 1 ? cx : cx - w;
+    const tileRight = tileLeft + w;
+
+    const overflowRight = dir === 1 && tileRight > maxRowW && i > 0;
+    const overflowLeft = dir === -1 && tileLeft < 0 && i > 0;
+
+    if (overflowRight || overflowLeft) {
+      // U-turn: place this tile rotated (vertical, perpendicular) at the edge,
+      // then continue back in the opposite direction on the next row.
+      const cornerW = unit;
+      const cornerH = long;
+      const cornerX = dir === 1 ? Math.min(cx, maxRowW - cornerW) : Math.max(cx - cornerW, 0);
+      const cornerY = cy - unit / 2;
+      items.push({
+        x: cornerX,
+        y: cornerY,
+        w: cornerW,
+        h: cornerH,
+        a,
+        b,
+        horizontal: false,
+        isDouble,
+      });
+      cy += cornerH - unit / 2 + 2;
+      dir = (dir === 1 ? -1 : 1) as 1 | -1;
+      // Start the new row from the corner column
+      cx = dir === 1 ? cornerX + cornerW : cornerX;
+      continue;
+    }
+
+    items.push({
+      x: tileLeft,
+      y: cy - h / 2,
+      w,
+      h,
+      a,
+      b,
+      horizontal: horiz,
+      isDouble,
     });
-  }, [board.length]);
-
-  // Translate everything to positive coords with padding
-  let dx = pad, dy = pad, innerW = vp.w, innerH = vp.h;
-  if (items.length > 0) {
-    const minX = Math.min(...items.map((i) => i.x));
-    const maxX = Math.max(...items.map((i) => i.x + i.w));
-    const minY = Math.min(...items.map((i) => i.y));
-    const maxY = Math.max(...items.map((i) => i.y + i.h));
-    const chainW = maxX - minX;
-    const chainH = maxY - minY;
-    innerW = Math.max(vp.w, chainW + pad * 2);
-    innerH = Math.max(vp.h, chainH + pad * 2);
-    // Left-align with padding so chain reads left→right; vertical centered.
-    dx = pad - minX;
-    dy = (innerH - chainH) / 2 - minY;
+    cx = dir === 1 ? cx + w : cx - w;
   }
+
+  // Bounding box
+  let chainW = 0, chainH = unit;
+  let minX = 0, minY = 0;
+  if (items.length > 0) {
+    minX = Math.min(...items.map((it) => it.x));
+    const maxX = Math.max(...items.map((it) => it.x + it.w));
+    minY = Math.min(...items.map((it) => it.y));
+    const maxY = Math.max(...items.map((it) => it.y + it.h));
+    chainW = maxX - minX;
+    chainH = maxY - minY;
+  }
+
+  // Scale to ALWAYS fit inside the container — never overflow / never hide.
+  const availW = Math.max(80, vp.w - pad * 2);
+  const availH = Math.max(80, vp.h - pad * 2);
+  const scale = items.length === 0
+    ? 1
+    : Math.min(1, availW / chainW, availH / chainH);
+
+  const scaledW = chainW * scale;
+  const scaledH = chainH * scale;
+  const offsetX = (vp.w - scaledW) / 2 - minX * scale;
+  const offsetY = (vp.h - scaledH) / 2 - minY * scale;
 
   return (
     <div
       ref={wrapRef}
-      className="relative w-full h-full overflow-x-auto overflow-y-hidden"
-      style={{ scrollbarWidth: "thin" }}
+      className="relative w-full h-full overflow-hidden"
     >
-      <div ref={innerRef} className="relative" style={{ width: innerW, height: innerH }}>
+      <div className="absolute inset-0">
         {items.map((it, i) => {
-          const isHead = i === 0; // vody (premier vato napetraka)
-          const isTail = items.length > 1 && i === items.length - 1; // rambony
+          const isHead = i === 0;
+          const isTail = items.length > 1 && i === items.length - 1;
           const ringColor = isHead
             ? "0 0 0 3px rgba(34,197,94,0.95), 0 0 14px 4px rgba(34,197,94,0.55)"
             : isTail
@@ -102,11 +145,11 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
               key={i}
               className="absolute animate-scale-in"
               style={{
-                left: it.x + dx,
-                top: it.y + dy,
-                width: it.w,
-                height: it.h,
-                transition: "left 280ms ease, top 280ms ease",
+                left: it.x * scale + offsetX,
+                top: it.y * scale + offsetY,
+                width: it.w * scale,
+                height: it.h * scale,
+                transition: "left 280ms ease, top 280ms ease, width 200ms ease, height 200ms ease",
                 borderRadius: 6,
                 boxShadow: ringColor,
               }}
@@ -119,18 +162,6 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
                 variant="white"
                 fluid
               />
-              {(isHead || isTail) && (
-                <span
-                  className="absolute -top-2 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide pointer-events-none"
-                  style={{
-                    background: isHead ? "rgb(34,197,94)" : "rgb(244,63,94)",
-                    color: "white",
-                    boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
-                  }}
-                >
-                  {isHead ? "Vody" : "Rambony"}
-                </span>
-              )}
             </div>
           );
         })}

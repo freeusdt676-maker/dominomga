@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, ArrowDownToLine, ArrowUpFromLine, Copy } from "lucide-react";
+import { ArrowLeft, ArrowDownToLine, ArrowUpFromLine, Copy, ShieldAlert } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 import { toast } from "sonner";
 
@@ -66,6 +66,9 @@ export default function Wallet() {
 
   const submitWithdraw = async () => {
     if (!user) return toast.error("Tsy nahita compte");
+    // Rate limit: 3 demandes / 10 min
+    const { data: rl } = await supabase.rpc("check_rate_limit", { _action: "withdraw_request", _max: 3, _window_seconds: 600 });
+    if (rl === false) return toast.error("Be loatra ny demande. Andraso 10 min.");
     const a = Number(withdrawAmount);
     if (a < 1000) return toast.error("Min 1000 Ar");
     if (a > balance) return toast.error("Solde tsy ampy");
@@ -101,6 +104,7 @@ export default function Wallet() {
       status: "pending",
     });
     if (error) return toast.error("Erreur: " + error.message);
+    await supabase.rpc("log_audit", { _action: "withdraw_request", _meta: { amount: a, mvola_phone: cleanPhone } });
     toast.success("Demande retrait alefa");
     setWithdrawAmount(""); setWithdrawPhone(""); setWithdrawName(""); setPin(""); load();
   };

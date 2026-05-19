@@ -35,96 +35,56 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
 
   const unit = SHORT[tileSize];
   const long = unit * 2;
-  const pad = 6;
+  const pad = 12;
+  const gap = 4;
+  const availW = Math.max(80, vp.w - pad * 2);
+  const availH = Math.max(80, vp.h - pad * 2);
+  const cellW = long + gap;
+  const cellH = long + gap;
 
-  // SNAKE LAYOUT — tiles always TOUCH (no stacking above/below each other).
-  // Direction +1 = right, -1 = left. When the next tile would exceed the
-  // container width, we drop down by one row and reverse direction (U-turn).
-  // Doubles are drawn perpendicular to the running direction.
-  const maxRowW = Math.max(long * 2, vp.w - pad * 2);
+  const maxColumns = Math.max(1, Math.floor((availW + gap) / cellW));
+  const columns = Math.max(1, Math.min(board.length || 1, maxColumns));
+  const rows = Math.max(1, Math.ceil((board.length || 1) / columns));
 
-  const items: Item[] = [];
-  let cx = 0;
-  let cy = 0;
-  let dir: 1 | -1 = 1;
+  const scale = Math.min(
+    1,
+    availW / Math.max(long, columns * cellW - gap),
+    availH / Math.max(long, rows * cellH - gap),
+  );
 
-  for (let i = 0; i < board.length; i++) {
-    const p = board[i];
+  const layoutW = Math.max(long * scale, columns * cellW * scale - gap * scale);
+  const layoutH = Math.max(long * scale, rows * cellH * scale - gap * scale);
+  const offsetX = (vp.w - layoutW) / 2;
+  const offsetY = (vp.h - layoutH) / 2;
+
+  const items: Item[] = board.map((p, i) => {
     const [aa, bb] = p.tile;
     const a = p.flipped ? bb : aa;
     const b = p.flipped ? aa : bb;
     const isDouble = a === b;
-    const horiz = !isDouble; // doubles drawn vertical
-    const w = horiz ? long : unit;
-    const h = horiz ? unit : long;
+    const horizontal = !isDouble;
+    const w = horizontal ? long : unit;
+    const h = horizontal ? unit : long;
+    const row = Math.floor(i / columns);
+    const indexInRow = i % columns;
+    const countInRow = Math.min(columns, board.length - row * columns);
+    const snakeCol = row % 2 === 0 ? indexInRow : countInRow - 1 - indexInRow;
+    const rowWidth = countInRow * cellW - gap;
+    const rowOffsetX = (layoutW / scale - rowWidth) / 2;
+    const cellX = rowOffsetX + snakeCol * cellW;
+    const cellY = row * cellH;
 
-    // edge of THIS tile if placed in current direction
-    const tileLeft = dir === 1 ? cx : cx - w;
-    const tileRight = tileLeft + w;
-
-    const overflowRight = dir === 1 && tileRight > maxRowW && i > 0;
-    const overflowLeft = dir === -1 && tileLeft < 0 && i > 0;
-
-    if (overflowRight || overflowLeft) {
-      // U-turn: place this tile rotated (vertical, perpendicular) at the edge,
-      // then continue back in the opposite direction on the next row.
-      const cornerW = unit;
-      const cornerH = long;
-      const cornerX = dir === 1 ? Math.min(cx, maxRowW - cornerW) : Math.max(cx - cornerW, 0);
-      const cornerY = cy - unit / 2;
-      items.push({
-        x: cornerX,
-        y: cornerY,
-        w: cornerW,
-        h: cornerH,
-        a,
-        b,
-        horizontal: false,
-        isDouble,
-      });
-      cy += cornerH - unit / 2 + 2;
-      dir = (dir === 1 ? -1 : 1) as 1 | -1;
-      // Start the new row from the corner column
-      cx = dir === 1 ? cornerX + cornerW : cornerX;
-      continue;
-    }
-
-    items.push({
-      x: tileLeft,
-      y: cy - h / 2,
+    return {
+      x: cellX + (long - w) / 2,
+      y: cellY + (long - h) / 2,
       w,
       h,
       a,
       b,
-      horizontal: horiz,
+      horizontal,
       isDouble,
-    });
-    cx = dir === 1 ? cx + w : cx - w;
-  }
-
-  // Bounding box
-  let chainW = 0, chainH = unit;
-  let minX = 0, minY = 0;
-  if (items.length > 0) {
-    minX = Math.min(...items.map((it) => it.x));
-    const maxX = Math.max(...items.map((it) => it.x + it.w));
-    minY = Math.min(...items.map((it) => it.y));
-    const maxY = Math.max(...items.map((it) => it.y + it.h));
-    chainW = maxX - minX;
-    chainH = maxY - minY;
-  }
-
-  // Scale to ALWAYS fit inside the container — never overflow / never hide.
-  const availW = Math.max(80, vp.w - pad * 2);
-  const availH = Math.max(80, vp.h - pad * 2);
-  const scale = items.length === 0
-    ? 1
-    : Math.min(1, availW / chainW, availH / chainH);
-
-  const scaledW = chainW * scale;
-  const scaledH = chainH * scale;
-  const offsetX = (vp.w - scaledW) / 2 - minX * scale;
-  const offsetY = (vp.h - scaledH) / 2 - minY * scale;
+    };
+  });
 
   return (
     <div

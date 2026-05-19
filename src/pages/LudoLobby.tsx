@@ -167,6 +167,20 @@ export default function LudoLobby() {
       </header>
 
       <div className="p-4 max-w-lg mx-auto space-y-4">
+        {activeGame && (
+          <div className="ludo-panel rounded-2xl p-4 border border-yellow-400/50 bg-yellow-500/10">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="font-bold text-yellow-200 text-sm">Mbola misy lalao Ludo tsy vita</p>
+                <p className="text-xs text-yellow-100/70">{activeGame.players_count}P · {fmtAr(activeGame.stake)}</p>
+              </div>
+              <Button className="ludo-btn shrink-0" size="sm" onClick={() => nav(`/ludo/${activeGame.id}`)}>
+                Hanohy <span className="ml-1">🔵</span>
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div className="ludo-panel rounded-2xl p-4">
           <p className="text-sm text-yellow-200/80 mb-2">1. Mpilalao</p>
           <div className="grid grid-cols-3 gap-2 mb-4">

@@ -154,103 +154,144 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen felt-bg">
-      <header className="p-4 flex items-center justify-between border-b border-primary/20">
-        <div className="flex items-center gap-2">
-          <img src={logo} alt="Logo" className="w-10 h-10" />
-          <h1 className="font-display font-bold gold-text text-xl">DOMINO MGA</h1>
+    <div className="min-h-screen luxe-bg">
+      <header className="relative z-10 px-5 py-4 flex items-center justify-between hairline-b">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <div className="absolute -inset-1 rounded-full bg-[hsl(var(--gold-1)/0.15)] blur-md" />
+            <img src={logo} alt="DOMINO MGA" className="relative w-10 h-10 rounded-full ring-1 ring-[hsl(var(--gold-1)/0.4)]" />
+          </div>
+          <div className="leading-none">
+            <p className="eyebrow">Maison de jeu</p>
+            <h1 className="font-serif-luxe gold-luxe-text text-2xl mt-1">Domino MGA</h1>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <MessageInbox />
-          <Button variant="ghost" size="icon" onClick={signOut}><LogOut className="w-5 h-5" /></Button>
+          <Button variant="ghost" size="icon" onClick={signOut} className="text-[hsl(var(--gold-1))] hover:bg-[hsl(var(--gold-1)/0.08)]"><LogOut className="w-5 h-5" /></Button>
         </div>
       </header>
 
-      <div className="p-4 space-y-4 max-w-lg mx-auto pb-32">
+      <div className="relative z-10 px-4 pt-5 pb-32 space-y-5 max-w-lg mx-auto">
         {incoming.length > 0 && (
-          <div className="card-felt rounded-2xl p-4 border-2 border-primary animate-pulse">
-            <p className="font-display font-bold gold-text mb-2">⚔️ Misy fanasana!</p>
+          <div className="luxe-card p-4 ring-1 ring-[hsl(var(--gold-1)/0.5)] animate-pulse">
+            <p className="eyebrow mb-1">Défi</p>
+            <p className="font-serif-luxe gold-luxe-text text-xl mb-2">⚔️ Misy fanasana</p>
             {incoming.map((c) => (
-              <div key={c.id} className="flex items-center justify-between gap-2 py-2">
+              <div key={c.id} className="flex items-center justify-between gap-2 py-2 hairline-t first:border-t-0">
                 <div className="text-sm">
                   <p className="font-bold">{c.profiles?.mvola_name ?? "?"}</p>
                   <p className="text-xs text-muted-foreground">Mise: {fmtAr(c.stake)}</p>
                 </div>
                 <div className="flex gap-1">
-                  <Button size="sm" className="btn-gold" onClick={() => acceptChallenge(c)}>Eny</Button>
-                  <Button size="sm" variant="destructive" onClick={() => declineChallenge(c)}>Tsia</Button>
+                  <button onClick={() => acceptChallenge(c)} className="btn-luxe !py-2 !px-4 text-[11px]">Eny</button>
+                  <button onClick={() => declineChallenge(c)} className="btn-luxe-ghost !py-2 !px-3 text-[11px]">Tsia</button>
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        <div className="card-felt rounded-2xl p-5">
-          <p className="text-xs text-muted-foreground">Tonga soa</p>
-          <h2 className="text-2xl font-display font-bold">{profile?.mvola_name ?? "..."}</h2>
-          <p className="text-xs text-muted-foreground mt-1">{profile?.phone}</p>
-          <div className="mt-4 flex items-end justify-between">
+        {/* Hero wallet card */}
+        <div className="luxe-hero p-5">
+          <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs text-muted-foreground">Solde</p>
-              <p className="text-3xl font-display gold-text font-bold">{fmtAr(balance)}</p>
+              <p className="eyebrow">Tonga soa</p>
+              <h2 className="font-serif-luxe text-3xl mt-1 gold-luxe-text leading-none">{profile?.mvola_name ?? "..."}</h2>
+              <p className="text-[11px] text-muted-foreground mt-2 tracking-wider">{profile?.phone}</p>
             </div>
-            <Link to="/wallet"><Button className="btn-gold"><Wallet className="w-4 h-4 mr-2" />MVOLA</Button></Link>
+            <span className="text-[10px] font-sans-pro tracking-[0.2em] uppercase text-[hsl(var(--gold-1))] border border-[hsl(var(--gold-1)/0.4)] rounded-full px-2 py-1">VIP</span>
+          </div>
+
+          <div className="my-5 h-px bg-gradient-to-r from-transparent via-[hsl(var(--gold-1)/0.4)] to-transparent" />
+
+          <div className="flex items-end justify-between">
+            <div>
+              <p className="eyebrow">Solde MVOLA</p>
+              <p className="font-serif-luxe text-[40px] leading-none gold-luxe-text mt-2">{fmtAr(balance)}</p>
+            </div>
+            <Link to="/wallet">
+              <button className="btn-luxe inline-flex items-center gap-2"><Wallet className="w-3.5 h-3.5" />MVola</button>
+            </Link>
           </div>
         </div>
 
-        <Link to="/lobby">
-          <div className="rounded-2xl p-6 hover:scale-[1.01] transition cursor-pointer domino-panel">
-            <div className="flex items-center gap-3">
-              <span className="text-3xl">🁫</span>
+        <div className="crest-divider px-2">
+          <span className="text-[10px] tracking-[0.4em] uppercase">— Salles —</span>
+        </div>
+
+        {/* Game rooms */}
+        <div className="space-y-3">
+          <Link to="/lobby" className="block luxe-card p-5 group transition hover:border-[hsl(var(--gold-1)/0.5)]">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-gradient-to-br from-[hsl(150_55%_22%)] to-[hsl(155_65%_10%)] border border-[hsl(var(--gold-1)/0.3)] text-3xl">🁫</div>
               <div className="flex-1">
-                <h3 className="font-display text-xl font-bold domino-title">DOMINO</h3>
-                <p className="text-sm text-yellow-100/80">2P · 3P — Mise sy Gain mitovy</p>
+                <p className="eyebrow">Classique</p>
+                <h3 className="font-serif-luxe text-2xl gold-luxe-text leading-tight">Domino</h3>
+                <p className="text-xs text-muted-foreground mt-1">2P · 3P — Mise sy gain mitovy</p>
               </div>
+              <span className="text-[hsl(var(--gold-1))] opacity-50 group-hover:opacity-100 transition text-xl">→</span>
             </div>
-          </div>
-        </Link>
+          </Link>
 
-        <Link
-          to="/ludo"
-          className="w-full text-left rounded-2xl p-6 hover:scale-[1.01] transition cursor-pointer ludo-panel block"
-        >
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">🎲</span>
-            <div className="flex-1">
-              <h3 className="font-display text-xl font-bold ludo-title">LUDO MASTER</h3>
-              <p className="text-sm text-yellow-100/80">2P · 3P · 4P — mise sy gain mitovy</p>
+          <Link to="/ludo" className="block luxe-card p-5 group transition hover:border-[hsl(var(--gold-1)/0.5)]">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-gradient-to-br from-[#4a2580] to-[#2c1356] border border-[hsl(var(--gold-1)/0.3)] text-3xl">🎲</div>
+              <div className="flex-1">
+                <p className="eyebrow">Royale</p>
+                <h3 className="font-serif-luxe text-2xl gold-luxe-text leading-tight">Ludo Master</h3>
+                <p className="text-xs text-muted-foreground mt-1">2P · 3P · 4P — Mise sy gain mitovy</p>
+              </div>
+              <span className="text-[hsl(var(--gold-1))] opacity-50 group-hover:opacity-100 transition text-xl">→</span>
             </div>
-          </div>
-        </Link>
-
-        <div className="grid grid-cols-3 gap-3">
-          <Link to="/lobby"><div className="card-felt rounded-xl p-4 text-center"><Users className="w-6 h-6 mx-auto mb-2 text-primary" /><p className="text-sm">En ligne</p></div></Link>
-          <Link to="/discussions"><div className="card-felt rounded-xl p-4 text-center"><MessagesSquare className="w-6 h-6 mx-auto mb-2 text-primary" /><p className="text-sm">Discussions</p></div></Link>
-          <Link to="/admin-chat"><div className="card-felt rounded-xl p-4 text-center"><MessageCircle className="w-6 h-6 mx-auto mb-2 text-primary" /><p className="text-sm">Chat Admin</p></div></Link>
+          </Link>
         </div>
 
-        <Link to="/profile">
-          <div className="card-felt rounded-xl p-4 flex items-center gap-3">
-            <UserIcon className="w-6 h-6 text-primary" />
-            <div className="flex-1">
-              <p className="text-sm font-bold">Profile sy Historique</p>
-              <p className="text-xs text-muted-foreground">Hijery ny lalao vita sy ny score</p>
+        <div className="crest-divider px-2">
+          <span className="text-[10px] tracking-[0.4em] uppercase">— Conciergerie —</span>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          <Link to="/lobby" className="stat-tile text-center">
+            <Users className="w-5 h-5 mx-auto mb-1.5 text-[hsl(var(--gold-1))]" />
+            <p className="text-[11px] font-sans-pro tracking-wide">En ligne</p>
+          </Link>
+          <Link to="/discussions" className="stat-tile text-center">
+            <MessagesSquare className="w-5 h-5 mx-auto mb-1.5 text-[hsl(var(--gold-1))]" />
+            <p className="text-[11px] font-sans-pro tracking-wide">Discussions</p>
+          </Link>
+          <Link to="/admin-chat" className="stat-tile text-center">
+            <MessageCircle className="w-5 h-5 mx-auto mb-1.5 text-[hsl(var(--gold-1))]" />
+            <p className="text-[11px] font-sans-pro tracking-wide">Chat Admin</p>
+          </Link>
+        </div>
+
+        <Link to="/profile" className="block luxe-card p-4 group">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[hsl(var(--gold-1)/0.1)] border border-[hsl(var(--gold-1)/0.3)] flex items-center justify-center">
+              <UserIcon className="w-5 h-5 text-[hsl(var(--gold-1))]" />
             </div>
-            <Trophy className="w-5 h-5 text-primary/60" />
+            <div className="flex-1">
+              <p className="font-serif-luxe text-lg leading-none">Profile</p>
+              <p className="text-xs text-muted-foreground mt-1">Historique sy score</p>
+            </div>
+            <Trophy className="w-4 h-4 text-[hsl(var(--gold-1))] opacity-60 group-hover:opacity-100 transition" />
           </div>
         </Link>
 
-        <Link to="/rules"><div className="card-felt rounded-xl p-4 text-center text-sm text-muted-foreground">Règle du jeu</div></Link>
+        <Link to="/rules" className="block text-center hairline rounded-xl p-3 text-xs tracking-[0.2em] uppercase text-muted-foreground hover:text-[hsl(var(--gold-1))] hover:border-[hsl(var(--gold-1)/0.5)] transition">
+          Règle du jeu
+        </Link>
 
-        <button onClick={installApp} className="w-full card-felt rounded-xl p-4 flex items-center justify-center gap-2 text-sm border border-primary/30 hover:border-primary transition">
-          <Download className="w-4 h-4 text-primary" />
-          <span className="font-bold">Hampiditra ny app amin'ny finday</span>
+        <button onClick={installApp} className="w-full luxe-card p-3.5 flex items-center justify-center gap-2 text-xs font-sans-pro tracking-wide hover:border-[hsl(var(--gold-1)/0.6)] transition">
+          <Download className="w-4 h-4 text-[hsl(var(--gold-1))]" />
+          <span className="font-semibold">Hampiditra ny app amin'ny finday</span>
         </button>
 
-        <p className="text-center text-xs text-muted-foreground/60 pt-4">Hiditra · DOMINO MGA · v1</p>
+        <p className="text-center text-[10px] tracking-[0.35em] uppercase text-muted-foreground/50 pt-4">Domino MGA · Maison de jeu · v1</p>
 
         {isAdmin && (
-          <Link to="/admin"><Button variant="outline" className="w-full">Tableau Admin</Button></Link>
+          <Link to="/admin"><button className="w-full btn-luxe-ghost">Tableau Admin</button></Link>
         )}
       </div>
 

@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, ShieldAlert, Activity, AlertTriangle, Users, LogIn } from "lucide-react";
 import { toast } from "sonner";
+import { useThemeClass } from "@/hooks/use-theme-class";
 
 export default function AdminSecurity() {
+  useThemeClass("mvola");
   const { isAdmin } = useAuth();
   const nav = useNavigate();
   const codeOk = typeof window !== "undefined" && sessionStorage.getItem("admin_code_ok") === "1";

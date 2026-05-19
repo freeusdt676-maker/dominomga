@@ -329,6 +329,7 @@ export default function PetanqueGame() {
   const [simBalls, setSimBalls] = useState<Ball[]>([]);
   const [simJack, setSimJack] = useState<Jack | null>(null);
   const simRef = useRef<{ balls: Ball[]; jack: Jack | null } | null>(null);
+  const autoThrowRef = useRef<string | null>(null);
 
   // Force portrait + fullscreen feel
   useEffect(() => {

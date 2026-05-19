@@ -9,10 +9,36 @@ type Signal =
   | { kind: "answer"; from: string; to: string; sdp: RTCSessionDescriptionInit }
   | { kind: "ice"; from: string; to: string; candidate: RTCIceCandidateInit };
 
-// Free public STUN + TURN (Open Relay / Metered) — works through most NATs.
+// Free public STUN + TURN — multi-provider mba hahatonga azy mandeha amin'ny
+// network rehetra (mobile 4G, wifi entreprise, NAT symetrique, sns.)
 const ICE: RTCConfiguration = {
   iceServers: [
-    { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
+    {
+      urls: [
+        "stun:stun.l.google.com:19302",
+        "stun:stun1.l.google.com:19302",
+        "stun:stun2.l.google.com:19302",
+        "stun:stun.cloudflare.com:3478",
+      ],
+    },
+    // Metered Open Relay — endpoint vaovao (global.relay.metered.ca)
+    {
+      urls: [
+        "turn:global.relay.metered.ca:80",
+        "turn:global.relay.metered.ca:80?transport=tcp",
+        "turn:global.relay.metered.ca:443",
+        "turns:global.relay.metered.ca:443?transport=tcp",
+      ],
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+    // ExpressTURN free fallback
+    {
+      urls: ["turn:relay1.expressturn.com:3478"],
+      username: "ef9MM26U6OXAW1R3RU",
+      credential: "MlV6V3vROK8mU0Y2",
+    },
+    // Fallback farany: openrelay (taloha) raha mbola mandeha
     {
       urls: [
         "turn:openrelay.metered.ca:80",
@@ -23,6 +49,7 @@ const ICE: RTCConfiguration = {
       credential: "openrelayproject",
     },
   ],
+  iceCandidatePoolSize: 4,
 };
 
 /**
@@ -68,6 +95,9 @@ export default function LudoVoiceChat({ gameId }: { gameId: string }) {
     pcsRef.current.set(peer, pc);
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((t) => pc!.addTrack(t, localStreamRef.current!));
+    } else {
+      // Tsy maintsy misy transceiver audio mba afaka mifanakalo SDP
+      try { pc.addTransceiver("audio", { direction: "sendrecv" }); } catch {}
     }
     pc.onicecandidate = (e) => {
       if (e.candidate && user) send({ kind: "ice", from: user.id, to: peer, candidate: e.candidate.toJSON() });
@@ -77,21 +107,34 @@ export default function LudoVoiceChat({ gameId }: { gameId: string }) {
       if (!audio) {
         audio = document.createElement("audio");
         audio.autoplay = true;
+        audio.muted = false;
+        audio.volume = 1.0;
         (audio as any).playsInline = true;
         document.body.appendChild(audio);
         audiosRef.current.set(peer, audio);
       }
       audio.srcObject = e.streams[0];
-      audio.play().catch(() => {});
+      audio.play().catch((err) => {
+        console.warn("[voice] autoplay blocked, retrying on next gesture", err);
+        const retry = () => { audio!.play().catch(() => {}); document.removeEventListener("click", retry); document.removeEventListener("touchstart", retry); };
+        document.addEventListener("click", retry, { once: true });
+        document.addEventListener("touchstart", retry, { once: true });
+      });
     };
     pc.oniceconnectionstatechange = () => {
       const st = pc!.iceConnectionState;
-      if (st === "failed" || st === "disconnected" || st === "closed") {
-        try { pc!.close(); } catch {}
+      console.log(`[voice] ${peer.slice(0,6)} ICE: ${st}`);
+      if (st === "failed") {
+        try { pc!.restartIce(); } catch {}
+      }
+      if (st === "closed") {
         pcsRef.current.delete(peer);
         const a = audiosRef.current.get(peer);
         if (a) { try { a.pause(); a.srcObject = null; a.remove(); } catch {} audiosRef.current.delete(peer); }
       }
+    };
+    pc.onconnectionstatechange = () => {
+      console.log(`[voice] ${peer.slice(0,6)} conn: ${pc!.connectionState}`);
     };
     return pc;
   };

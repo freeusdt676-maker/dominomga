@@ -23,6 +23,7 @@ const MODES: { value: string; label: string; short: string }[] = [
 ];
 
 export default function Lobby() {
+  useThemeClass("domino");
   const { user } = useAuth();
   const nav = useNavigate();
   const [stake, setStake] = useState(STAKE_LEVELS[0]);

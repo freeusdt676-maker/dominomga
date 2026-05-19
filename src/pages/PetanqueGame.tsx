@@ -20,6 +20,7 @@ type GameRow = {
   stake: number;
   status: string;
   current_turn: string | null;
+  turn_started_at?: string | null;
   winner_id: string | null;
   score_p1: number;
   score_p2: number;
@@ -328,6 +329,7 @@ export default function PetanqueGame() {
   const [simBalls, setSimBalls] = useState<Ball[]>([]);
   const [simJack, setSimJack] = useState<Jack | null>(null);
   const simRef = useRef<{ balls: Ball[]; jack: Jack | null } | null>(null);
+  const autoThrowRef = useRef<string | null>(null);
 
   // Force portrait + fullscreen feel
   useEffect(() => {
@@ -419,6 +421,31 @@ export default function PetanqueGame() {
     };
     requestAnimationFrame(loop);
   };
+
+  // ---- 20s auto-throw (robot) — current player only ----
+  useEffect(() => {
+    if (!g || !user || !mySide) return;
+    if (g.status !== "in_progress") return;
+    if (g.state?.phase !== "aim") return;
+    if (g.current_turn !== user.id) return;
+    if (throwing) return;
+    const startMs = g.turn_started_at ? new Date(g.turn_started_at).getTime() : Date.now();
+    const key = `${g.id}-${g.turn_started_at ?? "0"}-${g.current_turn}`;
+    if (autoThrowRef.current === key) return;
+    const delay = Math.max(0, 20_000 - (Date.now() - startMs));
+    const t = setTimeout(() => {
+      if (autoThrowRef.current === key) return;
+      autoThrowRef.current = key;
+      // Random bot params
+      setAngle(Math.round((Math.random() - 0.5) * 40)); // -20..+20°
+      setForce(40 + Math.round(Math.random() * 40));    // 40..80%
+      // doThrow uses latest angle/force via closure of next render — defer a tick
+      setTimeout(() => { void doThrow(); }, 60);
+      toast("⏱ Robot nanatsipy baolina (20s)");
+    }, delay);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [g?.current_turn, g?.turn_started_at, g?.state?.phase, g?.status, throwing, mySide, user?.id]);
 
   const finishThrow = async (finalBalls: Ball[], finalJack: Jack | null, thrower: "p1" | "p2") => {
     if (!g) return;

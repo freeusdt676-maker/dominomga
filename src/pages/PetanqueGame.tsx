@@ -601,38 +601,41 @@ export default function PetanqueGame() {
         </Suspense>
       </Canvas>
 
-      {/* Top overlay - glass orb player profiles */}
-      <div className="absolute top-0 left-0 right-0 p-3 flex items-start justify-between pointer-events-none">
-        <PlayerOrb
-          name={p1Profile?.mvola_name ?? "Mpilalao 1"}
-          score={g.score_p1}
-          remaining={remaining.p1}
-          color="#dc2626"
-          active={g.current_turn === g.player1_id}
-          side="left"
-        />
-        <div className="text-center pointer-events-none mt-2">
-          <div className="text-[10px] text-emerald-200/70 tracking-widest">ROUND {g.round_number}</div>
-          <div className="text-xl font-bold text-white drop-shadow-lg">{g.score_p1} : {g.score_p2}</div>
-          <div className="text-[10px] text-emerald-200/70">Maty {TARGET_SCORE} · Fani {FANI_SCORE}-0</div>
+      {/* Top overlay — solaitra mainty be zaraina roa */}
+      <div className="absolute top-0 left-0 right-0 bg-black/90 backdrop-blur-md border-b-2 border-white/15 shadow-2xl pointer-events-auto">
+        <div className="flex items-stretch">
+          <PlayerHalf
+            name={p1Profile?.mvola_name ?? "Mpilalao 1"}
+            avatarUrl={p1Profile?.avatar_url}
+            score={g.score_p1}
+            remaining={remaining.p1}
+            color="#dc2626"
+            active={g.current_turn === g.player1_id}
+            side="left"
+          />
+          <div className="flex flex-col items-center justify-center px-2 py-2 border-x border-white/15 min-w-[88px]">
+            <div className="text-[9px] text-white/60 tracking-widest font-semibold">ROUND {g.round_number}</div>
+            <div className="text-3xl font-black text-white leading-none my-0.5">{g.score_p1}<span className="text-white/40 mx-1">:</span>{g.score_p2}</div>
+            <div className="text-[9px] text-white/50 font-semibold">MATY {TARGET_SCORE} · FANI {FANI_SCORE}-0</div>
+            <button
+              onClick={() => nav("/")}
+              className="mt-1.5 w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center"
+              aria-label="Hiala"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-white" />
+            </button>
+          </div>
+          <PlayerHalf
+            name={p2Profile?.mvola_name ?? "Miandry..."}
+            avatarUrl={p2Profile?.avatar_url}
+            score={g.score_p2}
+            remaining={remaining.p2}
+            color="#2563eb"
+            active={g.current_turn === g.player2_id}
+            side="right"
+          />
         </div>
-        <PlayerOrb
-          name={p2Profile?.mvola_name ?? "Miandry..."}
-          score={g.score_p2}
-          remaining={remaining.p2}
-          color="#2563eb"
-          active={g.current_turn === g.player2_id}
-          side="right"
-        />
       </div>
-
-      {/* Back button (left) */}
-      <button
-        onClick={() => nav("/")}
-        className="absolute top-3 left-1/2 -translate-x-[50px] mt-16 w-9 h-9 rounded-full bg-black/40 backdrop-blur border border-white/20 flex items-center justify-center"
-      >
-        <ArrowLeft className="w-4 h-4 text-white" />
-      </button>
 
       {/* Pause button (bottom right) with seashell decor */}
       <button className="absolute bottom-4 right-4 w-14 h-14 rounded-full bg-emerald-500 border-2 border-white/40 flex items-center justify-center shadow-xl shadow-emerald-500/40">
@@ -643,37 +646,77 @@ export default function PetanqueGame() {
         </svg>
       </button>
 
-      {/* Bottom controls */}
+      {/* Drag-to-throw pad — toy ny mitarika tady */}
       {isMyTurn && !throwing && (
-        <div className="absolute bottom-20 left-0 right-0 px-4 pb-2 pointer-events-auto">
-          <div className="max-w-md mx-auto bg-black/55 backdrop-blur rounded-2xl p-3 border border-emerald-400/40 space-y-2">
-            <div>
-              <div className="flex justify-between text-[11px] text-emerald-200 mb-1">
-                <span>← Havia</span><span className="font-bold">Tady: {angle}°</span><span>Havanana →</span>
-              </div>
-              <input
-                type="range" min={-35} max={35} value={angle}
-                onChange={(e) => setAngle(Number(e.target.value))}
-                className="w-full accent-emerald-400"
-              />
+        <div
+          className="absolute bottom-0 left-0 right-0 h-[42%] touch-none select-none"
+          onPointerDown={(e) => {
+            (e.target as Element).setPointerCapture?.(e.pointerId);
+            dragStart.current = { x: e.clientX, y: e.clientY };
+            setDrag({ dx: 0, dy: 0 });
+          }}
+          onPointerMove={(e) => {
+            if (!dragStart.current) return;
+            const dx = e.clientX - dragStart.current.x;
+            const dy = e.clientY - dragStart.current.y;
+            setDrag({ dx, dy });
+            const pull = Math.max(0, Math.min(PULL_MAX, dy));
+            setForce(Math.round(10 + (pull / PULL_MAX) * 90));
+            setAngle(Math.max(-35, Math.min(35, -dx / 4)));
+          }}
+          onPointerUp={() => {
+            if (!dragStart.current) { setDrag(null); return; }
+            const d = drag;
+            dragStart.current = null;
+            setDrag(null);
+            if (!d) return;
+            const pull = Math.max(0, Math.min(PULL_MAX, d.dy));
+            if (pull < 24) return; // tariny kely loatra — tsy alefa
+            const f = Math.round(10 + (pull / PULL_MAX) * 90);
+            const a = Math.max(-35, Math.min(35, -d.dx / 4));
+            void doThrow(a, f);
+          }}
+          onPointerCancel={() => { dragStart.current = null; setDrag(null); }}
+        >
+          {/* HUD readout */}
+          <div className="absolute top-2 left-0 right-0 flex justify-center pointer-events-none">
+            <div className="bg-black/70 backdrop-blur px-4 py-1.5 rounded-full border border-emerald-400/40 flex items-center gap-3 text-xs font-bold">
+              <span className="text-emerald-200">Tady: <span className="text-white">{angle}°</span></span>
+              <span className="w-px h-3 bg-white/30" />
+              <span className="text-emerald-200">Hery: <span className="text-white">{force}%</span></span>
             </div>
-            <div>
-              <div className="flex justify-between text-[11px] text-emerald-200 mb-1">
-                <span>Hery</span><span className="font-bold">{force}%</span>
-              </div>
-              <input
-                type="range" min={10} max={100} value={force}
-                onChange={(e) => setForce(Number(e.target.value))}
-                className="w-full accent-emerald-400"
-              />
-            </div>
-            <button
-              onClick={doThrow}
-              className="w-full py-3 rounded-xl bg-gradient-to-b from-emerald-400 to-emerald-600 text-emerald-950 font-extrabold tracking-wide shadow-lg shadow-emerald-500/40 active:scale-95 transition"
-            >
-              🎯 ALEFA
-            </button>
           </div>
+          {/* Drag handle visual */}
+          <div className="absolute left-1/2 -translate-x-1/2 bottom-20 pointer-events-none">
+            <div
+              className="w-16 h-16 rounded-full shadow-2xl"
+              style={{
+                background: `radial-gradient(circle at 35% 30%, ${mySide === "p1" ? "#ff6b6b" : "#60a5fa"}, ${mySide === "p1" ? "#991b1b" : "#1e3a8a"})`,
+                transform: drag ? `translate(${drag.dx}px, ${Math.max(0, Math.min(PULL_MAX, drag.dy))}px)` : "none",
+                transition: drag ? "none" : "transform 240ms ease-out",
+                boxShadow: "0 8px 24px rgba(0,0,0,0.5), inset -4px -6px 12px rgba(0,0,0,0.35), inset 4px 4px 10px rgba(255,255,255,0.35)",
+              }}
+            />
+            {/* tension line */}
+            {drag && (drag.dy > 0) && (
+              <svg className="absolute top-8 left-8 overflow-visible pointer-events-none" width="1" height="1">
+                <line
+                  x1={0} y1={0}
+                  x2={drag.dx} y2={Math.max(0, Math.min(PULL_MAX, drag.dy))}
+                  stroke="rgba(34,255,102,0.9)" strokeWidth="3" strokeLinecap="round"
+                  strokeDasharray="6 4"
+                />
+              </svg>
+            )}
+          </div>
+          {/* Hint */}
+          {!drag && (
+            <div className="absolute bottom-2 left-0 right-0 text-center pointer-events-none">
+              <span className="inline-block px-4 py-2 rounded-full bg-emerald-500/85 text-emerald-950 font-bold text-xs shadow-lg">
+                ✋ Hazony ny baolina, dia taritina midina hatsipy
+              </span>
+            </div>
+          )}
         </div>
       )}
 

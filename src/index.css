@@ -80,24 +80,24 @@
 
 /* MVola / Wallet — fond crème malefaka (tsy mazava be), accent jaune/orange */
 html.theme-mvola {
-  --background: 40 35% 93%;
-  --foreground: 28 25% 18%;
-  --card: 40 40% 97%;
-  --card-foreground: 28 25% 18%;
-  --popover: 40 40% 97%;
-  --popover-foreground: 28 25% 18%;
-  --primary: 42 92% 48%;
-  --primary-foreground: 28 35% 12%;
-  --primary-glow: 36 95% 55%;
-  --secondary: 40 30% 88%;
-  --secondary-foreground: 28 25% 18%;
-  --muted: 40 25% 90%;
-  --muted-foreground: 28 15% 38%;
-  --accent: 14 80% 50%;
+  --background: 0 0% 4%;
+  --foreground: 45 90% 92%;
+  --card: 0 0% 8%;
+  --card-foreground: 45 90% 92%;
+  --popover: 0 0% 8%;
+  --popover-foreground: 45 90% 92%;
+  --primary: 42 95% 55%;
+  --primary-foreground: 0 0% 6%;
+  --primary-glow: 38 100% 65%;
+  --secondary: 0 0% 12%;
+  --secondary-foreground: 45 90% 92%;
+  --muted: 0 0% 10%;
+  --muted-foreground: 45 20% 70%;
+  --accent: 14 85% 55%;
   --accent-foreground: 0 0% 100%;
-  --border: 40 25% 80%;
-  --input: 40 30% 92%;
-  --ring: 42 92% 48%;
+  --border: 42 60% 30%;
+  --input: 0 0% 12%;
+  --ring: 42 95% 55%;
 }
 
 /* Domino — vert feutré, texte mazava tsara (tsy flou) */

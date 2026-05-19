@@ -8,28 +8,28 @@
 
 @layer base {
   :root {
-    /* MVola-inspired light theme: white background, yellow primary, teal accent */
-    --background: 0 0% 100%;
-    --foreground: 220 15% 12%;
+    /* Original DOMINO MGA — dark casino felt theme */
+    --background: 155 45% 6%;
+    --foreground: 45 60% 92%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 220 15% 12%;
+    --card: 155 40% 9%;
+    --card-foreground: 45 60% 92%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 15% 12%;
+    --popover: 155 40% 9%;
+    --popover-foreground: 45 60% 92%;
 
-    --primary: 48 100% 50%;
-    --primary-foreground: 220 20% 10%;
-    --primary-glow: 48 100% 65%;
+    --primary: 45 65% 54%;
+    --primary-foreground: 155 50% 8%;
+    --primary-glow: 45 80% 65%;
 
-    --secondary: 210 20% 96%;
-    --secondary-foreground: 220 15% 12%;
+    --secondary: 155 30% 14%;
+    --secondary-foreground: 45 60% 92%;
 
-    --muted: 210 20% 96%;
-    --muted-foreground: 220 10% 45%;
+    --muted: 155 25% 12%;
+    --muted-foreground: 45 20% 70%;
 
-    --accent: 175 70% 38%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 155 35% 14%;
+    --accent-foreground: 45 60% 92%;
 
     --destructive: 0 75% 50%;
     --destructive-foreground: 45 60% 92%;
@@ -37,17 +37,17 @@
     --success: 142 70% 45%;
     --success-foreground: 0 0% 100%;
 
-    --border: 220 15% 90%;
-    --input: 220 15% 92%;
-    --ring: 48 100% 50%;
+    --border: 45 35% 24%;
+    --input: 155 25% 12%;
+    --ring: 45 65% 54%;
 
     --radius: 0.75rem;
 
-    --gradient-felt: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(48 100% 96%) 100%);
-    --gradient-gold: linear-gradient(135deg, hsl(48 100% 60%), hsl(42 100% 50%));
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(210 20% 98%));
-    --shadow-gold: 0 4px 20px -4px hsl(48 100% 50% / 0.45);
-    --shadow-deep: 0 10px 40px -10px hsl(220 30% 20% / 0.18);
+    --gradient-felt: linear-gradient(180deg, hsl(155 50% 8%) 0%, hsl(155 60% 4%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(45 80% 60%), hsl(38 70% 45%));
+    --gradient-card: linear-gradient(180deg, hsl(155 40% 11%), hsl(155 45% 7%));
+    --shadow-gold: 0 4px 20px -4px hsl(45 80% 50% / 0.4);
+    --shadow-deep: 0 10px 40px -10px hsl(155 80% 4% / 0.7);
 
     /* Premium luxe tokens */
     --gold-1: 48 88% 72%;
@@ -59,19 +59,19 @@
     --shadow-inset-gold: inset 0 1px 0 hsl(var(--gold-1) / 0.45), inset 0 -1px 0 hsl(0 0% 0% / 0.4);
     --hairline: hsl(var(--gold-1) / 0.18);
 
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 220 15% 12%;
-    --sidebar-primary: 48 100% 50%;
-    --sidebar-primary-foreground: 220 20% 10%;
-    --sidebar-accent: 210 20% 96%;
-    --sidebar-accent-foreground: 220 15% 12%;
-    --sidebar-border: 220 15% 90%;
-    --sidebar-ring: 48 100% 50%;
+    --sidebar-background: 155 45% 6%;
+    --sidebar-foreground: 45 60% 92%;
+    --sidebar-primary: 45 65% 54%;
+    --sidebar-primary-foreground: 155 50% 8%;
+    --sidebar-accent: 155 35% 14%;
+    --sidebar-accent-foreground: 45 60% 92%;
+    --sidebar-border: 45 35% 24%;
+    --sidebar-ring: 45 65% 54%;
   }
 
   .dark {
-    --background: 0 0% 100%;
-    --foreground: 220 15% 12%;
+    --background: 155 45% 6%;
+    --foreground: 45 60% 92%;
   }
 }
 
@@ -172,8 +172,7 @@ html.theme-petanque {
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Work Sans', 'Inter', system-ui, sans-serif;
-    font-feature-settings: "ss01", "cv11";
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
     overscroll-behavior: none;
     -webkit-tap-highlight-color: transparent;
     padding-top: env(safe-area-inset-top);
@@ -183,9 +182,9 @@ html.theme-petanque {
   }
   html, body, #root { min-height: 100vh; min-height: 100dvh; }
   h1, h2, h3, h4, .font-display {
-    font-family: 'Work Sans', 'Inter', system-ui, sans-serif;
-    font-weight: 700;
-    letter-spacing: -0.01em;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.005em;
   }
   .font-serif-luxe { font-family: 'Instrument Serif', serif; font-weight: 400; letter-spacing: -0.01em; }
   .font-sans-pro  { font-family: 'Work Sans', system-ui, sans-serif; }

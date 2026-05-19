@@ -74,7 +74,7 @@ export default function LudoGame() {
   const phaseKeyRef = useRef<string | null>(null);
   const botActedRef = (typeof window !== "undefined" ? (window as any) : {}) as any;
 
-  const clearRefTimeout = (ref: React.MutableRefObject<number | null>) => {
+  const clearRefTimeout = (ref: { current: number | null }) => {
     if (ref.current !== null) {
       window.clearTimeout(ref.current);
       ref.current = null;
@@ -287,6 +287,7 @@ export default function LudoGame() {
             setG((cur) => cur ? ({
               ...cur,
               current_turn_seat: ns,
+              last_dice: null,
               dice_rolled: false,
               consecutive_sixes: ns === state.current_turn_seat ? nextSixes : 0,
               turn_started_at: nextTurnAt,
@@ -294,6 +295,7 @@ export default function LudoGame() {
             const { error: passError } = await supabase.rpc("ludo_update_state" as any, {
               _game_id: state.id,
               _current_turn_seat: ns,
+              _last_dice: null,
               _dice_rolled: false,
               _consecutive_sixes: ns === state.current_turn_seat ? nextSixes : 0,
               _turn_started_at: nextTurnAt,
@@ -365,6 +367,7 @@ export default function LudoGame() {
         ...cur,
         pawns: res.pawns,
         current_turn_seat: ns,
+        last_dice: null,
         dice_rolled: false,
         consecutive_sixes: resetSixes ? 0 : sixes,
         turn_started_at: nextTurnAt,
@@ -374,6 +377,7 @@ export default function LudoGame() {
         _game_id: state.id,
         _pawns: res.pawns,
         _current_turn_seat: ns,
+        _last_dice: null,
         _dice_rolled: false,
         _consecutive_sixes: resetSixes ? 0 : sixes,
         _turn_started_at: nextTurnAt,

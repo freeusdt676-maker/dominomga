@@ -11,6 +11,7 @@ import Rules from "./pages/Rules";
 import AdminChat from "./pages/AdminChat";
 import Game from "./pages/Game";
 import Admin from "./pages/Admin";
+import AdminSecurity from "./pages/AdminSecurity";
 import LudoLobby from "./pages/LudoLobby";
 import LudoGame from "./pages/LudoGame";
 import Discussions from "./pages/Discussions";
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/admin-chat" element={<AdminChat />} />
             <Route path="/game/:id" element={<Game />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/security" element={<AdminSecurity />} />
             <Route path="/ludo" element={<LudoLobby />} />
             <Route path="/ludo/:id" element={<LudoGame />} />
             <Route path="/discussions" element={<Discussions />} />

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Check, X, Megaphone, Wallet as WalletIcon, UserCheck, Eye, EyeOff, MessageSquare, ArrowDownToLine, ArrowUpFromLine, History, Search, Unlock, Trash2, RotateCcw } from "lucide-react";
+import { ArrowLeft, Check, X, Megaphone, Wallet as WalletIcon, UserCheck, Eye, EyeOff, MessageSquare, ArrowDownToLine, ArrowUpFromLine, History, Search, Unlock, Trash2, RotateCcw, ShieldAlert } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 import { toast } from "sonner";
 import { DominoTile } from "@/components/DominoTile";
@@ -355,7 +355,10 @@ export default function Admin() {
     <div className="min-h-screen felt-bg">
       <header className="p-4 flex items-center gap-3 border-b border-primary/20">
         <Button variant="ghost" size="icon" onClick={() => nav("/")}><ArrowLeft /></Button>
-        <h1 className="font-display text-xl font-bold gold-text">ADMINISTRATIF</h1>
+        <h1 className="font-display text-xl font-bold gold-text flex-1">ADMINISTRATIF</h1>
+        <Button size="sm" variant="outline" onClick={() => nav("/admin/security")} className="gap-1">
+          <ShieldAlert className="w-4 h-4" /> Sécurité
+        </Button>
       </header>
       <div className="p-4 max-w-2xl mx-auto">
         <div className="card-felt rounded-2xl p-4 mb-4 flex items-center justify-between">

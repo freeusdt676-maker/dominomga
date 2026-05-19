@@ -38,6 +38,36 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          ip: string | null
+          meta: Json | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          ip?: string | null
+          meta?: Json | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          ip?: string | null
+          meta?: Json | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       challenges: {
         Row: {
           created_at: string
@@ -114,6 +144,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      fraud_alerts: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          message: string
+          meta: Json | null
+          resolved: boolean
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          message: string
+          meta?: Json | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          message?: string
+          meta?: Json | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       game_moves: {
         Row: {
@@ -267,6 +336,33 @@ export type Database = {
           created_at?: string
           id?: string
           sender_id?: string
+        }
+        Relationships: []
+      }
+      login_attempts: {
+        Row: {
+          created_at: string
+          id: string
+          ip: string | null
+          phone: string
+          success: boolean
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip?: string | null
+          phone: string
+          success: boolean
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip?: string | null
+          phone?: string
+          success?: boolean
+          user_agent?: string | null
         }
         Relationships: []
       }
@@ -468,6 +564,51 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: {
+          action: string
+          count: number
+          user_id: string
+          window_start: string
+        }
+        Insert: {
+          action: string
+          count?: number
+          user_id: string
+          window_start?: string
+        }
+        Update: {
+          action?: string
+          count?: number
+          user_id?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
+      responsible_gaming: {
+        Row: {
+          daily_loss_limit: number | null
+          daily_stake_limit: number | null
+          self_excluded_until: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          daily_loss_limit?: number | null
+          daily_stake_limit?: number | null
+          self_excluded_until?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          daily_loss_limit?: number | null
+          daily_stake_limit?: number | null
+          self_excluded_until?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           admin_note: string | null
@@ -609,6 +750,14 @@ export type Database = {
         Args: { _admin_id: string; _tx_id: string }
         Returns: Json
       }
+      admin_list_phone_duplicates: {
+        Args: never
+        Returns: {
+          count: number
+          phone: string
+          user_ids: string[]
+        }[]
+      }
       admin_reject_tx: {
         Args: { _admin_id: string; _tx_id: string }
         Returns: Json
@@ -621,6 +770,7 @@ export type Database = {
         Args: { _admin_id: string; _pin: string; _user_id: string }
         Returns: Json
       }
+      admin_resolve_fraud_alert: { Args: { _id: string }; Returns: Json }
       admin_send_broadcast: {
         Args: { _admin_id: string; _content: string }
         Returns: Json
@@ -648,6 +798,11 @@ export type Database = {
         Returns: Json
       }
       cancel_waiting_game: { Args: { _game_id: string }; Returns: Json }
+      check_login_lockout: { Args: { _phone: string }; Returns: Json }
+      check_rate_limit: {
+        Args: { _action: string; _max: number; _window_seconds: number }
+        Returns: boolean
+      }
       get_admin_id: { Args: never; Returns: string }
       has_role: {
         Args: {
@@ -664,6 +819,7 @@ export type Database = {
         Args: { _game_id: string; _player2: string }
         Returns: Json
       }
+      log_audit: { Args: { _action: string; _meta?: Json }; Returns: undefined }
       ludo_cancel_waiting: { Args: { _game_id: string }; Returns: Json }
       ludo_initial_pawns: { Args: { _n: number }; Returns: Json }
       ludo_initial_pawns_for: { Args: { _seats: Json }; Returns: Json }
@@ -718,6 +874,10 @@ export type Database = {
             }
             Returns: Json
           }
+      record_login_attempt: {
+        Args: { _phone: string; _success: boolean }
+        Returns: Json
+      }
       reject_user_with_message: {
         Args: { _admin_id: string; _message: string; _user_id: string }
         Returns: Json

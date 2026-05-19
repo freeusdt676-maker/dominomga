@@ -15,6 +15,8 @@ type WaitingGame = {
   player2_id?: string | null; status?: string; _name?: string;
 };
 
+type ResumeGame = { id: string; stake: number };
+
 export default function PetanqueLobby() {
   useThemeClass("petanque");
   const { user } = useAuth();
@@ -22,20 +24,23 @@ export default function PetanqueLobby() {
   const [stake, setStake] = useState(PETANQUE_STAKES[0]);
   const [waiting, setWaiting] = useState<WaitingGame[]>([]);
   const [myWaiting, setMyWaiting] = useState<WaitingGame | null>(null);
+  const [activeGame, setActiveGame] = useState<ResumeGame | null>(null);
   const [placing, setPlacing] = useState(false);
   const [joining, setJoining] = useState<string | null>(null);
+  const ABANDONED_GAME_KEY = "petanque_abandoned_game_id";
 
   const load = async () => {
     if (!user) return;
+    const abandonedGameId = sessionStorage.getItem(ABANDONED_GAME_KEY);
     const { data: mine } = await supabase
       .from("petanque_games" as any)
-      .select("id")
+      .select("id, stake")
       .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
       .eq("status", "in_progress")
       .order("updated_at", { ascending: false })
       .limit(1);
-    const m: any = mine?.[0];
-    if (m?.id) { nav(`/petanque/${m.id}`); return; }
+    const m: any = mine?.find((row: any) => row.id !== abandonedGameId) ?? mine?.[0] ?? null;
+    setActiveGame(m ? { id: m.id, stake: Number(m.stake ?? 0) } : null);
 
     const { data: gs } = await supabase
       .from("petanque_games" as any)
@@ -74,11 +79,13 @@ export default function PetanqueLobby() {
       .on("postgres_changes",
         { event: "UPDATE", schema: "public", table: "petanque_games", filter: `player1_id=eq.${user.id}` },
         (p: any) => {
-          if (p.new?.status === "in_progress" && p.new?.id) nav(`/petanque/${p.new.id}`);
+          if (p.new?.status === "in_progress" && p.new?.id) {
+            setActiveGame({ id: p.new.id, stake: Number(p.new.stake ?? 0) });
+          }
         })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [user, nav]);
+  }, [user]);
 
   const placeMise = async () => {
     if (!user || placing) return;
@@ -141,6 +148,20 @@ export default function PetanqueLobby() {
       </header>
 
       <div className="p-4 max-w-lg mx-auto space-y-4">
+        {activeGame && (
+          <div className="rounded-2xl p-4 border border-emerald-400/50 bg-emerald-500/10 backdrop-blur">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="font-bold text-emerald-200 text-sm">Mbola misy partie Pétanque tsy vita</p>
+                <p className="text-xs text-emerald-100/70">Duel 2P · {fmtAr(activeGame.stake)}</p>
+              </div>
+              <Button className="shrink-0 bg-emerald-500 text-emerald-950 hover:bg-emerald-400 font-bold" size="sm" onClick={() => nav(`/petanque/${activeGame.id}`)}>
+                Hanohy <span className="ml-1">🔵</span>
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div className="rounded-2xl p-4 border border-emerald-500/30 bg-emerald-950/40 backdrop-blur">
           <p className="text-sm text-emerald-100/80 mb-2">1. Mise</p>
           <div className="grid grid-cols-5 gap-2 mb-4">

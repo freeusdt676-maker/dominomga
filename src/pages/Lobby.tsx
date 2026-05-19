@@ -14,6 +14,8 @@ type WaitingGame = {
   _name?: string;
 };
 
+type ResumeGame = { id: string; stake: number; game_mode?: string; players_count?: number };
+
 const ABANDONED_GAME_KEY = "domino_abandoned_game_id";
 
 const MODES: { value: string; label: string; short: string }[] = [
@@ -32,27 +34,27 @@ export default function Lobby() {
   const [confirmed, setConfirmed] = useState(false);
   const [waiting, setWaiting] = useState<WaitingGame[]>([]);
   const [myWaiting, setMyWaiting] = useState<WaitingGame | null>(null);
+  const [activeGame, setActiveGame] = useState<ResumeGame | null>(null);
   const [placing, setPlacing] = useState(false);
   const [joining, setJoining] = useState<string | null>(null);
 
   const load = async () => {
     if (!user) return;
     const abandonedGameId = sessionStorage.getItem(ABANDONED_GAME_KEY);
-    // Fallback: raha vao nanomboka (60s farany) misy lalao in_progress dia tonga dia mankany
-    const since = new Date(Date.now() - 60_000).toISOString();
     const { data: mine } = await supabase
       .from("games")
-      .select("id, updated_at")
-      .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
+      .select("id, updated_at, stake, game_mode, players_count")
+      .or(`player1_id.eq.${user.id},player2_id.eq.${user.id},player3_id.eq.${user.id}`)
       .eq("status", "in_progress")
-      .gte("updated_at", since)
       .order("updated_at", { ascending: false })
       .limit(1);
-    const latestActiveGame = mine?.find((g) => g.id !== abandonedGameId);
-    if (latestActiveGame?.id) {
-      nav(`/game/${latestActiveGame.id}`);
-      return;
-    }
+    const latestActiveGame = mine?.find((g) => g.id !== abandonedGameId) ?? mine?.[0] ?? null;
+    setActiveGame(latestActiveGame ? {
+      id: latestActiveGame.id,
+      stake: Number(latestActiveGame.stake ?? 0),
+      game_mode: latestActiveGame.game_mode ?? "d120",
+      players_count: Number(latestActiveGame.players_count ?? 2),
+    } : null);
     const { data: gs } = await supabase
       .from("games")
       .select("id, player1_id, player2_id, player3_id, stake, created_at, game_mode, players_count, status")
@@ -100,12 +102,17 @@ export default function Lobby() {
         { event: "UPDATE", schema: "public", table: "games", filter: `player1_id=eq.${user.id}` },
         (p: any) => {
           if (p.new?.status === "in_progress" && p.new?.id) {
-            nav(`/game/${p.new.id}`);
+            setActiveGame({
+              id: p.new.id,
+              stake: Number(p.new.stake ?? 0),
+              game_mode: p.new.game_mode ?? "d120",
+              players_count: Number(p.new.players_count ?? 2),
+            });
           }
         })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [user, nav]);
+  }, [user]);
 
   const placeMise = async () => {
     if (!user || placing) return;
@@ -174,6 +181,22 @@ export default function Lobby() {
       </header>
 
       <div className="p-4 max-w-lg mx-auto space-y-4">
+        {activeGame && (
+          <div className="card-felt rounded-2xl p-4 border-2 border-primary/40 bg-primary/10">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold gold-text">Mbola misy lalao tsy vita</p>
+                <p className="text-xs text-muted-foreground">
+                  {activeGame.players_count}P · {activeGame.game_mode === "d80" ? "Maty 80" : activeGame.game_mode === "hand" ? "Atanana" : "Maty 120"} · {fmtAr(activeGame.stake)}
+                </p>
+              </div>
+              <Button className="btn-gold shrink-0" size="sm" onClick={() => nav(`/game/${activeGame.id}`)}>
+                Hanohy <span className="ml-1">🔵</span>
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div className="card-felt rounded-2xl p-4">
           <p className="text-sm text-muted-foreground mb-2">1. Mpilalao</p>
           <div className="grid grid-cols-2 gap-2 mb-4">

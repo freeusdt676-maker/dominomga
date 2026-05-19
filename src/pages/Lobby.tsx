@@ -44,7 +44,7 @@ export default function Lobby() {
     const { data: mine } = await supabase
       .from("games")
       .select("id, updated_at, stake, game_mode, players_count")
-      .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
+      .or(`player1_id.eq.${user.id},player2_id.eq.${user.id},player3_id.eq.${user.id}`)
       .eq("status", "in_progress")
       .order("updated_at", { ascending: false })
       .limit(1);

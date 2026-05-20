@@ -630,7 +630,7 @@ export default function PetanqueGame() {
     let newScoreP1 = g.score_p1;
     let newScoreP2 = g.score_p2;
     let newRound = g.round_number;
-    let newPhase: "aim" | "settle" = "aim";
+    let newPhase: "aim" | "settle" | "throw_jack" = "aim";
     let nextTurnUser: string | null = null;
     let newBalls = sanitized;
     let newJack = finalJack;
@@ -646,7 +646,7 @@ export default function PetanqueGame() {
       newBalls = [];
       newJack = null;
       newRemaining = { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER };
-      (newPhase as any) = "throw_jack";
+      newPhase = "throw_jack";
       // Winner of the round throws the jack to start the next one
       nextTurnUser = r.winner === "p1" ? g.player1_id : g.player2_id;
       toast.success(`Round ${g.round_number}: +${r.points} ho an'ny ${r.winner === "p1" ? "Mena" : "Manga"}`);

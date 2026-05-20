@@ -899,7 +899,9 @@ export default function PetanqueGame() {
           {!drag && (
             <div className="absolute bottom-2 left-0 right-0 text-center pointer-events-none">
               <span className="inline-block px-4 py-2 rounded-full bg-emerald-500/85 text-emerald-950 font-bold text-xs shadow-lg">
-                ✋ Hazony ny baolina, dia taritina midina hatsipy
+                {isJackPhase
+                  ? "⚫ Atsipazo aloha ny boul kely (cochonnet) — taritina midina"
+                  : "✋ Hazony ny baolina, dia taritina midina hatsipy"}
               </span>
             </div>
           )}

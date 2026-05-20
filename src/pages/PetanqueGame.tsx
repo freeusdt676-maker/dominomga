@@ -41,6 +41,14 @@ const BALLS_PER_PLAYER = 6;
 const FANI_SCORE = 6; // Si un joueur atteint 6 et l'autre est à 0 => victoire (Fani)
 const TURN_LIMIT_MS = 20_000;
 
+function resolveWinnerId(game: Pick<GameRow, "player1_id" | "player2_id">, scoreP1: number, scoreP2: number) {
+  if (scoreP1 >= TARGET_SCORE) return game.player1_id;
+  if (scoreP2 >= TARGET_SCORE) return game.player2_id;
+  if (scoreP1 >= FANI_SCORE && scoreP2 === 0) return game.player1_id;
+  if (scoreP2 >= FANI_SCORE && scoreP1 === 0) return game.player2_id;
+  return null;
+}
+
 /* ---------- 3D Scene Components ---------- */
 
 function Baobab({ position }: { position: [number, number, number] }) {
@@ -467,16 +475,24 @@ export default function PetanqueGame() {
     })();
   }, [g?.player1_id, g?.player2_id]);
 
-  // Settle: maty 12 OR Fani (6-0)
+  // Settle: maty 13 OR Fani (6-0)
   useEffect(() => {
     if (!g || g.status !== "in_progress") return;
-    let winner: string | null = null;
-    if (g.score_p1 >= TARGET_SCORE) winner = g.player1_id;
-    else if (g.score_p2 >= TARGET_SCORE) winner = g.player2_id;
-    else if (g.score_p1 >= FANI_SCORE && g.score_p2 === 0) winner = g.player1_id;
-    else if (g.score_p2 >= FANI_SCORE && g.score_p1 === 0) winner = g.player2_id;
-    if (winner) supabase.rpc("petanque_settle" as any, { _game_id: g.id, _winner: winner });
-  }, [g?.score_p1, g?.score_p2, g?.status]);
+    const winner = resolveWinnerId(g, g.score_p1, g.score_p2);
+    if (!winner) return;
+
+    let cancelled = false;
+    (async () => {
+      const { error } = await supabase.rpc("petanque_settle" as any, { _game_id: g.id, _winner: winner });
+      if (error && !cancelled) {
+        toast.error("Nisy olana tamin'ny famaranana ny partie");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [g?.id, g?.score_p1, g?.score_p2, g?.status, g?.player1_id, g?.player2_id]);
 
   const mySide: "p1" | "p2" | null = !g || !user ? null : user.id === g.player1_id ? "p1" : user.id === g.player2_id ? "p2" : null;
   const phase = g?.state?.phase ?? "aim";
@@ -759,6 +775,49 @@ export default function PetanqueGame() {
       if (r.winner === "p1") newScoreP1 += r.points;
       if (r.winner === "p2") newScoreP2 += r.points;
       newRound += 1;
+      const winnerId = resolveWinnerId(g, newScoreP1, newScoreP2);
+
+      if (winnerId) {
+        const finalState = {
+          balls: sanitized,
+          jack: finalJack,
+          phase: "settle" as const,
+          remaining,
+          lastThrower: thrower,
+        };
+
+        const { error: updateError } = await supabase.rpc("petanque_update_state" as any, {
+          _game_id: g.id,
+          _state: finalState,
+          _current_turn: null,
+          _turn_started_at: new Date().toISOString(),
+          _score_p1: newScoreP1,
+          _score_p2: newScoreP2,
+          _round_number: newRound,
+        });
+
+        if (updateError) {
+          setThrowing(false);
+          toast.error(updateError.message);
+          return;
+        }
+
+        const { error: settleError } = await supabase.rpc("petanque_settle" as any, {
+          _game_id: g.id,
+          _winner: winnerId,
+        });
+
+        setThrowing(false);
+
+        if (settleError) {
+          toast.error(settleError.message);
+          return;
+        }
+
+        toast.success("Vita ny partie — misy nahatratra 13");
+        return;
+      }
+
       // Reset for next round — winner throws the jack first
       newBalls = [];
       newJack = null;

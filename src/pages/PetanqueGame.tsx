@@ -514,7 +514,7 @@ export default function PetanqueGame() {
   useEffect(() => {
     if (!g || !user) return;
     if (g.status !== "in_progress") return;
-    if (g.state?.phase !== "aim") return;
+    if (g.state?.phase !== "aim" && g.state?.phase !== "throw_jack") return;
     if (throwing) return;
     const startMs = g.turn_started_at ? new Date(g.turn_started_at).getTime() : Date.now();
     const key = `${g.id}-${g.turn_started_at ?? "0"}-${g.current_turn}`;

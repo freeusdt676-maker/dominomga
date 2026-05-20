@@ -548,6 +548,29 @@ export default function PetanqueGame() {
           autoThrowRef.current = null;
           return;
         }
+        // Auto jack-throw if needed
+        if (fresh.state?.phase === "throw_jack") {
+          const jackX = (Math.random() - 0.5) * 2;
+          const jackZ = 5.5 + Math.random() * 2.5;
+          const currentTurnUser = throwSide === "p1" ? fresh.player1_id : fresh.player2_id;
+          await supabase.rpc("petanque_update_state" as any, {
+            _game_id: fresh.id,
+            _state: {
+              balls: [],
+              jack: { x: jackX, z: jackZ },
+              phase: "aim",
+              remaining: { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER },
+              lastThrower: throwSide,
+            },
+            _current_turn: currentTurnUser,
+            _turn_started_at: new Date().toISOString(),
+            _score_p1: fresh.score_p1,
+            _score_p2: fresh.score_p2,
+            _round_number: fresh.round_number,
+          });
+          toast("⏱ Robot nanatsipy ny boul kely");
+          return;
+        }
         const ba = Math.round((Math.random() - 0.5) * 40);
         const bf = 40 + Math.round(Math.random() * 40);
         const remaining = fresh.state?.remaining ?? { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER };
@@ -590,10 +613,9 @@ export default function PetanqueGame() {
           if (r.winner === "p2") newScoreP2 += r.points;
           newRound += 1;
           newBalls = [];
-          newJack = { x: (Math.random() - 0.5) * 2, z: 6 + (Math.random() - 0.5) * 2 };
+          newJack = null;
           roundRemaining = { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER };
-          const next: "p1" | "p2" = r.winner === "p1" ? "p2" : "p1";
-          nextTurnUser = next === "p1" ? fresh.player1_id : fresh.player2_id;
+          nextTurnUser = r.winner === "p1" ? fresh.player1_id : fresh.player2_id;
         } else {
           const nx = nextThrower(newBalls, jack, nextRemaining, throwSide);
           nextTurnUser = nx === "p1" ? fresh.player1_id : nx === "p2" ? fresh.player2_id : (throwSide === "p1" ? fresh.player2_id : fresh.player1_id);
@@ -603,7 +625,7 @@ export default function PetanqueGame() {
           _state: {
             balls: newBalls,
             jack: newJack,
-            phase: "aim",
+            phase: (nextRemaining.p1 <= 0 && nextRemaining.p2 <= 0) ? "throw_jack" : "aim",
             remaining: roundRemaining,
             lastThrower: throwSide,
           },

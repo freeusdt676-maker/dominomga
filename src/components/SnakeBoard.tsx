@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { DominoTile } from "./DominoTile";
 import type { Placed } from "@/lib/dominoEngine";
 
@@ -15,6 +15,8 @@ type Item = {
   horizontal: boolean;
   isDouble: boolean;
 };
+
+type Direction = "right" | "left" | "down";
 
 export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSize?: Sz }) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -36,55 +38,105 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
   const unit = SHORT[tileSize];
   const long = unit * 2;
   const pad = 12;
-  const gap = 4;
   const availW = Math.max(80, vp.w - pad * 2);
   const availH = Math.max(80, vp.h - pad * 2);
-  const cellW = long + gap;
-  const cellH = long + gap;
+  const horizontalRun = useMemo(() => {
+    if (board.length <= 4) return Math.max(1, board.length);
+    if (vp.w < 420) return 4;
+    if (vp.w < 760) return 5;
+    return 6;
+  }, [board.length, vp.w]);
 
-  const maxColumns = Math.max(1, Math.floor((availW + gap) / cellW));
-  const columns = Math.max(1, Math.min(board.length || 1, maxColumns));
-  const rows = Math.max(1, Math.ceil((board.length || 1) / columns));
+  const verticalRun = useMemo(() => {
+    if (board.length <= horizontalRun + 1) return 1;
+    return board.length >= 16 ? 1 : 2;
+  }, [board.length, horizontalRun]);
 
-  const scale = Math.min(
-    1,
-    availW / Math.max(long, columns * cellW - gap),
-    availH / Math.max(long, rows * cellH - gap),
-  );
+  const { items, bounds } = useMemo(() => {
+    if (board.length === 0) {
+      return {
+        items: [] as Item[],
+        bounds: { minX: 0, minY: 0, maxX: long, maxY: long },
+      };
+    }
 
-  const layoutW = Math.max(long * scale, columns * cellW * scale - gap * scale);
-  const layoutH = Math.max(long * scale, rows * cellH * scale - gap * scale);
-  const offsetX = (vp.w - layoutW) / 2;
-  const offsetY = (vp.h - layoutH) / 2;
+    const directions: Direction[] = [];
+    let currentDirection: Direction = "right";
+    let remaining = board.length;
+    let forward = true;
 
-  const items: Item[] = board.map((p, i) => {
-    const [aa, bb] = p.tile;
-    const a = p.flipped ? bb : aa;
-    const b = p.flipped ? aa : bb;
-    const isDouble = a === b;
-    const horizontal = !isDouble;
-    const w = horizontal ? long : unit;
-    const h = horizontal ? unit : long;
-    const row = Math.floor(i / columns);
-    const indexInRow = i % columns;
-    const countInRow = Math.min(columns, board.length - row * columns);
-    const snakeCol = row % 2 === 0 ? indexInRow : countInRow - 1 - indexInRow;
-    const rowWidth = countInRow * cellW - gap;
-    const rowOffsetX = (layoutW / scale - rowWidth) / 2;
-    const cellX = rowOffsetX + snakeCol * cellW;
-    const cellY = row * cellH;
+    while (remaining > 0) {
+      const segmentLength = Math.min(
+        remaining,
+        currentDirection === "down" ? verticalRun : horizontalRun,
+      );
+
+      for (let i = 0; i < segmentLength; i += 1) directions.push(currentDirection);
+      remaining -= segmentLength;
+      if (remaining <= 0) break;
+
+      if (currentDirection === "right" || currentDirection === "left") {
+        currentDirection = "down";
+      } else {
+        forward = !forward;
+        currentDirection = forward ? "right" : "left";
+      }
+    }
+
+    let cursorX = 0;
+    let cursorY = 0;
+    let minX = Number.POSITIVE_INFINITY;
+    let minY = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let maxY = Number.NEGATIVE_INFINITY;
+
+    const laidOut: Item[] = board.map((p, i) => {
+      const [aa, bb] = p.tile;
+      const a = p.flipped ? bb : aa;
+      const b = p.flipped ? aa : bb;
+      const isDouble = a === b;
+      const direction = directions[i] ?? "right";
+      const horizontal = direction === "right" || direction === "left";
+
+      const x = direction === "right"
+        ? cursorX
+        : direction === "left"
+          ? cursorX - long
+          : cursorX - unit / 2;
+      const y = direction === "down"
+        ? cursorY
+        : cursorY - unit / 2;
+      const w = horizontal ? long : unit;
+      const h = horizontal ? unit : long;
+
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x + w);
+      maxY = Math.max(maxY, y + h);
+
+      if (direction === "right") cursorX += long;
+      else if (direction === "left") cursorX -= long;
+      else cursorY += long;
+
+      return { x, y, w, h, a, b, horizontal, isDouble };
+    });
 
     return {
-      x: cellX + (long - w) / 2,
-      y: cellY + (long - h) / 2,
-      w,
-      h,
-      a,
-      b,
-      horizontal,
-      isDouble,
+      items: laidOut,
+      bounds: {
+        minX: Number.isFinite(minX) ? minX : 0,
+        minY: Number.isFinite(minY) ? minY : 0,
+        maxX: Number.isFinite(maxX) ? maxX : long,
+        maxY: Number.isFinite(maxY) ? maxY : long,
+      },
     };
-  });
+  }, [board, horizontalRun, long, unit, verticalRun]);
+
+  const boundsW = Math.max(long, bounds.maxX - bounds.minX);
+  const boundsH = Math.max(long, bounds.maxY - bounds.minY);
+  const scale = Math.min(1, availW / boundsW, availH / boundsH);
+  const offsetX = (vp.w - boundsW * scale) / 2;
+  const offsetY = (vp.h - boundsH * scale) / 2;
 
   return (
     <div
@@ -112,6 +164,7 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
                 transition: "left 280ms ease, top 280ms ease, width 200ms ease, height 200ms ease",
                 borderRadius: 6,
                 boxShadow: ringColor,
+                transform: `translate(${-bounds.minX * scale}px, ${-bounds.minY * scale}px)`,
               }}
             >
               <DominoTile

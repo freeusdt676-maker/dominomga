@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Trash2, Trophy, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Trash2, Trophy, ShieldCheck, Copy, Medal } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -126,6 +126,22 @@ export default function Profile() {
     toast.success("Voafafa daholo ny historique");
   };
 
+  const parseReason = (r: string | null | undefined): { label: string; tone: string } => {
+    if (!r) return { label: "Lalao vita", tone: "bg-muted text-foreground" };
+    const s = r.toLowerCase();
+    if (s.includes("6/6") || s.includes("paire de six")) return { label: "Niala 6/6 (double 6)", tone: "bg-purple-500/20 text-purple-300 border-purple-500/40" };
+    if (s.includes("datinandro")) return { label: "Maty datinandro", tone: "bg-amber-500/20 text-amber-300 border-amber-500/40" };
+    if (s.includes("bloqué") || s.includes("bloque")) return { label: "Domy maty antanana", tone: "bg-red-500/20 text-red-300 border-red-500/40" };
+    if (s.includes("nandeha irery")) return { label: "Nandeha irery", tone: "bg-blue-500/20 text-blue-300 border-blue-500/40" };
+    if (s.includes("tonga")) return { label: "Nahafeno tanjona", tone: "bg-green-500/20 text-green-300 border-green-500/40" };
+    if (s.includes("admin")) return { label: "Naverin'ny admin", tone: "bg-slate-500/20 text-slate-300 border-slate-500/40" };
+    return { label: r, tone: "bg-muted text-foreground" };
+  };
+
+  const copyTicket = (t: string) => {
+    navigator.clipboard.writeText(t).then(() => toast.success(`Voa-copie: ${t}`)).catch(() => toast.error("Tsy nety ny copie"));
+  };
+
   return (
     <div className="min-h-screen felt-bg pb-24">
       <header className="p-4 flex items-center gap-3 border-b border-primary/20">
@@ -192,35 +208,96 @@ export default function Profile() {
               const pot = (stake - commissionEach) * pc;
               const iWon = g.winner_id === user.id;
               const draw = !g.winner_id;
-              const myScore = user.id === g.player1_id ? g.score_p1 : user.id === g.player2_id ? g.score_p2 : g.score_p3;
-              const oppIds = [g.player1_id, g.player2_id, g.player3_id].filter((x) => x && x !== user.id);
-              const oppNames = oppIds.map((id) => names[id] ?? "?").join(" · ");
+              const playerIds = [g.player1_id, g.player2_id, g.player3_id].filter(Boolean) as string[];
+              const scoresByPid: Record<string, number> = {
+                [g.player1_id]: Number(g.score_p1 ?? 0),
+                ...(g.player2_id ? { [g.player2_id]: Number(g.score_p2 ?? 0) } : {}),
+                ...(g.player3_id ? { [g.player3_id]: Number(g.score_p3 ?? 0) } : {}),
+              };
+              // Filaharana: mpandresy aloha, dia ny score mihena
+              const ranking = [...playerIds].sort((a, b) => {
+                if (a === g.winner_id) return -1;
+                if (b === g.winner_id) return 1;
+                return (scoresByPid[a] ?? 0) - (scoresByPid[b] ?? 0);
+              });
+              const winnerName = g.winner_id ? (names[g.winner_id] ?? "?") : null;
+              const reason = parseReason(g.last_reason);
               const date = g.finished_at ?? g.created_at;
+              const target = g.game_mode === "d80" ? 80 : g.game_mode === "hand" ? (pc === 3 ? 60 : 40) : 120;
               return (
                 <div key={g.id} className={`card-felt rounded-xl p-3 border-l-4 ${draw ? "border-muted" : iWon ? "border-green-500" : "border-red-500"}`}>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded ${draw ? "bg-muted text-foreground" : iWon ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
-                          {draw ? "TAPAKA" : iWon ? "NANDRESY" : "RESY"}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground uppercase">{g.game_mode ?? "d120"} · {pc}P</span>
-                      </div>
-                      <p className="text-sm mt-1 truncate">vs <b>{oppNames || "?"}</b></p>
-                      <p className="text-xs text-muted-foreground">
-                        Score: {Number(myScore ?? 0)} · Mise: {fmtAr(stake)}
-                        {iWon && <span className="text-green-400 font-bold"> · +{fmtAr(pot - stake)}</span>}
-                        {!iWon && !draw && <span className="text-red-400 font-bold"> · -{fmtAr(stake)}</span>}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground/70 mt-0.5">
-                        {date ? new Date(date).toLocaleString("fr-FR") : ""}
-                        {g.ticket_number ? ` · #${g.ticket_number}` : ""}
-                      </p>
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded ${draw ? "bg-muted text-foreground" : iWon ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
+                        {draw ? "TAPAKA" : iWon ? "NANDRESY" : "RESY"}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground uppercase">{g.game_mode ?? "d120"} · {pc}P · tanjona {target}</span>
                     </div>
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => setConfirmId(g.id)}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
+
+                  {g.ticket_number && (
+                    <button
+                      onClick={() => copyTicket(g.ticket_number)}
+                      className="w-full mb-2 flex items-center justify-between gap-2 rounded-lg border-2 border-primary/50 bg-primary/10 px-3 py-2 hover:bg-primary/20 transition"
+                    >
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Nº Ticket</span>
+                      <span className="font-mono font-bold gold-text text-base tracking-wider flex-1 text-center select-all">#{g.ticket_number}</span>
+                      <Copy className="w-4 h-4 text-primary" />
+                    </button>
+                  )}
+
+                  <div className="rounded-lg border border-border/40 overflow-hidden mb-2">
+                    <table className="w-full text-xs">
+                      <thead className="bg-muted/30">
+                        <tr>
+                          <th className="text-left px-2 py-1 font-semibold">Laharana</th>
+                          <th className="text-left px-2 py-1 font-semibold">Mpilalao</th>
+                          <th className="text-right px-2 py-1 font-semibold">Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ranking.map((pid, idx) => {
+                          const isWinner = pid === g.winner_id;
+                          const isMe = pid === user.id;
+                          const isLast = idx === ranking.length - 1 && !isWinner;
+                          const rankLabel = isWinner ? "1ᵉʳ" : idx === 1 ? "2ᵉ" : "3ᵉ";
+                          return (
+                            <tr key={pid} className={`border-t border-border/30 ${isMe ? "bg-primary/5" : ""}`}>
+                              <td className="px-2 py-1">
+                                <span className={`inline-flex items-center gap-1 font-bold ${isWinner ? "text-green-400" : isLast ? "text-red-400" : "text-muted-foreground"}`}>
+                                  {isWinner && <Medal className="w-3 h-3" />}
+                                  {rankLabel}
+                                </span>
+                              </td>
+                              <td className="px-2 py-1 truncate max-w-[140px]">
+                                {names[pid] ?? "?"}{isMe && <span className="text-[10px] text-primary"> (izaho)</span>}
+                              </td>
+                              <td className="px-2 py-1 text-right font-mono font-bold">{scoresByPid[pid] ?? 0}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
+                    <span className={`px-2 py-0.5 rounded border ${reason.tone}`}>{reason.label}</span>
+                    <span className="text-muted-foreground">
+                      Mise: <b>{fmtAr(stake)}</b>
+                      {iWon && <span className="text-green-400 font-bold"> · +{fmtAr(pot - stake)}</span>}
+                      {!iWon && !draw && <span className="text-red-400 font-bold"> · -{fmtAr(stake)}</span>}
+                    </span>
+                  </div>
+                  {g.last_reason && (
+                    <p className="text-[10px] text-muted-foreground/80 mt-1 italic">{g.last_reason}</p>
+                  )}
+                  <p className="text-[10px] text-muted-foreground/70 mt-1">
+                    {date ? new Date(date).toLocaleString("fr-FR") : ""}
+                    {g.round_number ? ` · ${g.round_number} tour` : ""}
+                  </p>
                 </div>
               );
             })}

@@ -688,8 +688,9 @@ export default function PetanqueGame() {
         }
         // Auto jack-throw if needed
         if (fresh.state?.phase === "throw_jack") {
-          const jackX = (Math.random() - 0.5) * 2;
-          const jackZ = 5.5 + Math.random() * 2.5;
+          // ~75% ny halavin'ny terrain — lavidavitra fa tsy akaiky
+          const jackX = (Math.random() - 0.5) * 1.6;
+          const jackZ = 7.5 + Math.random() * 1.8;
           const currentTurnUser = throwSide === "p1" ? fresh.player1_id : fresh.player2_id;
           await supabase.rpc("petanque_update_state" as any, {
             _game_id: fresh.id,
@@ -716,63 +717,19 @@ export default function PetanqueGame() {
           autoThrowRef.current = null;
           return;
         }
-        const rad = (ba * Math.PI) / 180;
-        const speed = 4 + (bf / 100) * 11;
-        const vx = Math.sin(rad) * speed;
-        const vz = Math.cos(rad) * speed;
-        const newBall: Ball = {
-          id: `bot_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-          owner: throwSide,
-          x: 0,
-          z: -1.3,
-          vx,
-          vz,
-        };
-        const balls: Ball[] = [...(fresh.state?.balls ?? []).map((b) => ({ ...b, vx: 0, vz: 0 })), newBall];
-        const jack: Jack | null = fresh.state?.jack ? { ...fresh.state.jack } : null;
-        let moving = true;
-        let loops = 0;
-        while (moving && loops < 480) {
-          moving = stepPhysics(balls, jack, 1 / 60);
-          loops += 1;
-        }
-        const prevRemaining = fresh.state?.remaining ?? { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER };
-        const nextRemaining = { ...prevRemaining, [throwSide]: Math.max(0, prevRemaining[throwSide] - 1) };
-        let newScoreP1 = fresh.score_p1;
-        let newScoreP2 = fresh.score_p2;
-        let newRound = fresh.round_number;
-        let nextTurnUser: string | null = null;
-        let newBalls = balls.map((b) => ({ ...b, vx: 0, vz: 0 }));
-        let newJack = jack;
-        let roundRemaining = nextRemaining;
-        if (nextRemaining.p1 <= 0 && nextRemaining.p2 <= 0 && jack) {
-          const r = computeRoundScore(newBalls, jack);
-          if (r.winner === "p1") newScoreP1 += r.points;
-          if (r.winner === "p2") newScoreP2 += r.points;
-          newRound += 1;
-          newBalls = [];
-          newJack = null;
-          roundRemaining = { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER };
-          nextTurnUser = r.winner === "p1" ? fresh.player1_id : fresh.player2_id;
-        } else {
-          const nx = nextThrower(newBalls, jack, nextRemaining, throwSide);
-          nextTurnUser = nx === "p1" ? fresh.player1_id : nx === "p2" ? fresh.player2_id : (throwSide === "p1" ? fresh.player2_id : fresh.player1_id);
-        }
-        await supabase.rpc("petanque_update_state" as any, {
-          _game_id: fresh.id,
-          _state: {
-            balls: newBalls,
-            jack: newJack,
-            phase: (nextRemaining.p1 <= 0 && nextRemaining.p2 <= 0) ? "throw_jack" : "aim",
-            remaining: roundRemaining,
-            lastThrower: throwSide,
-          },
-          _current_turn: nextTurnUser,
-          _turn_started_at: new Date().toISOString(),
-          _score_p1: newScoreP1,
-          _score_p2: newScoreP2,
-          _round_number: newRound,
-        });
+        // Animation + broadcast — hahitan'ny mpilalao roa tonta ny fikodiadia
+        const baseBalls = fresh.state?.balls ?? [];
+        const baseJack = fresh.state?.jack ? { ...fresh.state.jack } : null;
+        const ballId = `bot_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        try {
+          await channelRef.current?.send({
+            type: "broadcast",
+            event: "throw",
+            payload: { thrower: throwSide, angle: ba, force: bf, jackPhase: false, baseBalls, baseJack, ballId },
+          });
+        } catch {}
+        // Mametraka g ho mety amin'ny finishThrow (mampiasa g.state)
+        runThrowRef.current?.({ thrower: throwSide, angle: ba, force: bf, jackPhase: false, baseBalls, baseJack, ballId, commit: true });
         toast("⏱ Robot nanatsipy baolina (20s)");
       })().catch(() => {
         autoThrowRef.current = null;

@@ -530,7 +530,7 @@ export default function PetanqueGame() {
           return;
         }
         const fresh = data as unknown as GameRow;
-        if (fresh.status !== "in_progress" || fresh.state?.phase !== "aim") {
+        if (fresh.status !== "in_progress" || (fresh.state?.phase !== "aim" && fresh.state?.phase !== "throw_jack")) {
           autoThrowRef.current = null;
           return;
         }

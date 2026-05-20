@@ -929,20 +929,31 @@ function PlayerHalf({ name, avatarUrl, score, remaining, color, active, side }: 
   name: string; avatarUrl?: string | null; score: number; remaining: number; color: string; active: boolean; side: "left" | "right";
 }) {
   const initial = (name ?? "?").trim().charAt(0).toUpperCase();
-  // boule mainty — accent loko ho an'ny mpilalao
+  const thrown = Math.max(0, 6 - remaining);
+  // Tabilao kely: 6 boules — efa natsipy (matt) sy mbola an-tanana (mamiratra)
   const boules = (
-    <div className={`flex gap-1 ${side === "right" ? "flex-row-reverse" : ""}`}>
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div
-          key={i}
-          className="w-2.5 h-2.5 rounded-full border border-white/15"
-          style={{
-            background: i < remaining
-              ? `radial-gradient(circle at 35% 30%, ${color}, #0a0a0a 80%)`
-              : "rgba(255,255,255,0.05)",
-          }}
-        />
-      ))}
+    <div className={`flex items-center gap-1.5 ${side === "right" ? "flex-row-reverse" : ""}`}>
+      <div className={`flex gap-0.5 ${side === "right" ? "flex-row-reverse" : ""}`}>
+        {Array.from({ length: 6 }).map((_, i) => {
+          const inHand = i < remaining;
+          return (
+            <div
+              key={i}
+              className="w-2.5 h-2.5 rounded-full"
+              style={{
+                background: inHand
+                  ? `radial-gradient(circle at 35% 30%, ${color}, #0a0a0a 85%)`
+                  : "rgba(255,255,255,0.08)",
+                border: inHand ? "1px solid rgba(255,255,255,0.35)" : "1px dashed rgba(255,255,255,0.25)",
+                boxShadow: inHand ? `0 0 4px ${color}80` : "none",
+              }}
+            />
+          );
+        })}
+      </div>
+      <span className="text-[9px] font-bold text-white/70 tabular-nums">
+        {thrown}/<span className="text-white">6</span>
+      </span>
     </div>
   );
   const avatar = (

@@ -309,8 +309,8 @@ function AimArrow({ angleDeg, force, visible, jack, isJackPhase }: {
   // Default target: jack position. If no jack yet (throw_jack), aim straight at z=6.
   const targetZ = isJackPhase || !jack ? 6.5 : jack.z;
   const baseLen = Math.max(2.2, Math.min(10, targetZ - -1.3));
-  // Force visually scales arrow length (50% .. 130%)
-  const len = baseLen * (0.5 + (force / 100) * 0.8);
+  // Force visually scales arrow length (25% .. 110%) — réactive amin'ny drag
+  const len = baseLen * (0.25 + (force / 100) * 0.85);
   const rad = (angleDeg * Math.PI) / 180;
   const dx = Math.sin(rad) * len;
   const dz = Math.cos(rad) * len;
@@ -360,7 +360,7 @@ export default function PetanqueGame() {
   // Drag-to-throw gesture state
   const [drag, setDrag] = useState<{ dx: number; dy: number } | null>(null);
   const dragStart = useRef<{ x: number; y: number } | null>(null);
-  const PULL_MAX = 180; // px — pull complet = 100% hery
+  const PULL_MAX = 130; // px — tariny moramora ihany dia 100% hery (sotomina makany aloha)
 
   // Force portrait + fullscreen feel
   useEffect(() => {
@@ -919,8 +919,9 @@ export default function PetanqueGame() {
             const dx = e.clientX - dragStart.current.x;
             const dy = e.clientY - dragStart.current.y;
             setDrag({ dx, dy });
-            const pull = Math.max(0, Math.min(PULL_MAX, dy));
-            setForce(Math.round(10 + (pull / PULL_MAX) * 90));
+            // Sotomina MIAKATRA (manaraka ny fléchés mankany aloha) — dy < 0 = hery bebe kokoa
+            const pull = Math.max(0, Math.min(PULL_MAX, -dy));
+            setForce(Math.round(8 + (pull / PULL_MAX) * 92));
             setAngle(Math.max(-35, Math.min(35, -dx / 4)));
           }}
           onPointerUp={() => {
@@ -929,9 +930,9 @@ export default function PetanqueGame() {
             dragStart.current = null;
             setDrag(null);
             if (!d) return;
-            const pull = Math.max(0, Math.min(PULL_MAX, d.dy));
-            if (pull < 24) return; // tariny kely loatra — tsy alefa
-            const f = Math.round(10 + (pull / PULL_MAX) * 90);
+            const pull = Math.max(0, Math.min(PULL_MAX, -d.dy));
+            if (pull < 18) return; // tariny kely loatra — tsy alefa
+            const f = Math.round(8 + (pull / PULL_MAX) * 92);
             const a = Math.max(-35, Math.min(35, -d.dx / 4));
             void doThrow(a, f);
           }}
@@ -951,17 +952,17 @@ export default function PetanqueGame() {
               className="w-16 h-16 rounded-full shadow-2xl"
               style={{
                 background: `radial-gradient(circle at 35% 30%, ${mySide === "p1" ? "#ff6b6b" : "#60a5fa"}, ${mySide === "p1" ? "#991b1b" : "#1e3a8a"})`,
-                transform: drag ? `translate(${drag.dx}px, ${Math.max(0, Math.min(PULL_MAX, drag.dy))}px)` : "none",
+                transform: drag ? `translate(${drag.dx}px, ${-Math.max(0, Math.min(PULL_MAX, -drag.dy))}px)` : "none",
                 transition: drag ? "none" : "transform 240ms ease-out",
                 boxShadow: "0 8px 24px rgba(0,0,0,0.5), inset -4px -6px 12px rgba(0,0,0,0.35), inset 4px 4px 10px rgba(255,255,255,0.35)",
               }}
             />
             {/* tension line */}
-            {drag && (drag.dy > 0) && (
+            {drag && (drag.dy < 0) && (
               <svg className="absolute top-8 left-8 overflow-visible pointer-events-none" width="1" height="1">
                 <line
                   x1={0} y1={0}
-                  x2={drag.dx} y2={Math.max(0, Math.min(PULL_MAX, drag.dy))}
+                  x2={drag.dx} y2={-Math.max(0, Math.min(PULL_MAX, -drag.dy))}
                   stroke="rgba(34,255,102,0.9)" strokeWidth="3" strokeLinecap="round"
                   strokeDasharray="6 4"
                 />
@@ -973,8 +974,8 @@ export default function PetanqueGame() {
             <div className="absolute bottom-2 left-0 right-0 text-center pointer-events-none">
               <span className="inline-block px-4 py-2 rounded-full bg-emerald-500/85 text-emerald-950 font-bold text-xs shadow-lg">
                 {isJackPhase
-                  ? "⚫ Atsipazo aloha ny boul kely (cochonnet) — taritina midina"
-                  : "✋ Hazony ny baolina, dia taritina midina hatsipy"}
+                  ? "⚫ Sotomina makany ALOHA ny fléchés hatsipy ny boul kely"
+                  : "⬆️ Sotomina makany ALOHA ny fléchés — arakaraka ny halaviny no halaviny ny baolina"}
               </span>
             </div>
           )}

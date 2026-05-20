@@ -10,8 +10,10 @@ import { ArrowLeft, Pause, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Ball, Jack, COURT, distance, stepPhysics, computeRoundScore, nextThrower,
+  isJackValid, JACK_VALID, detectForfeits,
 } from "@/lib/petanqueEngine";
 import { useThemeClass } from "@/hooks/use-theme-class";
+import { sfx } from "@/lib/sfx";
 
 type GameRow = {
   id: string;
@@ -277,11 +279,24 @@ function Zebu({ position }: { position: [number, number, number] }) {
 function BallMesh({ ball, isJack }: { ball: Ball | Jack; isJack?: boolean }) {
   const color = isJack ? "#0a0a0a" : (ball as Ball).owner === "p1" ? "#dc2626" : "#2563eb";
   const r = isJack ? COURT.jackR : COURT.ballR;
+  const ringR = isJack ? r + 0.05 : r + 0.04;
   return (
-    <mesh position={[ball.x, r, ball.z]} castShadow>
-      <sphereGeometry args={[r, 24, 24]} />
-      <meshStandardMaterial color={color} metalness={isJack ? 0.2 : 0.5} roughness={isJack ? 0.4 : 0.25} />
-    </mesh>
+    <group position={[ball.x, 0, ball.z]}>
+      {/* highlight ring on the sand so the piece is always visible */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, 0]}>
+        <ringGeometry args={[ringR, ringR + (isJack ? 0.018 : 0.022), 32]} />
+        <meshBasicMaterial color={isJack ? "#ffeb3b" : color} transparent opacity={0.95} />
+      </mesh>
+      {/* shadow disc */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.008, 0]}>
+        <circleGeometry args={[r * 1.05, 24]} />
+        <meshBasicMaterial color="#000000" transparent opacity={0.35} />
+      </mesh>
+      <mesh position={[0, r, 0]} castShadow>
+        <sphereGeometry args={[r, 28, 28]} />
+        <meshStandardMaterial color={color} metalness={isJack ? 0.2 : 0.55} roughness={isJack ? 0.4 : 0.22} />
+      </mesh>
+    </group>
   );
 }
 
@@ -509,6 +524,11 @@ export default function PetanqueGame() {
         if (sp < COURT.minSpeed) { j.vx = 0; j.vz = 0; } else moving = true;
       } else {
         moving = stepPhysics(sim.balls, sim.jack, dt);
+        // Forfeit: any ball that hit the wall is removed
+        const { forfeitedIds } = detectForfeits(sim.balls, null);
+        if (forfeitedIds.length) {
+          sim.balls = sim.balls.filter((b) => !forfeitedIds.includes(b.id));
+        }
       }
       setSimBalls([...sim.balls]);
       if (sim.jack) setSimJack({ ...sim.jack });
@@ -528,6 +548,27 @@ export default function PetanqueGame() {
   // Commit the jack position then keep same player on aim phase for first ball throw
   const finishJackThrow = async (jack: Jack, thrower: "p1" | "p2") => {
     if (!g) return;
+    // Validation: jack must land in the valid zone, otherwise re-throw by the same player
+    if (!isJackValid(jack)) {
+      toast.error("Tsy mety ny boul kely (akaiky/lavitra loatra) — atsipy indray");
+      await supabase.rpc("petanque_update_state" as any, {
+        _game_id: g.id,
+        _state: {
+          balls: [],
+          jack: null,
+          phase: "throw_jack",
+          remaining: { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER },
+          lastThrower: thrower,
+        },
+        _current_turn: thrower === "p1" ? g.player1_id : g.player2_id,
+        _turn_started_at: new Date().toISOString(),
+        _score_p1: g.score_p1,
+        _score_p2: g.score_p2,
+        _round_number: g.round_number,
+      });
+      setThrowing(false);
+      return;
+    }
     const currentTurnUser = thrower === "p1" ? g.player1_id : g.player2_id;
     await supabase.rpc("petanque_update_state" as any, {
       _game_id: g.id,
@@ -708,6 +749,10 @@ export default function PetanqueGame() {
       newPhase = "throw_jack";
       // Winner of the round throws the jack to start the next one
       nextTurnUser = r.winner === "p1" ? g.player1_id : g.player2_id;
+      // 🎉 Applause + bravo when a side actually scores points
+      if (r.points > 0) {
+        try { sfx.applause(); } catch {}
+      }
       toast.success(`Round ${g.round_number}: +${r.points} ho an'ny ${r.winner === "p1" ? "Mena" : "Manga"}`);
     } else {
       const nx = nextThrower(sanitized, finalJack, remaining, thrower);
@@ -896,13 +941,14 @@ export default function PetanqueGame() {
         </div>
       </div>
 
-      {/* Pause button (bottom right) with seashell decor */}
-      <button className="absolute bottom-4 right-4 w-14 h-14 rounded-full bg-emerald-500 border-2 border-white/40 flex items-center justify-center shadow-xl shadow-emerald-500/40">
-        <Pause className="w-6 h-6 text-emerald-950 fill-emerald-950" />
-        {/* seashell deco */}
-        <svg className="absolute -top-2 -left-2 w-5 h-5" viewBox="0 0 24 24" fill="#fde68a">
-          <path d="M12 2C7 2 3 6 3 11c0 3 2 5 4 6l5 5 5-5c2-1 4-3 4-6 0-5-4-9-9-9z" />
-        </svg>
+      {/* Retour button — sortie sécurisée */}
+      <button
+        onClick={() => {
+          if (confirm("Hiala amin'ity lalao ity? Mety ho very ny mise.")) nav("/petanque");
+        }}
+        className="absolute top-24 left-3 z-30 px-3 h-10 rounded-full bg-black/70 backdrop-blur border border-white/30 flex items-center gap-1.5 text-white text-xs font-bold shadow-xl hover:bg-black/85"
+      >
+        <ArrowLeft className="w-4 h-4" /> Retour
       </button>
 
       {/* Drag-to-throw pad — toy ny mitarika tady */}

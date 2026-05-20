@@ -264,9 +264,21 @@ export default function Profile() {
               const date = g.finished_at ?? g.created_at;
               const target = kind === "domino"
                 ? (g.game_mode === "d80" ? 80 : g.game_mode === "hand" ? (pc === 3 ? 60 : 40) : 120)
-                : kind === "petanque" ? 13 : 4;
+                : kind === "petanque" ? 12 : 4;
               const kindLabel = kind === "ludo" ? "LUDO" : kind === "petanque" ? "PÉTANQUE" : (g.game_mode ?? "d120");
               const KindIcon = kind === "ludo" ? Dice5 : kind === "petanque" ? Target : Trophy;
+              // Pétanque outcome reason: Fani (6-0) ou Maty 12
+              const petReason = (() => {
+                if (kind !== "petanque" || !g.winner_id) return null;
+                const s1 = Number(g.score_p1 ?? 0);
+                const s2 = Number(g.score_p2 ?? 0);
+                const hi = Math.max(s1, s2);
+                const lo = Math.min(s1, s2);
+                if (lo === 0 && hi >= 6 && hi < 12) return { label: `FANI ${hi}-0`, tone: "bg-purple-500/20 text-purple-300 border-purple-500/40" };
+                if (hi >= 12) return { label: `Maty 12 (${hi}-${lo})`, tone: "bg-amber-500/20 text-amber-300 border-amber-500/40" };
+                return { label: `Vita ${hi}-${lo}`, tone: "bg-green-500/20 text-green-300 border-green-500/40" };
+              })();
+              const showReason = petReason ?? reason;
               return (
                 <div key={g.id} className={`card-felt rounded-xl p-3 border-l-4 ${draw ? "border-muted" : iWon ? "border-green-500" : "border-red-500"}`}>
                   <div className="flex items-start justify-between gap-2 mb-2">
@@ -329,7 +341,7 @@ export default function Profile() {
                   </div>
 
                   <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
-                    <span className={`px-2 py-0.5 rounded border ${reason.tone}`}>{reason.label}</span>
+                    <span className={`px-2 py-0.5 rounded border ${showReason.tone}`}>{showReason.label}</span>
                     <span className="text-muted-foreground">
                       Mise: <b>{fmtAr(stake)}</b>
                       {iWon && <span className="text-green-400 font-bold"> · +{fmtAr(pot - stake)}</span>}

@@ -19,6 +19,39 @@ export const COURT = {
   minSpeed: 0.05,
 };
 
+// Valid jack zone — at least this distance from throw line (z=-1), and not in the far corner
+export const JACK_VALID = { minZ: 4.0, maxZ: 9.5, maxAbsX: 1.2 };
+export function isJackValid(j: Jack | null): boolean {
+  if (!j) return false;
+  if (Math.abs(j.x) > JACK_VALID.maxAbsX) return false;
+  if (j.z < JACK_VALID.minZ || j.z > JACK_VALID.maxZ) return false;
+  return true;
+}
+
+// Detects balls that have been clamped against a court wall (i.e. flew off the terrain).
+// They are FORFEIT: caller should remove them.
+export function detectForfeits(balls: Ball[], jack: Jack | null) {
+  const eps = 0.005;
+  const out: string[] = [];
+  for (const b of balls) {
+    const atWall =
+      Math.abs(b.x - (COURT.minX + COURT.ballR)) < eps ||
+      Math.abs(b.x - (COURT.maxX - COURT.ballR)) < eps ||
+      Math.abs(b.z - (COURT.minZ + COURT.ballR)) < eps ||
+      Math.abs(b.z - (COURT.maxZ - COURT.ballR)) < eps;
+    if (atWall) out.push(b.id);
+  }
+  let jackOut = false;
+  if (jack) {
+    jackOut =
+      Math.abs(jack.x - (COURT.minX + COURT.jackR)) < eps ||
+      Math.abs(jack.x - (COURT.maxX - COURT.jackR)) < eps ||
+      Math.abs(jack.z - (COURT.minZ + COURT.jackR)) < eps ||
+      Math.abs(jack.z - (COURT.maxZ - COURT.jackR)) < eps;
+  }
+  return { forfeitedIds: out, jackOut };
+}
+
 export function distance(a: { x: number; z: number }, b: { x: number; z: number }) {
   const dx = a.x - b.x, dz = a.z - b.z;
   return Math.sqrt(dx * dx + dz * dz);

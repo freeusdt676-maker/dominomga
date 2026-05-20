@@ -369,11 +369,29 @@ export default function LudoGame() {
     const res = applyMove(state.pawns ?? [], state.current_turn_seat, pawnIdx, dice);
     setActing(true);
     armSafetyRelease();
-    setG((cur) => (cur ? { ...cur, pawns: res.pawns } : cur));
-    if (res.captured > 0) sfx.capture(); else sfx.move();
+    sfx.move();
 
     try {
-      await new Promise((r) => setTimeout(r, MOVE_ANIMATION_MS));
+      // ===== Step-by-step walking animation (cell by cell) =====
+      const startPawns = (state.pawns ?? []).map((p) => ({ ...p }));
+      const me = startPawns.find((p) => p.seat === state.current_turn_seat && p.idx === pawnIdx)!;
+      if (me.pos <= 0) {
+        // Exit base — single hop to start cell
+        me.pos = 1;
+        setG((cur) => (cur ? { ...cur, pawns: startPawns.map((p) => ({ ...p })) } : cur));
+        await new Promise((r) => setTimeout(r, STEP_ANIMATION_MS * 2));
+      } else {
+        for (let step = 0; step < dice; step++) {
+          me.pos = Math.min(57, me.pos + 1);
+          setG((cur) => (cur ? { ...cur, pawns: startPawns.map((p) => ({ ...p })) } : cur));
+          await new Promise((r) => setTimeout(r, STEP_ANIMATION_MS));
+          if (me.pos === 57) break;
+        }
+      }
+      // Commit final state (with captures applied)
+      setG((cur) => (cur ? { ...cur, pawns: res.pawns } : cur));
+      if (res.captured > 0) sfx.capture();
+      await new Promise((r) => setTimeout(r, 120));
 
       if (seatHasFinished(res.pawns, state.current_turn_seat)) {
         const winnerUid = seatToUid(state.current_turn_seat);
@@ -393,12 +411,13 @@ export default function LudoGame() {
       }
 
       const sixes = dice === 6 ? state.consecutive_sixes : 0;
-      const gotBonus = (dice === 6 && sixes < 3) || res.captured > 0 || !!res.finishedPawn;
+      // Bonus turn ONLY on a 6 (not on captures, not on finishing a pawn)
+      const gotBonus = dice === 6 && sixes < 3;
       let ns: number;
       let resetSixes = false;
       if (gotBonus) {
         ns = state.current_turn_seat;
-        resetSixes = !(dice === 6);
+        resetSixes = false;
       } else {
         const i = seats.indexOf(state.current_turn_seat);
         ns = seats[(i + 1) % seats.length];

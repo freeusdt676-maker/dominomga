@@ -952,17 +952,17 @@ export default function PetanqueGame() {
               className="w-16 h-16 rounded-full shadow-2xl"
               style={{
                 background: `radial-gradient(circle at 35% 30%, ${mySide === "p1" ? "#ff6b6b" : "#60a5fa"}, ${mySide === "p1" ? "#991b1b" : "#1e3a8a"})`,
-                transform: drag ? `translate(${drag.dx}px, ${Math.max(0, Math.min(PULL_MAX, drag.dy))}px)` : "none",
+                transform: drag ? `translate(${drag.dx}px, ${-Math.max(0, Math.min(PULL_MAX, -drag.dy))}px)` : "none",
                 transition: drag ? "none" : "transform 240ms ease-out",
                 boxShadow: "0 8px 24px rgba(0,0,0,0.5), inset -4px -6px 12px rgba(0,0,0,0.35), inset 4px 4px 10px rgba(255,255,255,0.35)",
               }}
             />
             {/* tension line */}
-            {drag && (drag.dy > 0) && (
+            {drag && (drag.dy < 0) && (
               <svg className="absolute top-8 left-8 overflow-visible pointer-events-none" width="1" height="1">
                 <line
                   x1={0} y1={0}
-                  x2={drag.dx} y2={Math.max(0, Math.min(PULL_MAX, drag.dy))}
+                  x2={drag.dx} y2={-Math.max(0, Math.min(PULL_MAX, -drag.dy))}
                   stroke="rgba(34,255,102,0.9)" strokeWidth="3" strokeLinecap="round"
                   strokeDasharray="6 4"
                 />
@@ -974,8 +974,8 @@ export default function PetanqueGame() {
             <div className="absolute bottom-2 left-0 right-0 text-center pointer-events-none">
               <span className="inline-block px-4 py-2 rounded-full bg-emerald-500/85 text-emerald-950 font-bold text-xs shadow-lg">
                 {isJackPhase
-                  ? "⚫ Atsipazo aloha ny boul kely (cochonnet) — taritina midina"
-                  : "✋ Hazony ny baolina, dia taritina midina hatsipy"}
+                  ? "⚫ Sotomina makany ALOHA ny fléchés hatsipy ny boul kely"
+                  : "⬆️ Sotomina makany ALOHA ny fléchés — arakaraka ny halaviny no halaviny ny baolina"}
               </span>
             </div>
           )}

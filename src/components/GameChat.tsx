@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { MessageCircle, Send, X } from "lucide-react";
 
 type Msg = { id: string; sender_id: string; content: string; created_at: string };
+type Floater = { id: string; name: string; content: string };
 
 const QUICKS = ["Salama", "Tsara!", "Mialà tsiny", "Misaotra", "Andraso kely", "Mazoto e!"];
 
@@ -22,6 +23,7 @@ export function GameChat({
   const [text, setText] = useState("");
   const [unread, setUnread] = useState(0);
   const [sending, setSending] = useState(false);
+  const [floaters, setFloaters] = useState<Floater[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -46,6 +48,14 @@ export function GameChat({
           setMsgs((prev) => (prev.find((x) => x.id === m.id) ? prev : [...prev, m]));
           if (m.sender_id !== user?.id) {
             setUnread((u) => (open ? 0 : u + 1));
+            if (!open) {
+              const fid = `${m.id}-${Date.now()}`;
+              setFloaters((cur) => [...cur, { id: fid, name: names[m.sender_id] ?? "Mpilalao", content: m.content }]);
+              try { (navigator as any).vibrate?.(40); } catch {}
+              setTimeout(() => {
+                setFloaters((cur) => cur.filter((f) => f.id !== fid));
+              }, 4200);
+            }
           }
         }
       )
@@ -54,7 +64,7 @@ export function GameChat({
       cancelled = true;
       supabase.removeChannel(ch);
     };
-  }, [gameId, user?.id, open]);
+  }, [gameId, user?.id, open, names]);
 
   useEffect(() => {
     if (open) {
@@ -80,6 +90,24 @@ export function GameChat({
 
   return (
     <>
+      {/* Floating incoming-message bubbles (auto-fade) */}
+      {floaters.length > 0 && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[60] flex flex-col gap-2 pointer-events-none max-w-[92vw] w-[340px]">
+          {floaters.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => { setOpen(true); setFloaters((cur) => cur.filter((x) => x.id !== f.id)); }}
+              className="pointer-events-auto text-left px-3 py-2 rounded-2xl bg-[#0d3b22]/95 border-2 border-[#d4a52c]/70 shadow-2xl backdrop-blur-md animate-in slide-in-from-top-4 fade-in duration-300"
+            >
+              <p className="text-[10px] font-bold text-[#ffe27a] mb-0.5 flex items-center gap-1">
+                <MessageCircle className="w-3 h-3" /> {f.name}
+              </p>
+              <p className="text-sm text-white break-words line-clamp-3">{f.content}</p>
+            </button>
+          ))}
+        </div>
+      )}
+
       <button
         type="button"
         onClick={() => setOpen(true)}

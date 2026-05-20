@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Trash2, Trophy, ShieldCheck, Copy, Medal } from "lucide-react";
+import { ArrowLeft, Trash2, Trophy, ShieldCheck, Copy, Medal, Dice5, Target } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -49,16 +49,38 @@ export default function Profile() {
         setLossLimit(r.daily_loss_limit?.toString() ?? "");
         setStakeLimit(r.daily_stake_limit?.toString() ?? "");
       }
-      const { data: g } = await supabase.from("games")
-        .select("id, stake, status, winner_id, player1_id, player2_id, player3_id, score_p1, score_p2, score_p3, players_count, ticket_number, finished_at, created_at, game_mode")
-        .or(`player1_id.eq.${user.id},player2_id.eq.${user.id},player3_id.eq.${user.id}`)
-        .in("status", ["finished", "cancelled", "blocked"])
-        .order("finished_at", { ascending: false, nullsFirst: false })
-        .limit(200);
-      setGames(g ?? []);
+      const [domRes, ludoRes, petRes] = await Promise.all([
+        supabase.from("games")
+          .select("id, stake, status, winner_id, player1_id, player2_id, player3_id, score_p1, score_p2, score_p3, players_count, ticket_number, finished_at, created_at, game_mode, last_reason, round_number")
+          .or(`player1_id.eq.${user.id},player2_id.eq.${user.id},player3_id.eq.${user.id}`)
+          .in("status", ["finished", "cancelled", "blocked"])
+          .order("finished_at", { ascending: false, nullsFirst: false })
+          .limit(200),
+        supabase.from("ludo_games" as any)
+          .select("id, stake, status, winner_id, player1_id, player2_id, player3_id, player4_id, players_count, ticket_number, finished_at, created_at, pawns")
+          .or(`player1_id.eq.${user.id},player2_id.eq.${user.id},player3_id.eq.${user.id},player4_id.eq.${user.id}`)
+          .in("status", ["finished", "cancelled"])
+          .order("finished_at", { ascending: false, nullsFirst: false })
+          .limit(200),
+        supabase.from("petanque_games" as any)
+          .select("id, stake, status, winner_id, player1_id, player2_id, score_p1, score_p2, ticket_number, finished_at, created_at, round_number")
+          .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
+          .in("status", ["finished", "cancelled"])
+          .order("finished_at", { ascending: false, nullsFirst: false })
+          .limit(200),
+      ]);
+      const dom = (domRes.data ?? []).map((x: any) => ({ ...x, kind: "domino" as const }));
+      const lud = (ludoRes.data ?? []).map((x: any) => ({ ...x, kind: "ludo" as const, players_count: x.players_count ?? 2 }));
+      const pet = (petRes.data ?? []).map((x: any) => ({ ...x, kind: "petanque" as const, players_count: 2 }));
+      const all = [...dom, ...lud, ...pet].sort((a, b) => {
+        const da = new Date(a.finished_at ?? a.created_at ?? 0).getTime();
+        const db = new Date(b.finished_at ?? b.created_at ?? 0).getTime();
+        return db - da;
+      });
+      setGames(all);
       const ids = new Set<string>();
-      (g ?? []).forEach((x: any) => {
-        [x.player1_id, x.player2_id, x.player3_id].forEach((id) => id && ids.add(id));
+      all.forEach((x: any) => {
+        [x.player1_id, x.player2_id, x.player3_id, x.player4_id].forEach((id) => id && ids.add(id));
       });
       if (ids.size) {
         const { data: ps } = await supabase.from("profiles").select("user_id, mvola_name").in("user_id", Array.from(ids));
@@ -208,22 +230,43 @@ export default function Profile() {
               const pot = (stake - commissionEach) * pc;
               const iWon = g.winner_id === user.id;
               const draw = !g.winner_id;
-              const playerIds = [g.player1_id, g.player2_id, g.player3_id].filter(Boolean) as string[];
-              const scoresByPid: Record<string, number> = {
-                [g.player1_id]: Number(g.score_p1 ?? 0),
-                ...(g.player2_id ? { [g.player2_id]: Number(g.score_p2 ?? 0) } : {}),
-                ...(g.player3_id ? { [g.player3_id]: Number(g.score_p3 ?? 0) } : {}),
-              };
+              const kind: "domino" | "ludo" | "petanque" = g.kind ?? "domino";
+              const playerIds = [g.player1_id, g.player2_id, g.player3_id, g.player4_id].filter(Boolean) as string[];
+              // Score per player (depends on game type)
+              const scoresByPid: Record<string, number> = {};
+              if (kind === "domino") {
+                scoresByPid[g.player1_id] = Number(g.score_p1 ?? 0);
+                if (g.player2_id) scoresByPid[g.player2_id] = Number(g.score_p2 ?? 0);
+                if (g.player3_id) scoresByPid[g.player3_id] = Number(g.score_p3 ?? 0);
+              } else if (kind === "petanque") {
+                scoresByPid[g.player1_id] = Number(g.score_p1 ?? 0);
+                if (g.player2_id) scoresByPid[g.player2_id] = Number(g.score_p2 ?? 0);
+              } else if (kind === "ludo") {
+                // score = number of pawns reaching home (pos === 57) per seat
+                const pawns: any[] = Array.isArray(g.pawns) ? g.pawns : [];
+                const allPlayers = [g.player1_id, g.player2_id, g.player3_id, g.player4_id];
+                allPlayers.forEach((pid, slot) => {
+                  if (!pid) return;
+                  const finished = pawns.filter((p) => Number(p?.seat) === slot + 1 && Number(p?.pos) === 57).length;
+                  scoresByPid[pid] = finished;
+                });
+              }
               // Filaharana: mpandresy aloha, dia ny score mihena
               const ranking = [...playerIds].sort((a, b) => {
                 if (a === g.winner_id) return -1;
                 if (b === g.winner_id) return 1;
-                return (scoresByPid[a] ?? 0) - (scoresByPid[b] ?? 0);
+                // domino: low score = better rank, others: high score = better
+                if (kind === "domino") return (scoresByPid[a] ?? 0) - (scoresByPid[b] ?? 0);
+                return (scoresByPid[b] ?? 0) - (scoresByPid[a] ?? 0);
               });
               const winnerName = g.winner_id ? (names[g.winner_id] ?? "?") : null;
               const reason = parseReason(g.last_reason);
               const date = g.finished_at ?? g.created_at;
-              const target = g.game_mode === "d80" ? 80 : g.game_mode === "hand" ? (pc === 3 ? 60 : 40) : 120;
+              const target = kind === "domino"
+                ? (g.game_mode === "d80" ? 80 : g.game_mode === "hand" ? (pc === 3 ? 60 : 40) : 120)
+                : kind === "petanque" ? 13 : 4;
+              const kindLabel = kind === "ludo" ? "LUDO" : kind === "petanque" ? "PÉTANQUE" : (g.game_mode ?? "d120");
+              const KindIcon = kind === "ludo" ? Dice5 : kind === "petanque" ? Target : Trophy;
               return (
                 <div key={g.id} className={`card-felt rounded-xl p-3 border-l-4 ${draw ? "border-muted" : iWon ? "border-green-500" : "border-red-500"}`}>
                   <div className="flex items-start justify-between gap-2 mb-2">
@@ -231,7 +274,9 @@ export default function Profile() {
                       <span className={`text-xs font-bold px-2 py-0.5 rounded ${draw ? "bg-muted text-foreground" : iWon ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
                         {draw ? "TAPAKA" : iWon ? "NANDRESY" : "RESY"}
                       </span>
-                      <span className="text-[10px] text-muted-foreground uppercase">{g.game_mode ?? "d120"} · {pc}P · tanjona {target}</span>
+                      <span className="text-[10px] text-muted-foreground uppercase flex items-center gap-1">
+                        <KindIcon className="w-3 h-3" /> {kindLabel} · {pc}P · {kind === "ludo" ? "4 pion" : `tanjona ${target}`}
+                      </span>
                     </div>
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => setConfirmId(g.id)}>
                       <Trash2 className="w-4 h-4" />

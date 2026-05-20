@@ -3,8 +3,9 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, ChevronDown, RefreshCw } from "lucide-react";
+import { ArrowLeft, Loader2, ChevronDown, RefreshCw } from "lucide-react";
 import LudoBoard from "@/components/LudoBoard";
+import LudoDice3D from "@/components/LudoDice3D";
 import {
   activeSeats, applyMove, legalMoves, rollDice, seatHasFinished,
   SEAT_COLOR, SEAT_NAME, nextSeatFromList, pawnXY, type Pawn,
@@ -37,7 +38,7 @@ type LG = {
   updated_at: string;
 };
 
-const TURN_LIMIT = 20;
+const TURN_LIMIT = 10;
 const MOVE_ANIMATION_MS = 520;
 const QUICK_PASS_DELAY_MS = 850;
 const BLOCKER_SAFETY_MS = 8000;
@@ -668,7 +669,6 @@ export default function LudoGame() {
   }
 
   const winnerName = g.winner_id ? names[g.winner_id] ?? "?" : null;
-  const DiceIcons = [Dice1, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6];
 
   // Score per seat = number of pawns with pos === 57
   const scoreOf = (seat: number) => (g.pawns ?? []).filter((p) => p.seat === seat && p.pos === 57).length;
@@ -690,7 +690,7 @@ export default function LudoGame() {
     const uid = seatToUid(seat);
     const isTurn = g.current_turn_seat === seat && g.status === "in_progress";
     const isMe = mySeat === seat;
-    const DiceFace = isTurn && g.last_dice ? DiceIcons[g.last_dice] : Dice5;
+    const diceFace = isTurn && g.last_dice ? g.last_dice : 5;
     const isAnim = rollAnimSeat === seat;
     const cornerCls =
       corner === "tl" ? "top-1 left-1 flex-row" :
@@ -739,14 +739,14 @@ export default function LudoGame() {
                 <button
                   onClick={handleRoll}
                   disabled={rolling}
-                  className={`dice-cube w-16 h-16 flex items-center justify-center ${isAnim ? "dice-cube-rolling" : ""}`}
+                  className="w-16 h-16 flex items-center justify-center transition active:translate-y-0.5"
                   aria-label="Roll dice"
                 >
-                  <DiceFace className="w-11 h-11" />
+                  <LudoDice3D face={diceFace} size={62} rolling={isAnim} idle={!g.last_dice} />
                 </button>
               ) : (
-                <div className={`dice-cube w-16 h-16 flex items-center justify-center ${g.dice_rolled ? "" : "idle"} ${isAnim ? "dice-cube-rolling" : ""}`}>
-                  {g.last_dice ? <DiceFace className="w-11 h-11" /> : <Dice5 className="w-11 h-11 opacity-40" />}
+                <div className="w-16 h-16 flex items-center justify-center">
+                  <LudoDice3D face={g.last_dice ?? 5} size={62} rolling={isAnim} idle={!g.dice_rolled} />
                 </div>
               )}
             </div>

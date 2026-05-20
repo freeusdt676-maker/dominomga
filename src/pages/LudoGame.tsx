@@ -584,20 +584,21 @@ export default function LudoGame() {
 
         if (moves.length === 0) {
           await new Promise((r) => setTimeout(r, QUICK_PASS_DELAY_MS));
-          const { seat: ns } = nextSeatFromList(state.current_turn_seat, liveSeats, dice === 6, 0, nextSixes);
+          // Unusable dice (even a 6) ⇒ no bonus, hand off
+          const { seat: ns } = nextSeatFromList(state.current_turn_seat, liveSeats, false, 0, 0);
           const nextTurnAt = new Date().toISOString();
           setG((cur) => cur ? ({
             ...cur,
             current_turn_seat: ns,
             dice_rolled: false,
-            consecutive_sixes: ns === state.current_turn_seat ? nextSixes : 0,
+            consecutive_sixes: 0,
             turn_started_at: nextTurnAt,
           }) : cur);
           await runRpc({
             _game_id: state.id,
             _current_turn_seat: ns,
             _dice_rolled: false,
-            _consecutive_sixes: ns === state.current_turn_seat ? nextSixes : 0,
+            _consecutive_sixes: 0,
             _turn_started_at: nextTurnAt,
           });
           return;
@@ -651,7 +652,8 @@ export default function LudoGame() {
       }
 
       const sixes = dice === 6 ? state.consecutive_sixes : 0;
-      const { seat: ns, resetSixes } = nextSeatFromList(state.current_turn_seat, liveSeats, dice === 6, res.captured, sixes);
+      // Bonus only on 6 (not captures, not finishing pawn)
+      const { seat: ns, resetSixes } = nextSeatFromList(state.current_turn_seat, liveSeats, dice === 6, 0, sixes);
       const nextTurnAt = new Date().toISOString();
       setG((cur) => cur ? ({
         ...cur,

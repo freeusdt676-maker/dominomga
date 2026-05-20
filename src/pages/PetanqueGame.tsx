@@ -524,6 +524,11 @@ export default function PetanqueGame() {
         if (sp < COURT.minSpeed) { j.vx = 0; j.vz = 0; } else moving = true;
       } else {
         moving = stepPhysics(sim.balls, sim.jack, dt);
+        // Forfeit: any ball that hit the wall is removed
+        const { forfeitedIds } = detectForfeits(sim.balls, null);
+        if (forfeitedIds.length) {
+          sim.balls = sim.balls.filter((b) => !forfeitedIds.includes(b.id));
+        }
       }
       setSimBalls([...sim.balls]);
       if (sim.jack) setSimJack({ ...sim.jack });
@@ -543,6 +548,27 @@ export default function PetanqueGame() {
   // Commit the jack position then keep same player on aim phase for first ball throw
   const finishJackThrow = async (jack: Jack, thrower: "p1" | "p2") => {
     if (!g) return;
+    // Validation: jack must land in the valid zone, otherwise re-throw by the same player
+    if (!isJackValid(jack)) {
+      toast.error("Tsy mety ny boul kely (akaiky/lavitra loatra) — atsipy indray");
+      await supabase.rpc("petanque_update_state" as any, {
+        _game_id: g.id,
+        _state: {
+          balls: [],
+          jack: null,
+          phase: "throw_jack",
+          remaining: { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER },
+          lastThrower: thrower,
+        },
+        _current_turn: thrower === "p1" ? g.player1_id : g.player2_id,
+        _turn_started_at: new Date().toISOString(),
+        _score_p1: g.score_p1,
+        _score_p2: g.score_p2,
+        _round_number: g.round_number,
+      });
+      setThrowing(false);
+      return;
+    }
     const currentTurnUser = thrower === "p1" ? g.player1_id : g.player2_id;
     await supabase.rpc("petanque_update_state" as any, {
       _game_id: g.id,
@@ -723,6 +749,10 @@ export default function PetanqueGame() {
       newPhase = "throw_jack";
       // Winner of the round throws the jack to start the next one
       nextTurnUser = r.winner === "p1" ? g.player1_id : g.player2_id;
+      // 🎉 Applause + bravo when a side actually scores points
+      if (r.points > 0) {
+        try { sfx.applause(); } catch {}
+      }
       toast.success(`Round ${g.round_number}: +${r.points} ho an'ny ${r.winner === "p1" ? "Mena" : "Manga"}`);
     } else {
       const nx = nextThrower(sanitized, finalJack, remaining, thrower);

@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { STAKE_LEVELS, fmtAr } from "@/lib/constants";
-import { ArrowLeft, Loader2, Coins, Users, X } from "lucide-react";
+import { ArrowLeft, Loader2, Coins, Users, X, Play } from "lucide-react";
 import { toast } from "sonner";
 import { useThemeClass } from "@/hooks/use-theme-class";
 
@@ -190,8 +190,9 @@ export default function Lobby() {
                   {activeGame.players_count}P · {activeGame.game_mode === "d80" ? "Maty 80" : activeGame.game_mode === "hand" ? "Atanana" : "Maty 120"} · {fmtAr(activeGame.stake)}
                 </p>
               </div>
-              <Button className="btn-gold shrink-0" size="sm" onClick={() => nav(`/game/${activeGame.id}`)}>
-                Hanohy <span className="ml-1">🔵</span>
+              <Button className="btn-gold shrink-0 gap-2" size="sm" onClick={() => nav(`/game/${activeGame.id}`)}>
+                <Play className="h-4 w-4 fill-current" />
+                Hanohy lalao
               </Button>
             </div>
           </div>
@@ -244,7 +245,13 @@ export default function Lobby() {
                 <p className="font-bold gold-text">Misy mise vonona ianao</p>
                 <p className="text-xs text-muted-foreground">Mise: {fmtAr(myWaiting.stake)} — miandry mpifanandrina</p>
               </div>
-              <Button size="sm" variant="destructive" onClick={cancelMyWaiting}><X className="w-4 h-4" /></Button>
+              <div className="flex items-center gap-2">
+                <Button size="sm" className="btn-gold gap-2" onClick={() => nav(`/game/${myWaiting.id}`)}>
+                  <Play className="h-4 w-4 fill-current" />
+                  Hanohy lalao
+                </Button>
+                <Button size="sm" variant="destructive" onClick={cancelMyWaiting}><X className="w-4 h-4" /></Button>
+              </div>
             </div>
           ) : (
             <Button

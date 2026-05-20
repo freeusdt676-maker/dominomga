@@ -36,7 +36,7 @@ type GameRow = {
   };
 };
 
-const TARGET_SCORE = 12;
+const TARGET_SCORE = 13;
 const BALLS_PER_PLAYER = 6;
 const FANI_SCORE = 6; // Si un joueur atteint 6 et l'autre est à 0 => victoire (Fani)
 const TURN_LIMIT_MS = 20_000;

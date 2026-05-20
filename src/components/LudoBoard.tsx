@@ -15,9 +15,17 @@ const SIZE = 600; // SVG viewport
 const N = 15;
 const CELL = SIZE / N;
 
-function cellRect(col: number, row: number, fill: string, stroke = "#1c1235") {
+function cellRect(col: number, row: number, fill: string, stroke = "#1c1235", key?: string) {
+  const x = col * CELL;
+  const y = row * CELL;
   return (
-    <rect x={col * CELL} y={row * CELL} width={CELL} height={CELL} fill={fill} stroke={stroke} strokeWidth={1.2} />
+    <g key={key}>
+      <rect x={x} y={y} width={CELL} height={CELL} fill={fill} stroke={stroke} strokeWidth={1.2} />
+      {/* glossy top highlight inside each cell */}
+      <rect x={x + 1.5} y={y + 1.5} width={CELL - 3} height={(CELL - 3) * 0.45} fill="url(#cellGloss)" pointerEvents="none" />
+      {/* subtle inner bottom shade */}
+      <rect x={x + 1.5} y={y + (CELL - 3) * 0.5} width={CELL - 3} height={(CELL - 3) * 0.5} fill="url(#cellShade)" pointerEvents="none" />
+    </g>
   );
 }
 
@@ -49,10 +57,41 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
   };
 
   return (
-    <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-full h-full block" preserveAspectRatio="xMidYMid meet" style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #0b1d5c 100%)" }}>
-      {/* Outer ornate frame — Ludo Master style */}
-      <rect x={3} y={3} width={SIZE - 6} height={SIZE - 6} fill="none" stroke="#6ea8ff" strokeWidth={4} rx={10} />
-      <rect x={10} y={10} width={SIZE - 20} height={SIZE - 20} fill="none" stroke="#1a3580" strokeWidth={1.5} rx={6} />
+    <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-full h-full block" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <radialGradient id="boardBg" cx="50%" cy="42%" r="75%">
+          <stop offset="0%" stopColor="#2d56c4" />
+          <stop offset="55%" stopColor="#143a8c" />
+          <stop offset="100%" stopColor="#050d2c" />
+        </radialGradient>
+        <linearGradient id="boardFrame" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#ffe27a" />
+          <stop offset="50%" stopColor="#d4a52c" />
+          <stop offset="100%" stopColor="#8a5a0a" />
+        </linearGradient>
+        <linearGradient id="cellGloss" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.55" />
+          <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id="cellShade" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#000000" stopOpacity="0" />
+          <stop offset="100%" stopColor="#000000" stopOpacity="0.18" />
+        </linearGradient>
+        <radialGradient id="boardVignette" cx="50%" cy="50%" r="70%">
+          <stop offset="60%" stopColor="#000" stopOpacity="0" />
+          <stop offset="100%" stopColor="#000" stopOpacity="0.55" />
+        </radialGradient>
+        <filter id="frameShadow" x="-10%" y="-10%" width="120%" height="120%">
+          <feDropShadow dx="0" dy="6" stdDeviation="6" floodOpacity="0.45" />
+        </filter>
+      </defs>
+      {/* Board backdrop */}
+      <rect x={0} y={0} width={SIZE} height={SIZE} fill="url(#boardBg)" />
+      <rect x={0} y={0} width={SIZE} height={SIZE} fill="url(#boardVignette)" pointerEvents="none" />
+      {/* Outer ornate frame — gold Ludo Master style */}
+      <rect x={4} y={4} width={SIZE - 8} height={SIZE - 8} fill="none" stroke="url(#boardFrame)" strokeWidth={6} rx={14} filter="url(#frameShadow)" />
+      <rect x={11} y={11} width={SIZE - 22} height={SIZE - 22} fill="none" stroke="#0b1d5c" strokeWidth={1.5} rx={8} />
+      <rect x={14} y={14} width={SIZE - 28} height={SIZE - 28} fill="none" stroke="#ffffff" strokeOpacity="0.08" strokeWidth={1} rx={6} />
 
       {/* Track cells */}
       {TRACK.map(([col, row], i) => (

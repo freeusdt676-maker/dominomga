@@ -36,7 +36,7 @@ type GameRow = {
   };
 };
 
-const TARGET_SCORE = 12;
+const TARGET_SCORE = 13;
 const BALLS_PER_PLAYER = 6;
 const FANI_SCORE = 6; // Si un joueur atteint 6 et l'autre est à 0 => victoire (Fani)
 const TURN_LIMIT_MS = 20_000;
@@ -400,6 +400,8 @@ export default function PetanqueGame() {
   const [simJack, setSimJack] = useState<Jack | null>(null);
   const simRef = useRef<{ balls: Ball[]; jack: Jack | null } | null>(null);
   const autoThrowRef = useRef<string | null>(null);
+  const channelRef = useRef<any>(null);
+  const runThrowRef = useRef<((opts: any) => void) | null>(null);
   // Drag-to-throw gesture state
   const [drag, setDrag] = useState<{ dx: number; dy: number } | null>(null);
   const dragStart = useRef<{ x: number; y: number } | null>(null);
@@ -439,13 +441,18 @@ export default function PetanqueGame() {
       if (data) setG(data as unknown as GameRow);
     };
     load();
-    const ch = supabase.channel(`pg-${id}`)
+    const ch = supabase.channel(`pg-${id}`, { config: { broadcast: { self: false } } })
       .on("postgres_changes", { event: "*", schema: "public", table: "petanque_games", filter: `id=eq.${id}` },
         (p: any) => { if (p.new) setG(p.new as GameRow); })
+      .on("broadcast", { event: "throw" }, ({ payload }: any) => {
+        // Mpilalao iray hafa nanatsipy — replay-na eto mba ho hita ny fikodiadian'ny baolina
+        runThrowRef.current?.({ ...payload, commit: false });
+      })
       .subscribe();
+    channelRef.current = ch;
     // Polling de secours toutes les 2s (essentiel pour le matchmaking si realtime ne livre pas)
     const itv = setInterval(load, 2000);
-    return () => { supabase.removeChannel(ch); clearInterval(itv); };
+    return () => { supabase.removeChannel(ch); channelRef.current = null; clearInterval(itv); };
   }, [id]);
 
   useEffect(() => {
@@ -496,39 +503,39 @@ export default function PetanqueGame() {
     setSimJack(g?.state?.jack ?? null);
   }, [g?.state, throwing]);
 
-  const doThrow = async (overrideAngle?: number, overrideForce?: number) => {
-    if (!g || !user || !mySide || throwing) return;
-    const remaining = g.state?.remaining ?? { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER };
-    const jackPhase = g.state?.phase === "throw_jack";
-    if (!jackPhase && remaining[mySide] <= 0) return toast.error("Tsy manana baolina intsony");
+  const runThrow = (opts: {
+    thrower: "p1" | "p2";
+    angle: number;
+    force: number;
+    jackPhase: boolean;
+    baseBalls: Ball[];
+    baseJack: Jack | null;
+    ballId?: string;
+    commit: boolean;
+  }) => {
+    const { thrower, angle: a, force: f, jackPhase, baseBalls, baseJack, ballId, commit } = opts;
     setThrowing(true);
-    const useAngle = overrideAngle ?? angle;
-    const useForce = overrideForce ?? force;
-    const rad = (useAngle * Math.PI) / 180;
-    // Jack throws shorter & lighter; balls have full range
-    const speed = jackPhase ? (2 + (useForce / 100) * 4.5) : (4 + (useForce / 100) * 11);
+    const rad = (a * Math.PI) / 180;
+    // Jack: assez de hery mba ho tonga any amin'ny 75% ny terrain
+    const speed = jackPhase ? (3 + (f / 100) * 7.5) : (4 + (f / 100) * 11);
     const vx = Math.sin(rad) * speed;
     const vz = Math.cos(rad) * speed;
     let balls: Ball[];
     let jack: Jack | null;
     if (jackPhase) {
-      // The thrown object IS the jack — simulate it as a tiny temporary ball to reuse engine,
-      // then commit position as jack on settle.
       balls = [];
       jack = { x: 0, z: -1.3 } as Jack;
-      // store velocity on jack via a temp wrapper:
       (jack as any).vx = vx; (jack as any).vz = vz;
     } else {
       const newBall: Ball = {
-        id: `b_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-        owner: mySide,
+        id: ballId ?? `b_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        owner: thrower,
         x: 0, z: -1.3, vx, vz,
       };
-      balls = [...(g.state?.balls ?? []).map(b => ({ ...b, vx: 0, vz: 0 })), newBall];
-      jack = g.state?.jack ? { ...g.state.jack } : null;
+      balls = [...baseBalls.map(b => ({ ...b, vx: 0, vz: 0 })), newBall];
+      jack = baseJack ? { ...baseJack } : null;
     }
     simRef.current = { balls, jack };
-    // Simulate with raf loop, capped at 8 seconds
     const start = performance.now();
     let last = start;
     const loop = () => {
@@ -536,14 +543,13 @@ export default function PetanqueGame() {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       const sim = simRef.current!;
-      // For jack phase, move the jack like a ball with friction & walls
       let moving = false;
       if (jackPhase && sim.jack) {
         const j: any = sim.jack;
         j.x += (j.vx ?? 0) * dt;
         j.z += (j.vz ?? 0) * dt;
-        const f = Math.pow(COURT.friction, dt * 60);
-        j.vx *= f; j.vz *= f;
+        const fr = Math.pow(COURT.friction, dt * 60);
+        j.vx *= fr; j.vz *= fr;
         if (j.x - COURT.jackR < COURT.minX) { j.x = COURT.minX + COURT.jackR; j.vx = -j.vx * COURT.wallRestitution; }
         if (j.x + COURT.jackR > COURT.maxX) { j.x = COURT.maxX - COURT.jackR; j.vx = -j.vx * COURT.wallRestitution; }
         if (j.z - COURT.jackR < COURT.minZ) { j.z = COURT.minZ + COURT.jackR; j.vz = -j.vz * COURT.wallRestitution; }
@@ -552,7 +558,6 @@ export default function PetanqueGame() {
         if (sp < COURT.minSpeed) { j.vx = 0; j.vz = 0; } else moving = true;
       } else {
         moving = stepPhysics(sim.balls, sim.jack, dt);
-        // Forfeit: any ball that hit the wall is removed
         const { forfeitedIds } = detectForfeits(sim.balls, null);
         if (forfeitedIds.length) {
           sim.balls = sim.balls.filter((b) => !forfeitedIds.includes(b.id));
@@ -563,14 +568,41 @@ export default function PetanqueGame() {
       if (moving && now - start < 8000) {
         requestAnimationFrame(loop);
       } else {
-        if (jackPhase && sim.jack) {
-          finishJackThrow({ x: sim.jack.x, z: sim.jack.z }, mySide).catch((e) => toast.error(e.message));
+        if (commit) {
+          if (jackPhase && sim.jack) {
+            finishJackThrow({ x: sim.jack.x, z: sim.jack.z }, thrower).catch((e) => toast.error(e.message));
+          } else {
+            finishThrow(sim.balls, sim.jack, thrower).catch((e) => toast.error(e.message));
+          }
         } else {
-          finishThrow(sim.balls, sim.jack, mySide).catch((e) => toast.error(e.message));
+          // Remote replay vita — state ny serveur no hifehy
+          setThrowing(false);
         }
       }
     };
     requestAnimationFrame(loop);
+  };
+  runThrowRef.current = runThrow;
+
+  const doThrow = async (overrideAngle?: number, overrideForce?: number) => {
+    if (!g || !user || !mySide || throwing) return;
+    const remaining = g.state?.remaining ?? { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER };
+    const jackPhase = g.state?.phase === "throw_jack";
+    if (!jackPhase && remaining[mySide] <= 0) return toast.error("Tsy manana baolina intsony");
+    const a = overrideAngle ?? angle;
+    const f = overrideForce ?? force;
+    const ballId = `b_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const baseBalls = g.state?.balls ?? [];
+    const baseJack = g.state?.jack ?? null;
+    // Broadcast amin'ny mpifanandrina mba hahitany ny fikodiadian'ny baolina LIVE
+    try {
+      await channelRef.current?.send({
+        type: "broadcast",
+        event: "throw",
+        payload: { thrower: mySide, angle: a, force: f, jackPhase, baseBalls, baseJack, ballId },
+      });
+    } catch {}
+    runThrow({ thrower: mySide, angle: a, force: f, jackPhase, baseBalls, baseJack, ballId, commit: true });
   };
 
   // Commit the jack position then keep same player on aim phase for first ball throw
@@ -656,8 +688,9 @@ export default function PetanqueGame() {
         }
         // Auto jack-throw if needed
         if (fresh.state?.phase === "throw_jack") {
-          const jackX = (Math.random() - 0.5) * 2;
-          const jackZ = 5.5 + Math.random() * 2.5;
+          // ~75% ny halavin'ny terrain — lavidavitra fa tsy akaiky
+          const jackX = (Math.random() - 0.5) * 1.6;
+          const jackZ = 7.5 + Math.random() * 1.8;
           const currentTurnUser = throwSide === "p1" ? fresh.player1_id : fresh.player2_id;
           await supabase.rpc("petanque_update_state" as any, {
             _game_id: fresh.id,
@@ -684,63 +717,19 @@ export default function PetanqueGame() {
           autoThrowRef.current = null;
           return;
         }
-        const rad = (ba * Math.PI) / 180;
-        const speed = 4 + (bf / 100) * 11;
-        const vx = Math.sin(rad) * speed;
-        const vz = Math.cos(rad) * speed;
-        const newBall: Ball = {
-          id: `bot_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-          owner: throwSide,
-          x: 0,
-          z: -1.3,
-          vx,
-          vz,
-        };
-        const balls: Ball[] = [...(fresh.state?.balls ?? []).map((b) => ({ ...b, vx: 0, vz: 0 })), newBall];
-        const jack: Jack | null = fresh.state?.jack ? { ...fresh.state.jack } : null;
-        let moving = true;
-        let loops = 0;
-        while (moving && loops < 480) {
-          moving = stepPhysics(balls, jack, 1 / 60);
-          loops += 1;
-        }
-        const prevRemaining = fresh.state?.remaining ?? { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER };
-        const nextRemaining = { ...prevRemaining, [throwSide]: Math.max(0, prevRemaining[throwSide] - 1) };
-        let newScoreP1 = fresh.score_p1;
-        let newScoreP2 = fresh.score_p2;
-        let newRound = fresh.round_number;
-        let nextTurnUser: string | null = null;
-        let newBalls = balls.map((b) => ({ ...b, vx: 0, vz: 0 }));
-        let newJack = jack;
-        let roundRemaining = nextRemaining;
-        if (nextRemaining.p1 <= 0 && nextRemaining.p2 <= 0 && jack) {
-          const r = computeRoundScore(newBalls, jack);
-          if (r.winner === "p1") newScoreP1 += r.points;
-          if (r.winner === "p2") newScoreP2 += r.points;
-          newRound += 1;
-          newBalls = [];
-          newJack = null;
-          roundRemaining = { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER };
-          nextTurnUser = r.winner === "p1" ? fresh.player1_id : fresh.player2_id;
-        } else {
-          const nx = nextThrower(newBalls, jack, nextRemaining, throwSide);
-          nextTurnUser = nx === "p1" ? fresh.player1_id : nx === "p2" ? fresh.player2_id : (throwSide === "p1" ? fresh.player2_id : fresh.player1_id);
-        }
-        await supabase.rpc("petanque_update_state" as any, {
-          _game_id: fresh.id,
-          _state: {
-            balls: newBalls,
-            jack: newJack,
-            phase: (nextRemaining.p1 <= 0 && nextRemaining.p2 <= 0) ? "throw_jack" : "aim",
-            remaining: roundRemaining,
-            lastThrower: throwSide,
-          },
-          _current_turn: nextTurnUser,
-          _turn_started_at: new Date().toISOString(),
-          _score_p1: newScoreP1,
-          _score_p2: newScoreP2,
-          _round_number: newRound,
-        });
+        // Animation + broadcast — hahitan'ny mpilalao roa tonta ny fikodiadia
+        const baseBalls = fresh.state?.balls ?? [];
+        const baseJack = fresh.state?.jack ? { ...fresh.state.jack } : null;
+        const ballId = `bot_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        try {
+          await channelRef.current?.send({
+            type: "broadcast",
+            event: "throw",
+            payload: { thrower: throwSide, angle: ba, force: bf, jackPhase: false, baseBalls, baseJack, ballId },
+          });
+        } catch {}
+        // Mametraka g ho mety amin'ny finishThrow (mampiasa g.state)
+        runThrowRef.current?.({ thrower: throwSide, angle: ba, force: bf, jackPhase: false, baseBalls, baseJack, ballId, commit: true });
         toast("⏱ Robot nanatsipy baolina (20s)");
       })().catch(() => {
         autoThrowRef.current = null;
@@ -815,14 +804,7 @@ export default function PetanqueGame() {
 
   if (g.status === "finished") {
     const winName = g.winner_id === g.player1_id ? p1Profile?.mvola_name : p2Profile?.mvola_name;
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-emerald-900 to-black p-6 gap-4 text-center">
-        <h2 className="text-4xl font-bold text-emerald-300">🏆 Vita!</h2>
-        <p className="text-emerald-100 text-xl">Nandresy: <b>{winName ?? "?"}</b></p>
-        <p className="text-emerald-200/70">{g.score_p1} — {g.score_p2}</p>
-        <Button onClick={() => nav("/petanque")} className="bg-emerald-500 text-emerald-950 font-bold">Hiverina</Button>
-      </div>
-    );
+    return <FinishedScreen winName={winName} g={g} userId={user?.id} onLeave={() => nav("/petanque")} />;
   }
 
   if (g.status === "waiting") {
@@ -1126,6 +1108,80 @@ function PlayerHalf({ name, avatarUrl, score, remaining, color, active, side }: 
         <div className="text-[11px] text-white/90 font-bold truncate">{name}</div>
         <div className="text-2xl font-black text-white leading-none">{score}</div>
         <div className="mt-1">{boules}</div>
+      </div>
+    </div>
+  );
+}
+
+function FinishedScreen({ winName, g, userId, onLeave }: {
+  winName: string | undefined; g: GameRow; userId: string | undefined; onLeave: () => void;
+}) {
+  const isWinner = !!userId && g.winner_id === userId;
+  const gain = Math.round(g.stake * 1.8); // (stake - 10%) * 2
+  useEffect(() => {
+    try { sfx.win(); } catch {}
+    try { sfx.applause(); } catch {}
+    const t = setTimeout(onLeave, 6000);
+    return () => clearTimeout(t);
+  }, []);
+  // 24 fireworks particles
+  const particles = Array.from({ length: 24 }).map((_, i) => ({
+    left: `${10 + Math.random() * 80}%`,
+    top: `${10 + Math.random() * 60}%`,
+    delay: `${(i % 6) * 0.25}s`,
+    color: ["#fde047", "#f97316", "#ef4444", "#22d3ee", "#a78bfa", "#34d399"][i % 6],
+  }));
+  return (
+    <div className="fixed inset-0 overflow-hidden bg-gradient-to-b from-emerald-900 via-emerald-950 to-black flex flex-col items-center justify-center p-6 gap-4 text-center">
+      <style>{`
+        @keyframes pet-firework { 0%{transform:translate(-50%,-50%) scale(0);opacity:1} 60%{opacity:1} 100%{transform:translate(-50%,-50%) scale(8);opacity:0} }
+        @keyframes pet-fall { 0%{transform:translateY(-30px);opacity:0} 20%{opacity:1} 100%{transform:translateY(110vh);opacity:0} }
+        @keyframes pet-pop { 0%{transform:scale(0)} 60%{transform:scale(1.15)} 100%{transform:scale(1)} }
+      `}</style>
+      {/* Fireworks bursts */}
+      {particles.map((p, i) => (
+        <span key={i} className="absolute pointer-events-none rounded-full"
+          style={{
+            left: p.left, top: p.top, width: 14, height: 14, background: p.color,
+            boxShadow: `0 0 24px 6px ${p.color}`,
+            animation: `pet-firework 1.8s ${p.delay} ease-out infinite`,
+          }}
+        />
+      ))}
+      {/* Confetti rain */}
+      {Array.from({ length: 30 }).map((_, i) => (
+        <span key={`c${i}`} className="absolute pointer-events-none"
+          style={{
+            left: `${Math.random() * 100}%`, top: -20,
+            width: 8, height: 14,
+            background: ["#fde047", "#f97316", "#ef4444", "#22d3ee", "#a78bfa", "#34d399"][i % 6],
+            transform: `rotate(${Math.random() * 360}deg)`,
+            animation: `pet-fall ${2 + Math.random() * 2}s ${Math.random() * 1.5}s linear infinite`,
+          }}
+        />
+      ))}
+      <div className="relative z-10 flex flex-col items-center gap-3" style={{ animation: "pet-pop 600ms cubic-bezier(.2,1.3,.4,1) both" }}>
+        <div className="text-6xl">{isWinner ? "🏆" : "🎯"}</div>
+        <h2 className="text-4xl font-black text-emerald-200 drop-shadow-lg">
+          {isWinner ? "Nandresy ianao!" : "Vita ny lalao"}
+        </h2>
+        <p className="text-emerald-100 text-lg">
+          {isWinner ? "Arahabaina!" : <>Nandresy: <b>{winName ?? "?"}</b></>}
+        </p>
+        <div className="text-emerald-200/80 text-base font-bold">
+          {g.score_p1} — {g.score_p2}
+        </div>
+        {isWinner && (
+          <div className="mt-2 px-6 py-4 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-600 text-amber-950 font-black shadow-2xl border-2 border-amber-200">
+            <div className="text-xs uppercase tracking-wider opacity-80">Gain</div>
+            <div className="text-3xl">+{gain.toLocaleString()} Ar</div>
+            <div className="text-[10px] mt-1 opacity-80">Tafiditra ao amin'ny wallet</div>
+          </div>
+        )}
+        <p className="text-emerald-300/60 text-xs mt-3">Hiverina any amin'ny lobby…</p>
+        <Button onClick={onLeave} className="mt-1 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold">
+          Miverina izao
+        </Button>
       </div>
     </div>
   );

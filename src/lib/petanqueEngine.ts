@@ -19,8 +19,9 @@ export const COURT = {
   minSpeed: 0.05,
 };
 
-// Valid jack zone — at least this distance from throw line (z=-1), and not in the far corner
-export const JACK_VALID = { minZ: 4.0, maxZ: 9.5, maxAbsX: 1.2 };
+// Valid jack zone — the cochonnet must land far down the court
+// (~70%–95% of the terrain length from the throw line at z=-1.3)
+export const JACK_VALID = { minZ: 6.8, maxZ: 10.0, maxAbsX: 1.2 };
 export function isJackValid(j: Jack | null): boolean {
   if (!j) return false;
   if (Math.abs(j.x) > JACK_VALID.maxAbsX) return false;

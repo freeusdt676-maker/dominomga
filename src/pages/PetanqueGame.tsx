@@ -919,8 +919,9 @@ export default function PetanqueGame() {
             const dx = e.clientX - dragStart.current.x;
             const dy = e.clientY - dragStart.current.y;
             setDrag({ dx, dy });
-            const pull = Math.max(0, Math.min(PULL_MAX, dy));
-            setForce(Math.round(10 + (pull / PULL_MAX) * 90));
+            // Sotomina MIAKATRA (manaraka ny fléchés mankany aloha) — dy < 0 = hery bebe kokoa
+            const pull = Math.max(0, Math.min(PULL_MAX, -dy));
+            setForce(Math.round(8 + (pull / PULL_MAX) * 92));
             setAngle(Math.max(-35, Math.min(35, -dx / 4)));
           }}
           onPointerUp={() => {
@@ -929,9 +930,9 @@ export default function PetanqueGame() {
             dragStart.current = null;
             setDrag(null);
             if (!d) return;
-            const pull = Math.max(0, Math.min(PULL_MAX, d.dy));
-            if (pull < 24) return; // tariny kely loatra — tsy alefa
-            const f = Math.round(10 + (pull / PULL_MAX) * 90);
+            const pull = Math.max(0, Math.min(PULL_MAX, -d.dy));
+            if (pull < 18) return; // tariny kely loatra — tsy alefa
+            const f = Math.round(8 + (pull / PULL_MAX) * 92);
             const a = Math.max(-35, Math.min(35, -d.dx / 4));
             void doThrow(a, f);
           }}

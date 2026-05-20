@@ -318,14 +318,15 @@ export default function LudoGame() {
         clearRefTimeout(autoResolveRef);
         autoResolveRef.current = window.setTimeout(async () => {
           try {
-            const { seat: ns } = nextSeatFromList(state.current_turn_seat, seats, dice === 6, 0, nextSixes);
+            // Unusable 6 = NO bonus, hand off to next seat and reset sixes
+            const { seat: ns } = nextSeatFromList(state.current_turn_seat, seats, false, 0, 0);
             const nextTurnAt = new Date().toISOString();
             setG((cur) => cur ? ({
               ...cur,
               current_turn_seat: ns,
               last_dice: null,
               dice_rolled: false,
-              consecutive_sixes: ns === state.current_turn_seat ? nextSixes : 0,
+              consecutive_sixes: 0,
               turn_started_at: nextTurnAt,
             }) : cur);
             const { error: passError } = await supabase.rpc("ludo_update_state" as any, {
@@ -333,7 +334,7 @@ export default function LudoGame() {
               _current_turn_seat: ns,
               _last_dice: null,
               _dice_rolled: false,
-              _consecutive_sixes: ns === state.current_turn_seat ? nextSixes : 0,
+              _consecutive_sixes: 0,
               _turn_started_at: nextTurnAt,
             });
             if (passError) throw passError;
@@ -343,6 +344,12 @@ export default function LudoGame() {
             clearUiBlockers();
           }
         }, QUICK_PASS_DELAY_MS);
+      } else if (moves.length === 1) {
+        // Single legal move → auto-execute without waiting for tap
+        clearRefTimeout(autoResolveRef);
+        autoResolveRef.current = window.setTimeout(() => {
+          handlePawn(moves[0]).catch(() => undefined);
+        }, AUTO_MOVE_DELAY_MS);
       }
     } catch (error: any) {
       toast.error(error?.message ?? "Nisy olana tamin'ny dé");

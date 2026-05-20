@@ -1112,3 +1112,77 @@ function PlayerHalf({ name, avatarUrl, score, remaining, color, active, side }: 
     </div>
   );
 }
+
+function FinishedScreen({ winName, g, userId, onLeave }: {
+  winName: string | undefined; g: GameRow; userId: string | undefined; onLeave: () => void;
+}) {
+  const isWinner = !!userId && g.winner_id === userId;
+  const gain = Math.round(g.stake * 1.8); // (stake - 10%) * 2
+  useEffect(() => {
+    try { sfx.win(); } catch {}
+    try { sfx.applause(); } catch {}
+    const t = setTimeout(onLeave, 6000);
+    return () => clearTimeout(t);
+  }, []);
+  // 24 fireworks particles
+  const particles = Array.from({ length: 24 }).map((_, i) => ({
+    left: `${10 + Math.random() * 80}%`,
+    top: `${10 + Math.random() * 60}%`,
+    delay: `${(i % 6) * 0.25}s`,
+    color: ["#fde047", "#f97316", "#ef4444", "#22d3ee", "#a78bfa", "#34d399"][i % 6],
+  }));
+  return (
+    <div className="fixed inset-0 overflow-hidden bg-gradient-to-b from-emerald-900 via-emerald-950 to-black flex flex-col items-center justify-center p-6 gap-4 text-center">
+      <style>{`
+        @keyframes pet-firework { 0%{transform:translate(-50%,-50%) scale(0);opacity:1} 60%{opacity:1} 100%{transform:translate(-50%,-50%) scale(8);opacity:0} }
+        @keyframes pet-fall { 0%{transform:translateY(-30px);opacity:0} 20%{opacity:1} 100%{transform:translateY(110vh);opacity:0} }
+        @keyframes pet-pop { 0%{transform:scale(0)} 60%{transform:scale(1.15)} 100%{transform:scale(1)} }
+      `}</style>
+      {/* Fireworks bursts */}
+      {particles.map((p, i) => (
+        <span key={i} className="absolute pointer-events-none rounded-full"
+          style={{
+            left: p.left, top: p.top, width: 14, height: 14, background: p.color,
+            boxShadow: `0 0 24px 6px ${p.color}`,
+            animation: `pet-firework 1.8s ${p.delay} ease-out infinite`,
+          }}
+        />
+      ))}
+      {/* Confetti rain */}
+      {Array.from({ length: 30 }).map((_, i) => (
+        <span key={`c${i}`} className="absolute pointer-events-none"
+          style={{
+            left: `${Math.random() * 100}%`, top: -20,
+            width: 8, height: 14,
+            background: ["#fde047", "#f97316", "#ef4444", "#22d3ee", "#a78bfa", "#34d399"][i % 6],
+            transform: `rotate(${Math.random() * 360}deg)`,
+            animation: `pet-fall ${2 + Math.random() * 2}s ${Math.random() * 1.5}s linear infinite`,
+          }}
+        />
+      ))}
+      <div className="relative z-10 flex flex-col items-center gap-3" style={{ animation: "pet-pop 600ms cubic-bezier(.2,1.3,.4,1) both" }}>
+        <div className="text-6xl">{isWinner ? "🏆" : "🎯"}</div>
+        <h2 className="text-4xl font-black text-emerald-200 drop-shadow-lg">
+          {isWinner ? "Nandresy ianao!" : "Vita ny lalao"}
+        </h2>
+        <p className="text-emerald-100 text-lg">
+          {isWinner ? "Arahabaina!" : <>Nandresy: <b>{winName ?? "?"}</b></>}
+        </p>
+        <div className="text-emerald-200/80 text-base font-bold">
+          {g.score_p1} — {g.score_p2}
+        </div>
+        {isWinner && (
+          <div className="mt-2 px-6 py-4 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-600 text-amber-950 font-black shadow-2xl border-2 border-amber-200">
+            <div className="text-xs uppercase tracking-wider opacity-80">Gain</div>
+            <div className="text-3xl">+{gain.toLocaleString()} Ar</div>
+            <div className="text-[10px] mt-1 opacity-80">Tafiditra ao amin'ny wallet</div>
+          </div>
+        )}
+        <p className="text-emerald-300/60 text-xs mt-3">Hiverina any amin'ny lobby…</p>
+        <Button onClick={onLeave} className="mt-1 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold">
+          Miverina izao
+        </Button>
+      </div>
+    </div>
+  );
+}

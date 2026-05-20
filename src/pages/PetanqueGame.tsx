@@ -28,7 +28,7 @@ type GameRow = {
   state: {
     balls: Ball[];
     jack: Jack | null;
-    phase: "aim" | "rolling" | "settle";
+    phase: "aim" | "rolling" | "settle" | "throw_jack";
     remaining: { p1: number; p2: number };
     lastThrower?: "p1" | "p2";
   };
@@ -275,12 +275,12 @@ function Zebu({ position }: { position: [number, number, number] }) {
 }
 
 function BallMesh({ ball, isJack }: { ball: Ball | Jack; isJack?: boolean }) {
-  const color = isJack ? "#f5f0e0" : (ball as Ball).owner === "p1" ? "#dc2626" : "#2563eb";
+  const color = isJack ? "#0a0a0a" : (ball as Ball).owner === "p1" ? "#dc2626" : "#2563eb";
   const r = isJack ? COURT.jackR : COURT.ballR;
   return (
     <mesh position={[ball.x, r, ball.z]} castShadow>
       <sphereGeometry args={[r, 24, 24]} />
-      <meshStandardMaterial color={color} metalness={isJack ? 0.1 : 0.5} roughness={isJack ? 0.6 : 0.25} />
+      <meshStandardMaterial color={color} metalness={isJack ? 0.2 : 0.5} roughness={isJack ? 0.4 : 0.25} />
     </mesh>
   );
 }
@@ -405,7 +405,9 @@ export default function PetanqueGame() {
   }, [g?.score_p1, g?.score_p2, g?.status]);
 
   const mySide: "p1" | "p2" | null = !g || !user ? null : user.id === g.player1_id ? "p1" : user.id === g.player2_id ? "p2" : null;
-  const isMyTurn = !!g && g.current_turn === user?.id && g.state?.phase === "aim";
+  const phase = g?.state?.phase ?? "aim";
+  const isJackPhase = phase === "throw_jack";
+  const isMyTurn = !!g && g.current_turn === user?.id && (phase === "aim" || phase === "throw_jack");
 
   // Local sync: derive simBalls/simJack from g.state unless we're animating a throw
   useEffect(() => {
@@ -417,22 +419,34 @@ export default function PetanqueGame() {
   const doThrow = async (overrideAngle?: number, overrideForce?: number) => {
     if (!g || !user || !mySide || throwing) return;
     const remaining = g.state?.remaining ?? { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER };
-    if (remaining[mySide] <= 0) return toast.error("Tsy manana baolina intsony");
+    const jackPhase = g.state?.phase === "throw_jack";
+    if (!jackPhase && remaining[mySide] <= 0) return toast.error("Tsy manana baolina intsony");
     setThrowing(true);
     const useAngle = overrideAngle ?? angle;
     const useForce = overrideForce ?? force;
-    // initial conditions: from throw line (z=-1.3), angle relative to z axis
     const rad = (useAngle * Math.PI) / 180;
-    const speed = 4 + (useForce / 100) * 11; // 4..15 m/s
+    // Jack throws shorter & lighter; balls have full range
+    const speed = jackPhase ? (2 + (useForce / 100) * 4.5) : (4 + (useForce / 100) * 11);
     const vx = Math.sin(rad) * speed;
     const vz = Math.cos(rad) * speed;
-    const newBall: Ball = {
-      id: `b_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-      owner: mySide,
-      x: 0, z: -1.3, vx, vz,
-    };
-    const balls: Ball[] = [...(g.state?.balls ?? []).map(b => ({ ...b, vx: 0, vz: 0 })), newBall];
-    const jack: Jack | null = g.state?.jack ? { ...g.state.jack } : null;
+    let balls: Ball[];
+    let jack: Jack | null;
+    if (jackPhase) {
+      // The thrown object IS the jack — simulate it as a tiny temporary ball to reuse engine,
+      // then commit position as jack on settle.
+      balls = [];
+      jack = { x: 0, z: -1.3 } as Jack;
+      // store velocity on jack via a temp wrapper:
+      (jack as any).vx = vx; (jack as any).vz = vz;
+    } else {
+      const newBall: Ball = {
+        id: `b_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        owner: mySide,
+        x: 0, z: -1.3, vx, vz,
+      };
+      balls = [...(g.state?.balls ?? []).map(b => ({ ...b, vx: 0, vz: 0 })), newBall];
+      jack = g.state?.jack ? { ...g.state.jack } : null;
+    }
     simRef.current = { balls, jack };
     // Simulate with raf loop, capped at 8 seconds
     const start = performance.now();
@@ -442,24 +456,65 @@ export default function PetanqueGame() {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       const sim = simRef.current!;
-      const moving = stepPhysics(sim.balls, sim.jack, dt);
+      // For jack phase, move the jack like a ball with friction & walls
+      let moving = false;
+      if (jackPhase && sim.jack) {
+        const j: any = sim.jack;
+        j.x += (j.vx ?? 0) * dt;
+        j.z += (j.vz ?? 0) * dt;
+        const f = Math.pow(COURT.friction, dt * 60);
+        j.vx *= f; j.vz *= f;
+        if (j.x - COURT.jackR < COURT.minX) { j.x = COURT.minX + COURT.jackR; j.vx = -j.vx * COURT.wallRestitution; }
+        if (j.x + COURT.jackR > COURT.maxX) { j.x = COURT.maxX - COURT.jackR; j.vx = -j.vx * COURT.wallRestitution; }
+        if (j.z - COURT.jackR < COURT.minZ) { j.z = COURT.minZ + COURT.jackR; j.vz = -j.vz * COURT.wallRestitution; }
+        if (j.z + COURT.jackR > COURT.maxZ) { j.z = COURT.maxZ - COURT.jackR; j.vz = -j.vz * COURT.wallRestitution; }
+        const sp = Math.hypot(j.vx ?? 0, j.vz ?? 0);
+        if (sp < COURT.minSpeed) { j.vx = 0; j.vz = 0; } else moving = true;
+      } else {
+        moving = stepPhysics(sim.balls, sim.jack, dt);
+      }
       setSimBalls([...sim.balls]);
       if (sim.jack) setSimJack({ ...sim.jack });
       if (moving && now - start < 8000) {
         requestAnimationFrame(loop);
       } else {
-        // commit final state
-        finishThrow(sim.balls, sim.jack, mySide).catch((e) => toast.error(e.message));
+        if (jackPhase && sim.jack) {
+          finishJackThrow({ x: sim.jack.x, z: sim.jack.z }, mySide).catch((e) => toast.error(e.message));
+        } else {
+          finishThrow(sim.balls, sim.jack, mySide).catch((e) => toast.error(e.message));
+        }
       }
     };
     requestAnimationFrame(loop);
+  };
+
+  // Commit the jack position then keep same player on aim phase for first ball throw
+  const finishJackThrow = async (jack: Jack, thrower: "p1" | "p2") => {
+    if (!g) return;
+    const currentTurnUser = thrower === "p1" ? g.player1_id : g.player2_id;
+    await supabase.rpc("petanque_update_state" as any, {
+      _game_id: g.id,
+      _state: {
+        balls: [],
+        jack,
+        phase: "aim",
+        remaining: { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER },
+        lastThrower: thrower,
+      },
+      _current_turn: currentTurnUser,
+      _turn_started_at: new Date().toISOString(),
+      _score_p1: g.score_p1,
+      _score_p2: g.score_p2,
+      _round_number: g.round_number,
+    });
+    setThrowing(false);
   };
 
   // ---- 20s auto-throw (robot) — any connected player may trigger after server confirms timeout ----
   useEffect(() => {
     if (!g || !user) return;
     if (g.status !== "in_progress") return;
-    if (g.state?.phase !== "aim") return;
+    if (g.state?.phase !== "aim" && g.state?.phase !== "throw_jack") return;
     if (throwing) return;
     const startMs = g.turn_started_at ? new Date(g.turn_started_at).getTime() : Date.now();
     const key = `${g.id}-${g.turn_started_at ?? "0"}-${g.current_turn}`;
@@ -475,7 +530,7 @@ export default function PetanqueGame() {
           return;
         }
         const fresh = data as unknown as GameRow;
-        if (fresh.status !== "in_progress" || fresh.state?.phase !== "aim") {
+        if (fresh.status !== "in_progress" || (fresh.state?.phase !== "aim" && fresh.state?.phase !== "throw_jack")) {
           autoThrowRef.current = null;
           return;
         }
@@ -491,6 +546,29 @@ export default function PetanqueGame() {
         const throwSide: "p1" | "p2" | null = fresh.current_turn === fresh.player1_id ? "p1" : fresh.current_turn === fresh.player2_id ? "p2" : null;
         if (!throwSide) {
           autoThrowRef.current = null;
+          return;
+        }
+        // Auto jack-throw if needed
+        if (fresh.state?.phase === "throw_jack") {
+          const jackX = (Math.random() - 0.5) * 2;
+          const jackZ = 5.5 + Math.random() * 2.5;
+          const currentTurnUser = throwSide === "p1" ? fresh.player1_id : fresh.player2_id;
+          await supabase.rpc("petanque_update_state" as any, {
+            _game_id: fresh.id,
+            _state: {
+              balls: [],
+              jack: { x: jackX, z: jackZ },
+              phase: "aim",
+              remaining: { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER },
+              lastThrower: throwSide,
+            },
+            _current_turn: currentTurnUser,
+            _turn_started_at: new Date().toISOString(),
+            _score_p1: fresh.score_p1,
+            _score_p2: fresh.score_p2,
+            _round_number: fresh.round_number,
+          });
+          toast("⏱ Robot nanatsipy ny boul kely");
           return;
         }
         const ba = Math.round((Math.random() - 0.5) * 40);
@@ -535,10 +613,9 @@ export default function PetanqueGame() {
           if (r.winner === "p2") newScoreP2 += r.points;
           newRound += 1;
           newBalls = [];
-          newJack = { x: (Math.random() - 0.5) * 2, z: 6 + (Math.random() - 0.5) * 2 };
+          newJack = null;
           roundRemaining = { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER };
-          const next: "p1" | "p2" = r.winner === "p1" ? "p2" : "p1";
-          nextTurnUser = next === "p1" ? fresh.player1_id : fresh.player2_id;
+          nextTurnUser = r.winner === "p1" ? fresh.player1_id : fresh.player2_id;
         } else {
           const nx = nextThrower(newBalls, jack, nextRemaining, throwSide);
           nextTurnUser = nx === "p1" ? fresh.player1_id : nx === "p2" ? fresh.player2_id : (throwSide === "p1" ? fresh.player2_id : fresh.player1_id);
@@ -548,7 +625,7 @@ export default function PetanqueGame() {
           _state: {
             balls: newBalls,
             jack: newJack,
-            phase: "aim",
+            phase: (nextRemaining.p1 <= 0 && nextRemaining.p2 <= 0) ? "throw_jack" : "aim",
             remaining: roundRemaining,
             lastThrower: throwSide,
           },
@@ -575,7 +652,7 @@ export default function PetanqueGame() {
     let newScoreP1 = g.score_p1;
     let newScoreP2 = g.score_p2;
     let newRound = g.round_number;
-    let newPhase: "aim" | "settle" = "aim";
+    let newPhase: "aim" | "settle" | "throw_jack" = "aim";
     let nextTurnUser: string | null = null;
     let newBalls = sanitized;
     let newJack = finalJack;
@@ -587,13 +664,13 @@ export default function PetanqueGame() {
       if (r.winner === "p1") newScoreP1 += r.points;
       if (r.winner === "p2") newScoreP2 += r.points;
       newRound += 1;
-      // reset for next round (alternate jack side)
+      // Reset for next round — winner throws the jack first
       newBalls = [];
-      newJack = { x: (Math.random() - 0.5) * 2, z: 6 + (Math.random() - 0.5) * 2 };
+      newJack = null;
       newRemaining = { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER };
-      // loser starts next round
-      const next: "p1" | "p2" = r.winner === "p1" ? "p2" : "p1";
-      nextTurnUser = next === "p1" ? g.player1_id : g.player2_id;
+      newPhase = "throw_jack";
+      // Winner of the round throws the jack to start the next one
+      nextTurnUser = r.winner === "p1" ? g.player1_id : g.player2_id;
       toast.success(`Round ${g.round_number}: +${r.points} ho an'ny ${r.winner === "p1" ? "Mena" : "Manga"}`);
     } else {
       const nx = nextThrower(sanitized, finalJack, remaining, thrower);
@@ -822,7 +899,9 @@ export default function PetanqueGame() {
           {!drag && (
             <div className="absolute bottom-2 left-0 right-0 text-center pointer-events-none">
               <span className="inline-block px-4 py-2 rounded-full bg-emerald-500/85 text-emerald-950 font-bold text-xs shadow-lg">
-                ✋ Hazony ny baolina, dia taritina midina hatsipy
+                {isJackPhase
+                  ? "⚫ Atsipazo aloha ny boul kely (cochonnet) — taritina midina"
+                  : "✋ Hazony ny baolina, dia taritina midina hatsipy"}
               </span>
             </div>
           )}
@@ -850,20 +929,31 @@ function PlayerHalf({ name, avatarUrl, score, remaining, color, active, side }: 
   name: string; avatarUrl?: string | null; score: number; remaining: number; color: string; active: boolean; side: "left" | "right";
 }) {
   const initial = (name ?? "?").trim().charAt(0).toUpperCase();
-  // boule mainty — accent loko ho an'ny mpilalao
+  const thrown = Math.max(0, 6 - remaining);
+  // Tabilao kely: 6 boules — efa natsipy (matt) sy mbola an-tanana (mamiratra)
   const boules = (
-    <div className={`flex gap-1 ${side === "right" ? "flex-row-reverse" : ""}`}>
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div
-          key={i}
-          className="w-2.5 h-2.5 rounded-full border border-white/15"
-          style={{
-            background: i < remaining
-              ? `radial-gradient(circle at 35% 30%, ${color}, #0a0a0a 80%)`
-              : "rgba(255,255,255,0.05)",
-          }}
-        />
-      ))}
+    <div className={`flex items-center gap-1.5 ${side === "right" ? "flex-row-reverse" : ""}`}>
+      <div className={`flex gap-0.5 ${side === "right" ? "flex-row-reverse" : ""}`}>
+        {Array.from({ length: 6 }).map((_, i) => {
+          const inHand = i < remaining;
+          return (
+            <div
+              key={i}
+              className="w-2.5 h-2.5 rounded-full"
+              style={{
+                background: inHand
+                  ? `radial-gradient(circle at 35% 30%, ${color}, #0a0a0a 85%)`
+                  : "rgba(255,255,255,0.08)",
+                border: inHand ? "1px solid rgba(255,255,255,0.35)" : "1px dashed rgba(255,255,255,0.25)",
+                boxShadow: inHand ? `0 0 4px ${color}80` : "none",
+              }}
+            />
+          );
+        })}
+      </div>
+      <span className="text-[9px] font-bold text-white/70 tabular-nums">
+        {thrown}/<span className="text-white">6</span>
+      </span>
     </div>
   );
   const avatar = (

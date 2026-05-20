@@ -182,20 +182,20 @@ export default function Lobby() {
 
       <div className="p-4 max-w-lg mx-auto space-y-4">
         {activeGame && (
-          <div className="card-felt rounded-2xl p-4 border-2 border-primary/40 bg-primary/10">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-bold gold-text">Mbola misy lalao tsy vita</p>
-                <p className="text-xs text-muted-foreground">
-                  {activeGame.players_count}P · {activeGame.game_mode === "d80" ? "Maty 80" : activeGame.game_mode === "hand" ? "Atanana" : "Maty 120"} · {fmtAr(activeGame.stake)}
-                </p>
-              </div>
-              <Button className="btn-gold shrink-0 gap-2" size="sm" onClick={() => nav(`/game/${activeGame.id}`)}>
-                <Play className="h-4 w-4 fill-current" />
-                Hanohy lalao
-              </Button>
+          <button
+            onClick={() => nav(`/game/${activeGame.id}`)}
+            className="w-full rounded-2xl p-4 border-2 border-blue-400 bg-gradient-to-r from-blue-600 to-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.6)] hover:shadow-[0_0_28px_rgba(59,130,246,0.85)] transition flex items-center justify-between gap-3 animate-pulse"
+          >
+            <div className="text-left">
+              <p className="text-sm font-bold text-white">Mbola misy lalao tsy vita</p>
+              <p className="text-xs text-blue-50/90">
+                {activeGame.players_count}P · {activeGame.game_mode === "d80" ? "Maty 80" : activeGame.game_mode === "hand" ? "Atanana" : "Maty 120"} · {fmtAr(activeGame.stake)}
+              </p>
             </div>
-          </div>
+            <span className="shrink-0 inline-flex items-center gap-2 bg-white text-blue-700 font-bold px-4 py-2 rounded-full shadow-md">
+              <Play className="h-4 w-4 fill-current" /> Hanohy
+            </span>
+          </button>
         )}
 
         <div className="card-felt rounded-2xl p-4">
@@ -246,9 +246,12 @@ export default function Lobby() {
                 <p className="text-xs text-muted-foreground">Mise: {fmtAr(myWaiting.stake)} — miandry mpifanandrina</p>
               </div>
               <div className="flex items-center gap-2">
-                <Button size="sm" className="btn-gold gap-2" onClick={() => nav(`/game/${myWaiting.id}`)}>
-                  <Play className="h-4 w-4 fill-current" />
-                  Hanohy lalao
+                <Button
+                  size="sm"
+                  onClick={() => nav(`/game/${myWaiting.id}`)}
+                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold gap-1.5 shadow-[0_0_14px_rgba(59,130,246,0.65)]"
+                >
+                  <Play className="h-4 w-4 fill-current" /> Hanohy
                 </Button>
                 <Button size="sm" variant="destructive" onClick={cancelMyWaiting}><X className="w-4 h-4" /></Button>
               </div>

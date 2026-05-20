@@ -279,23 +279,51 @@ function Zebu({ position }: { position: [number, number, number] }) {
 function BallMesh({ ball, isJack }: { ball: Ball | Jack; isJack?: boolean }) {
   const color = isJack ? "#0a0a0a" : (ball as Ball).owner === "p1" ? "#dc2626" : "#2563eb";
   const r = isJack ? COURT.jackR : COURT.ballR;
-  const ringR = isJack ? r + 0.05 : r + 0.04;
+  const sphereRef = useRef<any>(null);
+  const beaconRef = useRef<any>(null);
+  const prevRef = useRef<{ x: number; z: number }>({ x: ball.x, z: ball.z });
+  useFrame((_, dt) => {
+    // Rolling rotation based on actual displacement (works for both players)
+    const dx = ball.x - prevRef.current.x;
+    const dz = ball.z - prevRef.current.z;
+    prevRef.current = { x: ball.x, z: ball.z };
+    if (sphereRef.current && (dx !== 0 || dz !== 0)) {
+      // axis perpendicular to motion on ground plane
+      const angle = Math.sqrt(dx * dx + dz * dz) / r;
+      sphereRef.current.rotation.x += dz / r;
+      sphereRef.current.rotation.z -= dx / r;
+    }
+    // Beacon pulse for jack
+    if (isJack && beaconRef.current) {
+      const t = performance.now() / 400;
+      beaconRef.current.scale.y = 1 + Math.sin(t) * 0.15;
+    }
+  });
   return (
     <group position={[ball.x, 0, ball.z]}>
-      {/* highlight ring on the sand so the piece is always visible */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, 0]}>
-        <ringGeometry args={[ringR, ringR + (isJack ? 0.018 : 0.022), 32]} />
-        <meshBasicMaterial color={isJack ? "#ffeb3b" : color} transparent opacity={0.95} />
-      </mesh>
-      {/* shadow disc */}
+      {/* shadow disc on the sand */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.008, 0]}>
         <circleGeometry args={[r * 1.05, 24]} />
-        <meshBasicMaterial color="#000000" transparent opacity={0.35} />
+        <meshBasicMaterial color="#000000" transparent opacity={0.32} />
       </mesh>
-      <mesh position={[0, r, 0]} castShadow>
+      <mesh ref={sphereRef} position={[0, r, 0]} castShadow>
         <sphereGeometry args={[r, 28, 28]} />
         <meshStandardMaterial color={color} metalness={isJack ? 0.2 : 0.55} roughness={isJack ? 0.4 : 0.22} />
       </mesh>
+      {isJack && (
+        <>
+          {/* Vertical beacon — visible even when other balls hide the jack */}
+          <mesh ref={beaconRef} position={[0, 0.9, 0]} renderOrder={999}>
+            <cylinderGeometry args={[0.012, 0.012, 1.8, 8]} />
+            <meshBasicMaterial color="#ffeb3b" transparent opacity={0.85} depthTest={false} />
+          </mesh>
+          {/* Floating marker on top */}
+          <mesh position={[0, 1.85, 0]} renderOrder={1000}>
+            <sphereGeometry args={[0.06, 16, 16]} />
+            <meshBasicMaterial color="#ffeb3b" depthTest={false} />
+          </mesh>
+        </>
+      )}
     </group>
   );
 }

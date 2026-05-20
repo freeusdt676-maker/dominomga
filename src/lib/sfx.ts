@@ -29,4 +29,28 @@ export const sfx = {
   capture: () => { tone(300, 0.1, "sawtooth", 0.2); tone(180, 0.18, "sawtooth", 0.18, 0.08); },
   win: () => { tone(523, 0.12, "triangle", 0.2); tone(659, 0.12, "triangle", 0.2, 0.12); tone(784, 0.18, "triangle", 0.22, 0.24); tone(1046, 0.25, "triangle", 0.22, 0.4); },
   notify: () => { tone(880, 0.1, "sine", 0.18); tone(1175, 0.14, "sine", 0.18, 0.1); },
+  applause: () => {
+    const a = ac(); if (!a) return;
+    const t0 = a.currentTime;
+    const dur = 2.2;
+    // White-noise buffer => crowd clap shimmer
+    const buf = a.createBuffer(1, Math.floor(a.sampleRate * dur), a.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) {
+      const t = i / a.sampleRate;
+      // envelope: quick attack, slow decay, with claps bursts
+      const env = Math.exp(-t * 1.2);
+      const burst = (Math.sin(t * 18) > 0.4 ? 1 : 0.35) * (Math.sin(t * 31) > 0.2 ? 1 : 0.6);
+      d[i] = (Math.random() * 2 - 1) * env * 0.55 * burst;
+    }
+    const src = a.createBufferSource(); src.buffer = buf;
+    const hp = a.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 800;
+    const g = a.createGain(); g.gain.value = 0.35;
+    src.connect(hp).connect(g).connect(a.destination);
+    src.start(t0);
+    // Bravo whistle on top
+    tone(1760, 0.18, "triangle", 0.18, 0.1);
+    tone(2200, 0.22, "triangle", 0.16, 0.35);
+    tone(1320, 0.2,  "triangle", 0.16, 0.7);
+  },
 };

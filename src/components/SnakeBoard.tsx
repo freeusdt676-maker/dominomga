@@ -10,10 +10,9 @@ type Item = {
   y: number;
   w: number;
   h: number;
-  a: number;
-  b: number;
+  displayA: number;
+  displayB: number;
   horizontal: boolean;
-  isDouble: boolean;
 };
 
 type Direction = "right" | "left" | "down";
@@ -94,9 +93,10 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
       const [aa, bb] = p.tile;
       const a = p.flipped ? bb : aa;
       const b = p.flipped ? aa : bb;
-      const isDouble = a === b;
       const direction = directions[i] ?? "right";
       const horizontal = direction === "right" || direction === "left";
+      const displayA = direction === "left" ? b : a;
+      const displayB = direction === "left" ? a : b;
 
       const x = direction === "right"
         ? cursorX
@@ -118,7 +118,7 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
       else if (direction === "left") cursorX -= long;
       else cursorY += long;
 
-      return { x, y, w, h, a, b, horizontal, isDouble };
+      return { x, y, w, h, displayA, displayB, horizontal };
     });
 
     return {
@@ -168,8 +168,8 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
               }}
             >
               <DominoTile
-                a={it.a}
-                b={it.b}
+                a={it.displayA}
+                b={it.displayB}
                 size={tileSize}
                 horizontal={it.horizontal}
                 variant="white"

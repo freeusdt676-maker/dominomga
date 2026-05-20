@@ -294,23 +294,47 @@ function CameraRig() {
   return null;
 }
 
-function AimArrow({ angleDeg, visible }: { angleDeg: number; visible: boolean }) {
+function AimArrow({ angleDeg, force, visible, jack, isJackPhase }: {
+  angleDeg: number; force: number; visible: boolean; jack: Jack | null; isJackPhase: boolean;
+}) {
+  const ref = useRef<THREE.Group>(null);
+  useFrame((s) => {
+    if (ref.current) {
+      // tsotitsoty pulse mba ho velona
+      const t = s.clock.elapsedTime;
+      ref.current.scale.y = 1 + Math.sin(t * 4) * 0.04;
+    }
+  });
   if (!visible) return null;
-  const len = 3.5;
+  // Default target: jack position. If no jack yet (throw_jack), aim straight at z=6.
+  const targetZ = isJackPhase || !jack ? 6.5 : jack.z;
+  const baseLen = Math.max(2.2, Math.min(10, targetZ - -1.3));
+  // Force visually scales arrow length (50% .. 130%)
+  const len = baseLen * (0.5 + (force / 100) * 0.8);
   const rad = (angleDeg * Math.PI) / 180;
   const dx = Math.sin(rad) * len;
   const dz = Math.cos(rad) * len;
   return (
-    <group position={[0, 0.05, -1.2]}>
-      {/* shaft */}
-      <mesh position={[dx / 2, 0, dz / 2]} rotation={[0, -rad, 0]}>
-        <boxGeometry args={[0.12, 0.02, len]} />
-        <meshStandardMaterial color="#22ff66" emissive="#22ff66" emissiveIntensity={1} />
+    <group ref={ref} position={[0, 0.08, -1.3]}>
+      {/* base ring (anchor) */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.22, 0.32, 32]} />
+        <meshBasicMaterial color="#22ff66" transparent opacity={0.85} />
       </mesh>
-      {/* arrowhead */}
-      <mesh position={[dx, 0, dz]} rotation={[Math.PI / 2, 0, -rad]}>
-        <coneGeometry args={[0.18, 0.4, 4]} />
-        <meshStandardMaterial color="#22ff66" emissive="#22ff66" emissiveIntensity={1.2} />
+      {/* glowing shaft — épais ho hita tsara */}
+      <mesh position={[dx / 2, 0.02, dz / 2]} rotation={[0, -rad, 0]}>
+        <boxGeometry args={[0.28, 0.06, len]} />
+        <meshStandardMaterial color="#22ff66" emissive="#22ff66" emissiveIntensity={1.4} transparent opacity={0.92} />
+      </mesh>
+      {/* secondary glow halo */}
+      <mesh position={[dx / 2, 0.01, dz / 2]} rotation={[-Math.PI / 2, 0, -rad]}>
+        <planeGeometry args={[0.55, len]} />
+        <meshBasicMaterial color="#22ff66" transparent opacity={0.25} />
+      </mesh>
+      {/* arrowhead — lehibe */}
+      <mesh position={[dx, 0.05, dz]} rotation={[Math.PI / 2, 0, -rad]}>
+        <coneGeometry args={[0.42, 0.85, 4]} />
+        <meshStandardMaterial color="#22ff66" emissive="#22ff66" emissiveIntensity={1.6} />
       </mesh>
     </group>
   );
@@ -408,6 +432,19 @@ export default function PetanqueGame() {
   const phase = g?.state?.phase ?? "aim";
   const isJackPhase = phase === "throw_jack";
   const isMyTurn = !!g && g.current_turn === user?.id && (phase === "aim" || phase === "throw_jack");
+
+  // ---- Visible countdown (ticks every 250ms) ----
+  const [now, setNow] = useState<number>(() => Date.now());
+  useEffect(() => {
+    if (!g || g.status !== "in_progress") return;
+    const id = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(id);
+  }, [g?.status]);
+  const turnStartMs = g?.turn_started_at ? new Date(g.turn_started_at).getTime() : now;
+  const elapsed = Math.max(0, now - turnStartMs);
+  const remainingMs = Math.max(0, TURN_LIMIT_MS - elapsed);
+  const remainingSec = Math.ceil(remainingMs / 1000);
+  const timerPct = Math.max(0, Math.min(1, remainingMs / TURN_LIMIT_MS));
 
   // Local sync: derive simBalls/simJack from g.state unless we're animating a throw
   useEffect(() => {
@@ -780,7 +817,13 @@ export default function PetanqueGame() {
           {simJack && <BallMesh ball={simJack} isJack />}
           {simBalls.map((b) => <BallMesh key={b.id} ball={b} />)}
 
-          <AimArrow angleDeg={angle} visible={isMyTurn && !throwing} />
+          <AimArrow
+            angleDeg={angle}
+            force={force}
+            visible={isMyTurn && !throwing}
+            jack={simJack}
+            isJackPhase={isJackPhase}
+          />
 
           <Environment preset="park" />
           <fog attach="fog" args={["#bde0ff", 18, 45]} />
@@ -820,6 +863,36 @@ export default function PetanqueGame() {
             active={g.current_turn === g.player2_id}
             side="right"
           />
+        </div>
+        {/* ---- Visible 20s timer bar ---- */}
+        <div className="px-2 pb-1.5">
+          <div className="flex items-center gap-2">
+            <div
+              className={`text-[11px] font-black tabular-nums ${
+                remainingSec <= 5 ? "text-red-400 animate-pulse" : remainingSec <= 10 ? "text-amber-300" : "text-emerald-300"
+              }`}
+              style={{ minWidth: 28 }}
+            >
+              {remainingSec}s
+            </div>
+            <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-[width] duration-200 ease-linear"
+                style={{
+                  width: `${timerPct * 100}%`,
+                  background:
+                    remainingSec <= 5
+                      ? "linear-gradient(90deg,#ef4444,#fb7185)"
+                      : remainingSec <= 10
+                      ? "linear-gradient(90deg,#f59e0b,#fbbf24)"
+                      : "linear-gradient(90deg,#10b981,#34d399)",
+                }}
+              />
+            </div>
+            <div className="text-[9px] text-white/60 font-semibold uppercase tracking-wider">
+              {isMyTurn ? "Anjaranao" : "Mpifanandrina"}
+            </div>
+          </div>
         </div>
       </div>
 

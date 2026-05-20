@@ -309,8 +309,8 @@ function AimArrow({ angleDeg, force, visible, jack, isJackPhase }: {
   // Default target: jack position. If no jack yet (throw_jack), aim straight at z=6.
   const targetZ = isJackPhase || !jack ? 6.5 : jack.z;
   const baseLen = Math.max(2.2, Math.min(10, targetZ - -1.3));
-  // Force visually scales arrow length (50% .. 130%)
-  const len = baseLen * (0.5 + (force / 100) * 0.8);
+  // Force visually scales arrow length (25% .. 110%) — réactive amin'ny drag
+  const len = baseLen * (0.25 + (force / 100) * 0.85);
   const rad = (angleDeg * Math.PI) / 180;
   const dx = Math.sin(rad) * len;
   const dz = Math.cos(rad) * len;

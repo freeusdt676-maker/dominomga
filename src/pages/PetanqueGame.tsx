@@ -642,13 +642,13 @@ export default function PetanqueGame() {
       if (r.winner === "p1") newScoreP1 += r.points;
       if (r.winner === "p2") newScoreP2 += r.points;
       newRound += 1;
-      // reset for next round (alternate jack side)
+      // Reset for next round — winner throws the jack first
       newBalls = [];
-      newJack = { x: (Math.random() - 0.5) * 2, z: 6 + (Math.random() - 0.5) * 2 };
+      newJack = null;
       newRemaining = { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER };
-      // loser starts next round
-      const next: "p1" | "p2" = r.winner === "p1" ? "p2" : "p1";
-      nextTurnUser = next === "p1" ? g.player1_id : g.player2_id;
+      (newPhase as any) = "throw_jack";
+      // Winner of the round throws the jack to start the next one
+      nextTurnUser = r.winner === "p1" ? g.player1_id : g.player2_id;
       toast.success(`Round ${g.round_number}: +${r.points} ho an'ny ${r.winner === "p1" ? "Mena" : "Manga"}`);
     } else {
       const nx = nextThrower(sanitized, finalJack, remaining, thrower);

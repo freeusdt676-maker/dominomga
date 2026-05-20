@@ -28,7 +28,7 @@ type GameRow = {
   state: {
     balls: Ball[];
     jack: Jack | null;
-    phase: "aim" | "rolling" | "settle";
+    phase: "aim" | "rolling" | "settle" | "throw_jack";
     remaining: { p1: number; p2: number };
     lastThrower?: "p1" | "p2";
   };
@@ -275,12 +275,12 @@ function Zebu({ position }: { position: [number, number, number] }) {
 }
 
 function BallMesh({ ball, isJack }: { ball: Ball | Jack; isJack?: boolean }) {
-  const color = isJack ? "#f5f0e0" : (ball as Ball).owner === "p1" ? "#dc2626" : "#2563eb";
+  const color = isJack ? "#0a0a0a" : (ball as Ball).owner === "p1" ? "#dc2626" : "#2563eb";
   const r = isJack ? COURT.jackR : COURT.ballR;
   return (
     <mesh position={[ball.x, r, ball.z]} castShadow>
       <sphereGeometry args={[r, 24, 24]} />
-      <meshStandardMaterial color={color} metalness={isJack ? 0.1 : 0.5} roughness={isJack ? 0.6 : 0.25} />
+      <meshStandardMaterial color={color} metalness={isJack ? 0.2 : 0.5} roughness={isJack ? 0.4 : 0.25} />
     </mesh>
   );
 }

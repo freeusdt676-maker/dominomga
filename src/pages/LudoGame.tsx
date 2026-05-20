@@ -42,6 +42,8 @@ const TURN_LIMIT = 10;
 const MOVE_ANIMATION_MS = 520;
 const QUICK_PASS_DELAY_MS = 850;
 const BLOCKER_SAFETY_MS = 8000;
+const STEP_ANIMATION_MS = 140; // per-cell hop for pawn walking animation
+const AUTO_MOVE_DELAY_MS = 320; // delay before auto-executing the single legal move
 
 function normalizeGame(raw: any): LG {
   return {

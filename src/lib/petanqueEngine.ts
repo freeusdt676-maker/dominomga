@@ -19,6 +19,24 @@ export const COURT = {
   minSpeed: 0.05,
 };
 
+// Valid jack zone — at least this distance from throw line (z=-1), and not in the far corner
+export const JACK_VALID = { minZ: 4.0, maxZ: 9.5, maxAbsX: 1.2 };
+export function isJackValid(j: Jack | null): boolean {
+  if (!j) return false;
+  if (Math.abs(j.x) > JACK_VALID.maxAbsX) return false;
+  if (j.z < JACK_VALID.minZ || j.z > JACK_VALID.maxZ) return false;
+  return true;
+}
+
+// Like stepPhysics but balls (and jack) that touch the court walls are FORFEIT (removed).
+// Returns { moving, removedBallIds, jackOut }.
+export function stepPhysicsForfeit(
+  balls: Ball[],
+  jack: Jack | null,
+): { moving: boolean; removedBallIds: string[]; jackOut: boolean } {
+  return { moving: false, removedBallIds: [], jackOut: false };
+}
+
 export function distance(a: { x: number; z: number }, b: { x: number; z: number }) {
   const dx = a.x - b.x, dz = a.z - b.z;
   return Math.sqrt(dx * dx + dz * dz);

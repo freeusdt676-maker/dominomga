@@ -503,39 +503,39 @@ export default function PetanqueGame() {
     setSimJack(g?.state?.jack ?? null);
   }, [g?.state, throwing]);
 
-  const doThrow = async (overrideAngle?: number, overrideForce?: number) => {
-    if (!g || !user || !mySide || throwing) return;
-    const remaining = g.state?.remaining ?? { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER };
-    const jackPhase = g.state?.phase === "throw_jack";
-    if (!jackPhase && remaining[mySide] <= 0) return toast.error("Tsy manana baolina intsony");
+  const runThrow = (opts: {
+    thrower: "p1" | "p2";
+    angle: number;
+    force: number;
+    jackPhase: boolean;
+    baseBalls: Ball[];
+    baseJack: Jack | null;
+    ballId?: string;
+    commit: boolean;
+  }) => {
+    const { thrower, angle: a, force: f, jackPhase, baseBalls, baseJack, ballId, commit } = opts;
     setThrowing(true);
-    const useAngle = overrideAngle ?? angle;
-    const useForce = overrideForce ?? force;
-    const rad = (useAngle * Math.PI) / 180;
-    // Jack throws shorter & lighter; balls have full range
-    const speed = jackPhase ? (2 + (useForce / 100) * 4.5) : (4 + (useForce / 100) * 11);
+    const rad = (a * Math.PI) / 180;
+    // Jack: assez de hery mba ho tonga any amin'ny 75% ny terrain
+    const speed = jackPhase ? (3 + (f / 100) * 7.5) : (4 + (f / 100) * 11);
     const vx = Math.sin(rad) * speed;
     const vz = Math.cos(rad) * speed;
     let balls: Ball[];
     let jack: Jack | null;
     if (jackPhase) {
-      // The thrown object IS the jack — simulate it as a tiny temporary ball to reuse engine,
-      // then commit position as jack on settle.
       balls = [];
       jack = { x: 0, z: -1.3 } as Jack;
-      // store velocity on jack via a temp wrapper:
       (jack as any).vx = vx; (jack as any).vz = vz;
     } else {
       const newBall: Ball = {
-        id: `b_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-        owner: mySide,
+        id: ballId ?? `b_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        owner: thrower,
         x: 0, z: -1.3, vx, vz,
       };
-      balls = [...(g.state?.balls ?? []).map(b => ({ ...b, vx: 0, vz: 0 })), newBall];
-      jack = g.state?.jack ? { ...g.state.jack } : null;
+      balls = [...baseBalls.map(b => ({ ...b, vx: 0, vz: 0 })), newBall];
+      jack = baseJack ? { ...baseJack } : null;
     }
     simRef.current = { balls, jack };
-    // Simulate with raf loop, capped at 8 seconds
     const start = performance.now();
     let last = start;
     const loop = () => {
@@ -543,14 +543,13 @@ export default function PetanqueGame() {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       const sim = simRef.current!;
-      // For jack phase, move the jack like a ball with friction & walls
       let moving = false;
       if (jackPhase && sim.jack) {
         const j: any = sim.jack;
         j.x += (j.vx ?? 0) * dt;
         j.z += (j.vz ?? 0) * dt;
-        const f = Math.pow(COURT.friction, dt * 60);
-        j.vx *= f; j.vz *= f;
+        const fr = Math.pow(COURT.friction, dt * 60);
+        j.vx *= fr; j.vz *= fr;
         if (j.x - COURT.jackR < COURT.minX) { j.x = COURT.minX + COURT.jackR; j.vx = -j.vx * COURT.wallRestitution; }
         if (j.x + COURT.jackR > COURT.maxX) { j.x = COURT.maxX - COURT.jackR; j.vx = -j.vx * COURT.wallRestitution; }
         if (j.z - COURT.jackR < COURT.minZ) { j.z = COURT.minZ + COURT.jackR; j.vz = -j.vz * COURT.wallRestitution; }
@@ -559,7 +558,6 @@ export default function PetanqueGame() {
         if (sp < COURT.minSpeed) { j.vx = 0; j.vz = 0; } else moving = true;
       } else {
         moving = stepPhysics(sim.balls, sim.jack, dt);
-        // Forfeit: any ball that hit the wall is removed
         const { forfeitedIds } = detectForfeits(sim.balls, null);
         if (forfeitedIds.length) {
           sim.balls = sim.balls.filter((b) => !forfeitedIds.includes(b.id));
@@ -570,14 +568,41 @@ export default function PetanqueGame() {
       if (moving && now - start < 8000) {
         requestAnimationFrame(loop);
       } else {
-        if (jackPhase && sim.jack) {
-          finishJackThrow({ x: sim.jack.x, z: sim.jack.z }, mySide).catch((e) => toast.error(e.message));
+        if (commit) {
+          if (jackPhase && sim.jack) {
+            finishJackThrow({ x: sim.jack.x, z: sim.jack.z }, thrower).catch((e) => toast.error(e.message));
+          } else {
+            finishThrow(sim.balls, sim.jack, thrower).catch((e) => toast.error(e.message));
+          }
         } else {
-          finishThrow(sim.balls, sim.jack, mySide).catch((e) => toast.error(e.message));
+          // Remote replay vita — state ny serveur no hifehy
+          setThrowing(false);
         }
       }
     };
     requestAnimationFrame(loop);
+  };
+  runThrowRef.current = runThrow;
+
+  const doThrow = async (overrideAngle?: number, overrideForce?: number) => {
+    if (!g || !user || !mySide || throwing) return;
+    const remaining = g.state?.remaining ?? { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER };
+    const jackPhase = g.state?.phase === "throw_jack";
+    if (!jackPhase && remaining[mySide] <= 0) return toast.error("Tsy manana baolina intsony");
+    const a = overrideAngle ?? angle;
+    const f = overrideForce ?? force;
+    const ballId = `b_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const baseBalls = g.state?.balls ?? [];
+    const baseJack = g.state?.jack ?? null;
+    // Broadcast amin'ny mpifanandrina mba hahitany ny fikodiadian'ny baolina LIVE
+    try {
+      await channelRef.current?.send({
+        type: "broadcast",
+        event: "throw",
+        payload: { thrower: mySide, angle: a, force: f, jackPhase, baseBalls, baseJack, ballId },
+      });
+    } catch {}
+    runThrow({ thrower: mySide, angle: a, force: f, jackPhase, baseBalls, baseJack, ballId, commit: true });
   };
 
   // Commit the jack position then keep same player on aim phase for first ball throw

@@ -28,13 +28,28 @@ export function isJackValid(j: Jack | null): boolean {
   return true;
 }
 
-// Like stepPhysics but balls (and jack) that touch the court walls are FORFEIT (removed).
-// Returns { moving, removedBallIds, jackOut }.
-export function stepPhysicsForfeit(
-  balls: Ball[],
-  jack: Jack | null,
-): { moving: boolean; removedBallIds: string[]; jackOut: boolean } {
-  return { moving: false, removedBallIds: [], jackOut: false };
+// Detects balls that have been clamped against a court wall (i.e. flew off the terrain).
+// They are FORFEIT: caller should remove them.
+export function detectForfeits(balls: Ball[], jack: Jack | null) {
+  const eps = 0.005;
+  const out: string[] = [];
+  for (const b of balls) {
+    const atWall =
+      Math.abs(b.x - (COURT.minX + COURT.ballR)) < eps ||
+      Math.abs(b.x - (COURT.maxX - COURT.ballR)) < eps ||
+      Math.abs(b.z - (COURT.minZ + COURT.ballR)) < eps ||
+      Math.abs(b.z - (COURT.maxZ - COURT.ballR)) < eps;
+    if (atWall) out.push(b.id);
+  }
+  let jackOut = false;
+  if (jack) {
+    jackOut =
+      Math.abs(jack.x - (COURT.minX + COURT.jackR)) < eps ||
+      Math.abs(jack.x - (COURT.maxX - COURT.jackR)) < eps ||
+      Math.abs(jack.z - (COURT.minZ + COURT.jackR)) < eps ||
+      Math.abs(jack.z - (COURT.maxZ - COURT.jackR)) < eps;
+  }
+  return { forfeitedIds: out, jackOut };
 }
 
 export function distance(a: { x: number; z: number }, b: { x: number; z: number }) {

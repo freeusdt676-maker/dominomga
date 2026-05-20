@@ -10,8 +10,10 @@ import { ArrowLeft, Pause, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Ball, Jack, COURT, distance, stepPhysics, computeRoundScore, nextThrower,
+  isJackValid, JACK_VALID, detectForfeits,
 } from "@/lib/petanqueEngine";
 import { useThemeClass } from "@/hooks/use-theme-class";
+import { sfx } from "@/lib/sfx";
 
 type GameRow = {
   id: string;
@@ -277,11 +279,24 @@ function Zebu({ position }: { position: [number, number, number] }) {
 function BallMesh({ ball, isJack }: { ball: Ball | Jack; isJack?: boolean }) {
   const color = isJack ? "#0a0a0a" : (ball as Ball).owner === "p1" ? "#dc2626" : "#2563eb";
   const r = isJack ? COURT.jackR : COURT.ballR;
+  const ringR = isJack ? r + 0.05 : r + 0.04;
   return (
-    <mesh position={[ball.x, r, ball.z]} castShadow>
-      <sphereGeometry args={[r, 24, 24]} />
-      <meshStandardMaterial color={color} metalness={isJack ? 0.2 : 0.5} roughness={isJack ? 0.4 : 0.25} />
-    </mesh>
+    <group position={[ball.x, 0, ball.z]}>
+      {/* highlight ring on the sand so the piece is always visible */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, 0]}>
+        <ringGeometry args={[ringR, ringR + (isJack ? 0.018 : 0.022), 32]} />
+        <meshBasicMaterial color={isJack ? "#ffeb3b" : color} transparent opacity={0.95} />
+      </mesh>
+      {/* shadow disc */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.008, 0]}>
+        <circleGeometry args={[r * 1.05, 24]} />
+        <meshBasicMaterial color="#000000" transparent opacity={0.35} />
+      </mesh>
+      <mesh position={[0, r, 0]} castShadow>
+        <sphereGeometry args={[r, 28, 28]} />
+        <meshStandardMaterial color={color} metalness={isJack ? 0.2 : 0.55} roughness={isJack ? 0.4 : 0.22} />
+      </mesh>
+    </group>
   );
 }
 

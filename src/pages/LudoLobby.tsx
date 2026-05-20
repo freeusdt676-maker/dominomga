@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { STAKE_LEVELS, fmtAr } from "@/lib/constants";
-import { ArrowLeft, Loader2, Coins, Users, X } from "lucide-react";
+import { ArrowLeft, Loader2, Coins, Users, X, Play } from "lucide-react";
 import { toast } from "sonner";
 import { sfx } from "@/lib/sfx";
 import { useThemeClass } from "@/hooks/use-theme-class";
@@ -168,17 +168,18 @@ export default function LudoLobby() {
 
       <div className="p-4 max-w-lg mx-auto space-y-4">
         {activeGame && (
-          <div className="ludo-panel rounded-2xl p-4 border border-yellow-400/50 bg-yellow-500/10">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="font-bold text-yellow-200 text-sm">Mbola misy lalao Ludo tsy vita</p>
-                <p className="text-xs text-yellow-100/70">{activeGame.players_count}P · {fmtAr(activeGame.stake)}</p>
-              </div>
-              <Button className="ludo-btn shrink-0" size="sm" onClick={() => nav(`/ludo/${activeGame.id}`)}>
-                Hanohy <span className="ml-1">🔵</span>
-              </Button>
+          <button
+            onClick={() => nav(`/ludo/${activeGame.id}`)}
+            className="w-full rounded-2xl p-4 border-2 border-blue-400 bg-gradient-to-r from-blue-600 to-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.6)] hover:shadow-[0_0_28px_rgba(59,130,246,0.85)] transition flex items-center justify-between gap-3 animate-pulse"
+          >
+            <div className="text-left">
+              <p className="font-bold text-white text-sm">Mbola misy lalao Ludo tsy vita</p>
+              <p className="text-xs text-blue-50/90">{activeGame.players_count}P · {fmtAr(activeGame.stake)}</p>
             </div>
-          </div>
+            <span className="shrink-0 inline-flex items-center gap-2 bg-white text-blue-700 font-bold px-4 py-2 rounded-full shadow-md">
+              <Play className="h-4 w-4 fill-current" /> Hanohy
+            </span>
+          </button>
         )}
 
         <div className="ludo-panel rounded-2xl p-4">
@@ -210,12 +211,21 @@ export default function LudoLobby() {
           </p>
 
           {myWaiting ? (
-            <div className="mt-3 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/40 flex items-center justify-between">
-              <div className="text-sm">
-                <p className="font-bold text-yellow-200">Misy mise vonona ianao</p>
-                <p className="text-xs text-yellow-100/70">Mise: {fmtAr(myWaiting.stake)} — miandry</p>
+            <div className="mt-3 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/40 flex items-center justify-between gap-2">
+              <div className="text-sm min-w-0">
+                <p className="font-bold text-yellow-200 truncate">Misy mise vonona ianao</p>
+                <p className="text-xs text-yellow-100/70 truncate">Mise: {fmtAr(myWaiting.stake)} — miandry</p>
               </div>
-              <Button size="sm" variant="destructive" onClick={cancelMyWaiting}><X className="w-4 h-4" /></Button>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  size="sm"
+                  onClick={() => nav(`/ludo/${myWaiting.id}`)}
+                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold gap-1.5 shadow-[0_0_14px_rgba(59,130,246,0.65)]"
+                >
+                  <Play className="h-4 w-4 fill-current" /> Hanohy
+                </Button>
+                <Button size="sm" variant="destructive" onClick={cancelMyWaiting}><X className="w-4 h-4" /></Button>
+              </div>
             </div>
           ) : (
             <Button

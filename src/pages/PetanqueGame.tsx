@@ -400,6 +400,8 @@ export default function PetanqueGame() {
   const [simJack, setSimJack] = useState<Jack | null>(null);
   const simRef = useRef<{ balls: Ball[]; jack: Jack | null } | null>(null);
   const autoThrowRef = useRef<string | null>(null);
+  const channelRef = useRef<any>(null);
+  const runThrowRef = useRef<((opts: any) => void) | null>(null);
   // Drag-to-throw gesture state
   const [drag, setDrag] = useState<{ dx: number; dy: number } | null>(null);
   const dragStart = useRef<{ x: number; y: number } | null>(null);
@@ -439,13 +441,18 @@ export default function PetanqueGame() {
       if (data) setG(data as unknown as GameRow);
     };
     load();
-    const ch = supabase.channel(`pg-${id}`)
+    const ch = supabase.channel(`pg-${id}`, { config: { broadcast: { self: false } } })
       .on("postgres_changes", { event: "*", schema: "public", table: "petanque_games", filter: `id=eq.${id}` },
         (p: any) => { if (p.new) setG(p.new as GameRow); })
+      .on("broadcast", { event: "throw" }, ({ payload }: any) => {
+        // Mpilalao iray hafa nanatsipy — replay-na eto mba ho hita ny fikodiadian'ny baolina
+        runThrowRef.current?.({ ...payload, commit: false });
+      })
       .subscribe();
+    channelRef.current = ch;
     // Polling de secours toutes les 2s (essentiel pour le matchmaking si realtime ne livre pas)
     const itv = setInterval(load, 2000);
-    return () => { supabase.removeChannel(ch); clearInterval(itv); };
+    return () => { supabase.removeChannel(ch); channelRef.current = null; clearInterval(itv); };
   }, [id]);
 
   useEffect(() => {

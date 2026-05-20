@@ -714,12 +714,15 @@ export default function Game() {
           turn_started_at: new Date().toISOString(),
           passes: 0,
         } as any);
-        await supabase.from("game_moves").insert({
-          game_id: game.id,
-          player_id: turnId,
-          piece: { tile, auto: true },
-          side: chosenSide,
-        });
+      const { error: moveLogError } = await supabase.from("game_moves").insert({
+        game_id: game.id,
+        player_id: turnId,
+        piece: { tile, auto: true },
+        side: chosenSide,
+      });
+      if (moveLogError) {
+        console.warn("auto move log failed", moveLogError);
+      }
         return;
       }
       const passes = (fresh.passes ?? 0) + 1;

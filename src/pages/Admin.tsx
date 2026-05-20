@@ -563,7 +563,7 @@ export default function Admin() {
 
           <TabsContent value="history" className="mt-3 space-y-2 max-h-[70vh] overflow-y-auto">
             <div className="card-felt rounded-xl p-3 mb-2 border-l-4 border-primary">
-              <p className="text-xs text-foreground/80 flex items-center gap-1"><History className="w-3 h-3" /><b>Historique jeux Domino + Ludo.</b> Karohy araka ny Numéro Ticket, sokajy, na anaran'ny mpilalao.</p>
+              <p className="text-xs text-foreground/80 flex items-center gap-1"><History className="w-3 h-3" /><b>Historique jeux Domino + Ludo + Pétanque.</b> Karohy araka ny Numéro Ticket, sokajy, na anaran'ny mpilalao.</p>
             </div>
             <div className="card-felt rounded-xl p-3 space-y-3 border border-destructive/30">
               <div>
@@ -578,7 +578,7 @@ export default function Admin() {
               {cancelTicketInput.trim() && (
                 detectedCancelGame ? (
                   <div className="rounded-lg border border-primary/20 bg-card/40 p-3 text-xs space-y-1">
-                    <p><b>Type:</b> {detectedCancelGame.game_kind === "ludo" ? "Ludo" : "Domino"}</p>
+                    <p><b>Type:</b> {detectedCancelGame.game_kind === "ludo" ? "Ludo" : detectedCancelGame.game_kind === "petanque" ? "Pétanque" : "Domino"}</p>
                     <p><b>Status:</b> {detectedCancelGame.status}</p>
                     <p><b>Ticket:</b> Nº{detectedCancelGame.ticket_number}</p>
                     <p><b>Mpilalao:</b> {(detectedCancelGame._players ?? []).join(" · ")}</p>
@@ -660,7 +660,7 @@ export default function Admin() {
           </DialogHeader>
           {selectedGame && (
             <div className="space-y-2 text-sm">
-              <Row label="Sokajy" value={selectedGame.game_kind === "ludo" ? "Ludo" : "Domino"} />
+              <Row label="Sokajy" value={selectedGame.game_kind === "ludo" ? "Ludo" : selectedGame.game_kind === "petanque" ? "Pétanque" : "Domino"} />
               <Row label="Mpilalao" value={(selectedGame._players ?? []).join(" · ")} />
               <Row label="Mise" value={fmtAr(selectedGame.stake)} />
               <Row label="Pandresy" value={selectedGame._winnerName ?? "—"} />
@@ -703,7 +703,7 @@ export default function Admin() {
           <div className="space-y-3 text-sm">
             <p className="text-muted-foreground">Annulation administrative: tsimisy resy, tsimisy pandresy, miverina avokoa ny mise ary esorina koa ny commission 10%.</p>
             <Row label="Ticket" value={detectedCancelGame?.ticket_number ? `Nº${detectedCancelGame.ticket_number}` : cancelTicketInput || "—"} mono />
-            <Row label="Sokajy" value={detectedCancelGame ? (detectedCancelGame.game_kind === "ludo" ? "Ludo" : "Domino") : "—"} />
+            <Row label="Sokajy" value={detectedCancelGame ? (detectedCancelGame.game_kind === "ludo" ? "Ludo" : detectedCancelGame.game_kind === "petanque" ? "Pétanque" : "Domino") : "—"} />
             <Row label="Status" value={detectedCancelGame?.status ?? "—"} />
             <Input type="password" inputMode="numeric" maxLength={6} value={cancelPin} onChange={(e) => setCancelPin(e.target.value)} placeholder="Codé ADMINISTRATIF 2583" />
             <DialogFooter>

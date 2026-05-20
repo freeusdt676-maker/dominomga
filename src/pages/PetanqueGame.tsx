@@ -804,14 +804,7 @@ export default function PetanqueGame() {
 
   if (g.status === "finished") {
     const winName = g.winner_id === g.player1_id ? p1Profile?.mvola_name : p2Profile?.mvola_name;
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-emerald-900 to-black p-6 gap-4 text-center">
-        <h2 className="text-4xl font-bold text-emerald-300">🏆 Vita!</h2>
-        <p className="text-emerald-100 text-xl">Nandresy: <b>{winName ?? "?"}</b></p>
-        <p className="text-emerald-200/70">{g.score_p1} — {g.score_p2}</p>
-        <Button onClick={() => nav("/petanque")} className="bg-emerald-500 text-emerald-950 font-bold">Hiverina</Button>
-      </div>
-    );
+    return <FinishedScreen winName={winName} g={g} userId={user?.id} onLeave={() => nav("/petanque")} />;
   }
 
   if (g.status === "waiting") {

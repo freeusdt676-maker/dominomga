@@ -94,29 +94,35 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
       const a = p.flipped ? bb : aa;
       const b = p.flipped ? aa : bb;
       const direction = directions[i] ?? "right";
-      const horizontal = direction === "right" || direction === "left";
+      const isDouble = a === b;
+      const dirHorizontal = direction === "right" || direction === "left";
+      // Doubles are placed perpendicular to the run direction to save space.
+      const horizontal = isDouble ? !dirHorizontal : dirHorizontal;
       const displayA = direction === "left" ? b : a;
       const displayB = direction === "left" ? a : b;
+
+      const w = horizontal ? long : unit;
+      const h = horizontal ? unit : long;
 
       const x = direction === "right"
         ? cursorX
         : direction === "left"
-          ? cursorX - long
-          : cursorX - unit / 2;
+          ? cursorX - w
+          : cursorX - w / 2;
       const y = direction === "down"
         ? cursorY
-        : cursorY - unit / 2;
-      const w = horizontal ? long : unit;
-      const h = horizontal ? unit : long;
+        : cursorY - h / 2;
 
       minX = Math.min(minX, x);
       minY = Math.min(minY, y);
       maxX = Math.max(maxX, x + w);
       maxY = Math.max(maxY, y + h);
 
-      if (direction === "right") cursorX += long;
-      else if (direction === "left") cursorX -= long;
-      else cursorY += long;
+      // Advance cursor by the size along the direction axis.
+      const advance = isDouble ? unit : long;
+      if (direction === "right") cursorX += advance;
+      else if (direction === "left") cursorX -= advance;
+      else cursorY += advance;
 
       return { x, y, w, h, displayA, displayB, horizontal };
     });

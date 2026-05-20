@@ -141,6 +141,12 @@ export default function Admin() {
       .not("ticket_number", "is", null)
       .order("created_at", { ascending: false })
       .limit(500);
+    const { data: pg } = await supabase
+      .from("petanque_games" as any)
+      .select("id, ticket_number, stake, player1_id, player2_id, winner_id, status, created_at, finished_at, turn_started_at, score_p1, score_p2, round_number")
+      .not("ticket_number", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(500);
 
     const dominoHistory = (hg ?? []).map((game: any) => ({
       ...game,
@@ -158,9 +164,18 @@ export default function Admin() {
         .map((id: string) => profMap[id]?.mvola_name ?? "?"),
       _winnerName: game.winner_id ? (profMap[game.winner_id]?.mvola_name ?? "?") : null,
     }));
+    const petHistory = (pg ?? []).map((game: any) => ({
+      ...game,
+      game_kind: "petanque",
+      players_count: 2,
+      _players: [game.player1_id, game.player2_id]
+        .filter(Boolean)
+        .map((id: string) => profMap[id]?.mvola_name ?? "?"),
+      _winnerName: game.winner_id ? (profMap[game.winner_id]?.mvola_name ?? "?") : null,
+    }));
 
     setHistory(
-      [...dominoHistory, ...ludoHistory].sort(
+      [...dominoHistory, ...ludoHistory, ...petHistory].sort(
         (a: any, b: any) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime(),
       ),
     );
@@ -183,6 +198,8 @@ export default function Admin() {
       .on("postgres_changes", { event: "*", schema: "public", table: "password_reset_requests" }, () => load())
       .on("postgres_changes", { event: "*", schema: "public", table: "wallets" }, () => load())
       .on("postgres_changes", { event: "*", schema: "public", table: "games" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "ludo_games" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "petanque_games" }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [allowed]);

@@ -360,7 +360,7 @@ export default function PetanqueGame() {
   // Drag-to-throw gesture state
   const [drag, setDrag] = useState<{ dx: number; dy: number } | null>(null);
   const dragStart = useRef<{ x: number; y: number } | null>(null);
-  const PULL_MAX = 180; // px — pull complet = 100% hery
+  const PULL_MAX = 130; // px — tariny moramora ihany dia 100% hery (sotomina makany aloha)
 
   // Force portrait + fullscreen feel
   useEffect(() => {

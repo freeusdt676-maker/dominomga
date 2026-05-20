@@ -941,13 +941,14 @@ export default function PetanqueGame() {
         </div>
       </div>
 
-      {/* Pause button (bottom right) with seashell decor */}
-      <button className="absolute bottom-4 right-4 w-14 h-14 rounded-full bg-emerald-500 border-2 border-white/40 flex items-center justify-center shadow-xl shadow-emerald-500/40">
-        <Pause className="w-6 h-6 text-emerald-950 fill-emerald-950" />
-        {/* seashell deco */}
-        <svg className="absolute -top-2 -left-2 w-5 h-5" viewBox="0 0 24 24" fill="#fde68a">
-          <path d="M12 2C7 2 3 6 3 11c0 3 2 5 4 6l5 5 5-5c2-1 4-3 4-6 0-5-4-9-9-9z" />
-        </svg>
+      {/* Retour button — sortie sécurisée */}
+      <button
+        onClick={() => {
+          if (confirm("Hiala amin'ity lalao ity? Mety ho very ny mise.")) nav("/petanque");
+        }}
+        className="absolute top-24 left-3 z-30 px-3 h-10 rounded-full bg-black/70 backdrop-blur border border-white/30 flex items-center gap-1.5 text-white text-xs font-bold shadow-xl hover:bg-black/85"
+      >
+        <ArrowLeft className="w-4 h-4" /> Retour
       </button>
 
       {/* Drag-to-throw pad — toy ny mitarika tady */}

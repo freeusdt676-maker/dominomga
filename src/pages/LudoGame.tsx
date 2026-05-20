@@ -42,6 +42,8 @@ const TURN_LIMIT = 10;
 const MOVE_ANIMATION_MS = 520;
 const QUICK_PASS_DELAY_MS = 850;
 const BLOCKER_SAFETY_MS = 8000;
+const STEP_ANIMATION_MS = 140; // per-cell hop for pawn walking animation
+const AUTO_MOVE_DELAY_MS = 320; // delay before auto-executing the single legal move
 
 function normalizeGame(raw: any): LG {
   return {
@@ -316,14 +318,15 @@ export default function LudoGame() {
         clearRefTimeout(autoResolveRef);
         autoResolveRef.current = window.setTimeout(async () => {
           try {
-            const { seat: ns } = nextSeatFromList(state.current_turn_seat, seats, dice === 6, 0, nextSixes);
+            // Unusable 6 = NO bonus, hand off to next seat and reset sixes
+            const { seat: ns } = nextSeatFromList(state.current_turn_seat, seats, false, 0, 0);
             const nextTurnAt = new Date().toISOString();
             setG((cur) => cur ? ({
               ...cur,
               current_turn_seat: ns,
               last_dice: null,
               dice_rolled: false,
-              consecutive_sixes: ns === state.current_turn_seat ? nextSixes : 0,
+              consecutive_sixes: 0,
               turn_started_at: nextTurnAt,
             }) : cur);
             const { error: passError } = await supabase.rpc("ludo_update_state" as any, {
@@ -331,7 +334,7 @@ export default function LudoGame() {
               _current_turn_seat: ns,
               _last_dice: null,
               _dice_rolled: false,
-              _consecutive_sixes: ns === state.current_turn_seat ? nextSixes : 0,
+              _consecutive_sixes: 0,
               _turn_started_at: nextTurnAt,
             });
             if (passError) throw passError;
@@ -341,6 +344,12 @@ export default function LudoGame() {
             clearUiBlockers();
           }
         }, QUICK_PASS_DELAY_MS);
+      } else if (moves.length === 1) {
+        // Single legal move → auto-execute without waiting for tap
+        clearRefTimeout(autoResolveRef);
+        autoResolveRef.current = window.setTimeout(() => {
+          handlePawn(moves[0]).catch(() => undefined);
+        }, AUTO_MOVE_DELAY_MS);
       }
     } catch (error: any) {
       toast.error(error?.message ?? "Nisy olana tamin'ny dé");
@@ -360,11 +369,29 @@ export default function LudoGame() {
     const res = applyMove(state.pawns ?? [], state.current_turn_seat, pawnIdx, dice);
     setActing(true);
     armSafetyRelease();
-    setG((cur) => (cur ? { ...cur, pawns: res.pawns } : cur));
-    if (res.captured > 0) sfx.capture(); else sfx.move();
+    sfx.move();
 
     try {
-      await new Promise((r) => setTimeout(r, MOVE_ANIMATION_MS));
+      // ===== Step-by-step walking animation (cell by cell) =====
+      const startPawns = (state.pawns ?? []).map((p) => ({ ...p }));
+      const me = startPawns.find((p) => p.seat === state.current_turn_seat && p.idx === pawnIdx)!;
+      if (me.pos <= 0) {
+        // Exit base — single hop to start cell
+        me.pos = 1;
+        setG((cur) => (cur ? { ...cur, pawns: startPawns.map((p) => ({ ...p })) } : cur));
+        await new Promise((r) => setTimeout(r, STEP_ANIMATION_MS * 2));
+      } else {
+        for (let step = 0; step < dice; step++) {
+          me.pos = Math.min(57, me.pos + 1);
+          setG((cur) => (cur ? { ...cur, pawns: startPawns.map((p) => ({ ...p })) } : cur));
+          await new Promise((r) => setTimeout(r, STEP_ANIMATION_MS));
+          if (me.pos === 57) break;
+        }
+      }
+      // Commit final state (with captures applied)
+      setG((cur) => (cur ? { ...cur, pawns: res.pawns } : cur));
+      if (res.captured > 0) sfx.capture();
+      await new Promise((r) => setTimeout(r, 120));
 
       if (seatHasFinished(res.pawns, state.current_turn_seat)) {
         const winnerUid = seatToUid(state.current_turn_seat);
@@ -384,12 +411,13 @@ export default function LudoGame() {
       }
 
       const sixes = dice === 6 ? state.consecutive_sixes : 0;
-      const gotBonus = (dice === 6 && sixes < 3) || res.captured > 0 || !!res.finishedPawn;
+      // Bonus turn ONLY on a 6 (not on captures, not on finishing a pawn)
+      const gotBonus = dice === 6 && sixes < 3;
       let ns: number;
       let resetSixes = false;
       if (gotBonus) {
         ns = state.current_turn_seat;
-        resetSixes = !(dice === 6);
+        resetSixes = false;
       } else {
         const i = seats.indexOf(state.current_turn_seat);
         ns = seats[(i + 1) % seats.length];
@@ -556,20 +584,21 @@ export default function LudoGame() {
 
         if (moves.length === 0) {
           await new Promise((r) => setTimeout(r, QUICK_PASS_DELAY_MS));
-          const { seat: ns } = nextSeatFromList(state.current_turn_seat, liveSeats, dice === 6, 0, nextSixes);
+          // Unusable dice (even a 6) ⇒ no bonus, hand off
+          const { seat: ns } = nextSeatFromList(state.current_turn_seat, liveSeats, false, 0, 0);
           const nextTurnAt = new Date().toISOString();
           setG((cur) => cur ? ({
             ...cur,
             current_turn_seat: ns,
             dice_rolled: false,
-            consecutive_sixes: ns === state.current_turn_seat ? nextSixes : 0,
+            consecutive_sixes: 0,
             turn_started_at: nextTurnAt,
           }) : cur);
           await runRpc({
             _game_id: state.id,
             _current_turn_seat: ns,
             _dice_rolled: false,
-            _consecutive_sixes: ns === state.current_turn_seat ? nextSixes : 0,
+            _consecutive_sixes: 0,
             _turn_started_at: nextTurnAt,
           });
           return;
@@ -623,7 +652,8 @@ export default function LudoGame() {
       }
 
       const sixes = dice === 6 ? state.consecutive_sixes : 0;
-      const { seat: ns, resetSixes } = nextSeatFromList(state.current_turn_seat, liveSeats, dice === 6, res.captured, sixes);
+      // Bonus only on 6 (not captures, not finishing pawn)
+      const { seat: ns, resetSixes } = nextSeatFromList(state.current_turn_seat, liveSeats, dice === 6, 0, sixes);
       const nextTurnAt = new Date().toISOString();
       setG((cur) => cur ? ({
         ...cur,

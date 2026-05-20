@@ -832,7 +832,10 @@ export default function Game() {
 
   // Sary kely kokoa amin'ny mobile mba tsy hifanaikitra
   const handTileSize = isMobile ? "md" : "lg";
-  const boardTileSize = isMobile ? "xs" : "sm";
+  const boardTileSize = isMobile ? "sm" : "md";
+  const firstBoardTile = board.length === 1 ? board[0] : null;
+  const firstBoardA = firstBoardTile ? (firstBoardTile.flipped ? firstBoardTile.tile[1] : firstBoardTile.tile[0]) : null;
+  const firstBoardB = firstBoardTile ? (firstBoardTile.flipped ? firstBoardTile.tile[0] : firstBoardTile.tile[1]) : null;
 
   return (
     <div className="min-h-screen green-felt flex flex-col">
@@ -1118,7 +1121,7 @@ export default function Game() {
           </div>
 
           {/* Latabatra — felt poker, snake path mihodina amin'ny sisiny */}
-          <div className="relative flex-1 px-3 py-3 min-h-[260px]">
+          <div className="relative flex-1 px-3 py-3 min-h-[300px]">
             {/* Floating side action buttons */}
             <RadioPlayer />
             {id && <GameChat gameId={id} names={profileNames} />}
@@ -1128,7 +1131,8 @@ export default function Game() {
               </div>
             )}
 
-            <div className="felt-board relative w-full h-full min-h-[240px] mx-auto overflow-hidden">
+            <div className="felt-board relative w-full h-full min-h-[280px] mx-auto overflow-hidden">
+              <div className="domino-arena absolute inset-[10px] rounded-[1rem]" aria-hidden="true" />
               {board.length === 0 ? (
                 <div className="absolute inset-0 flex items-center justify-center px-4">
                   {game.player2_id ? (
@@ -1150,8 +1154,22 @@ export default function Game() {
                     </p>
                   )}
                 </div>
+              ) : firstBoardTile && firstBoardA !== null && firstBoardB !== null ? (
+                <div className="absolute inset-0 flex items-center justify-center p-4">
+                  <div className="domino-first-tile-stage animate-scale-in">
+                    <DominoTile
+                      a={firstBoardA}
+                      b={firstBoardB}
+                      size={isMobile ? "xl" : "xl"}
+                      horizontal={firstBoardA !== firstBoardB}
+                      variant="white"
+                    />
+                  </div>
+                </div>
               ) : (
-                <SnakeBoard board={board} tileSize={boardTileSize as "xs" | "sm"} />
+                <div className="absolute inset-[10px]">
+                  <SnakeBoard board={board} tileSize={boardTileSize as "sm" | "md"} />
+                </div>
               )}
 
               {selected !== null && isMyTurn && (canLeft || canRight) && (

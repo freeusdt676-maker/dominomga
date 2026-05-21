@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import voiceMic from "@/assets/voice-mic.png";
 import { toast } from "sonner";
+import { Mic, MicOff, PhoneOff, Phone } from "lucide-react";
 
 type Signal =
   | { kind: "offer"; from: string; to: string; sdp: RTCSessionDescriptionInit }
@@ -64,11 +64,16 @@ export default function LudoVoiceChat({ gameId }: { gameId: string }) {
   const [on, setOn] = useState(false);
   const [busy, setBusy] = useState(false);
   const [peerCount, setPeerCount] = useState(0);
+  const [muted, setMuted] = useState(false);
+  const [otherOnline, setOtherOnline] = useState(false);
+  const [connected, setConnected] = useState(false);
   const localStreamRef = useRef<MediaStream | null>(null);
   const pcsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const pendingIceRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
   const audiosRef = useRef<Map<string, HTMLAudioElement>>(new Map());
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const presenceChRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const lastIncomingToastRef = useRef<number>(0);
 
   const cleanup = () => {
     pcsRef.current.forEach((pc) => { try { pc.close(); } catch {} });
@@ -80,9 +85,46 @@ export default function LudoVoiceChat({ gameId }: { gameId: string }) {
     localStreamRef.current = null;
     if (channelRef.current) { try { supabase.removeChannel(channelRef.current); } catch {} channelRef.current = null; }
     setPeerCount(0);
+    setConnected(false);
+    setMuted(false);
   };
 
-  useEffect(() => () => cleanup(), []);
+  useEffect(() => () => {
+    cleanup();
+    if (presenceChRef.current) { try { supabase.removeChannel(presenceChRef.current); } catch {} presenceChRef.current = null; }
+  }, []);
+
+  // Lightweight presence listener — runs even when voice is OFF,
+  // so we can show "incoming call" hint when the opponent turns on their mic.
+  useEffect(() => {
+    if (!user || !gameId) return;
+    const ch = supabase.channel(`voice-presence-${gameId}`, {
+      config: { presence: { key: user.id } },
+    });
+    presenceChRef.current = ch;
+    ch.on("presence", { event: "sync" }, () => {
+      const state = ch.presenceState();
+      const others = Object.keys(state).filter((k) => k !== user.id).length;
+      setOtherOnline(others > 0);
+      if (others > 0 && !on) {
+        const now = Date.now();
+        if (now - lastIncomingToastRef.current > 15_000) {
+          lastIncomingToastRef.current = now;
+          toast.info("📞 Niantso anao ny mpilalao iray — tsindrio Apel hamaly", { duration: 6000 });
+          try { navigator.vibrate?.([200, 100, 200]); } catch {}
+        }
+      }
+    });
+    ch.subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        try { await ch.track({ on: false, ts: Date.now() }); } catch {}
+      }
+    });
+    return () => {
+      try { supabase.removeChannel(ch); } catch {}
+      presenceChRef.current = null;
+    };
+  }, [user, gameId, on]);
 
   const send = (payload: Signal) => {
     channelRef.current?.send({ type: "broadcast", event: "signal", payload });
@@ -120,6 +162,9 @@ export default function LudoVoiceChat({ gameId }: { gameId: string }) {
         document.addEventListener("click", retry, { once: true });
         document.addEventListener("touchstart", retry, { once: true });
       });
+      setConnected(true);
+      try { navigator.vibrate?.(80); } catch {}
+      toast.success("🎙️ Tafita ny appel — afaka miresaka ianareo");
     };
     pc.oniceconnectionstatechange = () => {
       const st = pc!.iceConnectionState;
@@ -240,44 +285,77 @@ export default function LudoVoiceChat({ gameId }: { gameId: string }) {
   const turnOff = () => {
     cleanup();
     setOn(false);
+    // Re-announce as off via presence channel
+    if (presenceChRef.current) {
+      try { presenceChRef.current.track({ on: false, ts: Date.now() }); } catch {}
+    }
+  };
+
+  const toggleMute = () => {
+    const s = localStreamRef.current;
+    if (!s) return;
+    const next = !muted;
+    s.getAudioTracks().forEach((t) => (t.enabled = !next));
+    setMuted(next);
   };
 
   return (
-    <button
-      type="button"
-      onClick={() => (on ? turnOff() : turnOn())}
-      disabled={busy}
-      title={on ? "Vono ny voice chat" : "Avadiho ny voice chat"}
-      className="relative w-12 h-12 rounded-full flex items-center justify-center active:scale-95 transition disabled:opacity-50"
-      style={{
-        background: on ? "transparent" : "rgba(255,255,255,0.06)",
-        boxShadow: on ? "0 0 0 2px #2ecc71, 0 0 18px rgba(46,204,113,0.6)" : "0 0 0 2px rgba(255,255,255,0.25)",
-      }}
-    >
-      {on ? (
-        <>
-          <img src={voiceMic} alt="Voice ON" className="w-10 h-10 drop-shadow-[0_2px_3px_rgba(0,0,0,0.5)]" />
-          {peerCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-emerald-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center border border-black/40">
-              {peerCount}
-            </span>
-          )}
-        </>
-      ) : (
-        <>
-          <img src={voiceMic} alt="Voice OFF" className="w-10 h-10 opacity-30 grayscale" />
-          {/* white strike-through line */}
-          <span
-            className="absolute"
-            style={{
-              left: 4, right: 4, top: "50%",
-              height: 3, background: "#ffffff",
-              transform: "translateY(-50%) rotate(-25deg)",
-              borderRadius: 2, boxShadow: "0 0 6px rgba(0,0,0,0.5)",
-            }}
-          />
-        </>
+    <div className="flex items-center gap-1.5">
+      {/* Mute toggle — only visible when call is on */}
+      {on && (
+        <button
+          type="button"
+          onClick={toggleMute}
+          title={muted ? "Avadiho ny micro" : "Vono ny micro"}
+          className="w-10 h-10 rounded-full flex items-center justify-center active:scale-95 transition"
+          style={{
+            background: muted ? "rgba(239,68,68,0.85)" : "rgba(16,185,129,0.85)",
+            boxShadow: "0 0 0 2px rgba(255,255,255,0.4)",
+          }}
+        >
+          {muted ? <MicOff className="w-5 h-5 text-white" /> : <Mic className="w-5 h-5 text-white" />}
+        </button>
       )}
-    </button>
+
+      {/* Main call button */}
+      <button
+        type="button"
+        onClick={() => (on ? turnOff() : turnOn())}
+        disabled={busy}
+        title={on ? "Tapaho ny appel" : "Antsoy ny mpilalao"}
+        className={`relative h-10 px-3 rounded-full flex items-center gap-1.5 active:scale-95 transition disabled:opacity-50 ${
+          on ? "" : otherOnline ? "animate-pulse" : ""
+        }`}
+        style={{
+          background: on
+            ? (connected ? "rgba(16,185,129,0.95)" : "rgba(234,179,8,0.95)")
+            : (otherOnline ? "rgba(239,68,68,0.95)" : "rgba(255,255,255,0.1)"),
+          boxShadow: on
+            ? "0 0 0 2px rgba(255,255,255,0.5), 0 0 18px rgba(16,185,129,0.7)"
+            : (otherOnline ? "0 0 0 2px #fff, 0 0 18px rgba(239,68,68,0.9)" : "0 0 0 2px rgba(255,255,255,0.3)"),
+        }}
+      >
+        {on ? (
+          <>
+            <PhoneOff className="w-4 h-4 text-white" />
+            <span className="text-[11px] font-bold text-white tracking-wide">
+              {connected ? "TAFITA" : "Miandry…"}
+            </span>
+          </>
+        ) : (
+          <>
+            <Phone className="w-4 h-4 text-white" />
+            <span className="text-[11px] font-bold text-white tracking-wide">
+              {otherOnline ? "MAMALY" : "APEL"}
+            </span>
+          </>
+        )}
+        {peerCount > 0 && on && (
+          <span className="absolute -top-1 -right-1 bg-white text-emerald-700 text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center border border-emerald-700">
+            {peerCount}
+          </span>
+        )}
+      </button>
+    </div>
   );
 }

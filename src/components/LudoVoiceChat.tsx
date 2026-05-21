@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import voiceMic from "@/assets/voice-mic.png";
 import { toast } from "sonner";
 import { Mic, MicOff, PhoneOff, Phone } from "lucide-react";
 

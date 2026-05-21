@@ -14,6 +14,7 @@ import {
 } from "@/lib/petanqueEngine";
 import { useThemeClass } from "@/hooks/use-theme-class";
 import { sfx } from "@/lib/sfx";
+import LudoVoiceChat from "@/components/LudoVoiceChat";
 
 type GameRow = {
   id: string;

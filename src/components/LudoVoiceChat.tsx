@@ -1,307 +1,172 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import AgoraRTC, {
+  IAgoraRTCClient,
+  IAgoraRTCRemoteUser,
+  IMicrophoneAudioTrack,
+} from "agora-rtc-sdk-ng";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Mic, MicOff, PhoneOff, Phone } from "lucide-react";
 
-type Signal =
-  | { kind: "offer"; from: string; to: string; sdp: RTCSessionDescriptionInit }
-  | { kind: "answer"; from: string; to: string; sdp: RTCSessionDescriptionInit }
-  | { kind: "ice"; from: string; to: string; candidate: RTCIceCandidateInit };
-
-// Free public STUN + TURN — multi-provider mba hahatonga azy mandeha amin'ny
-// network rehetra (mobile 4G, wifi entreprise, NAT symetrique, sns.)
-const ICE: RTCConfiguration = {
-  iceServers: [
-    {
-      urls: [
-        "stun:stun.l.google.com:19302",
-        "stun:stun1.l.google.com:19302",
-        "stun:stun2.l.google.com:19302",
-        "stun:stun.cloudflare.com:3478",
-      ],
-    },
-    // Metered Open Relay — endpoint vaovao (global.relay.metered.ca)
-    {
-      urls: [
-        "turn:global.relay.metered.ca:80",
-        "turn:global.relay.metered.ca:80?transport=tcp",
-        "turn:global.relay.metered.ca:443",
-        "turns:global.relay.metered.ca:443?transport=tcp",
-      ],
-      username: "openrelayproject",
-      credential: "openrelayproject",
-    },
-    // ExpressTURN free fallback
-    {
-      urls: ["turn:relay1.expressturn.com:3478"],
-      username: "ef9MM26U6OXAW1R3RU",
-      credential: "MlV6V3vROK8mU0Y2",
-    },
-    // Fallback farany: openrelay (taloha) raha mbola mandeha
-    {
-      urls: [
-        "turn:openrelay.metered.ca:80",
-        "turn:openrelay.metered.ca:443",
-        "turn:openrelay.metered.ca:443?transport=tcp",
-      ],
-      username: "openrelayproject",
-      credential: "openrelayproject",
-    },
-  ],
-  iceCandidatePoolSize: 4,
-};
-
 /**
- * WebRTC mesh voice chat per game (Ludo OR Domino).
- * Signaling: Supabase Realtime — Presence (peer discovery) + Broadcast (SDP/ICE).
- * - Deterministic dialer election: lower user.id always offers.
- * - Presence-based peer list = no race on "hello" packet ordering.
- * - Public TURN fallback so users behind symmetric NATs still connect.
+ * Agora RTC Voice Chat — Production grade group voice for 2-4 players.
+ * Channel = gameId. Each user joins with a numeric uid derived from user.id.
+ * - HD voice (music_standard), AEC/ANS/AGC enabled
+ * - Auto reconnect (Agora SDK handles it natively)
+ * - Mute toggle, peer count, "TAFITA" indicator
+ * - Low CPU/bandwidth profile (speech_standard)
  */
+
+// Numeric uid (Agora needs 32-bit unsigned int) from uuid string
+function uidFromString(s: string): number {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  // keep < 2^31 to avoid sign issues some servers complain about
+  return h % 2_000_000_000;
+}
+
+// Mute Agora's noisy default logging in prod
+try { AgoraRTC.setLogLevel(3); } catch {}
+
 export default function LudoVoiceChat({ gameId }: { gameId: string }) {
   const { user } = useAuth();
   const [on, setOn] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [peerCount, setPeerCount] = useState(0);
   const [muted, setMuted] = useState(false);
-  const [otherOnline, setOtherOnline] = useState(false);
   const [connected, setConnected] = useState(false);
-  const localStreamRef = useRef<MediaStream | null>(null);
-  const pcsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
-  const pendingIceRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
-  const audiosRef = useRef<Map<string, HTMLAudioElement>>(new Map());
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const presenceChRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const lastIncomingToastRef = useRef<number>(0);
+  const [peerCount, setPeerCount] = useState(0);
+  const clientRef = useRef<IAgoraRTCClient | null>(null);
+  const micRef = useRef<IMicrophoneAudioTrack | null>(null);
+  const remoteUsersRef = useRef<Set<string | number>>(new Set());
 
-  const cleanup = () => {
-    pcsRef.current.forEach((pc) => { try { pc.close(); } catch {} });
-    pcsRef.current.clear();
-    pendingIceRef.current.clear();
-    audiosRef.current.forEach((a) => { try { a.pause(); a.srcObject = null; a.remove(); } catch {} });
-    audiosRef.current.clear();
-    localStreamRef.current?.getTracks().forEach((t) => t.stop());
-    localStreamRef.current = null;
-    if (channelRef.current) { try { supabase.removeChannel(channelRef.current); } catch {} channelRef.current = null; }
+  const cleanup = useCallback(async () => {
+    try {
+      if (micRef.current) {
+        micRef.current.stop();
+        micRef.current.close();
+        micRef.current = null;
+      }
+      if (clientRef.current) {
+        await clientRef.current.leave();
+        clientRef.current.removeAllListeners();
+        clientRef.current = null;
+      }
+    } catch (e) {
+      console.warn("[agora] cleanup error", e);
+    }
+    remoteUsersRef.current.clear();
     setPeerCount(0);
     setConnected(false);
     setMuted(false);
-  };
-
-  useEffect(() => () => {
-    cleanup();
-    if (presenceChRef.current) { try { supabase.removeChannel(presenceChRef.current); } catch {} presenceChRef.current = null; }
   }, []);
 
-  // Lightweight presence listener — runs even when voice is OFF,
-  // so we can show "incoming call" hint when the opponent turns on their mic.
   useEffect(() => {
-    if (!user || !gameId) return;
-    const ch = supabase.channel(`voice-presence-${gameId}`, {
-      config: { presence: { key: user.id } },
-    });
-    presenceChRef.current = ch;
-    ch.on("presence", { event: "sync" }, () => {
-      const state = ch.presenceState();
-      const others = Object.keys(state).filter((k) => k !== user.id).length;
-      setOtherOnline(others > 0);
-      if (others > 0 && !on) {
-        const now = Date.now();
-        if (now - lastIncomingToastRef.current > 15_000) {
-          lastIncomingToastRef.current = now;
-          toast.info("📞 Niantso anao ny mpilalao iray — tsindrio Apel hamaly", { duration: 6000 });
-          try { navigator.vibrate?.([200, 100, 200]); } catch {}
-        }
-      }
-    });
-    ch.subscribe(async (status) => {
-      if (status === "SUBSCRIBED") {
-        try { await ch.track({ on: false, ts: Date.now() }); } catch {}
-      }
-    });
-    return () => {
-      try { supabase.removeChannel(ch); } catch {}
-      presenceChRef.current = null;
-    };
-  }, [user, gameId, on]);
+    return () => { cleanup(); };
+  }, [cleanup]);
 
-  const send = (payload: Signal) => {
-    channelRef.current?.send({ type: "broadcast", event: "signal", payload });
-  };
-
-  const ensurePc = (peer: string): RTCPeerConnection => {
-    let pc = pcsRef.current.get(peer);
-    if (pc) return pc;
-    pc = new RTCPeerConnection(ICE);
-    pcsRef.current.set(peer, pc);
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((t) => pc!.addTrack(t, localStreamRef.current!));
-    } else {
-      // Tsy maintsy misy transceiver audio mba afaka mifanakalo SDP
-      try { pc.addTransceiver("audio", { direction: "sendrecv" }); } catch {}
-    }
-    pc.onicecandidate = (e) => {
-      if (e.candidate && user) send({ kind: "ice", from: user.id, to: peer, candidate: e.candidate.toJSON() });
-    };
-    pc.ontrack = (e) => {
-      let audio = audiosRef.current.get(peer);
-      if (!audio) {
-        audio = document.createElement("audio");
-        audio.autoplay = true;
-        audio.muted = false;
-        audio.volume = 1.0;
-        (audio as any).playsInline = true;
-        document.body.appendChild(audio);
-        audiosRef.current.set(peer, audio);
-      }
-      audio.srcObject = e.streams[0];
-      audio.play().catch((err) => {
-        console.warn("[voice] autoplay blocked, retrying on next gesture", err);
-        const retry = () => { audio!.play().catch(() => {}); document.removeEventListener("click", retry); document.removeEventListener("touchstart", retry); };
-        document.addEventListener("click", retry, { once: true });
-        document.addEventListener("touchstart", retry, { once: true });
-      });
-      setConnected(true);
-      try { navigator.vibrate?.(80); } catch {}
-      toast.success("🎙️ Tafita ny appel — afaka miresaka ianareo");
-    };
-    pc.oniceconnectionstatechange = () => {
-      const st = pc!.iceConnectionState;
-      console.log(`[voice] ${peer.slice(0,6)} ICE: ${st}`);
-      if (st === "failed") {
-        try { pc!.restartIce(); } catch {}
-      }
-      if (st === "closed") {
-        pcsRef.current.delete(peer);
-        const a = audiosRef.current.get(peer);
-        if (a) { try { a.pause(); a.srcObject = null; a.remove(); } catch {} audiosRef.current.delete(peer); }
-      }
-    };
-    pc.onconnectionstatechange = () => {
-      console.log(`[voice] ${peer.slice(0,6)} conn: ${pc!.connectionState}`);
-    };
-    return pc;
-  };
-
-  const dial = async (peer: string) => {
-    if (!user) return;
-    if (pcsRef.current.has(peer)) return; // already negotiating
-    const pc = ensurePc(peer);
-    const offer = await pc.createOffer({ offerToReceiveAudio: true });
-    await pc.setLocalDescription(offer);
-    send({ kind: "offer", from: user.id, to: peer, sdp: offer });
-  };
+  // Leave channel when game id changes or component unmounts
+  useEffect(() => {
+    return () => { if (on) cleanup(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameId]);
 
   const turnOn = async () => {
-    if (!user || busy) return;
+    if (!user || busy || on) return;
     setBusy(true);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      // 1. Fetch token from edge function
+      const myUid = uidFromString(user.id);
+      const { data, error } = await supabase.functions.invoke("agora-token", {
+        body: { channelName: gameId, uid: myUid },
       });
-      localStreamRef.current = stream;
-      const ch = supabase.channel(`voice-${gameId}`, {
-        config: {
-          broadcast: { ack: false, self: false },
-          presence: { key: user.id },
-        },
-      });
-      channelRef.current = ch;
+      if (error || !data?.token || !data?.appId) {
+        throw new Error(error?.message || data?.error || "Tsy nahazo token");
+      }
+      const { token, appId } = data as { token: string; appId: string };
 
-      ch.on("broadcast", { event: "signal" }, async ({ payload }) => {
-        const sig = payload as Signal;
-        if (!user) return;
-        if ("to" in sig && sig.to !== user.id) return;
-        if (sig.from === user.id) return;
+      // 2. Create client
+      const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+      clientRef.current = client;
+
+      client.on("user-published", async (remoteUser: IAgoraRTCRemoteUser, mediaType) => {
         try {
-          if (sig.kind === "offer") {
-            const pc = ensurePc(sig.from);
-            await pc.setRemoteDescription(sig.sdp);
-            // flush queued ICE
-            const queued = pendingIceRef.current.get(sig.from) ?? [];
-            for (const c of queued) { try { await pc.addIceCandidate(c); } catch {} }
-            pendingIceRef.current.delete(sig.from);
-            const ans = await pc.createAnswer();
-            await pc.setLocalDescription(ans);
-            send({ kind: "answer", from: user.id, to: sig.from, sdp: ans });
-          } else if (sig.kind === "answer") {
-            const pc = pcsRef.current.get(sig.from);
-            if (pc) {
-              await pc.setRemoteDescription(sig.sdp);
-              const queued = pendingIceRef.current.get(sig.from) ?? [];
-              for (const c of queued) { try { await pc.addIceCandidate(c); } catch {} }
-              pendingIceRef.current.delete(sig.from);
-            }
-          } else if (sig.kind === "ice") {
-            const pc = pcsRef.current.get(sig.from);
-            if (pc && pc.remoteDescription) {
-              try { await pc.addIceCandidate(sig.candidate); } catch {}
-            } else {
-              const arr = pendingIceRef.current.get(sig.from) ?? [];
-              arr.push(sig.candidate);
-              pendingIceRef.current.set(sig.from, arr);
-            }
+          await client.subscribe(remoteUser, mediaType);
+          if (mediaType === "audio") {
+            remoteUser.audioTrack?.play();
+            remoteUsersRef.current.add(remoteUser.uid);
+            setPeerCount(remoteUsersRef.current.size);
+            setConnected(true);
+            try { navigator.vibrate?.(80); } catch {}
+            toast.success("🎙️ Tafita — afaka miresaka ianareo");
           }
-        } catch (err) {
-          console.warn("[voice] signal handler error", err);
+        } catch (e) {
+          console.warn("[agora] subscribe failed", e);
         }
       });
 
-      // Presence-driven dialing — every time the peer set changes,
-      // for each peer where my id < their id, dial them.
-      ch.on("presence", { event: "sync" }, () => {
-        if (!user) return;
-        const state = ch.presenceState();
-        const peers = Object.keys(state).filter((k) => k !== user.id);
-        setPeerCount(peers.length);
-        for (const p of peers) {
-          if (user.id < p && !pcsRef.current.has(p)) {
-            dial(p).catch(() => {});
-          }
+      client.on("user-unpublished", (remoteUser) => {
+        remoteUsersRef.current.delete(remoteUser.uid);
+        setPeerCount(remoteUsersRef.current.size);
+        if (remoteUsersRef.current.size === 0) setConnected(false);
+      });
+
+      client.on("user-left", (remoteUser) => {
+        remoteUsersRef.current.delete(remoteUser.uid);
+        setPeerCount(remoteUsersRef.current.size);
+        if (remoteUsersRef.current.size === 0) setConnected(false);
+      });
+
+      client.on("connection-state-change", (cur, prev) => {
+        console.log(`[agora] ${prev} -> ${cur}`);
+        if (cur === "RECONNECTING") toast.info("Mamerina connexion…");
+        if (cur === "DISCONNECTED" && prev !== "DISCONNECTING") {
+          toast.error("Tapaka ny appel");
         }
       });
 
-      await new Promise<void>((resolve, reject) => {
-        ch.subscribe(async (status) => {
-          if (status === "SUBSCRIBED") {
-            try { await ch.track({ online: true, ts: Date.now() }); } catch {}
-            resolve();
-          } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-            reject(new Error(status));
-          }
-        });
+      // 3. Join channel
+      await client.join(appId, gameId, token, myUid);
+
+      // 4. Create local mic with HD voice + processing
+      const mic = await AgoraRTC.createMicrophoneAudioTrack({
+        encoderConfig: "speech_standard",
+        AEC: true,
+        ANS: true,
+        AGC: true,
       });
+      micRef.current = mic;
+      await client.publish([mic]);
+
       setOn(true);
       toast.success("Voice chat misokatra 🎙️");
     } catch (e: any) {
-      toast.error("Tsy afaka mampiasa micro: " + (e?.message ?? e));
-      cleanup();
+      console.error("[agora] turnOn failed", e);
+      toast.error("Tsy afaka misokatra: " + (e?.message ?? e));
+      await cleanup();
     } finally {
       setBusy(false);
     }
   };
 
-  const turnOff = () => {
-    cleanup();
+  const turnOff = async () => {
+    await cleanup();
     setOn(false);
-    // Re-announce as off via presence channel
-    if (presenceChRef.current) {
-      try { presenceChRef.current.track({ on: false, ts: Date.now() }); } catch {}
-    }
   };
 
-  const toggleMute = () => {
-    const s = localStreamRef.current;
-    if (!s) return;
+  const toggleMute = async () => {
+    const m = micRef.current;
+    if (!m) return;
     const next = !muted;
-    s.getAudioTracks().forEach((t) => (t.enabled = !next));
+    await m.setMuted(next);
     setMuted(next);
   };
 
   return (
     <div className="flex items-center gap-1.5">
-      {/* Mute toggle — only visible when call is on */}
       {on && (
         <button
           type="button"
@@ -317,22 +182,19 @@ export default function LudoVoiceChat({ gameId }: { gameId: string }) {
         </button>
       )}
 
-      {/* Main call button */}
       <button
         type="button"
         onClick={() => (on ? turnOff() : turnOn())}
         disabled={busy}
         title={on ? "Tapaho ny appel" : "Antsoy ny mpilalao"}
-        className={`relative h-10 px-3 rounded-full flex items-center gap-1.5 active:scale-95 transition disabled:opacity-50 ${
-          on ? "" : otherOnline ? "animate-pulse" : ""
-        }`}
+        className={`relative h-10 px-3 rounded-full flex items-center gap-1.5 active:scale-95 transition disabled:opacity-50`}
         style={{
           background: on
             ? (connected ? "rgba(16,185,129,0.95)" : "rgba(234,179,8,0.95)")
-            : (otherOnline ? "rgba(239,68,68,0.95)" : "rgba(255,255,255,0.1)"),
+            : "rgba(255,255,255,0.12)",
           boxShadow: on
             ? "0 0 0 2px rgba(255,255,255,0.5), 0 0 18px rgba(16,185,129,0.7)"
-            : (otherOnline ? "0 0 0 2px #fff, 0 0 18px rgba(239,68,68,0.9)" : "0 0 0 2px rgba(255,255,255,0.3)"),
+            : "0 0 0 2px rgba(255,255,255,0.3)",
         }}
       >
         {on ? (
@@ -345,9 +207,7 @@ export default function LudoVoiceChat({ gameId }: { gameId: string }) {
         ) : (
           <>
             <Phone className="w-4 h-4 text-white" />
-            <span className="text-[11px] font-bold text-white tracking-wide">
-              {otherOnline ? "MAMALY" : "APEL"}
-            </span>
+            <span className="text-[11px] font-bold text-white tracking-wide">APEL</span>
           </>
         )}
         {peerCount > 0 && on && (

@@ -1020,6 +1020,13 @@ export default function PetanqueGame() {
         <ArrowLeft className="w-4 h-4" /> Retour
       </button>
 
+      {/* Voice chat — Agora RTC */}
+      {g.status === "in_progress" && (
+        <div className="absolute top-24 right-3 z-30">
+          <LudoVoiceChat gameId={g.id} />
+        </div>
+      )}
+
       {/* Drag-to-throw pad — toy ny mitarika tady */}
       {isMyTurn && !throwing && (
         <div

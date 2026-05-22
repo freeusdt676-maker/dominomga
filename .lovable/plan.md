@@ -1,77 +1,70 @@
-## Tanjona
-Hanampy lalao fahatelo (**Pétanque 3D**) miaraka amin'ny lobby manokana sy bokotra manokana eo amin'ny Home — filaharana vaovao: **Domino → Ludo Master → Pétanque**.
+## Ludo + Profiles + Admin Refactor — Plan
 
-## 1. Home — filaharana sy bokotra vaovao
-- Asiana karazana fahatelo "Pétanque" ao amin'ny `Index.tsx`/`Home.tsx`, miaraka amin'ny sary banner Malagasy (baobab + flag), bokotra "Lobby Pétanque".
-- Filaharana: Domino (ambony) → Ludo Master → Pétanque (ambany).
+This is a large, multi-area refactor. I'll split it into clear deliverables and ship them in sequence. Before I start coding, please confirm the plan so we agree on scope.
 
-## 2. Lobby Pétanque (route `/petanque`)
-- Mitovy interface amin'ny Lobby Domino sy Ludo, fa misy filtra ho an'ny lalao Pétanque ihany.
-- Mise: **1000, 2000, 3000, 5000, 10000 Ar** (chips).
-- Vary 2P ihany, commission 10%, ticket auto, debounce 1 demande/olona (mitovy règle amin'ny Domino).
-- Lobby chat mampiasa ny `lobby_messages` efa misy fa misy fanovana kely (tsy mila table vaovao).
+### Part 1 — Ludo gameplay logic (`src/pages/LudoGame.tsx`, `src/lib/ludoEngine.ts`, RPC `ludo_update_state`)
+- Auto-release a pawn when dice = 6 **and** the player has zero pawns on the board (no manual click).
+- When dice = 6 and the player already has active pawns → wait for manual selection (existing behavior, verified).
+- Bonus turn after a capture (already partly present — ensure it always fires).
+- Bonus turn when a pawn reaches Home (pos 57).
+- Consecutive 6 rules: 1st & 2nd 6 → bonus turn; 3rd consecutive 6 → invalidate the roll, no movement, immediate turn pass.
 
-## 3. Backend — table sy RPC vaovao
-Table `petanque_games` (mitovy structure amin'ny `ludo_games`) miaraka amin'ny RLS sy RPC:
-- `petanque_create_waiting(stake)`
-- `petanque_join_and_start(game_id, user)`
-- `petanque_cancel_waiting(game_id)`
-- `petanque_update_state(game_id, balls, current_turn, scores...)`
-- `petanque_settle(game_id, winner)` — pot = (stake−10%)×2
-- `petanque_start_deduct` — mitovy logika amin'ny Ludo
-- Admin cancel + cancel_all + cancel_by_ticket — havaozina mba ahitana koa ny Pétanque.
+### Part 2 — Turn timer & forfeit
+- Strict **20 s** countdown per turn (UI + auto-skip logic on the active client, with `turn_started_at` already in DB).
+- Track consecutive skips per seat in a new column `skips_by_seat jsonb` on `ludo_games`.
+- After **3 consecutive skips** for one seat in a 2-player game, the opponent wins automatically (`ludo_settle`). For 3P/4P, the seat is marked eliminated and remaining players continue; last remaining wins.
+- Disconnect = same path (driven by timer skips).
 
-Realtime: `ALTER PUBLICATION supabase_realtime ADD TABLE public.petanque_games;`
+### Part 3 — Server-side dice (anti-cheat)
+- New SECURITY DEFINER RPC `ludo_roll_dice(_game_id)` that:
+  - Verifies caller is the seat whose turn it is.
+  - Generates a cryptographically random 1–6 server-side.
+  - Updates `last_dice`, `dice_rolled=true`, increments `consecutive_sixes`, and applies the 3-sixes penalty server-side (rotates seat, resets counters).
+  - Auto-releases a pawn if dice=6 & no active pawns (server-side mutation of `pawns`).
+- Frontend stops generating dice locally; calls the RPC.
 
-## 4. Lalao 3D (route `/petanque/:id`)
-Stack: **@react-three/fiber@^8.18 + @react-three/drei@^9.122 + three@^0.160**. **Tsy mampiasa physics engine lehibe** — mampiasa simulation tsotra (vélocité + friction + collision sphère/sphère sy sphère/mur) ataontsika manokana mba ho malama amin'ny finday rehetra (60fps target).
+### Part 4 — Profile display & multiplayer privacy
+- **Home screen**: add a "Mon profil" card showing Name, Phone, Account ID (`player_number`), masked Password (••••••), masked PIN (••••), and Selfie/Avatar — with show/hide eye toggles for password & PIN.
+- **In-game opponent display** (Ludo, Domino, Pétanque): only `mvola_name` + `avatar_url`. Audit existing components and strip any phone/PIN/password fields shown to opponents.
 
-### Décor Malagasy (low-poly mba ho malama)
-- **Baobab** havia/havanana — geometry procédurale (cylinder + sphere clusters), tsy GLB.
-- **Court** (terrain) — plane texturée vato/fasika (CanvasTexture procédurale), bordure hazo.
-- **Aloalo** 4 — colonne miaraka amin'ny sary ambony (BoxGeometry stacked).
-- **Satroka penjy + zebu** — sprite/plane texturée tsotra eo amin'ny sisin'ny terrain.
-- **Foule** — InstancedMesh 10–15 olona stylisé (capsule + sphère), animation idle (sinus bob).
-- **Sainam-pirenena Madagascar** — plane texturée miaraka amin'ny "vertex shader wave" tsotra.
-- **Lanitra** — gradient sky (Sky component + Environment preset "park").
+### Part 5 — Profile edit + admin validation workflow
+- New button on Home: **"Remplir les informations"** → opens `/profile/edit`.
+- Form fields: Name, Phone, Password, PIN, Selfie.
+- **Selfie capture only**: use `<input type="file" accept="image/*" capture="user">` (forces camera on mobile; on desktop falls back to webcam via `getUserMedia`). No gallery picker UI exposed.
+- New table `public.profile_change_requests` (status: pending/approved/rejected) storing proposed changes + new selfie URL, with RLS (user inserts/sees own; admin sees all).
+- Submit button: **"Envoyer ADMINISTRATIF"** → inserts a pending request, does **not** mutate `profiles`.
+- Admin dashboard:
+  - New section "Validation profils" with side-by-side current vs proposed view.
+  - **Approve** → RPC `admin_approve_profile_change` updates `profiles` + auth password (via edge function for password) + notifies user via `chat_messages`.
+  - **Reject** → marks request rejected + notifies user.
+  - **Large red dot badge** on the Admin menu entry when pending requests > 0.
 
-### Gameplay (duel maty 12)
-- 6 baolina isan-mpilalao (3+3) loko mena/manga, **cochonnet** (jack) kely fotsy.
-- Tour-by-tour: mpilalao mametraka aim arrow (maitsy mavana mahitsy avy any ambany), mibata force amin'ny slider, mandefa.
-- Physics manokana: integrator step 1/60, restitution 0.4, friction 0.85.
-- Score isaky ny round: mpilalao izay manana baolina akaiky cochonnet kokoa no mahazo isa = isan'ny baolina akaiky kokoa noho ny baolina akaiky indrindra an'ny mpifanandrina. Maty 12.
-- Realtime sync amin'ny `petanque_games.state` (positions + scores + turn).
+### Database changes (single migration)
+1. `ALTER TABLE ludo_games ADD COLUMN skips_by_seat jsonb DEFAULT '{}'::jsonb;`
+2. New table `profile_change_requests` (user_id, status, proposed_mvola_name, proposed_phone, proposed_password, proposed_pin, proposed_selfie_url, admin_note, processed_by, processed_at, timestamps) + RLS + index.
+3. New RPC `ludo_roll_dice(_game_id uuid)` (server-side dice + 3-sixes handling + auto-release).
+4. New RPC `ludo_skip_turn(_game_id uuid)` (timer expiry; updates skips_by_seat; auto-forfeit when threshold hit; calls `ludo_settle` for last remaining).
+5. New RPC `admin_approve_profile_change(_req_id uuid)` / `admin_reject_profile_change(_req_id uuid, _reason text)`.
+6. Storage bucket `selfies` (private, with RLS for user upload + admin read) — reuse existing if present.
 
-### UI Overlay (atao mitovy amin'ny sary 2)
-- Glass-orb avatars ambony havia/havanana miaraka amin'ny score + saina Madagascar.
-- "Boules indicators" havia/havanana (ronds fotsy/maitsy/mena).
-- Aim arrow maitso mavana mahitsy ambany afovoany + slider force.
-- Bokotra Pause maitsy ambany havanana miaraka amin'ny dekor "seashell" (SVG).
+### Edge function
+- `admin-update-password` (verify_jwt = true; admin-only) — uses service role to update `auth.users` password when an approved change request includes a new password.
 
-### Audio
-- Ambient nature loop + crowd murmure tsotra (Web Audio API oscillator-based ambiance) + sound effect rehefa mifanitsaka ny baolina.
+### Files to create/edit
+- Migration (new).
+- `supabase/functions/admin-update-password/index.ts` (new).
+- `src/pages/LudoGame.tsx` — switch dice to RPC, add 20s timer UI, auto-skip, auto-release on 6.
+- `src/lib/ludoEngine.ts` — small helpers if needed.
+- `src/pages/Home.tsx` — profile card + "Remplir les informations" button.
+- `src/pages/ProfileEdit.tsx` (new).
+- `src/pages/Admin.tsx` — pending profile section + red badge.
+- `src/components/PendingProfileApprovals.tsx` (new).
+- Privacy audit pass on Ludo/Domino/Pétanque in-game UIs.
 
-## 5. Optimisation finday
-- `gl={{ antialias: true, powerPreference: "high-performance" }}`, `dpr={[1, 1.5]}` mba tsy ho pixelisé fa malama.
-- InstancedMesh ho an'ny vato kely, foule, satroka.
-- Texture procédurale CanvasTexture (tsy mila download).
-- Plein écran portrait force amin'ny CSS + `useEffect` `screen.orientation.lock("portrait")` raha azo.
+### Out of scope (will confirm later if needed)
+- I will not change Domino/Pétanque turn/dice logic — only their opponent-privacy display.
+- Voice chat untouched.
 
-## 6. Admin
-Havaozina `admin_cancel_all_active_games` + `admin_cancel_game_by_ticket` mba ahitana ny `petanque_games`.
+---
 
-## Dingana asa (filaharana)
-1. Migration: table `petanque_games` + RPC + RLS + realtime.
-2. Update Home: bokotra + filaharana vaovao.
-3. `PetanqueLobby.tsx` (copie ny lobby Ludo, ataovy "petanque").
-4. Install `three @react-three/fiber @react-three/drei` (exact versions).
-5. `PetanqueGame.tsx` + composants `Court`, `Boule`, `Baobab`, `Crowd`, `Flag`, `AimArrow`, `HUD`.
-6. Physics engine tsotra `petanqueEngine.ts`.
-7. Realtime sync + endgame settle.
-8. Admin updates.
-9. QA: jereo amin'ny mobile viewport 508×951.
-
-## Fanontaniana farany
-Ekena ve io plan io mba hanombohako ny code? Ny version voalohany dia hisy:
-- Décor 3D low-poly (baobab procédural, foule InstancedMesh, flag wave) — **mety tsy mitovy 100%** amin'ny sary 3D AAA fa malama amin'ny finday ary Malagasy-themed.
-- Multijoueurs 2P feno miaraka amin'ny mise sy maty 12.
+**Please reply "OK" (or with edits) and I'll execute this in one go.** Given the size, expect a single big change set with one migration + one edge function + several React file updates.

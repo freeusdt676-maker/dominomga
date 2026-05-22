@@ -15,7 +15,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { fmtAr, TURN_TIMEOUT_SEC } from "@/lib/constants";
+import { fmtAr } from "@/lib/constants";
+// Domino: tour mandritra 20 segondra (tsy mitovy amin'ny Ludo izay 10s)
+const TURN_TIMEOUT_SEC = 20;
 import { DominoTile, DominoBack } from "@/components/DominoTile";
 import { SnakeBoard } from "@/components/SnakeBoard";
 import { useThemeClass } from "@/hooks/use-theme-class";

@@ -516,6 +516,16 @@ export default function Admin() {
             ))}
           </TabsContent>
 
+          {/* PROFILS — pending profile change requests */}
+          <TabsContent value="profiles" className="space-y-2 mt-3 max-h-[70vh] overflow-y-auto">
+            <div className="card-felt rounded-xl p-3 mb-2 border-l-4 border-red-500">
+              <p className="text-xs text-foreground/80">
+                🔴 <b>Fanovana mombamomba miandry validation.</b> Jereo tsara ny "taloha vs vaovao" alohan'ny mankatò.
+              </p>
+            </div>
+            <PendingProfileApprovals onChange={() => undefined} />
+          </TabsContent>
+
           {/* TRANSACTIONS */}
           <TabsContent value="tx" className="space-y-2 mt-3">
             <div className="card-felt rounded-xl p-3 mb-2 border-l-4 border-primary">

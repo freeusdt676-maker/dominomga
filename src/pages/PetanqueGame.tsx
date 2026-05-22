@@ -1177,12 +1177,12 @@ function PlayerHalf({ name, avatarUrl, score, remaining, color, active, side }: 
   name: string; avatarUrl?: string | null; score: number; remaining: number; color: string; active: boolean; side: "left" | "right";
 }) {
   const initial = (name ?? "?").trim().charAt(0).toUpperCase();
-  const thrown = Math.max(0, 6 - remaining);
-  // Tabilao kely: 6 boules — efa natsipy (matt) sy mbola an-tanana (mamiratra)
+  const thrown = Math.max(0, BALLS_PER_PLAYER - remaining);
+  // Tabilao kely: 4 boules — efa natsipy (matt) sy mbola an-tanana (mamiratra)
   const boules = (
     <div className={`flex items-center gap-1.5 ${side === "right" ? "flex-row-reverse" : ""}`}>
       <div className={`flex gap-0.5 ${side === "right" ? "flex-row-reverse" : ""}`}>
-        {Array.from({ length: 6 }).map((_, i) => {
+        {Array.from({ length: BALLS_PER_PLAYER }).map((_, i) => {
           const inHand = i < remaining;
           return (
             <div
@@ -1200,7 +1200,7 @@ function PlayerHalf({ name, avatarUrl, score, remaining, color, active, side }: 
         })}
       </div>
       <span className="text-[9px] font-bold text-white/70 tabular-nums">
-        {thrown}/<span className="text-white">6</span>
+        {thrown}/<span className="text-white">{BALLS_PER_PLAYER}</span>
       </span>
     </div>
   );

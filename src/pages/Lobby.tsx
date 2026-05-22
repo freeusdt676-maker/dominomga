@@ -61,9 +61,27 @@ export default function Lobby() {
       .or("status.eq.waiting,and(status.eq.in_progress,player3_id.is.null)")
       .order("created_at", { ascending: true });
     const list = (gs ?? []) as WaitingGame[];
+    // Fetra: 2 minitra. Raha tsy misy miditra ao anatin'ny 2 min,
+    // dia foanana ny demande mba tsy hijanona ho "vovoka" ao amin'ny lobby.
+    const EXPIRY_MS = 2 * 60 * 1000;
+    const nowMs = Date.now();
+    // Foanana ny salaa-ko manokana raha efa lasa 2 min nefa tsy misy mpiditra.
+    const mineExpired = list.find(
+      (g) =>
+        g.player1_id === user.id &&
+        g.status === "waiting" &&
+        !g.player2_id &&
+        nowMs - new Date(g.created_at).getTime() > EXPIRY_MS,
+    );
+    if (mineExpired) {
+      await supabase.rpc("cancel_waiting_game", { _game_id: mineExpired.id });
+    }
     // Only keep games still seeking players (3P with empty seat, 2P waiting)
     const open = list.filter((g) => {
       const pc = Number(g.players_count ?? 2);
+      // Esory amin'ny liste izay efa lasa 2 minitra niandry.
+      const ageMs = nowMs - new Date(g.created_at).getTime();
+      if (ageMs > EXPIRY_MS && g.status === "waiting") return false;
       if (pc === 2) return g.status === "waiting" && !g.player2_id;
       // 3P
       return !g.player3_id && (g.status === "waiting" || g.status === "in_progress");

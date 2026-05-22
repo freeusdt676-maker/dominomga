@@ -611,16 +611,19 @@ export default function PetanqueGame() {
         if (sp < COURT.minSpeed) { j.vx = 0; j.vz = 0; } else moving = true;
       } else {
         moving = stepPhysics(sim.balls, sim.jack, dt);
-        const { forfeitedIds } = detectForfeits(sim.balls, null);
-        if (forfeitedIds.length) {
-          sim.balls = sim.balls.filter((b) => !forfeitedIds.includes(b.id));
-        }
       }
       setSimBalls([...sim.balls]);
       if (sim.jack) setSimJack({ ...sim.jack });
       if (moving && now - start < 8000) {
         requestAnimationFrame(loop);
       } else {
+        // Simulation finished: now (and only now) remove balls that came to
+        // rest pressed against a wall (forfeit). Mid-flight balls stay visible.
+        const { forfeitedIds } = detectForfeits(sim.balls, null);
+        if (forfeitedIds.length) {
+          sim.balls = sim.balls.filter((b) => !forfeitedIds.includes(b.id));
+          setSimBalls([...sim.balls]);
+        }
         if (commit) {
           if (jackPhase && sim.jack) {
             finishJackThrow({ x: sim.jack.x, z: sim.jack.z }, thrower).catch((e) => toast.error(e.message));

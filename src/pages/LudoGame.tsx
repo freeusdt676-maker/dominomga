@@ -38,7 +38,7 @@ type LG = {
   updated_at: string;
 };
 
-const TURN_LIMIT = 20;
+const TURN_LIMIT = 10;
 const MOVE_ANIMATION_MS = 520;
 const QUICK_PASS_DELAY_MS = 850;
 const BLOCKER_SAFETY_MS = 8000;

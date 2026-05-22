@@ -664,3 +664,48 @@ html.theme-petanque {
   50%     { text-shadow: 0 4px 26px rgba(34,197,94,0.95), 0 0 40px rgba(255,216,74,0.85); }
 }
 .domino-win-glow { animation: domino-win-text-glow 1.4s ease-in-out infinite; }
+
+/* ===== Domino defeat: sad shake + falling tears ===== */
+@keyframes domino-lose-pop {
+  0%   { transform: scale(0.7) translateY(-20px); opacity: 0; }
+  40%  { transform: scale(1.04) translateY(0);    opacity: 1; }
+  55%  { transform: scale(1) translateX(-8px); }
+  70%  { transform: scale(1) translateX(8px); }
+  85%  { transform: scale(1) translateX(-4px); }
+  100% { transform: scale(1) translateX(0); }
+}
+.domino-lose-pop { animation: domino-lose-pop 900ms ease-out both; }
+@keyframes sad-emoji-bob {
+  0%,100% { transform: translateY(0) rotate(-4deg); }
+  50%     { transform: translateY(4px) rotate(4deg); }
+}
+.sad-emoji { display: inline-block; animation: sad-emoji-bob 1.6s ease-in-out infinite; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5)); }
+@keyframes sad-title-fade {
+  0%,100% { opacity: 0.85; text-shadow: 0 2px 10px rgba(239,68,68,0.4); }
+  50%     { opacity: 1;    text-shadow: 0 2px 18px rgba(239,68,68,0.85); }
+}
+.sad-title { animation: sad-title-fade 1.8s ease-in-out infinite; }
+@keyframes sad-tear-fall {
+  0%   { transform: translateY(-10vh) scaleY(0.6); opacity: 0; }
+  15%  { opacity: 0.9; }
+  100% { transform: translateY(110vh) scaleY(1.2); opacity: 0; }
+}
+.sad-tear {
+  position: absolute;
+  top: -20px;
+  width: 3px; height: 14px;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: linear-gradient(180deg, rgba(180,220,255,0.9), rgba(80,140,220,0.7));
+  box-shadow: 0 0 6px rgba(120,180,255,0.7);
+  animation: sad-tear-fall linear forwards;
+}
+
+/* ===== Smooth tactile feedback on all buttons ===== */
+button, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease, opacity 120ms ease;
+}
+button:active:not(:disabled), [role="button"]:active:not([aria-disabled="true"]) {
+  transform: scale(0.97);
+}

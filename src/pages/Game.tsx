@@ -664,6 +664,8 @@ export default function Game() {
 
   const autoPass = async () => {
     if (!isMyTurn || !game || !user) return;
+    // Raha lany ny vato (vita ny tour) dia tsy mandalo mihitsy — andraso ny tour vaovao.
+    if (myHand.length === 0) return;
     const oppId = nextTurnId(game, user.id);
     const pc = Number(game.players_count ?? 2);
     const passes = (game.passes ?? 0) + 1;

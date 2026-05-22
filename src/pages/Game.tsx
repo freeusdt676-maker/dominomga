@@ -767,13 +767,14 @@ export default function Game() {
     if (!isMyTurn || !game) return;
     if (isRevealing) return;
     if (hasMove(myHand, board)) return;
+    // Andraso ho tapitra ny 20s alohan'ny handeha-ho azy mba hahafahan'ny mpilalao mijery
+    if (elapsed < TURN_TIMEOUT_SEC) return;
     const key = `${game.id}-pass-${game.turn_started_at}`;
     if (autoPassRef.current === key) return;
     autoPassRef.current = key;
-    const t = setTimeout(() => { autoPass(); }, 400);
-    return () => clearTimeout(t);
+    void autoPass();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMyTurn, myHand, board, game?.turn_started_at, isRevealing]);
+  }, [isMyTurn, myHand, board, game?.turn_started_at, isRevealing, elapsed]);
 
   useEffect(() => {
     if (selected === null) return;

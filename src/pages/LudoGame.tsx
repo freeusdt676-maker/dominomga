@@ -38,7 +38,7 @@ type LG = {
   updated_at: string;
 };
 
-const TURN_LIMIT = 10;
+const TURN_LIMIT = 20;
 const MOVE_ANIMATION_MS = 520;
 const QUICK_PASS_DELAY_MS = 850;
 const BLOCKER_SAFETY_MS = 8000;
@@ -344,12 +344,18 @@ export default function LudoGame() {
             clearUiBlockers();
           }
         }, QUICK_PASS_DELAY_MS);
-      } else if (moves.length === 1) {
-        // Single legal move → auto-execute without waiting for tap
-        clearRefTimeout(autoResolveRef);
-        autoResolveRef.current = window.setTimeout(() => {
-          handlePawn(moves[0]).catch(() => undefined);
-        }, AUTO_MOVE_DELAY_MS);
+      } else {
+        // Auto-release: if dice=6 and ALL pawns are still in base, auto-exit one pawn.
+        const seatPawns = (state.pawns ?? []).filter((p) => p.seat === state.current_turn_seat);
+        const noneOnBoard = seatPawns.every((p) => p.pos <= 0 || p.pos === 57);
+        const shouldAutoRelease = dice === 6 && noneOnBoard;
+        if (moves.length === 1 || shouldAutoRelease) {
+          clearRefTimeout(autoResolveRef);
+          autoResolveRef.current = window.setTimeout(() => {
+            handlePawn(moves[0]).catch(() => undefined);
+          }, AUTO_MOVE_DELAY_MS);
+        }
+        // Otherwise: dice=6 + pawns already active → wait for manual choice.
       }
     } catch (error: any) {
       toast.error(error?.message ?? "Nisy olana tamin'ny dé");
@@ -411,13 +417,13 @@ export default function LudoGame() {
       }
 
       const sixes = dice === 6 ? state.consecutive_sixes : 0;
-      // Bonus turn ONLY on a 6 (not on captures, not on finishing a pawn)
-      const gotBonus = dice === 6 && sixes < 3;
+      // Bonus turn on a 6, a capture, or when a pawn reaches Home.
+      const gotBonus = (dice === 6 && sixes < 3) || res.captured > 0 || res.finishedPawn;
       let ns: number;
       let resetSixes = false;
       if (gotBonus) {
         ns = state.current_turn_seat;
-        resetSixes = false;
+        resetSixes = dice !== 6; // capture/finish bonus resets the sixes counter
       } else {
         const i = seats.indexOf(state.current_turn_seat);
         ns = seats[(i + 1) % seats.length];

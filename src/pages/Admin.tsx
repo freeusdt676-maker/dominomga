@@ -432,11 +432,19 @@ export default function Admin() {
         </button>
 
         <Tabs defaultValue="users">
-          <TabsList className="grid grid-cols-5 w-full text-[10px]">
+          <TabsList className="grid grid-cols-6 w-full text-[10px]">
             <TabsTrigger value="users" className="relative">
               Mpilalao
               {pendingUsersCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-5 h-5 text-[10px] flex items-center justify-center font-bold">{pendingUsersCount}</span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="profiles" className="relative">
+              Profils
+              {pendingProfileCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full min-w-[22px] h-[22px] px-1.5 text-[10px] flex items-center justify-center font-bold ring-2 ring-red-300 animate-pulse shadow-lg shadow-red-500/60">
+                  {pendingProfileCount}
+                </span>
               )}
             </TabsTrigger>
             <TabsTrigger value="tx" className="relative">

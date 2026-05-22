@@ -968,7 +968,7 @@ export type Database = {
       petanque_cancel_waiting: { Args: { _game_id: string }; Returns: Json }
       petanque_join_and_start: {
         Args: { _game_id: string; _user: string }
-        Returns: Json
+        Returns: undefined
       }
       petanque_settle: {
         Args: { _game_id: string; _winner: string }

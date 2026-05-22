@@ -11,6 +11,7 @@ import { ArrowLeft, Check, X, Megaphone, Wallet as WalletIcon, UserCheck, Eye, E
 import { fmtAr } from "@/lib/constants";
 import { toast } from "sonner";
 import { DominoTile } from "@/components/DominoTile";
+import PendingProfileApprovals from "@/components/PendingProfileApprovals";
 export default function Admin() {
   const { user, isAdmin } = useAuth();
   const nav = useNavigate();
@@ -45,6 +46,7 @@ export default function Admin() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelAllOpen, setCancelAllOpen] = useState(false);
   const [cancelAllPin, setCancelAllPin] = useState("");
+  const [pendingProfileCount, setPendingProfileCount] = useState(0);
   const adminId = user?.id ?? resolvedAdminId;
   const normalizeTicket = (value: string) => value.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
   const detectedCancelGame = history.find((item) => normalizeTicket(item.ticket_number ?? "") === normalizeTicket(cancelTicketInput));
@@ -56,6 +58,24 @@ export default function Admin() {
       });
     }
   }, [user?.id, codeOk, resolvedAdminId]);
+
+  // Pending profile approvals count + realtime
+  useEffect(() => {
+    if (!allowed) return;
+    const loadCount = async () => {
+      const { count } = await supabase
+        .from("profile_change_requests" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending");
+      setPendingProfileCount(count ?? 0);
+    };
+    loadCount();
+    const ch = supabase
+      .channel("admin-pcr-count")
+      .on("postgres_changes", { event: "*", schema: "public", table: "profile_change_requests" }, () => loadCount())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [allowed]);
 
   const load = async () => {
     // 1) Profiles (rehetra)

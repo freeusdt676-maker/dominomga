@@ -30,11 +30,15 @@ export function isJackValid(j: Jack | null): boolean {
 }
 
 // Detects balls that have been clamped against a court wall (i.e. flew off the terrain).
-// They are FORFEIT: caller should remove them.
+// They are FORFEIT only when STOPPED at the wall — never mid-flight, so balls
+// remain visible during their whole roll and only disappear once they come to
+// rest pressed against an edge.
 export function detectForfeits(balls: Ball[], jack: Jack | null) {
   const eps = 0.005;
   const out: string[] = [];
   for (const b of balls) {
+    const speed = Math.hypot(b.vx, b.vz);
+    if (speed > 0.001) continue; // still rolling → keep visible
     const atWall =
       Math.abs(b.x - (COURT.minX + COURT.ballR)) < eps ||
       Math.abs(b.x - (COURT.maxX - COURT.ballR)) < eps ||

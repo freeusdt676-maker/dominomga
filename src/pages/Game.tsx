@@ -377,11 +377,15 @@ export default function Game() {
     const sumOthers = totals.slice(1).reduce((s, x) => s + x.p, 0);
     const points = sumOthers - totals[0].p;
     const winnerName = (profileNames[winnerId] ?? "Mpandresy");
+    const loserIds = totals.slice(1).map((x) => x.id);
+    const loserName = loserIds
+      .map((id) => profileNames[id] ?? "Mpilalao")
+      .join(" sy ");
     await finishRound(
       winnerId,
       points,
       null,
-      `${winnerName} — Bloqué (vato kely indrindra) +${points}`,
+      `${loserName} maty satria bloqué (vato lehibe kokoa) — ${winnerName} +${points}`,
     );
   };
 

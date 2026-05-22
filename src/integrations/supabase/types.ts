@@ -383,6 +383,7 @@ export type Database = {
           player4_id: string | null
           players_count: number
           seat_assignment: Json | null
+          skips_by_seat: Json
           stake: number
           status: Database["public"]["Enums"]["game_status"]
           ticket_number: string | null
@@ -406,6 +407,7 @@ export type Database = {
           player4_id?: string | null
           players_count?: number
           seat_assignment?: Json | null
+          skips_by_seat?: Json
           stake: number
           status?: Database["public"]["Enums"]["game_status"]
           ticket_number?: string | null
@@ -429,6 +431,7 @@ export type Database = {
           player4_id?: string | null
           players_count?: number
           seat_assignment?: Json | null
+          skips_by_seat?: Json
           stake?: number
           status?: Database["public"]["Enums"]["game_status"]
           ticket_number?: string | null
@@ -558,6 +561,54 @@ export type Database = {
           turn_started_at?: string | null
           updated_at?: string
           winner_id?: string | null
+        }
+        Relationships: []
+      }
+      profile_change_requests: {
+        Row: {
+          admin_note: string | null
+          created_at: string
+          id: string
+          processed_at: string | null
+          processed_by: string | null
+          proposed_mvola_name: string | null
+          proposed_password: string | null
+          proposed_phone: string | null
+          proposed_pin: string | null
+          proposed_selfie_url: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          proposed_mvola_name?: string | null
+          proposed_password?: string | null
+          proposed_phone?: string | null
+          proposed_pin?: string | null
+          proposed_selfie_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          proposed_mvola_name?: string | null
+          proposed_password?: string | null
+          proposed_phone?: string | null
+          proposed_pin?: string | null
+          proposed_selfie_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -774,6 +825,7 @@ export type Database = {
         Args: { _challenge_id: string }
         Returns: Json
       }
+      admin_approve_profile_change: { Args: { _req_id: string }; Returns: Json }
       admin_approve_tx: {
         Args: { _admin_id: string; _tx_id: string }
         Returns: Json
@@ -821,6 +873,10 @@ export type Database = {
           phone: string
           user_ids: string[]
         }[]
+      }
+      admin_reject_profile_change: {
+        Args: { _reason?: string; _req_id: string }
+        Returns: Json
       }
       admin_reject_tx: {
         Args: { _admin_id: string; _tx_id: string }
@@ -891,6 +947,7 @@ export type Database = {
         Args: { _game_id: string; _user: string }
         Returns: Json
       }
+      ludo_record_skip: { Args: { _game_id: string }; Returns: Json }
       ludo_settle: {
         Args: { _game_id: string; _winner: string }
         Returns: Json
@@ -973,6 +1030,16 @@ export type Database = {
         Returns: Json
       }
       start_game_deduct: { Args: { _game_id: string }; Returns: Json }
+      submit_profile_change_request: {
+        Args: {
+          _mvola_name?: string
+          _password?: string
+          _phone?: string
+          _pin?: string
+          _selfie_url?: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       account_status: "pending" | "active" | "blocked"

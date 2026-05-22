@@ -349,48 +349,142 @@ function CameraRig() {
 function AimArrow({ angleDeg, force, visible, jack, isJackPhase }: {
   angleDeg: number; force: number; visible: boolean; jack: Jack | null; isJackPhase: boolean;
 }) {
-  const ref = useRef<THREE.Group>(null);
-  useFrame((s) => {
-    if (ref.current) {
-      // tsotitsoty pulse mba ho velona
-      const t = s.clock.elapsedTime;
-      ref.current.scale.y = 1 + Math.sin(t * 4) * 0.04;
-    }
-  });
-  if (!visible) return null;
-  // Default target: jack position. If no jack yet (throw_jack), aim straight at z=6.
+  const groupRef = useRef<THREE.Group>(null);
+  const ringRef = useRef<THREE.Mesh>(null);
+  const landingRef = useRef<THREE.Group>(null);
+  const chevronsRef = useRef<THREE.Group>(null);
+
+  // Build a stable chevron template once
+  const CHEVRON_COUNT = 14;
+
+  // Color gradient: green (faible) → amber → rouge (intense)
+  const color = useMemo(() => {
+    const t = Math.max(0, Math.min(1, force / 100));
+    const c = new THREE.Color();
+    if (t < 0.5) c.lerpColors(new THREE.Color("#22ff88"), new THREE.Color("#fbbf24"), t / 0.5);
+    else c.lerpColors(new THREE.Color("#fbbf24"), new THREE.Color("#ef4444"), (t - 0.5) / 0.5);
+    return c;
+  }, [force]);
+  const hex = `#${color.getHexString()}`;
+
+  // Target & length
   const targetZ = isJackPhase || !jack ? 6.5 : jack.z;
   const baseLen = Math.max(2.2, Math.min(10, targetZ - -1.3));
-  // Force visually scales arrow length (25% .. 110%) — réactive amin'ny drag
-  const len = baseLen * (0.25 + (force / 100) * 0.85);
+  const len = baseLen * (0.3 + (force / 100) * 0.85);
   const rad = (angleDeg * Math.PI) / 180;
   const dx = Math.sin(rad) * len;
   const dz = Math.cos(rad) * len;
+
+  useFrame((s) => {
+    const t = s.clock.elapsedTime;
+    if (ringRef.current) {
+      const sc = 1 + Math.sin(t * 3.2) * 0.08;
+      ringRef.current.scale.set(sc, sc, sc);
+    }
+    if (landingRef.current) {
+      const sc = 1 + Math.sin(t * 2.4) * 0.12;
+      landingRef.current.scale.set(sc, 1, sc);
+    }
+    if (chevronsRef.current) {
+      // animate chevron opacity flowing forward
+      const children = chevronsRef.current.children;
+      for (let i = 0; i < children.length; i++) {
+        const m = (children[i] as THREE.Mesh).material as THREE.MeshBasicMaterial;
+        const phase = (t * 1.8 + i / CHEVRON_COUNT) % 1;
+        m.opacity = 0.25 + 0.75 * Math.pow(1 - phase, 1.6);
+      }
+    }
+  });
+
+  if (!visible) return null;
+
+  // Chevron positions along the shaft direction
+  const chevrons = [];
+  for (let i = 0; i < CHEVRON_COUNT; i++) {
+    const k = (i + 1) / (CHEVRON_COUNT + 1);
+    chevrons.push({
+      x: dx * k,
+      z: dz * k,
+      // shrink to a point near the tip
+      scale: 0.45 + (1 - Math.abs(k - 0.5) * 1.4) * 0.55,
+    });
+  }
+
   return (
-    <group ref={ref} position={[0, 0.08, -1.3]}>
-      {/* base ring (anchor) */}
+    <group ref={groupRef} position={[0, 0.06, -1.3]}>
+      {/* Anchor ring at thrower's feet */}
+      <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.26, 0.4, 48]} />
+        <meshBasicMaterial color={hex} transparent opacity={0.9} />
+      </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.22, 0.32, 32]} />
-        <meshBasicMaterial color="#22ff66" transparent opacity={0.85} />
+        <ringGeometry args={[0.42, 0.48, 48]} />
+        <meshBasicMaterial color={hex} transparent opacity={0.35} />
       </mesh>
-      {/* glowing shaft — épais ho hita tsara */}
-      <mesh position={[dx / 2, 0.02, dz / 2]} rotation={[0, -rad, 0]}>
-        <boxGeometry args={[0.28, 0.06, len]} />
-        <meshStandardMaterial color="#22ff66" emissive="#22ff66" emissiveIntensity={1.4} transparent opacity={0.92} />
+
+      {/* Soft trajectory carpet on the ground */}
+      <mesh position={[dx / 2, 0.005, dz / 2]} rotation={[-Math.PI / 2, 0, -rad]}>
+        <planeGeometry args={[0.65, len]} />
+        <meshBasicMaterial color={hex} transparent opacity={0.18} />
       </mesh>
-      {/* secondary glow halo */}
-      <mesh position={[dx / 2, 0.01, dz / 2]} rotation={[-Math.PI / 2, 0, -rad]}>
-        <planeGeometry args={[0.55, len]} />
-        <meshBasicMaterial color="#22ff66" transparent opacity={0.25} />
+      <mesh position={[dx / 2, 0.006, dz / 2]} rotation={[-Math.PI / 2, 0, -rad]}>
+        <planeGeometry args={[0.22, len]} />
+        <meshBasicMaterial color={hex} transparent opacity={0.55} />
       </mesh>
-      {/* arrowhead — lehibe */}
-      <mesh position={[dx, 0.05, dz]} rotation={[Math.PI / 2, 0, -rad]}>
-        <coneGeometry args={[0.42, 0.85, 4]} />
-        <meshStandardMaterial color="#22ff66" emissive="#22ff66" emissiveIntensity={1.6} />
+
+      {/* Flowing chevrons (>>>) */}
+      <group ref={chevronsRef}>
+        {chevrons.map((c, i) => (
+          <mesh
+            key={i}
+            position={[c.x, 0.04, c.z]}
+            rotation={[-Math.PI / 2, 0, -rad]}
+            scale={[c.scale, c.scale, c.scale]}
+          >
+            <shapeGeometry args={[chevronShape]} />
+            <meshBasicMaterial color={hex} transparent opacity={0.85} depthWrite={false} />
+          </mesh>
+        ))}
+      </group>
+
+      {/* Glowing arrowhead at predicted landing */}
+      <mesh position={[dx, 0.08, dz]} rotation={[Math.PI / 2, 0, -rad]}>
+        <coneGeometry args={[0.32, 0.7, 24]} />
+        <meshStandardMaterial color={hex} emissive={hex} emissiveIntensity={1.8} toneMapped={false} />
       </mesh>
+
+      {/* Landing target marker — pulsing ring on the ground */}
+      <group ref={landingRef} position={[dx, 0.01, dz]}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.32, 0.42, 48]} />
+          <meshBasicMaterial color={hex} transparent opacity={0.95} />
+        </mesh>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, 0]}>
+          <ringGeometry args={[0.5, 0.56, 48]} />
+          <meshBasicMaterial color={hex} transparent opacity={0.35} />
+        </mesh>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.003, 0]}>
+          <circleGeometry args={[0.07, 24]} />
+          <meshBasicMaterial color={hex} />
+        </mesh>
+      </group>
     </group>
   );
 }
+
+// Chevron (>>) shape pointing +Y in shape space (rotated into the ground plane).
+const chevronShape = (() => {
+  const s = new THREE.Shape();
+  // arrow chevron outline
+  s.moveTo(-0.18, -0.12);
+  s.lineTo(0, 0.10);
+  s.lineTo(0.18, -0.12);
+  s.lineTo(0.10, -0.12);
+  s.lineTo(0, -0.02);
+  s.lineTo(-0.10, -0.12);
+  s.lineTo(-0.18, -0.12);
+  return s;
+})();
 
 /* ---------- Main Page ---------- */
 
@@ -904,16 +998,28 @@ export default function PetanqueGame() {
     <div className="fixed inset-0 bg-black overflow-hidden touch-none select-none">
       <Canvas
         shadows
-        dpr={[1, 1.75]}
-        gl={{ antialias: true, powerPreference: "high-performance" }}
+        dpr={[1, 2]}
+        gl={{ antialias: true, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping }}
         camera={{ fov: 55, near: 0.1, far: 100 }}
       >
         <Suspense fallback={null}>
           <CameraRig />
           <Sky distance={450000} sunPosition={[5, 8, 5]} inclination={0.5} azimuth={0.25} />
-          <ambientLight intensity={0.55} />
-          <directionalLight position={[6, 10, 4]} intensity={1.1} castShadow shadow-mapSize={[1024, 1024]} />
-          <hemisphereLight args={["#bde0ff", "#3a5a3a", 0.4]} />
+          <ambientLight intensity={0.5} />
+          <directionalLight
+            position={[6, 12, 4]}
+            intensity={1.25}
+            castShadow
+            shadow-mapSize={[2048, 2048]}
+            shadow-camera-near={1}
+            shadow-camera-far={30}
+            shadow-camera-left={-12}
+            shadow-camera-right={12}
+            shadow-camera-top={12}
+            shadow-camera-bottom={-12}
+            shadow-bias={-0.0005}
+          />
+          <hemisphereLight args={["#cfe7ff", "#3a5a3a", 0.45]} />
 
           <Court />
           <Baobab position={[-5.5, 0, 3]} />

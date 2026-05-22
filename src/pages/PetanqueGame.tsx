@@ -486,10 +486,6 @@ const chevronShape = (() => {
   return s;
 })();
 
-function _AimArrowEnd() {
-  return null;
-}
-
 /* ---------- Main Page ---------- */
 
 export default function PetanqueGame() {

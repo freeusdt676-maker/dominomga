@@ -771,6 +771,24 @@ export default function Game() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elapsed, game?.turn_started_at, game?.status, game?.current_turn]);
 
+  // Tena AZO ANTOKA fa hipoaka rehefa tapitra ny 20s — mametraka setTimeout
+  // mifototra mivantana amin'i `turn_started_at`. Mandeha na dia "throttled"
+  // aza ny setInterval(now) rehefa background ny tab.
+  useEffect(() => {
+    if (!game || !user) return;
+    if (game.status !== "in_progress") return;
+    if (!game.current_turn || !game.turn_started_at) return;
+    if (isRevealing) return;
+    const startMs = new Date(game.turn_started_at).getTime();
+    const deadline = startMs + TURN_TIMEOUT_SEC * 1000;
+    const delay = Math.max(0, deadline - Date.now()) + 250; // 250ms grâce
+    const t = setTimeout(() => {
+      // Bump `now` so the existing elapsed-based effect re-runs and fires
+      setNow(Date.now());
+    }, delay);
+    return () => clearTimeout(t);
+  }, [game?.turn_started_at, game?.current_turn, game?.status, isRevealing, game?.id, user?.id]);
+
   // Auto-pass raha tsy manana vato mety ny mpilalao manana ny tour
   useEffect(() => {
     if (!isMyTurn || !game) return;

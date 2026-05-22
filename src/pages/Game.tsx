@@ -230,20 +230,28 @@ export default function Game() {
 
     // Build a human-readable "porofo" of how this round was won, for the replay banner.
     const winnerName = (profileNames[winnerId] ?? "Mpandresy");
+    // Anaran'ny mpilalao resy (raha mpilalao 2)
+    const loserIds = (pc === 3
+      ? [game.player1_id, game.player2_id, game.player3_id]
+      : [game.player1_id, game.player2_id]
+    ).filter((id) => id && id !== winnerId);
+    const loserName = loserIds.length === 1
+      ? (profileNames[loserIds[0]!] ?? "Mpilalao")
+      : loserIds.map((id) => profileNames[id!] ?? "Mpilalao").join(" sy ");
     let reason: string = reasonOverride
       ?? (isDouble6Win
-        ? `${winnerName} — niala 6/6 (paire de six) +${points}`
+        ? `${loserName} maty satria niala double 6 (paire de six) — ${winnerName} +${points}`
         : dateMatch
-          ? `${winnerName} — Maty datinandro ${today} +${points}`
+          ? `${loserName} maty satria datin'andro ${today} — ${winnerName} +${points}`
           : handMode
-            ? `${winnerName} — Maty atànana +${points}`
+            ? `${loserName} maty atànana — ${winnerName} +${points}`
             : targetReached
-              ? `${winnerName} — Tonga ${target} • Mpandresy lalao`
+              ? `${winnerName} tonga ${target} • Mpandresy ny lalao`
               : points > 0
-                ? `${winnerName} — +${points} (vato sisa amin'ny hafa)`
-                : `${winnerName} — Mpandresy ny tour`);
+                ? `${loserName} maty satria lany ny vaton'i ${winnerName} (+${points} vato sisa)`
+                : `${winnerName} mpandresy ny tour`);
     if (aloneReached && !targetReached) {
-      reason = `${winnerName} — Tonga ${wScore} nandeha irery (target ${target})`;
+      reason = `${winnerName} tonga ${wScore} nandeha irery (target ${target}) • ${loserName} mbola 0`;
     }
 
     const REVEAL_MS = 5000;
@@ -259,6 +267,11 @@ export default function Game() {
       score_p2: newScoreP2,
       reveal_until: revealUntil,
       last_reason: reason,
+      // Vonoy ny tour mandritra ny reveal mba tsy hisy fihetsika afaka atao
+      // alohan'ny hidiran'ny tour manaraka.
+      current_turn: null,
+      turn_started_at: null,
+      passes: 0,
     };
     if (pc === 3) updatePayload.score_p3 = newScoreP3;
     await supabase.from("games").update(updatePayload).eq("id", game.id);

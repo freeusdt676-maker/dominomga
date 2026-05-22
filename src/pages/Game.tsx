@@ -1317,6 +1317,7 @@ function DominoResultOverlay({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const dust = Array.from({ length: 80 }, (_, i) => i);
+  const tears = Array.from({ length: 40 }, (_, i) => i);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm overflow-hidden">
       {iWon && (
@@ -1336,10 +1337,26 @@ function DominoResultOverlay({
           })}
         </div>
       )}
-      <div className={`domino-win-pop relative w-[92%] max-w-md text-center rounded-3xl p-7 border-4 shadow-2xl ${
+      {!iWon && !draw && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {tears.map((i) => {
+            const left = Math.random() * 100;
+            const dur = 2.4 + Math.random() * 2.2;
+            const delay = Math.random() * 2;
+            return (
+              <span
+                key={i}
+                className="sad-tear"
+                style={{ left: `${left}%`, animationDuration: `${dur}s`, animationDelay: `${delay}s` }}
+              />
+            );
+          })}
+        </div>
+      )}
+      <div className={`${iWon ? "domino-win-pop" : !draw ? "domino-lose-pop" : "domino-win-pop"} relative w-[92%] max-w-md text-center rounded-3xl p-7 border-4 shadow-2xl ${
         draw ? "border-yellow-400 bg-gradient-to-br from-amber-600 to-yellow-800"
         : iWon ? "border-green-300 bg-gradient-to-br from-green-500 via-emerald-500 to-green-700 shadow-[0_0_80px_rgba(34,197,94,0.85)]"
-        : "border-red-300 bg-gradient-to-br from-red-500 via-rose-600 to-red-800 shadow-[0_0_80px_rgba(239,68,68,0.75)]"
+        : "border-red-300 bg-gradient-to-br from-slate-700 via-red-900 to-slate-900 shadow-[0_0_80px_rgba(239,68,68,0.65)]"
       }`}>
         {draw ? (
           <>
@@ -1363,8 +1380,8 @@ function DominoResultOverlay({
           </>
         ) : (
           <>
-            <p className="text-5xl mb-2">💔</p>
-            <p className="font-display text-3xl font-black text-white">Resy ianao</p>
+            <p className="text-6xl mb-2 sad-emoji">😢</p>
+            <p className="font-display text-3xl font-black text-white sad-title">Resy ianao</p>
             <p className="text-sm text-white/90 mt-2">
               {reasonText
                 ? <>Resy ianao satria <b>{reasonText}</b></>

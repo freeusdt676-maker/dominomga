@@ -998,16 +998,28 @@ export default function PetanqueGame() {
     <div className="fixed inset-0 bg-black overflow-hidden touch-none select-none">
       <Canvas
         shadows
-        dpr={[1, 1.75]}
-        gl={{ antialias: true, powerPreference: "high-performance" }}
+        dpr={[1, 2]}
+        gl={{ antialias: true, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping }}
         camera={{ fov: 55, near: 0.1, far: 100 }}
       >
         <Suspense fallback={null}>
           <CameraRig />
           <Sky distance={450000} sunPosition={[5, 8, 5]} inclination={0.5} azimuth={0.25} />
-          <ambientLight intensity={0.55} />
-          <directionalLight position={[6, 10, 4]} intensity={1.1} castShadow shadow-mapSize={[1024, 1024]} />
-          <hemisphereLight args={["#bde0ff", "#3a5a3a", 0.4]} />
+          <ambientLight intensity={0.5} />
+          <directionalLight
+            position={[6, 12, 4]}
+            intensity={1.25}
+            castShadow
+            shadow-mapSize={[2048, 2048]}
+            shadow-camera-near={1}
+            shadow-camera-far={30}
+            shadow-camera-left={-12}
+            shadow-camera-right={12}
+            shadow-camera-top={12}
+            shadow-camera-bottom={-12}
+            shadow-bias={-0.0005}
+          />
+          <hemisphereLight args={["#cfe7ff", "#3a5a3a", 0.45]} />
 
           <Court />
           <Baobab position={[-5.5, 0, 3]} />

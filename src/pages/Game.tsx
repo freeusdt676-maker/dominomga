@@ -102,6 +102,15 @@ export default function Game() {
     }
   }, [serverGame, optimistic]);
 
+  // Safety: optimistic state must never linger more than 2.5s. After that,
+  // the server view wins, which prevents "stuck" wrong-turn display when an
+  // RPC was slow or a realtime event was missed.
+  useEffect(() => {
+    if (!optimistic) return;
+    const t = setTimeout(() => setOptimistic(null), 2500);
+    return () => clearTimeout(t);
+  }, [optimistic]);
+
   const initializeGameHands = async (currentGame: any) => {
     const pc = Number(currentGame?.players_count ?? 2);
     if (!currentGame?.id || !currentGame.player1_id || !currentGame.player2_id) return;

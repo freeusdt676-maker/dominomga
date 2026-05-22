@@ -11,6 +11,7 @@ import { ArrowLeft, Check, X, Megaphone, Wallet as WalletIcon, UserCheck, Eye, E
 import { fmtAr } from "@/lib/constants";
 import { toast } from "sonner";
 import { DominoTile } from "@/components/DominoTile";
+import PendingProfileApprovals from "@/components/PendingProfileApprovals";
 export default function Admin() {
   const { user, isAdmin } = useAuth();
   const nav = useNavigate();
@@ -45,6 +46,7 @@ export default function Admin() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelAllOpen, setCancelAllOpen] = useState(false);
   const [cancelAllPin, setCancelAllPin] = useState("");
+  const [pendingProfileCount, setPendingProfileCount] = useState(0);
   const adminId = user?.id ?? resolvedAdminId;
   const normalizeTicket = (value: string) => value.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
   const detectedCancelGame = history.find((item) => normalizeTicket(item.ticket_number ?? "") === normalizeTicket(cancelTicketInput));
@@ -56,6 +58,24 @@ export default function Admin() {
       });
     }
   }, [user?.id, codeOk, resolvedAdminId]);
+
+  // Pending profile approvals count + realtime
+  useEffect(() => {
+    if (!allowed) return;
+    const loadCount = async () => {
+      const { count } = await supabase
+        .from("profile_change_requests" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending");
+      setPendingProfileCount(count ?? 0);
+    };
+    loadCount();
+    const ch = supabase
+      .channel("admin-pcr-count")
+      .on("postgres_changes", { event: "*", schema: "public", table: "profile_change_requests" }, () => loadCount())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [allowed]);
 
   const load = async () => {
     // 1) Profiles (rehetra)
@@ -412,11 +432,19 @@ export default function Admin() {
         </button>
 
         <Tabs defaultValue="users">
-          <TabsList className="grid grid-cols-5 w-full text-[10px]">
+          <TabsList className="grid grid-cols-6 w-full text-[10px]">
             <TabsTrigger value="users" className="relative">
               Mpilalao
               {pendingUsersCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-5 h-5 text-[10px] flex items-center justify-center font-bold">{pendingUsersCount}</span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="profiles" className="relative">
+              Profils
+              {pendingProfileCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full min-w-[22px] h-[22px] px-1.5 text-[10px] flex items-center justify-center font-bold ring-2 ring-red-300 animate-pulse shadow-lg shadow-red-500/60">
+                  {pendingProfileCount}
+                </span>
               )}
             </TabsTrigger>
             <TabsTrigger value="tx" className="relative">
@@ -486,6 +514,16 @@ export default function Admin() {
                 </p>
               </button>
             ))}
+          </TabsContent>
+
+          {/* PROFILS — pending profile change requests */}
+          <TabsContent value="profiles" className="space-y-2 mt-3 max-h-[70vh] overflow-y-auto">
+            <div className="card-felt rounded-xl p-3 mb-2 border-l-4 border-red-500">
+              <p className="text-xs text-foreground/80">
+                🔴 <b>Fanovana mombamomba miandry validation.</b> Jereo tsara ny "taloha vs vaovao" alohan'ny mankatò.
+              </p>
+            </div>
+            <PendingProfileApprovals onChange={() => undefined} />
           </TabsContent>
 
           {/* TRANSACTIONS */}

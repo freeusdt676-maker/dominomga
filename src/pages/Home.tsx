@@ -7,7 +7,7 @@ import { fmtAr, ADMIN_CODE, ADMIN_CODE_ALT } from "@/lib/constants";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Wallet, Users, Trophy, MessageCircle, LogOut, Shield, MessagesSquare, User as UserIcon, Download } from "lucide-react";
+import { Wallet, Users, Trophy, MessageCircle, LogOut, Shield, MessagesSquare, User as UserIcon, Download, Eye, EyeOff, FileEdit } from "lucide-react";
 import logo from "@/assets/logo.png";
 import MessageInbox from "@/components/MessageInbox";
 
@@ -23,6 +23,8 @@ export default function Home() {
   const [code, setCode] = useState("");
   const [incoming, setIncoming] = useState<any[]>([]);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [showSecrets, setShowSecrets] = useState(false);
+  const [pendingProfilesCount, setPendingProfilesCount] = useState(0);
 
   useEffect(() => {
     const onBip = (e: any) => { e.preventDefault(); setInstallPrompt(e); };
@@ -102,6 +104,25 @@ export default function Home() {
       supabase.from("profiles").update({ is_online: false }).eq("user_id", user.id);
     };
   }, [user]);
+
+  // Admin: count pending profile approvals
+  useEffect(() => {
+    if (!isAdmin) return;
+    const load = async () => {
+      const { count } = await supabase
+        .from("profile_change_requests" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending");
+      setPendingProfilesCount(count ?? 0);
+    };
+    load();
+    const ch = supabase
+      .channel("home-pcr")
+      .on("postgres_changes", { event: "*", schema: "public", table: "profile_change_requests" }, () => load())
+      .subscribe();
+    const itv = setInterval(load, 15000);
+    return () => { supabase.removeChannel(ch); clearInterval(itv); };
+  }, [isAdmin]);
 
   // Mandray fanasana (challenges) miditra
   useEffect(() => {
@@ -295,6 +316,51 @@ export default function Home() {
           </div>
         </Link>
 
+        {/* Private profile card — visible only to the owner */}
+        <div className="luxe-card p-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="eyebrow">Mombamomba anao (privé)</p>
+            <button
+              onClick={() => setShowSecrets((s) => !s)}
+              className="text-[10px] text-[hsl(var(--gold-1))] inline-flex items-center gap-1"
+            >
+              {showSecrets ? <><EyeOff className="w-3 h-3" /> Hafenina</> : <><Eye className="w-3 h-3" /> Asehoy</>}
+            </button>
+          </div>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-16 h-16 rounded-full overflow-hidden border border-[hsl(var(--gold-1)/0.4)] bg-black/40 flex items-center justify-center">
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="selfie" className="w-full h-full object-cover" />
+              ) : (
+                <UserIcon className="w-7 h-7 text-[hsl(var(--gold-1))]" />
+              )}
+            </div>
+            <div className="text-xs flex-1 min-w-0 space-y-0.5">
+              <p><span className="text-muted-foreground">Nom:</span> <b>{profile?.mvola_name ?? "—"}</b></p>
+              <p><span className="text-muted-foreground">Tel:</span> {profile?.phone ?? "—"}</p>
+              <p><span className="text-muted-foreground">ID:</span> #{profile?.player_number ?? "—"}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-[11px]">
+            <div className="hairline rounded-lg p-2">
+              <p className="text-muted-foreground text-[10px]">Password</p>
+              <p className="font-mono">{showSecrets ? (profile?.password_plain ?? "—") : "••••••"}</p>
+            </div>
+            <div className="hairline rounded-lg p-2">
+              <p className="text-muted-foreground text-[10px]">PIN</p>
+              <p className="font-mono">{showSecrets ? (profile?.pin_plain ?? "—") : "••••"}</p>
+            </div>
+          </div>
+          <Link to="/profile/edit" className="mt-3 block">
+            <button className="w-full btn-luxe inline-flex items-center justify-center gap-2">
+              <FileEdit className="w-4 h-4" /> Remplir les informations
+            </button>
+          </Link>
+          <p className="text-[10px] text-muted-foreground mt-2 text-center">
+            Ny olon-kafa amin'ny lalao tsy mahita ny Tel, Password, na PIN-nao.
+          </p>
+        </div>
+
         <Link to="/rules" className="block text-center hairline rounded-xl p-3 text-xs tracking-[0.2em] uppercase text-muted-foreground hover:text-[hsl(var(--gold-1))] hover:border-[hsl(var(--gold-1)/0.5)] transition">
           Règle du jeu
         </Link>
@@ -307,7 +373,16 @@ export default function Home() {
         <p className="text-center text-[10px] tracking-[0.35em] uppercase text-muted-foreground/50 pt-4">Domino MGA · Maison de jeu · v1</p>
 
         {isAdmin && (
-          <Link to="/admin"><button className="w-full btn-luxe-ghost">Tableau Admin</button></Link>
+          <Link to="/admin" className="block">
+            <button className="w-full btn-luxe-ghost relative inline-flex items-center justify-center gap-2">
+              Tableau Admin
+              {pendingProfilesCount > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[26px] h-[26px] px-2 rounded-full bg-red-600 text-white text-xs font-bold ring-2 ring-red-300 animate-pulse shadow-lg shadow-red-500/50">
+                  {pendingProfilesCount}
+                </span>
+              )}
+            </button>
+          </Link>
         )}
       </div>
 

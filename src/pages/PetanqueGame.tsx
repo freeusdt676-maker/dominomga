@@ -352,10 +352,6 @@ function AimArrow({ angleDeg, force, visible, jack, isJackPhase }: {
   const groupRef = useRef<THREE.Group>(null);
   const ringRef = useRef<THREE.Mesh>(null);
   const landingRef = useRef<THREE.Group>(null);
-  const chevronsRef = useRef<THREE.Group>(null);
-
-  // Build a stable chevron template once
-  const CHEVRON_COUNT = 14;
 
   // Color gradient: green (faible) → amber → rouge (intense)
   const color = useMemo(() => {
@@ -385,30 +381,9 @@ function AimArrow({ angleDeg, force, visible, jack, isJackPhase }: {
       const sc = 1 + Math.sin(t * 2.4) * 0.12;
       landingRef.current.scale.set(sc, 1, sc);
     }
-    if (chevronsRef.current) {
-      // animate chevron opacity flowing forward
-      const children = chevronsRef.current.children;
-      for (let i = 0; i < children.length; i++) {
-        const m = (children[i] as THREE.Mesh).material as THREE.MeshBasicMaterial;
-        const phase = (t * 1.8 + i / CHEVRON_COUNT) % 1;
-        m.opacity = 0.25 + 0.75 * Math.pow(1 - phase, 1.6);
-      }
-    }
   });
 
   if (!visible) return null;
-
-  // Chevron positions along the shaft direction
-  const chevrons = [];
-  for (let i = 0; i < CHEVRON_COUNT; i++) {
-    const k = (i + 1) / (CHEVRON_COUNT + 1);
-    chevrons.push({
-      x: dx * k,
-      z: dz * k,
-      // shrink to a point near the tip
-      scale: 0.45 + (1 - Math.abs(k - 0.5) * 1.4) * 0.55,
-    });
-  }
 
   return (
     <group ref={groupRef} position={[0, 0.06, -1.3]}>
@@ -422,30 +397,11 @@ function AimArrow({ angleDeg, force, visible, jack, isJackPhase }: {
         <meshBasicMaterial color={hex} transparent opacity={0.35} />
       </mesh>
 
-      {/* Soft trajectory carpet on the ground */}
-      <mesh position={[dx / 2, 0.005, dz / 2]} rotation={[-Math.PI / 2, 0, -rad]}>
-        <planeGeometry args={[0.65, len]} />
-        <meshBasicMaterial color={hex} transparent opacity={0.18} />
+      {/* Single clean arrow shaft on the ground */}
+      <mesh position={[dx / 2, 0.01, dz / 2]} rotation={[-Math.PI / 2, 0, -rad]}>
+        <planeGeometry args={[0.18, len]} />
+        <meshBasicMaterial color={hex} transparent opacity={0.95} depthWrite={false} />
       </mesh>
-      <mesh position={[dx / 2, 0.006, dz / 2]} rotation={[-Math.PI / 2, 0, -rad]}>
-        <planeGeometry args={[0.22, len]} />
-        <meshBasicMaterial color={hex} transparent opacity={0.55} />
-      </mesh>
-
-      {/* Flowing chevrons (>>>) */}
-      <group ref={chevronsRef}>
-        {chevrons.map((c, i) => (
-          <mesh
-            key={i}
-            position={[c.x, 0.04, c.z]}
-            rotation={[-Math.PI / 2, 0, -rad]}
-            scale={[c.scale, c.scale, c.scale]}
-          >
-            <shapeGeometry args={[chevronShape]} />
-            <meshBasicMaterial color={hex} transparent opacity={0.85} depthWrite={false} />
-          </mesh>
-        ))}
-      </group>
 
       {/* Glowing arrowhead at predicted landing */}
       <mesh position={[dx, 0.08, dz]} rotation={[Math.PI / 2, 0, -rad]}>
@@ -471,20 +427,6 @@ function AimArrow({ angleDeg, force, visible, jack, isJackPhase }: {
     </group>
   );
 }
-
-// Chevron (>>) shape pointing +Y in shape space (rotated into the ground plane).
-const chevronShape = (() => {
-  const s = new THREE.Shape();
-  // arrow chevron outline
-  s.moveTo(-0.18, -0.12);
-  s.lineTo(0, 0.10);
-  s.lineTo(0.18, -0.12);
-  s.lineTo(0.10, -0.12);
-  s.lineTo(0, -0.02);
-  s.lineTo(-0.10, -0.12);
-  s.lineTo(-0.18, -0.12);
-  return s;
-})();
 
 /* ---------- Main Page ---------- */
 

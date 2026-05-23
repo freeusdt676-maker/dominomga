@@ -830,6 +830,10 @@ export type Database = {
         Args: { _admin_id: string; _tx_id: string }
         Returns: Json
       }
+      admin_block_user_with_message: {
+        Args: { _admin_id: string; _message: string; _user_id: string }
+        Returns: Json
+      }
       admin_cancel_all_active_games: {
         Args: { _admin_id: string; _pin: string }
         Returns: Json

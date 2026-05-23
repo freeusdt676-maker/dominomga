@@ -744,9 +744,9 @@ export default function PetanqueGame() {
         }
         // Auto jack-throw if needed
         if (fresh.state?.phase === "throw_jack") {
-          // ~75% ny halavin'ny terrain — lavidavitra fa tsy akaiky
-          const jackX = (Math.random() - 0.5) * 1.6;
-          const jackZ = 7.5 + Math.random() * 1.8;
+          // Auto-place jack at ~80% du terrain, centré — zone valide garantie
+          const jackX = (Math.random() - 0.5) * 0.6;
+          const jackZ = 8.0 + Math.random() * 0.6;
           const currentTurnUser = throwSide === "p1" ? fresh.player1_id : fresh.player2_id;
           await supabase.rpc("petanque_update_state" as any, {
             _game_id: fresh.id,
@@ -763,11 +763,21 @@ export default function PetanqueGame() {
             _score_p2: fresh.score_p2,
             _round_number: fresh.round_number,
           });
-          toast("⏱ Robot nanatsipy ny boul kely");
+          toast("⏱ 20s tapitra — nataony automatika ny boul kely");
           return;
         }
-        const ba = Math.round((Math.random() - 0.5) * 40);
-        const bf = 40 + Math.round(Math.random() * 40);
+        // 20s tapitra: mitsipy MAHITSY mankany amin'ny boul kely (cochonnet).
+        // Tsy misy random — fanitsanana automatika hiarovana ny fotoana.
+        const jk = fresh.state?.jack ?? { x: 0, z: 8 };
+        const dxJ = jk.x - 0;
+        const dzJ = jk.z - (-1.3);
+        const angleRad = Math.atan2(dxJ, dzJ);
+        const ba = Math.round((angleRad * 180) / Math.PI);
+        // Hery voakajy mba ho akaiky ny cochonnet (mapping inverse de runThrow)
+        const dist = Math.hypot(dxJ, dzJ);
+        // speed = 4 + (f/100)*11 ; halavin-dalana ≈ speed / (1 - friction^60) → approx tuning
+        const targetSpeed = Math.max(5, Math.min(13, 3.6 + dist * 0.95));
+        const bf = Math.round(Math.max(35, Math.min(95, ((targetSpeed - 4) / 11) * 100)));
         const remaining = fresh.state?.remaining ?? { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER };
         if (remaining[throwSide] <= 0) {
           autoThrowRef.current = null;
@@ -776,7 +786,7 @@ export default function PetanqueGame() {
         // Animation + broadcast — hahitan'ny mpilalao roa tonta ny fikodiadia
         const baseBalls = fresh.state?.balls ?? [];
         const baseJack = fresh.state?.jack ? { ...fresh.state.jack } : null;
-        const ballId = `bot_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        const ballId = `auto_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
         try {
           await channelRef.current?.send({
             type: "broadcast",
@@ -786,7 +796,7 @@ export default function PetanqueGame() {
         } catch {}
         // Mametraka g ho mety amin'ny finishThrow (mampiasa g.state)
         runThrowRef.current?.({ thrower: throwSide, angle: ba, force: bf, jackPhase: false, baseBalls, baseJack, ballId, commit: true });
-        toast("⏱ Robot nanatsipy baolina (20s)");
+        toast("⏱ 20s tapitra — baolina nialana automatika");
       })().catch(() => {
         autoThrowRef.current = null;
       });

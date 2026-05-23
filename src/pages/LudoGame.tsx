@@ -460,8 +460,12 @@ export default function LudoGame() {
     }
   };
 
-  // ---- 10s turn timer + bot auto-play ----
-  const turnStartMs = g?.turn_started_at ? new Date(g.turn_started_at).getTime() : 0;
+  // ---- 10s turn timer + auto-play ----
+  // If turn_started_at is missing (first turn just created), fall back to updated_at so
+  // the timer always starts ticking immediately — even when no pawn is out yet.
+  const turnStartMs = g?.turn_started_at
+    ? new Date(g.turn_started_at).getTime()
+    : (g?.updated_at ? new Date(g.updated_at).getTime() : 0);
   const elapsedSec = Math.max(0, Math.floor((now - turnStartMs) / 1000));
   const remainingSec = Math.max(0, TURN_LIMIT - elapsedSec);
 
@@ -488,7 +492,7 @@ export default function LudoGame() {
 
   useEffect(() => {
     if (!g || g.status !== "in_progress") return;
-    if (!g.turn_started_at) return;
+    if (!turnStartMs) return;
     if (remainingSec > 0) return;
     if (!isOperator) return;
     const key = `${g.id}-${g.current_turn_seat}-${g.dice_rolled ? "m" : "r"}-${turnStartMs}`;
@@ -527,9 +531,11 @@ export default function LudoGame() {
           : [],
       };
        if (state.status !== "in_progress") return;
-       if (!state.turn_started_at) return;
       if (state.current_turn_seat !== g.current_turn_seat) return;
-       const stateTurnStartMs = new Date(state.turn_started_at).getTime();
+       const stateTurnStartMs = state.turn_started_at
+         ? new Date(state.turn_started_at).getTime()
+         : (state.updated_at ? new Date(state.updated_at).getTime() : 0);
+       if (!stateTurnStartMs) return;
        if (Date.now() - stateTurnStartMs < TURN_LIMIT * 1000) {
          botActedRef.__ludoBotKey = null;
          return;

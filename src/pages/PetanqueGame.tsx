@@ -1153,9 +1153,7 @@ export default function PetanqueGame() {
 
       {/* Retour button — sortie sécurisée */}
       <button
-        onClick={() => {
-          if (confirm("Hiala amin'ity lalao ity? Mety ho very ny mise.")) nav("/petanque");
-        }}
+        onClick={() => nav("/petanque")}
         className="absolute top-24 left-3 z-30 px-3 h-10 rounded-full bg-black/70 backdrop-blur border border-white/30 flex items-center gap-1.5 text-white text-xs font-bold shadow-xl hover:bg-black/85"
       >
         <ArrowLeft className="w-4 h-4" /> Retour

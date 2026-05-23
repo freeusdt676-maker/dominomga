@@ -318,6 +318,16 @@ export default function Game() {
       } else {
         const d = deal(seed); h1 = d.p1; h2 = d.p2; boneyard = d.boneyard;
       }
+      // Lalàna: 5+ double atànana = mandresy avy hatrany na amin'ny tour vaovao aza.
+      const handsNext = pc === 3 ? [h1, h2, h3] : [h1, h2];
+      const instantIdx2 = getInstantDoublesWinner(handsNext);
+      if (instantIdx2 !== null) {
+        const idsIw = pc === 3
+          ? [game.player1_id, game.player2_id, game.player3_id]
+          : [game.player1_id, game.player2_id];
+        await supabase.rpc("settle_game", { _game_id: game.id, _winner: idsIw[instantIdx2] });
+        return;
+      }
       // Tour 2+: tsy misy double terena, ny topon'ny tour no mametraka izay tiany.
       // Mihodina automatique makany ANKAVIA isaky ny tour.
       const ids = pc === 3 ? [game.player1_id, game.player2_id, game.player3_id] : [game.player1_id, game.player2_id];

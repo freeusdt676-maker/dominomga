@@ -36,31 +36,62 @@ export function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-export function deal(seed?: string) {
+function countDoubles(hand: Tile[]): number {
+  return hand.reduce((n, [a, b]) => n + (a === b ? 1 : 0), 0);
+}
+
+// Misakana fizarana misy mpilalao manana >= 4 double eo am-pelatanany.
+// Raha mitranga izany dia averina ny fizarana (re-deal) miaraka amin'ny seed vaovao.
+const MAX_DOUBLES_PER_HAND = 3;
+
+function shuffleDeckWithSeed(seed?: string): Tile[] {
   const random = seed ? mulberry32(hashSeed(seed)) : Math.random;
   const deck = [...buildDeck()];
   for (let i = deck.length - 1; i > 0; i -= 1) {
     const j = Math.floor(random() * (i + 1));
     [deck[i], deck[j]] = [deck[j], deck[i]];
   }
-  const p1 = deck.slice(0, 7);
-  const p2 = deck.slice(7, 14);
-  const boneyard = deck.slice(14);
-  return { p1, p2, boneyard };
+  return deck;
+}
+
+export function deal(seed?: string) {
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    const s = seed ? `${seed}#redeal${attempt}` : undefined;
+    const deck = shuffleDeckWithSeed(s);
+    const p1 = deck.slice(0, 7);
+    const p2 = deck.slice(7, 14);
+    const boneyard = deck.slice(14);
+    if (countDoubles(p1) <= MAX_DOUBLES_PER_HAND && countDoubles(p2) <= MAX_DOUBLES_PER_HAND) {
+      return { p1, p2, boneyard };
+    }
+  }
+  const deck = shuffleDeckWithSeed(seed);
+  return { p1: deck.slice(0, 7), p2: deck.slice(7, 14), boneyard: deck.slice(14) };
 }
 
 export function deal3(seed?: string) {
-  const random = seed ? mulberry32(hashSeed(seed)) : Math.random;
-  const deck = [...buildDeck()];
-  for (let i = deck.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(random() * (i + 1));
-    [deck[i], deck[j]] = [deck[j], deck[i]];
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    const s = seed ? `${seed}#redeal${attempt}` : undefined;
+    const deck = shuffleDeckWithSeed(s);
+    const p1 = deck.slice(0, 7);
+    const p2 = deck.slice(7, 14);
+    const p3 = deck.slice(14, 21);
+    const boneyard = deck.slice(21);
+    if (
+      countDoubles(p1) <= MAX_DOUBLES_PER_HAND &&
+      countDoubles(p2) <= MAX_DOUBLES_PER_HAND &&
+      countDoubles(p3) <= MAX_DOUBLES_PER_HAND
+    ) {
+      return { p1, p2, p3, boneyard };
+    }
   }
-  const p1 = deck.slice(0, 7);
-  const p2 = deck.slice(7, 14);
-  const p3 = deck.slice(14, 21);
-  const boneyard = deck.slice(21);
-  return { p1, p2, p3, boneyard };
+  const deck = shuffleDeckWithSeed(seed);
+  return {
+    p1: deck.slice(0, 7),
+    p2: deck.slice(7, 14),
+    p3: deck.slice(14, 21),
+    boneyard: deck.slice(21),
+  };
 }
 
 // Mode-aware opening:

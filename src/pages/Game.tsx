@@ -321,13 +321,8 @@ export default function Game() {
       // Tour 2+: tsy misy double terena, ny topon'ny tour no mametraka izay tiany.
       // Mihodina automatique makany ANKAVIA isaky ny tour.
       const ids = pc === 3 ? [game.player1_id, game.player2_id, game.player3_id] : [game.player1_id, game.player2_id];
-      const r1Seed = `${game.ticket_number || game.id}-r1`;
-      const r1Deal = pc === 3 ? deal3(r1Seed) : deal(r1Seed);
-      const r1Hands = pc === 3
-        ? [(r1Deal as any).p1, (r1Deal as any).p2, (r1Deal as any).p3]
-        : [(r1Deal as any).p1, (r1Deal as any).p2];
-      const r1OpenerIdx = chooseOpening(r1Hands, mode).playerIndex;
-      const openerIdx = (r1OpenerIdx + (nextRound - 1)) % ids.length;
+      // Rotation tour: player1 → player2 → player3 → player1 ...
+      const openerIdx = (nextRound - 1) % ids.length;
       const hands = pc === 3 ? [h1, h2, h3] : [h1, h2];
       const nextId = ids[openerIdx];
       const updateNext: any = {
@@ -373,13 +368,8 @@ export default function Game() {
         const d = deal(seed); h1 = d.p1; h2 = d.p2; boneyard = d.boneyard;
       }
       const ids = pc === 3 ? [game.player1_id, game.player2_id, game.player3_id] : [game.player1_id, game.player2_id];
-      const r1Seed = `${game.ticket_number || game.id}-r1`;
-      const r1Deal = pc === 3 ? deal3(r1Seed) : deal(r1Seed);
-      const r1Hands = pc === 3
-        ? [(r1Deal as any).p1, (r1Deal as any).p2, (r1Deal as any).p3]
-        : [(r1Deal as any).p1, (r1Deal as any).p2];
-      const r1OpenerIdx = chooseOpening(r1Hands, mode).playerIndex;
-      const openerIdx = (r1OpenerIdx + (nextRound - 1)) % ids.length;
+      // Rotation tour: player1 → player2 → player3 → player1 ...
+      const openerIdx = (nextRound - 1) % ids.length;
       const hands = pc === 3 ? [h1, h2, h3] : [h1, h2];
       const nextId = ids[openerIdx];
       setRoundBanner(`Mitovy vato — tour vaovao`);
@@ -521,18 +511,11 @@ export default function Game() {
       const nextRound = (game.round_number ?? 1) + 1;
       const seed = `${game.ticket_number || game.id}-r${nextRound}`;
       const d = deal(seed);
-      const mode = (game.game_mode ?? "d120") as GameMode;
-      const opener = chooseOpening([d.p1, d.p2], mode);
       const hands = [d.p1, d.p2];
-      let board: Placed[] = [];
-      let nextId = ids[opener.playerIndex];
-      if (opener.forced) {
-        hands[opener.playerIndex] = hands[opener.playerIndex].filter(
-          (t) => !(t[0] === opener.tile[0] && t[1] === opener.tile[1]),
-        );
-        board = [{ tile: opener.tile, flipped: false }];
-        nextId = ids[(opener.playerIndex + 1) % ids.length];
-      }
+      const board: Placed[] = [];
+      // Rotation: tour pair = player1, impair = player2 (alterne).
+      const openerIdx = (nextRound - 1) % ids.length;
+      const nextId = ids[openerIdx];
       await supabase.from("games").update({
         round_number: nextRound,
         score_p1: 0,

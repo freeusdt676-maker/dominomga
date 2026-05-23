@@ -377,7 +377,17 @@ export default function Game() {
       } else {
         const d = deal(seed); h1 = d.p1; h2 = d.p2; boneyard = d.boneyard;
       }
-      const ids = pc === 3 ? [game.player1_id, game.player2_id, game.player3_id] : [game.player1_id, game.player2_id];
+      // 5+ double atànana = mandresy avy hatrany (na tour vaovao avy amin'ny blocage aza).
+      const handsTied = pc === 3 ? [h1, h2, h3] : [h1, h2];
+      const idsTied = pc === 3
+        ? [game.player1_id, game.player2_id, game.player3_id]
+        : [game.player1_id, game.player2_id];
+      const instantIdxT = getInstantDoublesWinner(handsTied);
+      if (instantIdxT !== null) {
+        await supabase.rpc("settle_game", { _game_id: game.id, _winner: idsTied[instantIdxT] });
+        return;
+      }
+      const ids = idsTied;
       // Rotation tour: player1 → player2 → player3 → player1 ...
       const openerIdx = (nextRound - 1) % ids.length;
       const hands = pc === 3 ? [h1, h2, h3] : [h1, h2];

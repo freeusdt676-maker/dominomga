@@ -904,7 +904,10 @@ export default function Game() {
       {/* Header style "Rolland | Tour | Opponent" */}
       <header className="relative px-3 py-2 grid grid-cols-3 items-center gap-2 border-b-2 border-[#d4a52c]/60 bg-[linear-gradient(180deg,#0d3b22_0%,#0a2818_100%)] shadow-[inset_0_-2px_0_rgba(212,165,44,0.25)]">
         <div className="flex items-center gap-2 min-w-0">
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-[#ffe27a] hover:bg-[#ffffff10]" onClick={() => nav(-1 as any)}>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-[#ffe27a] hover:bg-[#ffffff10]" onClick={() => {
+            if (game?.status === "in_progress") setConfirmAbandon(true);
+            else nav("/lobby", { replace: true });
+          }}>
             <ArrowLeft className="w-4 h-4" />
           </Button>
           {profilePhotos[user?.id ?? ""] ? (

@@ -147,38 +147,38 @@ function Aloalo({ position }: { position: [number, number, number] }) {
 }
 
 function Court() {
-  // sand + pebbles texture procedurally
+  // Tany mena (terre rouge / latérite malgache) — 100% thème malgache
   const sandTex = useMemo(() => {
     const c = document.createElement("canvas");
     c.width = 1024; c.height = 1024;
     const ctx = c.getContext("2d")!;
-    // Base sand — gradient pour donner du relief naturel
+    // Base — dégradé tany mena (latérite des Hautes Terres)
     const grad = ctx.createLinearGradient(0, 0, 0, 1024);
-    grad.addColorStop(0, "#d8bc99");
-    grad.addColorStop(0.5, "#cdb088");
-    grad.addColorStop(1, "#c4a679");
+    grad.addColorStop(0, "#a8431f");
+    grad.addColorStop(0.5, "#bf5430");
+    grad.addColorStop(1, "#8f3618");
     ctx.fillStyle = grad; ctx.fillRect(0, 0, 1024, 1024);
-    // Grains de sable fins
-    for (let i = 0; i < 14000; i++) {
+    // Grains de terre rouge
+    for (let i = 0; i < 16000; i++) {
       const x = Math.random() * 1024, y = Math.random() * 1024;
       const sh = Math.random();
-      ctx.fillStyle = sh > 0.92 ? "#6f5a3f" : sh > 0.7 ? "#9c8359" : sh > 0.4 ? "#c2a378" : "#ead3a6";
-      const r = Math.random() * 1.6 + 0.3;
+      ctx.fillStyle = sh > 0.92 ? "#3a1608" : sh > 0.7 ? "#6b2a13" : sh > 0.4 ? "#a04220" : "#d97a4f";
+      const r = Math.random() * 1.5 + 0.3;
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
     }
-    // Cailloux + ombres pour relief
-    for (let i = 0; i < 320; i++) {
+    // Petits cailloux volcaniques
+    for (let i = 0; i < 280; i++) {
       const x = Math.random() * 1024, y = Math.random() * 1024;
-      const r = Math.random() * 5 + 2.5;
-      ctx.fillStyle = "rgba(0,0,0,0.18)";
+      const r = Math.random() * 4.5 + 2;
+      ctx.fillStyle = "rgba(0,0,0,0.22)";
       ctx.beginPath(); ctx.arc(x + 1.5, y + 1.5, r, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = ["#6b5d4a", "#8a7a60", "#a08570", "#7d6a52"][Math.floor(Math.random()*4)];
+      ctx.fillStyle = ["#3a1f12", "#5c2a18", "#2a1208", "#4a1f10"][Math.floor(Math.random()*4)];
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
     }
-    // Traces légères de roulement
-    ctx.globalAlpha = 0.08;
-    for (let i = 0; i < 40; i++) {
-      ctx.strokeStyle = "#7a5d3a";
+    // Traces de roulement de boule
+    ctx.globalAlpha = 0.1;
+    for (let i = 0; i < 35; i++) {
+      ctx.strokeStyle = "#5a2010";
       ctx.lineWidth = Math.random() * 2 + 0.5;
       ctx.beginPath();
       const y = Math.random() * 1024;
@@ -191,6 +191,39 @@ function Court() {
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
     t.repeat.set(1.5, 4);
     t.anisotropy = 8;
+    return t;
+  }, []);
+  // Bordure tissée façon lamba / rafia
+  const lambaTex = useMemo(() => {
+    const c = document.createElement("canvas");
+    c.width = 256; c.height = 64;
+    const ctx = c.getContext("2d")!;
+    ctx.fillStyle = "#f4ead0"; ctx.fillRect(0, 0, 256, 64);
+    // bandes lamba — blanc, rouge, vert (drapeau malgache)
+    const bands = [
+      { c: "#ffffff", h: 14 },
+      { c: "#c8321f", h: 18 },
+      { c: "#0d7a3a", h: 18 },
+      { c: "#ffffff", h: 14 },
+    ];
+    let y = 0;
+    for (const b of bands) { ctx.fillStyle = b.c; ctx.fillRect(0, y, 256, b.h); y += b.h; }
+    // motifs zigzag tissés
+    ctx.strokeStyle = "rgba(0,0,0,0.35)"; ctx.lineWidth = 1.2;
+    for (let i = 0; i < 256; i += 8) {
+      ctx.beginPath();
+      ctx.moveTo(i, 0); ctx.lineTo(i + 4, 64); ctx.stroke();
+    }
+    // petits losanges
+    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    for (let x = 8; x < 256; x += 16) {
+      ctx.beginPath();
+      ctx.moveTo(x, 32); ctx.lineTo(x + 4, 28); ctx.lineTo(x + 8, 32); ctx.lineTo(x + 4, 36); ctx.closePath();
+      ctx.fill();
+    }
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(4, 1);
     return t;
   }, []);
   const grassTex = useMemo(() => {
@@ -220,21 +253,12 @@ function Court() {
         <planeGeometry args={[COURT.maxX - COURT.minX + 0.4, COURT.maxZ - COURT.minZ + 0.4]} />
         <meshStandardMaterial map={sandTex} roughness={0.95} />
       </mesh>
-      {/* Throw circle — cercle de lancer (rond du jeu) */}
-      <mesh rotation={[-Math.PI/2, 0, 0]} position={[0, 0.015, -1.3]}>
-        <ringGeometry args={[0.55, 0.62, 64]} />
-        <meshBasicMaterial color="#1a1208" transparent opacity={0.55} />
-      </mesh>
-      <mesh rotation={[-Math.PI/2, 0, 0]} position={[0, 0.014, -1.3]}>
-        <circleGeometry args={[0.55, 48]} />
-        <meshStandardMaterial color="#b59568" roughness={1} />
-      </mesh>
       {/* Cochonnet target zone — discret repère du fond du terrain */}
       <mesh rotation={[-Math.PI/2, 0, 0]} position={[0, 0.015, 8.4]}>
         <ringGeometry args={[1.55, 1.62, 64]} />
         <meshBasicMaterial color="#3a2a14" transparent opacity={0.18} />
       </mesh>
-      {/* wooden borders */}
+      {/* Bordures tissées style lamba malgache */}
       {[
         { p: [COURT.minX - 0.15, 0.1, 4.7], s: [0.2, 0.2, COURT.maxZ - COURT.minZ + 0.6] },
         { p: [COURT.maxX + 0.15, 0.1, 4.7], s: [0.2, 0.2, COURT.maxZ - COURT.minZ + 0.6] },
@@ -243,7 +267,7 @@ function Court() {
       ].map((b, i) => (
         <mesh key={i} position={b.p as [number, number, number]} castShadow receiveShadow>
           <boxGeometry args={b.s as [number, number, number]} />
-          <meshStandardMaterial color="#5a3a1f" roughness={0.85} metalness={0.05} />
+          <meshStandardMaterial map={lambaTex} roughness={0.85} metalness={0.02} />
         </mesh>
       ))}
       {/* Corner posts — petits piquets pour cadre pro */}
@@ -495,6 +519,7 @@ export default function PetanqueGame() {
   const autoThrowRef = useRef<string | null>(null);
   const channelRef = useRef<any>(null);
   const runThrowRef = useRef<((opts: any) => void) | null>(null);
+  const lastClackRef = useRef<number>(0);
   // Drag-to-throw gesture state
   const [drag, setDrag] = useState<{ dx: number; dy: number } | null>(null);
   const dragStart = useRef<{ x: number; y: number } | null>(null);
@@ -658,7 +683,13 @@ export default function PetanqueGame() {
         const sp = Math.hypot(j.vx ?? 0, j.vz ?? 0);
         if (sp < COURT.minSpeed) { j.vx = 0; j.vz = 0; } else moving = true;
       } else {
-        moving = stepPhysics(sim.balls, sim.jack, dt);
+        moving = stepPhysics(sim.balls, sim.jack, dt, (impact) => {
+          const nowT = performance.now();
+          if (nowT - lastClackRef.current > 60) {
+            lastClackRef.current = nowT;
+            try { sfx.clack(Math.min(2, impact / 4)); } catch {}
+          }
+        });
       }
       setSimBalls([...sim.balls]);
       if (sim.jack) setSimJack({ ...sim.jack });

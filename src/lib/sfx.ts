@@ -29,6 +29,26 @@ export const sfx = {
   capture: () => { tone(300, 0.1, "sawtooth", 0.2); tone(180, 0.18, "sawtooth", 0.18, 0.08); },
   win: () => { tone(523, 0.12, "triangle", 0.2); tone(659, 0.12, "triangle", 0.2, 0.12); tone(784, 0.18, "triangle", 0.22, 0.24); tone(1046, 0.25, "triangle", 0.22, 0.4); },
   notify: () => { tone(880, 0.1, "sine", 0.18); tone(1175, 0.14, "sine", 0.18, 0.1); },
+  clack: (intensity = 1) => {
+    const a = ac(); if (!a) return;
+    const t0 = a.currentTime;
+    const vol = Math.max(0.05, Math.min(0.35, 0.12 + intensity * 0.18));
+    // Short noise burst => bille-contre-bille
+    const dur = 0.08;
+    const buf = a.createBuffer(1, Math.floor(a.sampleRate * dur), a.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) {
+      const t = i / a.sampleRate;
+      d[i] = (Math.random() * 2 - 1) * Math.exp(-t * 60);
+    }
+    const src = a.createBufferSource(); src.buffer = buf;
+    const bp = a.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 1800; bp.Q.value = 1.2;
+    const g = a.createGain(); g.gain.value = vol;
+    src.connect(bp).connect(g).connect(a.destination);
+    src.start(t0);
+    // bright tonal ping
+    tone(1600 + Math.random() * 400, 0.06, "triangle", vol * 0.7);
+  },
   applause: () => {
     const a = ac(); if (!a) return;
     const t0 = a.currentTime;

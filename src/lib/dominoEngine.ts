@@ -40,9 +40,24 @@ function countDoubles(hand: Tile[]): number {
   return hand.reduce((n, [a, b]) => n + (a === b ? 1 : 0), 0);
 }
 
-// Misakana fizarana misy mpilalao manana >= 4 double eo am-pelatanany.
-// Raha mitranga izany dia averina ny fizarana (re-deal) miaraka amin'ny seed vaovao.
-const MAX_DOUBLES_PER_HAND = 3;
+// Lalàna:
+//  - 4 double atànana ihany no mahatonga ny redeal (averina ny fizarana).
+//  - 5 na 6 double atànana = mandresy avy hatrany ny mpilalao mahazo izany.
+// Noho izany, manaiky deal isika rehefa:
+//    * tsy misy mpilalao manana double mihoatra ny 3 (deal mahazatra), NA
+//    * misy mpilalao manana >= 5 double (instant win — tsy averina).
+const REDEAL_DOUBLES = 4;
+
+function dealNeedsRedeal(hands: Tile[][]): boolean {
+  return hands.some((h) => countDoubles(h) === REDEAL_DOUBLES);
+}
+
+export function getInstantDoublesWinner(hands: Tile[][]): number | null {
+  for (let i = 0; i < hands.length; i += 1) {
+    if (countDoubles(hands[i]) >= 5) return i;
+  }
+  return null;
+}
 
 function shuffleDeckWithSeed(seed?: string): Tile[] {
   const random = seed ? mulberry32(hashSeed(seed)) : Math.random;
@@ -61,9 +76,7 @@ export function deal(seed?: string) {
     const p1 = deck.slice(0, 7);
     const p2 = deck.slice(7, 14);
     const boneyard = deck.slice(14);
-    if (countDoubles(p1) <= MAX_DOUBLES_PER_HAND && countDoubles(p2) <= MAX_DOUBLES_PER_HAND) {
-      return { p1, p2, boneyard };
-    }
+    if (!dealNeedsRedeal([p1, p2])) return { p1, p2, boneyard };
   }
   const deck = shuffleDeckWithSeed(seed);
   return { p1: deck.slice(0, 7), p2: deck.slice(7, 14), boneyard: deck.slice(14) };
@@ -77,13 +90,7 @@ export function deal3(seed?: string) {
     const p2 = deck.slice(7, 14);
     const p3 = deck.slice(14, 21);
     const boneyard = deck.slice(21);
-    if (
-      countDoubles(p1) <= MAX_DOUBLES_PER_HAND &&
-      countDoubles(p2) <= MAX_DOUBLES_PER_HAND &&
-      countDoubles(p3) <= MAX_DOUBLES_PER_HAND
-    ) {
-      return { p1, p2, p3, boneyard };
-    }
+    if (!dealNeedsRedeal([p1, p2, p3])) return { p1, p2, p3, boneyard };
   }
   const deck = shuffleDeckWithSeed(seed);
   return {

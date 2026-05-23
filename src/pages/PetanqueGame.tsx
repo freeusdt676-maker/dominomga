@@ -682,7 +682,13 @@ export default function PetanqueGame() {
         const sp = Math.hypot(j.vx ?? 0, j.vz ?? 0);
         if (sp < COURT.minSpeed) { j.vx = 0; j.vz = 0; } else moving = true;
       } else {
-        moving = stepPhysics(sim.balls, sim.jack, dt);
+        moving = stepPhysics(sim.balls, sim.jack, dt, (impact) => {
+          const nowT = performance.now();
+          if (nowT - lastClackRef.current > 60) {
+            lastClackRef.current = nowT;
+            try { sfx.clack(Math.min(2, impact / 4)); } catch {}
+          }
+        });
       }
       setSimBalls([...sim.balls]);
       if (sim.jack) setSimJack({ ...sim.jack });

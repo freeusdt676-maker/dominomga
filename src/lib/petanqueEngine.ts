@@ -29,30 +29,21 @@ export function isJackValid(j: Jack | null): boolean {
   return true;
 }
 
-// Detects balls that have been clamped against a court wall (i.e. flew off the terrain).
-// They are FORFEIT only when STOPPED at the wall — never mid-flight, so balls
-// remain visible during their whole roll and only disappear once they come to
-// rest pressed against an edge.
+// Detects balls that have rolled OUT of the terrain. They are ejected past the
+// edge (no bouncing). A ball is forfeit as soon as its center crosses the
+// terrain boundary — it visibly continues out of the court before being removed.
 export function detectForfeits(balls: Ball[], jack: Jack | null) {
-  const eps = 0.005;
   const out: string[] = [];
   for (const b of balls) {
-    const speed = Math.hypot(b.vx, b.vz);
-    if (speed > 0.001) continue; // still rolling → keep visible
-    const atWall =
-      Math.abs(b.x - (COURT.minX + COURT.ballR)) < eps ||
-      Math.abs(b.x - (COURT.maxX - COURT.ballR)) < eps ||
-      Math.abs(b.z - (COURT.minZ + COURT.ballR)) < eps ||
-      Math.abs(b.z - (COURT.maxZ - COURT.ballR)) < eps;
-    if (atWall) out.push(b.id);
+    if (b.x < COURT.minX || b.x > COURT.maxX || b.z < COURT.minZ || b.z > COURT.maxZ) {
+      out.push(b.id);
+    }
   }
   let jackOut = false;
   if (jack) {
     jackOut =
-      Math.abs(jack.x - (COURT.minX + COURT.jackR)) < eps ||
-      Math.abs(jack.x - (COURT.maxX - COURT.jackR)) < eps ||
-      Math.abs(jack.z - (COURT.minZ + COURT.jackR)) < eps ||
-      Math.abs(jack.z - (COURT.maxZ - COURT.jackR)) < eps;
+      jack.x < COURT.minX || jack.x > COURT.maxX ||
+      jack.z < COURT.minZ || jack.z > COURT.maxZ;
   }
   return { forfeitedIds: out, jackOut };
 }
@@ -71,11 +62,9 @@ export function stepPhysics(balls: Ball[], jack: Jack | null, dt: number): boole
     // friction
     const f = Math.pow(COURT.friction, dt * 60);
     b.vx *= f; b.vz *= f;
-    // walls
-    if (b.x - COURT.ballR < COURT.minX) { b.x = COURT.minX + COURT.ballR; b.vx = -b.vx * COURT.wallRestitution; }
-    if (b.x + COURT.ballR > COURT.maxX) { b.x = COURT.maxX - COURT.ballR; b.vx = -b.vx * COURT.wallRestitution; }
-    if (b.z - COURT.ballR < COURT.minZ) { b.z = COURT.minZ + COURT.ballR; b.vz = -b.vz * COURT.wallRestitution; }
-    if (b.z + COURT.ballR > COURT.maxZ) { b.z = COURT.maxZ - COURT.ballR; b.vz = -b.vz * COURT.wallRestitution; }
+    // No wall bouncing: balls touching the edge of the terrain are EJECTED
+    // outside (forfeit). They continue rolling past the boundary until
+    // friction stops them off-court, where detectForfeits() will remove them.
     // stop slow
     const sp = Math.hypot(b.vx, b.vz);
     if (sp < COURT.minSpeed) { b.vx = 0; b.vz = 0; }

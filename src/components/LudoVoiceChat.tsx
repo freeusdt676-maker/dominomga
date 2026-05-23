@@ -31,6 +31,11 @@ function uidFromString(s: string): number {
 
 // Mute Agora's noisy default logging in prod
 try { AgoraRTC.setLogLevel(3); } catch {}
+// Better echo / noise behaviour at SDK level
+try {
+  // Disable the dual-stream "low" track (mono + lower bitrate = clearer voice)
+  (AgoraRTC as any).setParameter?.("ENABLE_INSTANT_VIDEO", false);
+} catch {}
 
 export default function LudoVoiceChat({ gameId }: { gameId: string }) {
   const { user } = useAuth();
@@ -96,6 +101,9 @@ export default function LudoVoiceChat({ gameId }: { gameId: string }) {
         try {
           await client.subscribe(remoteUser, mediaType);
           if (mediaType === "audio") {
+            // Play remote voice loud and clean — never route through the local
+            // mic loopback (which would create the "manakoako" echo).
+            try { remoteUser.audioTrack?.setVolume(140); } catch {}
             remoteUser.audioTrack?.play();
             remoteUsersRef.current.add(remoteUser.uid);
             setPeerCount(remoteUsersRef.current.size);
@@ -131,13 +139,18 @@ export default function LudoVoiceChat({ gameId }: { gameId: string }) {
       // 3. Join channel
       await client.join(appId, gameId, token, myUid);
 
-      // 4. Create local mic with HD voice + processing
+      // 4. Create local mic — HD voix + traitements anti-echo agressifs.
+      // music_standard => 48 kHz mono, ~40 kbps, voix très claire.
       const mic = await AgoraRTC.createMicrophoneAudioTrack({
-        encoderConfig: "speech_standard",
-        AEC: true,
-        ANS: true,
-        AGC: true,
+        encoderConfig: "music_standard",
+        AEC: true, // Acoustic Echo Cancellation
+        ANS: true, // Automatic Noise Suppression
+        AGC: true, // Automatic Gain Control
       });
+      // AI-based Noise Suppression — supprime le bruit ambiant + manakoako
+      try { await (mic as any).setAINSMode?.(true, "AGGRESSIVE"); } catch {}
+      // Volume du micro local stable et fort (sans saturer)
+      try { mic.setVolume?.(120); } catch {}
       micRef.current = mic;
       await client.publish([mic]);
 

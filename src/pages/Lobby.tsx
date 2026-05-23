@@ -40,6 +40,7 @@ export default function Lobby() {
 
   const load = async () => {
     if (!user) return;
+    try { await supabase.rpc("expire_stale_waiting_games" as any); } catch {}
     const abandonedGameId = sessionStorage.getItem(ABANDONED_GAME_KEY);
     const { data: mine } = await supabase
       .from("games")

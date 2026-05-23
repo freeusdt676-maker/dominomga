@@ -7,9 +7,23 @@ import { fmtAr, ADMIN_CODE, ADMIN_CODE_ALT } from "@/lib/constants";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Wallet, Users, Trophy, MessageCircle, LogOut, Shield, MessagesSquare, User as UserIcon, Download, Eye, EyeOff, FileEdit } from "lucide-react";
+import { Wallet, Users, Trophy, MessageCircle, LogOut, Shield, MessagesSquare, User as UserIcon, Download, Eye, EyeOff, FileEdit, RotateCcw, BookOpen } from "lucide-react";
 import logo from "@/assets/logo.png";
+import logoDomino from "@/assets/logo-domino.png";
+import logoLudo from "@/assets/logo-ludo.png";
+import logoPetanque from "@/assets/logo-petanque.png";
 import MessageInbox from "@/components/MessageInbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 const ABANDONED_GAME_KEY = "domino_abandoned_game_id";
 
@@ -25,6 +39,8 @@ export default function Home() {
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [showSecrets, setShowSecrets] = useState(false);
   const [pendingProfilesCount, setPendingProfilesCount] = useState(0);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     const onBip = (e: any) => { e.preventDefault(); setInstallPrompt(e); };
@@ -178,6 +194,16 @@ export default function Home() {
     }
   };
 
+  const handleResetData = async () => {
+    if (resetting) return;
+    setResetting(true);
+    const { error } = await supabase.rpc("user_reset_history" as any);
+    setResetting(false);
+    setResetOpen(false);
+    if (error) return toast.error(error.message ?? "Tsy nahomby");
+    toast.success("Voafafa daholo ny tantara — ny vola tsy voakitika");
+  };
+
   return (
     <div className="min-h-screen luxe-bg">
       <header className="relative z-10 px-5 py-4 flex items-center justify-between hairline-b">
@@ -193,6 +219,15 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-1">
           <MessageInbox />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setResetOpen(true)}
+            title="Réinitialiser les données"
+            className="text-[hsl(var(--gold-1))] hover:bg-[hsl(var(--gold-1)/0.08)]"
+          >
+            <RotateCcw className="w-5 h-5" />
+          </Button>
           <Button variant="ghost" size="icon" onClick={signOut} className="text-[hsl(var(--gold-1))] hover:bg-[hsl(var(--gold-1)/0.08)]"><LogOut className="w-5 h-5" /></Button>
         </div>
       </header>
@@ -249,7 +284,9 @@ export default function Home() {
         <div className="space-y-3">
           <Link to="/lobby" className="block luxe-card p-5 group transition hover:border-[hsl(var(--gold-1)/0.5)]">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-gradient-to-br from-[hsl(150_55%_22%)] to-[hsl(155_65%_10%)] border border-[hsl(var(--gold-1)/0.3)] text-3xl">🁫</div>
+              <div className="w-16 h-16 rounded-xl flex items-center justify-center bg-gradient-to-br from-[hsl(150_55%_22%)] to-[hsl(155_65%_10%)] border border-[hsl(var(--gold-1)/0.3)] overflow-hidden">
+                <img src={logoDomino} alt="Domino" className="w-14 h-14 object-contain" width={56} height={56} loading="lazy" />
+              </div>
               <div className="flex-1">
                 <p className="eyebrow">Classique</p>
                 <h3 className="font-serif-luxe text-2xl gold-luxe-text leading-tight">Domino</h3>
@@ -261,7 +298,9 @@ export default function Home() {
 
           <Link to="/ludo" className="block luxe-card p-5 group transition hover:border-[hsl(var(--gold-1)/0.5)]">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-gradient-to-br from-[#4a2580] to-[#2c1356] border border-[hsl(var(--gold-1)/0.3)] text-3xl">🎲</div>
+              <div className="w-16 h-16 rounded-xl flex items-center justify-center bg-gradient-to-br from-[#4a2580] to-[#2c1356] border border-[hsl(var(--gold-1)/0.3)] overflow-hidden">
+                <img src={logoLudo} alt="Ludo" className="w-14 h-14 object-contain" width={56} height={56} loading="lazy" />
+              </div>
               <div className="flex-1">
                 <p className="eyebrow">Royale</p>
                 <h3 className="font-serif-luxe text-2xl gold-luxe-text leading-tight">Ludo Master</h3>
@@ -273,7 +312,9 @@ export default function Home() {
 
           <Link to="/petanque" className="block luxe-card p-5 group transition hover:border-[hsl(var(--gold-1)/0.5)]">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-gradient-to-br from-[#1a5e3a] to-[#0a2e1c] border border-[hsl(var(--gold-1)/0.3)] text-3xl">🟢</div>
+              <div className="w-16 h-16 rounded-xl flex items-center justify-center bg-gradient-to-br from-[#1a5e3a] to-[#0a2e1c] border border-[hsl(var(--gold-1)/0.3)] overflow-hidden">
+                <img src={logoPetanque} alt="Pétanque" className="w-14 h-14 object-contain" width={56} height={56} loading="lazy" />
+              </div>
               <div className="flex-1">
                 <p className="eyebrow">Tropical 3D</p>
                 <h3 className="font-serif-luxe text-2xl gold-luxe-text leading-tight">Pétanque MGA</h3>
@@ -282,6 +323,59 @@ export default function Home() {
               <span className="text-[hsl(var(--gold-1))] opacity-50 group-hover:opacity-100 transition text-xl">→</span>
             </div>
           </Link>
+        </div>
+
+        {/* Règles du jeu — résumé direct sur la page d'accueil */}
+        <div className="crest-divider px-2">
+          <span className="text-[10px] tracking-[0.4em] uppercase">— Règles du jeu —</span>
+        </div>
+        <div className="luxe-card p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <BookOpen className="w-4 h-4 text-[hsl(var(--gold-1))]" />
+            <p className="font-serif-luxe text-lg leading-none gold-luxe-text">Lalàna fohifohy</p>
+          </div>
+          <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="r1">
+              <AccordionTrigger className="text-sm">1. Mombamomba ny mise</AccordionTrigger>
+              <AccordionContent className="text-xs text-muted-foreground">Apetraka MVola fotsiny ny mise. Ny gain = mise × isan'ny mpilalao × 0,9 (commission 10%). Tsy misy fanovana mise rehefa miditra ny lalao.</AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="r2">
+              <AccordionTrigger className="text-sm">2. Fitsipiky ny lobby (2 min)</AccordionTrigger>
+              <AccordionContent className="text-xs text-muted-foreground">Ny demande tsy mahita mpifanandrina ao anatin'ny <b>2 minitra</b> dia foanana ho azy. Afaka mametraka demande indray ianao avy hatrany.</AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="r3">
+              <AccordionTrigger className="text-sm">3. Domino — Maty 120 / 80 / Atanana</AccordionTrigger>
+              <AccordionContent className="text-xs text-muted-foreground">2P na 3P. Mpilalao mametraka domy araka ny laharana. Resy ny manana domy be indrindra rehefa tapaka ny lalao. Atao 120 na 80 isa, na ny manaisotra ny domy rehetra eny an-tanana.</AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="r4">
+              <AccordionTrigger className="text-sm">4. Ludo — 2P / 3P / 4P</AccordionTrigger>
+              <AccordionContent className="text-xs text-muted-foreground">Hokitihana ny dés mba hampandeha pion. 6 = miala ny pion sady mihazakazaka indray. Manompy ny pion fahavalo dia averina any am-pirina. Mpandresy ny voalohany manatratra ny 4 pion ao am-pirina.</AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="r5">
+              <AccordionTrigger className="text-sm">5. Pétanque MGA — duel 2P</AccordionTrigger>
+              <AccordionContent className="text-xs text-muted-foreground">Hatsipy ny boule akaiky ny cochonnet (mpadry). 20 segondra isaky ny tour — raha lany ny ora, mitsipy ho azy. Mahazo poent ny boule akaiky kokoa noho ny rehetra an'ny fahavalo. Maty 12 no resy.</AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="r6">
+              <AccordionTrigger className="text-sm">6. Appel (voice chat)</AccordionTrigger>
+              <AccordionContent className="text-xs text-muted-foreground">Isaky ny lalao mandeha, afaka miantso amin'ny "APEL" ny mpilalao tsirairay. Mety hoan'ny 2P, 3P na 4P. Tsindrio "Vono micro" raha tsy te hiteny.</AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="r7">
+              <AccordionTrigger className="text-sm">7. Solde MVola sy fakana vola</AccordionTrigger>
+              <AccordionContent className="text-xs text-muted-foreground">Mametraka vola amin'ny MVola, miandry validation ny admin. Ny solde dia <b>tsy fafana mihitsy</b> na inona na inona Réinitialiser ataonao.</AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="r8">
+              <AccordionTrigger className="text-sm">8. Réinitialisation</AccordionTrigger>
+              <AccordionContent className="text-xs text-muted-foreground">Ny bokotra ↻ eo ambony dia mamafa ny <b>message, historique du jeu sy transaction</b>. Ny <b>vola</b> dia tsy voakitika.</AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="r9">
+              <AccordionTrigger className="text-sm">9. Sécurité sy hosoka</AccordionTrigger>
+              <AccordionContent className="text-xs text-muted-foreground">Tsy fanontaniana mihitsy ny PIN MVola amin'olon-kafa. Ny admin mahita ny fanao rehetra. Voasakana 15 min ianao raha diso 5 ny mot de passe.</AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="r10">
+              <AccordionTrigger className="text-sm">10. Fitondran-tena</AccordionTrigger>
+              <AccordionContent className="text-xs text-muted-foreground">Lalao milamina no kendrena. Aza manompa, aza mandrora, aza manakorontana mpilalao hafa. Ny fandikan-dalàna mahatonga fanasarahana mandrakizay.</AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </div>
 
         <div className="crest-divider px-2">
@@ -405,6 +499,24 @@ export default function Home() {
           <Button onClick={handleAdminCode} className="btn-gold">Hampiditra</Button>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={resetOpen} onOpenChange={setResetOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hofafainao daholo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ity bokotra ity dia hamafa ny <b>message</b>, ny <b>historique du jeu</b>, ary ny <b>historique transaction</b>.
+              Ny <b>vola anananao</b> dia <b>tsy voakitika</b>. Tsy azo averina io fanafana io.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Tsia</AlertDialogCancel>
+            <AlertDialogAction onClick={handleResetData} disabled={resetting}>
+              {resetting ? "Manafa..." : "Eny, fafao"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

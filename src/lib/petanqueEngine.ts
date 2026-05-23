@@ -54,7 +54,14 @@ export function distance(a: { x: number; z: number }, b: { x: number; z: number 
 }
 
 // Step simulation by dt (seconds). Returns true if anything still moves.
-export function stepPhysics(balls: Ball[], jack: Jack | null, dt: number): boolean {
+// onCollision is called whenever two balls collide, with the relative impact
+// speed (useful for sound volume).
+export function stepPhysics(
+  balls: Ball[],
+  jack: Jack | null,
+  dt: number,
+  onCollision?: (impact: number) => void,
+): boolean {
   let moving = false;
   for (const b of balls) {
     b.x += b.vx * dt;
@@ -89,6 +96,7 @@ export function stepPhysics(balls: Ball[], jack: Jack | null, dt: number): boole
           const imp = -(1 + e) * dot / 2;
           a.vx -= imp * nx; a.vz -= imp * nz;
           c.vx += imp * nx; c.vz += imp * nz;
+          if (onCollision) onCollision(Math.abs(dot));
         }
       }
     }

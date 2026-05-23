@@ -27,6 +27,7 @@ import LudoVoiceChat from "@/components/LudoVoiceChat";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Tile, Placed, deal, deal3, ends, canPlace, place, pipsTotal, hasMove, chooseOpening,
+  getInstantDoublesWinner,
 } from "@/lib/dominoEngine";
 import { toast } from "sonner";
 import { sfx } from "@/lib/sfx";
@@ -131,6 +132,14 @@ export default function Game() {
         const d = deal(seed);
         hands = [d.p1, d.p2];
         boneyard = d.boneyard;
+      }
+      // Lalàna vaovao: 5 na 6 double atànana = mandresy avy hatrany.
+      const instantIdx = getInstantDoublesWinner(hands);
+      if (instantIdx !== null) {
+        const ids = getPlayerIds(currentGame);
+        const winnerId = ids[instantIdx];
+        await supabase.rpc("settle_game", { _game_id: currentGame.id, _winner: winnerId });
+        return;
       }
       const opener = chooseOpening(hands, mode);
       const ids = getPlayerIds(currentGame);
@@ -1335,11 +1344,11 @@ function DominoResultOverlay({
   draw: boolean; iWon: boolean; netGain: number; pot: number; stake: number;
   winnerName: string; reasonText: string; myScore: number; onDone: () => void;
 }) {
-  const [count, setCount] = useState(5);
+  const [count, setCount] = useState(10);
   useEffect(() => {
     sfx.win?.();
     const t = setInterval(() => setCount((c) => Math.max(0, c - 1)), 1000);
-    const done = setTimeout(onDone, 5000);
+    const done = setTimeout(onDone, 10000);
     return () => { clearInterval(t); clearTimeout(done); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

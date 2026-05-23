@@ -150,25 +150,47 @@ function Court() {
   // sand + pebbles texture procedurally
   const sandTex = useMemo(() => {
     const c = document.createElement("canvas");
-    c.width = 512; c.height = 512;
+    c.width = 1024; c.height = 1024;
     const ctx = c.getContext("2d")!;
-    ctx.fillStyle = "#d4b896"; ctx.fillRect(0, 0, 512, 512);
-    for (let i = 0; i < 4000; i++) {
-      const x = Math.random() * 512, y = Math.random() * 512;
+    // Base sand — gradient pour donner du relief naturel
+    const grad = ctx.createLinearGradient(0, 0, 0, 1024);
+    grad.addColorStop(0, "#d8bc99");
+    grad.addColorStop(0.5, "#cdb088");
+    grad.addColorStop(1, "#c4a679");
+    ctx.fillStyle = grad; ctx.fillRect(0, 0, 1024, 1024);
+    // Grains de sable fins
+    for (let i = 0; i < 14000; i++) {
+      const x = Math.random() * 1024, y = Math.random() * 1024;
       const sh = Math.random();
-      ctx.fillStyle = sh > 0.85 ? "#8b7355" : sh > 0.5 ? "#c2a378" : "#e0c89a";
-      const r = Math.random() * 2 + 0.5;
+      ctx.fillStyle = sh > 0.92 ? "#6f5a3f" : sh > 0.7 ? "#9c8359" : sh > 0.4 ? "#c2a378" : "#ead3a6";
+      const r = Math.random() * 1.6 + 0.3;
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
     }
-    // pebbles
-    for (let i = 0; i < 200; i++) {
-      const x = Math.random() * 512, y = Math.random() * 512;
-      ctx.fillStyle = ["#6b5d4a", "#8a7a60", "#a08570"][Math.floor(Math.random()*3)];
-      ctx.beginPath(); ctx.arc(x, y, Math.random()*4+2, 0, Math.PI*2); ctx.fill();
+    // Cailloux + ombres pour relief
+    for (let i = 0; i < 320; i++) {
+      const x = Math.random() * 1024, y = Math.random() * 1024;
+      const r = Math.random() * 5 + 2.5;
+      ctx.fillStyle = "rgba(0,0,0,0.18)";
+      ctx.beginPath(); ctx.arc(x + 1.5, y + 1.5, r, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = ["#6b5d4a", "#8a7a60", "#a08570", "#7d6a52"][Math.floor(Math.random()*4)];
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
     }
+    // Traces légères de roulement
+    ctx.globalAlpha = 0.08;
+    for (let i = 0; i < 40; i++) {
+      ctx.strokeStyle = "#7a5d3a";
+      ctx.lineWidth = Math.random() * 2 + 0.5;
+      ctx.beginPath();
+      const y = Math.random() * 1024;
+      ctx.moveTo(0, y);
+      ctx.bezierCurveTo(256, y + (Math.random()-0.5)*40, 768, y + (Math.random()-0.5)*40, 1024, y);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
     const t = new THREE.CanvasTexture(c);
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    t.repeat.set(2, 6);
+    t.repeat.set(1.5, 4);
+    t.anisotropy = 8;
     return t;
   }, []);
   const grassTex = useMemo(() => {
@@ -196,7 +218,21 @@ function Court() {
       {/* sand court */}
       <mesh rotation={[-Math.PI/2, 0, 0]} position={[0, 0.01, 4.7]} receiveShadow>
         <planeGeometry args={[COURT.maxX - COURT.minX + 0.4, COURT.maxZ - COURT.minZ + 0.4]} />
-        <meshStandardMaterial map={sandTex} roughness={1} />
+        <meshStandardMaterial map={sandTex} roughness={0.95} />
+      </mesh>
+      {/* Throw circle — cercle de lancer (rond du jeu) */}
+      <mesh rotation={[-Math.PI/2, 0, 0]} position={[0, 0.015, -1.3]}>
+        <ringGeometry args={[0.55, 0.62, 64]} />
+        <meshBasicMaterial color="#1a1208" transparent opacity={0.55} />
+      </mesh>
+      <mesh rotation={[-Math.PI/2, 0, 0]} position={[0, 0.014, -1.3]}>
+        <circleGeometry args={[0.55, 48]} />
+        <meshStandardMaterial color="#b59568" roughness={1} />
+      </mesh>
+      {/* Cochonnet target zone — discret repère du fond du terrain */}
+      <mesh rotation={[-Math.PI/2, 0, 0]} position={[0, 0.015, 8.4]}>
+        <ringGeometry args={[1.55, 1.62, 64]} />
+        <meshBasicMaterial color="#3a2a14" transparent opacity={0.18} />
       </mesh>
       {/* wooden borders */}
       {[
@@ -207,7 +243,19 @@ function Court() {
       ].map((b, i) => (
         <mesh key={i} position={b.p as [number, number, number]} castShadow receiveShadow>
           <boxGeometry args={b.s as [number, number, number]} />
-          <meshStandardMaterial color="#6b4a2a" roughness={0.9} />
+          <meshStandardMaterial color="#5a3a1f" roughness={0.85} metalness={0.05} />
+        </mesh>
+      ))}
+      {/* Corner posts — petits piquets pour cadre pro */}
+      {[
+        [COURT.minX - 0.15, COURT.minZ - 0.15],
+        [COURT.maxX + 0.15, COURT.minZ - 0.15],
+        [COURT.minX - 0.15, COURT.maxZ + 0.15],
+        [COURT.maxX + 0.15, COURT.maxZ + 0.15],
+      ].map((p, i) => (
+        <mesh key={`post-${i}`} position={[p[0], 0.22, p[1]]} castShadow>
+          <cylinderGeometry args={[0.07, 0.09, 0.42, 10]} />
+          <meshStandardMaterial color="#3d2814" roughness={0.7} metalness={0.15} />
         </mesh>
       ))}
     </group>
@@ -744,9 +792,9 @@ export default function PetanqueGame() {
         }
         // Auto jack-throw if needed
         if (fresh.state?.phase === "throw_jack") {
-          // ~75% ny halavin'ny terrain — lavidavitra fa tsy akaiky
-          const jackX = (Math.random() - 0.5) * 1.6;
-          const jackZ = 7.5 + Math.random() * 1.8;
+          // Auto-place jack at ~80% du terrain, centré — zone valide garantie
+          const jackX = (Math.random() - 0.5) * 0.6;
+          const jackZ = 8.0 + Math.random() * 0.6;
           const currentTurnUser = throwSide === "p1" ? fresh.player1_id : fresh.player2_id;
           await supabase.rpc("petanque_update_state" as any, {
             _game_id: fresh.id,
@@ -763,11 +811,21 @@ export default function PetanqueGame() {
             _score_p2: fresh.score_p2,
             _round_number: fresh.round_number,
           });
-          toast("⏱ Robot nanatsipy ny boul kely");
+          toast("⏱ 20s tapitra — nataony automatika ny boul kely");
           return;
         }
-        const ba = Math.round((Math.random() - 0.5) * 40);
-        const bf = 40 + Math.round(Math.random() * 40);
+        // 20s tapitra: mitsipy MAHITSY mankany amin'ny boul kely (cochonnet).
+        // Tsy misy random — fanitsanana automatika hiarovana ny fotoana.
+        const jk = fresh.state?.jack ?? { x: 0, z: 8 };
+        const dxJ = jk.x - 0;
+        const dzJ = jk.z - (-1.3);
+        const angleRad = Math.atan2(dxJ, dzJ);
+        const ba = Math.round((angleRad * 180) / Math.PI);
+        // Hery voakajy mba ho akaiky ny cochonnet (mapping inverse de runThrow)
+        const dist = Math.hypot(dxJ, dzJ);
+        // speed = 4 + (f/100)*11 ; halavin-dalana ≈ speed / (1 - friction^60) → approx tuning
+        const targetSpeed = Math.max(5, Math.min(13, 3.6 + dist * 0.95));
+        const bf = Math.round(Math.max(35, Math.min(95, ((targetSpeed - 4) / 11) * 100)));
         const remaining = fresh.state?.remaining ?? { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER };
         if (remaining[throwSide] <= 0) {
           autoThrowRef.current = null;
@@ -776,7 +834,7 @@ export default function PetanqueGame() {
         // Animation + broadcast — hahitan'ny mpilalao roa tonta ny fikodiadia
         const baseBalls = fresh.state?.balls ?? [];
         const baseJack = fresh.state?.jack ? { ...fresh.state.jack } : null;
-        const ballId = `bot_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        const ballId = `auto_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
         try {
           await channelRef.current?.send({
             type: "broadcast",
@@ -786,7 +844,7 @@ export default function PetanqueGame() {
         } catch {}
         // Mametraka g ho mety amin'ny finishThrow (mampiasa g.state)
         runThrowRef.current?.({ thrower: throwSide, angle: ba, force: bf, jackPhase: false, baseBalls, baseJack, ballId, commit: true });
-        toast("⏱ Robot nanatsipy baolina (20s)");
+        toast("⏱ 20s tapitra — baolina nialana automatika");
       })().catch(() => {
         autoThrowRef.current = null;
       });

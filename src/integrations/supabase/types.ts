@@ -923,6 +923,7 @@ export type Database = {
         Args: { _action: string; _max: number; _window_seconds: number }
         Returns: boolean
       }
+      expire_stale_waiting_games: { Args: never; Returns: Json }
       get_admin_id: { Args: never; Returns: string }
       has_role: {
         Args: {
@@ -1040,6 +1041,7 @@ export type Database = {
         }
         Returns: Json
       }
+      user_reset_history: { Args: never; Returns: Json }
     }
     Enums: {
       account_status: "pending" | "active" | "blocked"

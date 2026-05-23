@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { STAKE_LEVELS, fmtAr } from "@/lib/constants";
-import { ArrowLeft, Loader2, Coins, Users, X, Play } from "lucide-react";
+import { ArrowLeft, Loader2, Coins, Users, X, Play, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { sfx } from "@/lib/sfx";
 import { useThemeClass } from "@/hooks/use-theme-class";
@@ -29,10 +29,12 @@ export default function LudoLobby() {
   const [activeGame, setActiveGame] = useState<ResumeGame | null>(null);
   const [placing, setPlacing] = useState(false);
   const [joining, setJoining] = useState<string | null>(null);
+  const [nowTs, setNowTs] = useState(Date.now());
   const ABANDONED_GAME_KEY = "ludo_abandoned_game_id";
 
   const load = async () => {
     if (!user) return;
+    try { await supabase.rpc("expire_stale_waiting_games" as any); } catch {}
     const abandonedGameId = sessionStorage.getItem(ABANDONED_GAME_KEY);
     const { data: mine } = await supabase
       .from("ludo_games" as any)
@@ -76,7 +78,8 @@ export default function LudoLobby() {
       .on("postgres_changes", { event: "*", schema: "public", table: "ludo_games", filter: "status=eq.waiting" }, debounced)
       .subscribe();
     const itv = setInterval(load, 5000);
-    return () => { supabase.removeChannel(ch); clearInterval(itv); if (t) clearTimeout(t); };
+    const tick = setInterval(() => setNowTs(Date.now()), 1000);
+    return () => { supabase.removeChannel(ch); clearInterval(itv); clearInterval(tick); if (t) clearTimeout(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
@@ -159,6 +162,22 @@ export default function LudoLobby() {
     return m;
   }, [waiting]);
 
+  const remainingSec = useMemo(() => {
+    if (!myWaiting) return 0;
+    const created = new Date(myWaiting.created_at).getTime();
+    return Math.max(0, 120 - Math.floor((nowTs - created) / 1000));
+  }, [myWaiting, nowTs]);
+
+  useEffect(() => {
+    if (myWaiting && remainingSec === 0) {
+      supabase.rpc("ludo_cancel_waiting" as any, { _game_id: myWaiting.id }).then(() => {
+        toast.info("Tsy nahita mpifanandrina — afaka mametraka demande indray");
+        load();
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remainingSec, myWaiting?.id]);
+
   return (
     <div className="min-h-screen ludo-bg">
       <header className="p-4 flex items-center gap-3 border-b border-yellow-500/30">
@@ -214,7 +233,9 @@ export default function LudoLobby() {
             <div className="mt-3 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/40 flex items-center justify-between gap-2">
               <div className="text-sm min-w-0">
                 <p className="font-bold text-yellow-200 truncate">Misy mise vonona ianao</p>
-                <p className="text-xs text-yellow-100/70 truncate">Mise: {fmtAr(myWaiting.stake)} — miandry</p>
+                <p className="text-xs text-yellow-100/70 truncate inline-flex items-center gap-1">
+                  <Clock className="w-3 h-3" /> {Math.floor(remainingSec/60)}:{String(remainingSec%60).padStart(2,"0")} — miandry mpifanandrina
+                </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <Button

@@ -8,8 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { DominoTile } from "@/components/DominoTile";
 import logo from "@/assets/logo.png";
+import logoDomino from "@/assets/logo-domino.png";
+import logoLudo from "@/assets/logo-ludo.png";
+import logoPetanque from "@/assets/logo-petanque.png";
 import { Camera, Shield, X } from "lucide-react";
 import { ADMIN_CODE, ADMIN_CODE_ALT } from "@/lib/constants";
 import { Link } from "react-router-dom";
@@ -197,11 +199,13 @@ export default function Auth() {
     <div className="min-h-screen felt-bg flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-6">
-          <img src={logo} alt="DOMINO MGA" className="w-24 h-24 mb-2" />
+          <img src={logo} alt="DOMINO MGA" className="w-20 h-20 mb-2" />
           <h1 className="text-3xl font-display font-bold gold-text">DOMINO MGA</h1>
-          <div className="flex gap-1 mt-3">
-            <DominoTile a={6} b={6} size="sm" />
-            <DominoTile a={5} b={3} size="sm" />
+          <p className="text-[11px] tracking-[0.3em] uppercase text-muted-foreground mt-1">Domino · Ludo · Pétanque</p>
+          <div className="flex items-center justify-center gap-4 mt-4">
+            <img src={logoDomino} alt="Domino" className="w-14 h-14 drop-shadow-[0_2px_8px_rgba(212,175,55,0.4)]" loading="lazy" />
+            <img src={logoLudo} alt="Ludo" className="w-14 h-14 drop-shadow-[0_2px_8px_rgba(212,175,55,0.4)]" loading="lazy" />
+            <img src={logoPetanque} alt="Pétanque" className="w-14 h-14 drop-shadow-[0_2px_8px_rgba(212,175,55,0.4)]" loading="lazy" />
           </div>
         </div>
 

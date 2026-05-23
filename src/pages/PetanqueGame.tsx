@@ -519,6 +519,7 @@ export default function PetanqueGame() {
   const autoThrowRef = useRef<string | null>(null);
   const channelRef = useRef<any>(null);
   const runThrowRef = useRef<((opts: any) => void) | null>(null);
+  const lastClackRef = useRef<number>(0);
   // Drag-to-throw gesture state
   const [drag, setDrag] = useState<{ dx: number; dy: number } | null>(null);
   const dragStart = useRef<{ x: number; y: number } | null>(null);

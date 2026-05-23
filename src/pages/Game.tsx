@@ -1344,11 +1344,11 @@ function DominoResultOverlay({
   draw: boolean; iWon: boolean; netGain: number; pot: number; stake: number;
   winnerName: string; reasonText: string; myScore: number; onDone: () => void;
 }) {
-  const [count, setCount] = useState(5);
+  const [count, setCount] = useState(10);
   useEffect(() => {
     sfx.win?.();
     const t = setInterval(() => setCount((c) => Math.max(0, c - 1)), 1000);
-    const done = setTimeout(onDone, 5000);
+    const done = setTimeout(onDone, 10000);
     return () => { clearInterval(t); clearTimeout(done); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

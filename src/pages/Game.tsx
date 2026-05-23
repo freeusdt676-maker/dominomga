@@ -133,6 +133,14 @@ export default function Game() {
         hands = [d.p1, d.p2];
         boneyard = d.boneyard;
       }
+      // Lalàna vaovao: 5 na 6 double atànana = mandresy avy hatrany.
+      const instantIdx = getInstantDoublesWinner(hands);
+      if (instantIdx !== null) {
+        const ids = getPlayerIds(currentGame);
+        const winnerId = ids[instantIdx];
+        await supabase.rpc("settle_game", { _game_id: currentGame.id, _winner: winnerId });
+        return;
+      }
       const opener = chooseOpening(hands, mode);
       const ids = getPlayerIds(currentGame);
       const openerId = ids[opener.playerIndex];

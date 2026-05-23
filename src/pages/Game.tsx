@@ -141,9 +141,14 @@ export default function Game() {
         await supabase.rpc("settle_game", { _game_id: currentGame.id, _winner: winnerId });
         return;
       }
-      const opener = chooseOpening(hands, mode);
+      // Rotation explicite ny topon'ny tour: tour 1 = player1, tour 2 = player2,
+      // tour 3 = player3, dia miverina amin'ny player1. Tsy miankina amin'ny vato
+      // lehibe indrindra intsony — io no mahatonga ny "mifanatrika" mateti-piverina.
       const ids = getPlayerIds(currentGame);
-      const openerId = ids[opener.playerIndex];
+      const round1 = Number(currentGame.round_number ?? 1);
+      const openerIdxInit = (round1 - 1) % ids.length;
+      const opener = { ...chooseOpening(hands, mode), playerIndex: openerIdxInit, forced: false };
+      const openerId = ids[openerIdxInit];
       let board: Placed[] = [];
       let nextId = openerId;
       if (opener.forced) {

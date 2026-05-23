@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { fmtAr } from "@/lib/constants";
-import { ArrowLeft, Loader2, Coins, Users, X } from "lucide-react";
+import { ArrowLeft, Loader2, Coins, X, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { useThemeClass } from "@/hooks/use-theme-class";
 
@@ -22,15 +22,16 @@ export default function PetanqueLobby() {
   const { user } = useAuth();
   const nav = useNavigate();
   const [stake, setStake] = useState(PETANQUE_STAKES[0]);
-  const [waiting, setWaiting] = useState<WaitingGame[]>([]);
   const [myWaiting, setMyWaiting] = useState<WaitingGame | null>(null);
   const [activeGame, setActiveGame] = useState<ResumeGame | null>(null);
   const [placing, setPlacing] = useState(false);
-  const [joining, setJoining] = useState<string | null>(null);
+  const [nowTs, setNowTs] = useState(Date.now());
   const ABANDONED_GAME_KEY = "petanque_abandoned_game_id";
 
   const load = async () => {
     if (!user) return;
+    // Expire stale (>2 min) waiting rooms across all game types
+    try { await supabase.rpc("expire_stale_waiting_games" as any); } catch {}
     const abandonedGameId = sessionStorage.getItem(ABANDONED_GAME_KEY);
     const { data: mine } = await supabase
       .from("petanque_games" as any)
@@ -42,22 +43,15 @@ export default function PetanqueLobby() {
     const m: any = mine?.find((row: any) => row.id !== abandonedGameId) ?? mine?.[0] ?? null;
     setActiveGame(m ? { id: m.id, stake: Number(m.stake ?? 0) } : null);
 
-    const { data: gs } = await supabase
+    const { data: mineWait } = await supabase
       .from("petanque_games" as any)
       .select("id, player1_id, player2_id, stake, created_at, status")
       .eq("status", "waiting")
-      .order("created_at", { ascending: true });
-    const list = ((gs ?? []) as unknown) as WaitingGame[];
-    const ids = Array.from(new Set(list.map((g) => g.player1_id)));
-    const nameMap: Record<string, string> = {};
-    if (ids.length) {
-      const { data: ps } = await supabase.from("profiles").select("user_id, mvola_name").in("user_id", ids);
-      (ps ?? []).forEach((p: any) => { nameMap[p.user_id] = p.mvola_name; });
-    }
-    const enriched = list.map((g) => ({ ...g, _name: nameMap[g.player1_id] ?? "Mpilalao" }));
-    const me = enriched.find((g) => g.player1_id === user.id) ?? null;
+      .eq("player1_id", user.id)
+      .order("created_at", { ascending: true })
+      .limit(1);
+    const me = ((mineWait ?? [])[0] as unknown) as WaitingGame | undefined ?? null;
     setMyWaiting(me);
-    setWaiting(enriched.filter((g) => g.player1_id !== user.id));
   };
 
   useEffect(() => {
@@ -69,7 +63,8 @@ export default function PetanqueLobby() {
       .on("postgres_changes", { event: "*", schema: "public", table: "petanque_games" }, debounced)
       .subscribe();
     const itv = setInterval(load, 5000);
-    return () => { supabase.removeChannel(ch); clearInterval(itv); if (t) clearTimeout(t); };
+    const tick = setInterval(() => setNowTs(Date.now()), 1000);
+    return () => { supabase.removeChannel(ch); clearInterval(itv); clearInterval(tick); if (t) clearTimeout(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
@@ -123,22 +118,23 @@ export default function PetanqueLobby() {
     load();
   };
 
-  const joinWaiting = async (g: WaitingGame) => {
-    if (!user) return;
-    const { data: w } = await supabase.from("wallets").select("balance").eq("user_id", user.id).single();
-    if (Number(w?.balance ?? 0) < Number(g.stake)) return toast.error("Tsy ampy ny solde");
-    setJoining(g.id);
-    const { error } = await supabase.rpc("petanque_join_and_start" as any, { _game_id: g.id, _user: user.id });
-    setJoining(null);
-    if (error) return toast.error(error.message);
-    nav(`/petanque/${g.id}`);
-  };
-
-  const grouped = useMemo(() => {
-    const m: Record<number, WaitingGame[]> = {};
-    waiting.forEach((g) => { (m[Number(g.stake)] = m[Number(g.stake)] || []).push(g); });
-    return m;
-  }, [waiting]);
+  // Countdown 2 min hoan'ny myWaiting
+  const remainingSec = useMemo(() => {
+    if (!myWaiting) return 0;
+    const created = new Date(myWaiting.created_at).getTime();
+    const left = Math.max(0, 120 - Math.floor((nowTs - created) / 1000));
+    return left;
+  }, [myWaiting, nowTs]);
+  useEffect(() => {
+    if (myWaiting && remainingSec === 0) {
+      // Auto-cancel rehefa lany ny 2 min
+      supabase.rpc("petanque_cancel_waiting" as any, { _game_id: myWaiting.id }).then(() => {
+        toast.info("Tsy nahita mpifanandrina — afaka mametraka demande indray");
+        load();
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remainingSec, myWaiting?.id]);
 
   return (
     <div className="min-h-screen" style={{ background: "linear-gradient(180deg, #0a2e1c 0%, #052113 60%, #021008 100%)" }}>
@@ -183,7 +179,9 @@ export default function PetanqueLobby() {
             <div className="mt-3 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/40 flex items-center justify-between">
               <div className="text-sm">
                 <p className="font-bold text-emerald-200">Misy mise vonona ianao</p>
-                <p className="text-xs text-emerald-100/70">Mise: {fmtAr(myWaiting.stake)} — miandry</p>
+                <p className="text-xs text-emerald-100/70 inline-flex items-center gap-1">
+                  <Clock className="w-3 h-3" /> {Math.floor(remainingSec/60)}:{String(remainingSec%60).padStart(2,"0")} — miandry mpifanandrina
+                </p>
               </div>
               <Button size="sm" variant="destructive" onClick={cancelMyWaiting}><X className="w-4 h-4" /></Button>
             </div>
@@ -199,37 +197,8 @@ export default function PetanqueLobby() {
           )}
         </div>
 
-        <div className="rounded-2xl p-4 border border-emerald-500/30 bg-emerald-950/40 backdrop-blur">
-          <div className="flex items-center gap-2 mb-3">
-            <Users className="w-4 h-4 text-emerald-300" />
-            <h3 className="font-display font-bold text-emerald-200">Mpilalao vonona ({waiting.length})</h3>
-          </div>
-          {waiting.length === 0 && <p className="text-center text-sm text-emerald-100/60 py-6">Tsy mbola misy</p>}
-          <div className="space-y-3">
-            {Object.keys(grouped).sort((a,b) => Number(a)-Number(b)).map((k) => (
-              <div key={k}>
-                <p className="text-[10px] uppercase text-emerald-200/60 mb-1">Mise {fmtAr(Number(k))}</p>
-                <div className="space-y-1.5">
-                  {grouped[Number(k)].map((g) => (
-                    <button
-                      key={g.id}
-                      onClick={() => joinWaiting(g)}
-                      disabled={joining === g.id}
-                      className="w-full flex items-center justify-between p-3 rounded-lg border border-emerald-500/30 bg-emerald-900/30 hover:bg-emerald-900/60 transition"
-                    >
-                      <div className="text-left">
-                        <p className="font-bold text-sm text-emerald-100">{g._name}</p>
-                        <p className="text-[11px] text-emerald-100/70">Mise <b>{fmtAr(g.stake)}</b></p>
-                      </div>
-                      {joining === g.id ? <Loader2 className="w-4 h-4 animate-spin" /> : (
-                        <span className="text-xs font-bold text-emerald-300">Hiditra ▶</span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="rounded-2xl p-4 border border-emerald-500/30 bg-emerald-950/40 backdrop-blur text-center text-xs text-emerald-100/70 leading-relaxed">
+          Mametraha mise — raha misy mpilalao mametra mise mitovy, hifampitohy automatique ianareo ao anatin'ny 2 minitra. Raha tsy mahita mpifanandrina, foanana ho azy ny demande ka afaka mametraka indray ianao.
         </div>
       </div>
     </div>

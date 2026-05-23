@@ -136,6 +136,9 @@ export default function Lobby() {
   const placeMise = async () => {
     if (!user || placing) return;
     setPlacing(true);
+    // Foanana aloha izay salao niandry efa tara loatra (3P tsy nahazo player3, sns.)
+    // mba tsy hisakana ity mpilalao ity manao demande vaovao.
+    try { await supabase.rpc("expire_stale_waiting_games" as any); } catch {}
     // Strict 1-room/user check (DB-side) to defeat double-clicks & stale local state.
     const { data: existing } = await supabase
       .from("games")

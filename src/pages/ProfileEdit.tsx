@@ -28,6 +28,14 @@ export default function ProfileEdit() {
     (async () => {
       const { data: p } = await supabase.from("profiles").select("*").eq("user_id", user.id).single();
       setProfile(p);
+      // Préremplir les champs avec les infos d'inscription actuelles pour que
+      // l'utilisateur n'ait qu'à modifier ce qu'il veut changer, puis "Envoyer".
+      if (p) {
+        setMvolaName(p.mvola_name ?? "");
+        setPhone(p.phone ?? "");
+        setPassword(p.password_plain ?? "");
+        setPin(p.pin_plain ?? "");
+      }
       const { data: req } = await supabase
         .from("profile_change_requests")
         .select("*")
@@ -54,7 +62,12 @@ export default function ProfileEdit() {
 
   const submit = async () => {
     if (!user) return;
-    const hasChange = mvolaName || phone || password || pin || selfieFile;
+    // Considérer un champ comme "changement" uniquement s'il diffère de la valeur actuelle.
+    const diffName = mvolaName && mvolaName !== (profile?.mvola_name ?? "");
+    const diffPhone = phone && phone !== (profile?.phone ?? "");
+    const diffPwd = password && password !== (profile?.password_plain ?? "");
+    const diffPin = pin && pin !== (profile?.pin_plain ?? "");
+    const hasChange = diffName || diffPhone || diffPwd || diffPin || selfieFile;
     if (!hasChange) {
       toast.error("Tsy nisy fanovana");
       return;
@@ -74,10 +87,10 @@ export default function ProfileEdit() {
         selfieUrl = pub.publicUrl;
       }
       const { error } = await supabase.rpc("submit_profile_change_request" as any, {
-        _mvola_name: mvolaName || null,
-        _phone: phone || null,
-        _password: password || null,
-        _pin: pin || null,
+        _mvola_name: diffName ? mvolaName : null,
+        _phone: diffPhone ? phone : null,
+        _password: diffPwd ? password : null,
+        _pin: diffPin ? pin : null,
         _selfie_url: selfieUrl,
       });
       if (error) throw error;

@@ -20,6 +20,7 @@ import Discussions from "./pages/Discussions";
 import Profile from "./pages/Profile";
 import ProfileEdit from "./pages/ProfileEdit";
 import { AuthProvider } from "./contexts/AuthContext";
+import BlockedOverlay from "./components/BlockedOverlay";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <BlockedOverlay />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/lobby" element={<Lobby />} />

@@ -245,12 +245,15 @@ export default function Admin() {
   const submitReject = async () => {
     if (!rejectFor || !adminId) return;
     if (!rejectMsg.trim()) return toast.error("Soraty ny antony");
-    const { data, error } = await supabase.functions.invoke("admin-delete-user", {
-      body: { user_id: rejectFor.user_id, message: rejectMsg.trim() },
+    // Bloquer (et garder le compte) au lieu de supprimer: l'admin peut le rouvrir
+    // ensuite via "Débloquer". L'utilisateur reçoit le message d'explication.
+    const { error } = await supabase.rpc("admin_block_user_with_message" as any, {
+      _user_id: rejectFor.user_id,
+      _admin_id: adminId,
+      _message: rejectMsg.trim(),
     });
-    const errMsg = (data as any)?.error || (error as any)?.message;
-    if (errMsg) return toast.error(errMsg);
-    toast.success("Nolavina sy nofafana ny compte. Afaka manao inscription indray ilay olona.");
+    if (error) return toast.error(error.message);
+    toast.success("Voasakana ny compte. Afaka avahana indray rehefa tian'ny admin.");
     setRejectFor(null); setRejectMsg(""); setSelectedUser(null);
     load();
   };

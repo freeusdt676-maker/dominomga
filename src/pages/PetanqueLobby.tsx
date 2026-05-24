@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { fmtAr } from "@/lib/constants";
-import { ArrowLeft, Loader2, Coins, X, Clock } from "lucide-react";
+import { ArrowLeft, Loader2, Coins, X, Clock, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useThemeClass } from "@/hooks/use-theme-class";
 
@@ -25,6 +25,8 @@ export default function PetanqueLobby() {
   const [myWaiting, setMyWaiting] = useState<WaitingGame | null>(null);
   const [activeGame, setActiveGame] = useState<ResumeGame | null>(null);
   const [placing, setPlacing] = useState(false);
+  const [waiting, setWaiting] = useState<WaitingGame[]>([]);
+  const [joining, setJoining] = useState<string | null>(null);
   const [nowTs, setNowTs] = useState(Date.now());
   const ABANDONED_GAME_KEY = "petanque_abandoned_game_id";
 
@@ -52,6 +54,22 @@ export default function PetanqueLobby() {
       .limit(1);
     const me = ((mineWait ?? [])[0] as unknown) as WaitingGame | undefined ?? null;
     setMyWaiting(me);
+
+    // Liste hafa olona miandry (toy ny Ludo/Domino)
+    const { data: gs } = await supabase
+      .from("petanque_games" as any)
+      .select("id, player1_id, player2_id, stake, created_at, status")
+      .eq("status", "waiting")
+      .order("created_at", { ascending: true });
+    const list = ((gs ?? []) as unknown) as WaitingGame[];
+    const others = list.filter((g) => g.player1_id !== user.id && !g.player2_id);
+    const ids = Array.from(new Set(others.map((g) => g.player1_id)));
+    const nameMap: Record<string, string> = {};
+    if (ids.length) {
+      const { data: ps } = await supabase.from("profiles").select("user_id, mvola_name").in("user_id", ids);
+      (ps ?? []).forEach((p: any) => { nameMap[p.user_id] = p.mvola_name; });
+    }
+    setWaiting(others.map((g) => ({ ...g, _name: nameMap[g.player1_id] ?? "Mpilalao" })));
   };
 
   useEffect(() => {
@@ -117,6 +135,23 @@ export default function PetanqueLobby() {
     toast("Nesorina");
     load();
   };
+
+  const joinWaiting = async (g: WaitingGame) => {
+    if (!user) return;
+    const { data: w } = await supabase.from("wallets").select("balance").eq("user_id", user.id).single();
+    if (Number(w?.balance ?? 0) < Number(g.stake)) return toast.error("Tsy ampy ny solde");
+    setJoining(g.id);
+    const { error } = await supabase.rpc("petanque_join_and_start" as any, { _game_id: g.id, _user: user.id });
+    setJoining(null);
+    if (error) return toast.error(error.message);
+    nav(`/petanque/${g.id}`);
+  };
+
+  const grouped = useMemo(() => {
+    const m: Record<number, WaitingGame[]> = {};
+    waiting.forEach((g) => { (m[Number(g.stake)] = m[Number(g.stake)] || []).push(g); });
+    return m;
+  }, [waiting]);
 
   // Countdown 2 min hoan'ny myWaiting
   const remainingSec = useMemo(() => {
@@ -199,6 +234,41 @@ export default function PetanqueLobby() {
 
         <div className="rounded-2xl p-4 border border-emerald-500/30 bg-emerald-950/40 backdrop-blur text-center text-xs text-emerald-100/70 leading-relaxed">
           Mametraha mise — raha misy mpilalao mametra mise mitovy, hifampitohy automatique ianareo ao anatin'ny 2 minitra. Raha tsy mahita mpifanandrina, foanana ho azy ny demande ka afaka mametraka indray ianao.
+        </div>
+
+        <div className="rounded-2xl p-4 border border-emerald-500/30 bg-emerald-950/40 backdrop-blur">
+          <div className="flex items-center gap-2 mb-3">
+            <Users className="w-4 h-4 text-emerald-300" />
+            <h3 className="font-display font-bold text-emerald-200">Mpilalao vonona ({waiting.length})</h3>
+          </div>
+          {waiting.length === 0 && <p className="text-center text-sm text-emerald-100/60 py-6">Tsy mbola misy</p>}
+          <div className="space-y-3">
+            {Object.keys(grouped).sort((a,b) => Number(a)-Number(b)).map((k) => (
+              <div key={k}>
+                <p className="text-[10px] uppercase text-emerald-200/60 mb-1">Mise {fmtAr(Number(k))}</p>
+                <div className="space-y-1.5">
+                  {grouped[Number(k)].map((g) => (
+                    <button
+                      key={g.id}
+                      onClick={() => joinWaiting(g)}
+                      disabled={joining === g.id}
+                      className="w-full flex items-center justify-between p-3 rounded-lg border border-emerald-500/30 bg-emerald-900/30 hover:bg-emerald-900/50 transition"
+                    >
+                      <div className="text-left">
+                        <p className="font-bold text-sm text-emerald-100">{g._name}</p>
+                        <p className="text-[11px] text-emerald-100/70">
+                          Duel 2P · mise <b>{fmtAr(g.stake)}</b>
+                        </p>
+                      </div>
+                      {joining === g.id ? <Loader2 className="w-4 h-4 animate-spin" /> : (
+                        <span className="text-xs font-bold text-emerald-300">Hiditra ▶</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

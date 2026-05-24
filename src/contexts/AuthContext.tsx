@@ -41,15 +41,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // Auto-lock: rehefa miala ny app, mihidy
+    // Auto-lock: rehefa miala ny app ela be (30 min), vao manala
     const onHide = () => {
       if (document.visibilityState === "hidden") {
-        // marquer last seen, le mot de passe sera redemandé au retour > 30s
-        const t = Date.now();
-        sessionStorage.setItem("dmga_lastHide", String(t));
+        sessionStorage.setItem("dmga_lastHide", String(Date.now()));
       } else {
         const t = Number(sessionStorage.getItem("dmga_lastHide") || 0);
-        if (t && Date.now() - t > 30_000) {
+        if (t && Date.now() - t > 30 * 60_000) {
           supabase.auth.signOut();
         }
       }

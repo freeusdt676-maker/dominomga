@@ -108,7 +108,7 @@ export default function Lobby() {
     const ch = supabase.channel("lobby-rt")
       .on("postgres_changes", { event: "*", schema: "public", table: "games", filter: "status=eq.waiting" }, debounced)
       .subscribe();
-    const itv = setInterval(load, 5000);
+    const itv = setInterval(load, 20000);
     return () => { supabase.removeChannel(ch); clearInterval(itv); if (t) clearTimeout(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);

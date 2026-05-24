@@ -92,7 +92,7 @@ export default function Home() {
         { event: "*", schema: "public", table: "games", filter: `player2_id=eq.${user.id}` },
         () => redirectToActiveGame())
       .subscribe();
-    const itv = setInterval(redirectToActiveGame, 6000);
+    const itv = setInterval(redirectToActiveGame, 30000);
     return () => {
       supabase.removeChannel(ch1);
       supabase.removeChannel(ch2);
@@ -113,7 +113,7 @@ export default function Home() {
 
     const interval = setInterval(() => {
       supabase.from("profiles").update({ last_seen: new Date().toISOString(), is_online: true }).eq("user_id", user.id);
-    }, 20_000);
+    }, 60_000);
 
     return () => {
       clearInterval(interval);
@@ -136,7 +136,7 @@ export default function Home() {
       .channel("home-pcr")
       .on("postgres_changes", { event: "*", schema: "public", table: "profile_change_requests" }, () => load())
       .subscribe();
-    const itv = setInterval(load, 15000);
+    const itv = setInterval(load, 60000);
     return () => { supabase.removeChannel(ch); clearInterval(itv); };
   }, [isAdmin]);
 
@@ -155,7 +155,7 @@ export default function Home() {
     const ch = supabase.channel("ch-"+user.id)
       .on("postgres_changes",{event:"*",schema:"public",table:"challenges",filter:`to_user=eq.${user.id}`}, () => loadCh())
       .subscribe();
-    const itv = setInterval(loadCh, 10000);
+    const itv = setInterval(loadCh, 30000);
     return () => { supabase.removeChannel(ch); clearInterval(itv); };
   }, [user]);
 

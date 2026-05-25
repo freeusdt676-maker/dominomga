@@ -46,6 +46,10 @@ export default function Admin() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelAllOpen, setCancelAllOpen] = useState(false);
   const [cancelAllPin, setCancelAllPin] = useState("");
+  const [blockAllOpen, setBlockAllOpen] = useState(false);
+  const [blockAllPin, setBlockAllPin] = useState("");
+  const [unblockAllOpen, setUnblockAllOpen] = useState(false);
+  const [unblockAllPin, setUnblockAllPin] = useState("");
   const [pendingProfileCount, setPendingProfileCount] = useState(0);
   const adminId = user?.id ?? resolvedAdminId;
   const normalizeTicket = (value: string) => value.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
@@ -336,6 +340,28 @@ export default function Admin() {
     await load();
   };
 
+  const blockAllAccounts = async () => {
+    if (!adminId) return toast.error("Mbola tsy vita ny fanamarinana admin");
+    const { data, error } = await supabase.rpc("admin_block_all_accounts" as any, { _admin_id: adminId, _pin: blockAllPin });
+    if (error) {
+      const msg = error.message.includes("pin_diso") ? "Code administratif diso" : error.message;
+      return toast.error(msg);
+    }
+    toast.success(`Voasakana ny compte rehetra: ${Number((data as any)?.blocked ?? 0)}`);
+    setBlockAllOpen(false); setBlockAllPin(""); await load();
+  };
+
+  const unblockAllAccounts = async () => {
+    if (!adminId) return toast.error("Mbola tsy vita ny fanamarinana admin");
+    const { data, error } = await supabase.rpc("admin_unblock_all_accounts" as any, { _admin_id: adminId, _pin: unblockAllPin });
+    if (error) {
+      const msg = error.message.includes("pin_diso") ? "Code administratif diso" : error.message;
+      return toast.error(msg);
+    }
+    toast.success(`Nosokafana indray ny compte rehetra: ${Number((data as any)?.unblocked ?? 0)}`);
+    setUnblockAllOpen(false); setUnblockAllPin(""); await load();
+  };
+
   const submitReset = async () => {
     if (!resetTarget || !adminId) return;
     const { error } = await supabase.rpc("admin_reset_user_balance", {
@@ -416,6 +442,23 @@ export default function Admin() {
           </div>
           <Button size="sm" variant="outline" onClick={() => setShowSecrets(s => !s)}>
             {showSecrets ? <><EyeOff className="w-4 h-4 mr-1" />Hafenina</> : <><Eye className="w-4 h-4 mr-1" />Code</>}
+          </Button>
+        </div>
+
+        {/* Block / Unblock TOUT les comptes (admin 0345023006 ihany no afaka manao) */}
+        <div className="card-felt rounded-2xl p-3 mb-4 flex flex-col sm:flex-row gap-2">
+          <Button
+            variant="destructive"
+            className="flex-1 font-bold"
+            onClick={() => { setBlockAllOpen(true); setBlockAllPin(""); }}
+          >
+            🔒 Bloqué tout le compte
+          </Button>
+          <Button
+            className="flex-1 font-bold bg-green-600 hover:bg-green-700 text-white"
+            onClick={() => { setUnblockAllOpen(true); setUnblockAllPin(""); }}
+          >
+            🔓 Débloquer tout le compte
           </Button>
         </div>
 
@@ -766,6 +809,38 @@ export default function Admin() {
             <DialogFooter>
               <Button variant="outline" onClick={() => setCancelAllOpen(false)}>Annuler</Button>
               <Button variant="destructive" onClick={cancelAllActiveGames}>Confirmer</Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={blockAllOpen} onOpenChange={(o) => !o && setBlockAllOpen(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive">🔒 Bloqué tout le compte</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">Hosakanana daholo ny compte mpilalao rehetra eto amin'ny app (afa-tsy ny compte administratif). Tsy hisy afaka miditra intsony.</p>
+            <Input type="password" inputMode="numeric" maxLength={6} value={blockAllPin} onChange={(e) => setBlockAllPin(e.target.value)} placeholder="Codé ADMINISTRATIF 2583" />
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setBlockAllOpen(false)}>Hialana</Button>
+              <Button variant="destructive" onClick={blockAllAccounts}>Hamarino — Sakàno daholo</Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={unblockAllOpen} onOpenChange={(o) => !o && setUnblockAllOpen(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-green-500">🔓 Débloquer tout le compte</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">Hosokafana daholo ny compte mpilalao voasakana rehetra. Afaka miverina milalao avokoa izy ireo.</p>
+            <Input type="password" inputMode="numeric" maxLength={6} value={unblockAllPin} onChange={(e) => setUnblockAllPin(e.target.value)} placeholder="Codé ADMINISTRATIF 2583" />
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setUnblockAllOpen(false)}>Hialana</Button>
+              <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={unblockAllAccounts}>Hamarino — Sokafy daholo</Button>
             </DialogFooter>
           </div>
         </DialogContent>

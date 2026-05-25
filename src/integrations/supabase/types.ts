@@ -830,6 +830,10 @@ export type Database = {
         Args: { _admin_id: string; _tx_id: string }
         Returns: Json
       }
+      admin_block_all_accounts: {
+        Args: { _admin_id: string; _pin: string }
+        Returns: Json
+      }
       admin_block_user_with_message: {
         Args: { _admin_id: string; _message: string; _user_id: string }
         Returns: Json
@@ -902,6 +906,10 @@ export type Database = {
       admin_total_player_balance: {
         Args: { _admin_id: string }
         Returns: number
+      }
+      admin_unblock_all_accounts: {
+        Args: { _admin_id: string; _pin: string }
+        Returns: Json
       }
       admin_unblock_user: {
         Args: { _admin_id: string; _user_id: string }

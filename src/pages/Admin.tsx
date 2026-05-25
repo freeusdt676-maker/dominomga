@@ -445,6 +445,23 @@ export default function Admin() {
           </Button>
         </div>
 
+        {/* Block / Unblock TOUT les comptes (admin 0345023006 ihany no afaka manao) */}
+        <div className="card-felt rounded-2xl p-3 mb-4 flex flex-col sm:flex-row gap-2">
+          <Button
+            variant="destructive"
+            className="flex-1 font-bold"
+            onClick={() => { setBlockAllOpen(true); setBlockAllPin(""); }}
+          >
+            🔒 Bloqué tout le compte
+          </Button>
+          <Button
+            className="flex-1 font-bold bg-green-600 hover:bg-green-700 text-white"
+            onClick={() => { setUnblockAllOpen(true); setUnblockAllPin(""); }}
+          >
+            🔓 Débloquer tout le compte
+          </Button>
+        </div>
+
         <button
           onClick={() => setShowTotal((v) => !v)}
           className="card-felt rounded-xl p-3 mb-4 w-full text-left border border-primary/30 hover:bg-primary/5 transition"

@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Trash2, Trophy, ShieldCheck, Copy, Medal, Dice5, Target } from "lucide-react";
+import { ArrowLeft, Trash2, Trophy, Copy, Medal, Dice5, Target } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -32,10 +32,6 @@ export default function Profile() {
   const [hidden, setHidden] = useState<string[]>([]);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [confirmAll, setConfirmAll] = useState(false);
-  const [rg, setRg] = useState<any>(null);
-  const [lossLimit, setLossLimit] = useState("");
-  const [stakeLimit, setStakeLimit] = useState("");
-  const [excludeDays, setExcludeDays] = useState("7");
 
   useEffect(() => {
     if (!user) return;
@@ -43,12 +39,6 @@ export default function Profile() {
     (async () => {
       const { data: p } = await supabase.from("profiles").select("*").eq("user_id", user.id).single();
       setProfile(p);
-      const { data: r } = await supabase.from("responsible_gaming").select("*").eq("user_id", user.id).maybeSingle();
-      if (r) {
-        setRg(r);
-        setLossLimit(r.daily_loss_limit?.toString() ?? "");
-        setStakeLimit(r.daily_stake_limit?.toString() ?? "");
-      }
       const [domRes, ludoRes, petRes] = await Promise.all([
         supabase.from("games")
           .select("id, stake, status, winner_id, player1_id, player2_id, player3_id, score_p1, score_p2, score_p3, players_count, ticket_number, finished_at, created_at, game_mode, last_reason, round_number")
@@ -90,33 +80,6 @@ export default function Profile() {
       }
     })();
   }, [user]);
-
-  const saveLimits = async () => {
-    if (!user) return;
-    const payload: any = {
-      user_id: user.id,
-      daily_loss_limit: lossLimit ? Number(lossLimit) : null,
-      daily_stake_limit: stakeLimit ? Number(stakeLimit) : null,
-      updated_at: new Date().toISOString(),
-    };
-    const { error } = await supabase.from("responsible_gaming").upsert(payload, { onConflict: "user_id" });
-    if (error) return toast.error(error.message);
-    toast.success("Voatahiry ny fetra");
-    setRg({ ...(rg ?? {}), ...payload });
-  };
-
-  const selfExclude = async () => {
-    if (!user) return;
-    const days = Math.max(1, Number(excludeDays) || 1);
-    const until = new Date(Date.now() + days * 86400_000).toISOString();
-    const { error } = await supabase.from("responsible_gaming").upsert({
-      user_id: user.id, self_excluded_until: until, updated_at: new Date().toISOString(),
-    }, { onConflict: "user_id" });
-    if (error) return toast.error(error.message);
-    await supabase.rpc("log_audit", { _action: "self_exclude", _meta: { days, until } });
-    toast.success(`Voasakana hatramin'ny ${new Date(until).toLocaleDateString("fr-FR")}`);
-    setRg({ ...(rg ?? {}), self_excluded_until: until });
-  };
 
   if (!user) {
     return <div className="min-h-screen felt-bg flex items-center justify-center text-muted-foreground">Miditra aloha…</div>;

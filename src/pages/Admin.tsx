@@ -814,6 +814,38 @@ export default function Admin() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={blockAllOpen} onOpenChange={(o) => !o && setBlockAllOpen(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive">🔒 Bloqué tout le compte</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">Hosakanana daholo ny compte mpilalao rehetra eto amin'ny app (afa-tsy ny compte administratif). Tsy hisy afaka miditra intsony.</p>
+            <Input type="password" inputMode="numeric" maxLength={6} value={blockAllPin} onChange={(e) => setBlockAllPin(e.target.value)} placeholder="Codé ADMINISTRATIF 2583" />
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setBlockAllOpen(false)}>Hialana</Button>
+              <Button variant="destructive" onClick={blockAllAccounts}>Hamarino — Sakàno daholo</Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={unblockAllOpen} onOpenChange={(o) => !o && setUnblockAllOpen(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-green-500">🔓 Débloquer tout le compte</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">Hosokafana daholo ny compte mpilalao voasakana rehetra. Afaka miverina milalao avokoa izy ireo.</p>
+            <Input type="password" inputMode="numeric" maxLength={6} value={unblockAllPin} onChange={(e) => setUnblockAllPin(e.target.value)} placeholder="Codé ADMINISTRATIF 2583" />
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setUnblockAllOpen(false)}>Hialana</Button>
+              <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={unblockAllAccounts}>Hamarino — Sokafy daholo</Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* DETAILS MODAL */}
       <Dialog open={!!selectedUser} onOpenChange={(o) => !o && setSelectedUser(null)}>
         <DialogContent className="max-w-md">

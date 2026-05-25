@@ -46,6 +46,10 @@ export default function Admin() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelAllOpen, setCancelAllOpen] = useState(false);
   const [cancelAllPin, setCancelAllPin] = useState("");
+  const [blockAllOpen, setBlockAllOpen] = useState(false);
+  const [blockAllPin, setBlockAllPin] = useState("");
+  const [unblockAllOpen, setUnblockAllOpen] = useState(false);
+  const [unblockAllPin, setUnblockAllPin] = useState("");
   const [pendingProfileCount, setPendingProfileCount] = useState(0);
   const adminId = user?.id ?? resolvedAdminId;
   const normalizeTicket = (value: string) => value.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
@@ -334,6 +338,28 @@ export default function Admin() {
     setCancelAllOpen(false);
     setCancelAllPin("");
     await load();
+  };
+
+  const blockAllAccounts = async () => {
+    if (!adminId) return toast.error("Mbola tsy vita ny fanamarinana admin");
+    const { data, error } = await supabase.rpc("admin_block_all_accounts" as any, { _admin_id: adminId, _pin: blockAllPin });
+    if (error) {
+      const msg = error.message.includes("pin_diso") ? "Code administratif diso" : error.message;
+      return toast.error(msg);
+    }
+    toast.success(`Voasakana ny compte rehetra: ${Number((data as any)?.blocked ?? 0)}`);
+    setBlockAllOpen(false); setBlockAllPin(""); await load();
+  };
+
+  const unblockAllAccounts = async () => {
+    if (!adminId) return toast.error("Mbola tsy vita ny fanamarinana admin");
+    const { data, error } = await supabase.rpc("admin_unblock_all_accounts" as any, { _admin_id: adminId, _pin: unblockAllPin });
+    if (error) {
+      const msg = error.message.includes("pin_diso") ? "Code administratif diso" : error.message;
+      return toast.error(msg);
+    }
+    toast.success(`Nosokafana indray ny compte rehetra: ${Number((data as any)?.unblocked ?? 0)}`);
+    setUnblockAllOpen(false); setUnblockAllPin(""); await load();
   };
 
   const submitReset = async () => {

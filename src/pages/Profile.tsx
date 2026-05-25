@@ -324,39 +324,6 @@ export default function Profile() {
           </div>
         )}
 
-        <div className="card-felt rounded-2xl p-4 mt-6 space-y-3">
-          <h3 className="font-display text-lg font-bold gold-text flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5" /> Fitsipika fitehirizan-tena
-          </h3>
-          <p className="text-xs text-muted-foreground">Mametra fetra ho an'ny tena mba tsy ho voafitaky ny lalao.</p>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label className="text-[11px]">Mise max/jour (Ar)</Label>
-              <Input type="number" value={stakeLimit} onChange={(e) => setStakeLimit(e.target.value)} placeholder="50000" />
-            </div>
-            <div>
-              <Label className="text-[11px]">Fatiantoka max/jour (info)</Label>
-              <Input type="number" value={lossLimit} onChange={(e) => setLossLimit(e.target.value)} placeholder="20000" />
-            </div>
-          </div>
-          <Button onClick={saveLimits} className="w-full">Tehirizo ny fetra</Button>
-
-          <div className="pt-3 border-t border-border/40">
-            <p className="text-xs font-bold mb-2 text-destructive">⛔ Self-exclusion (auto-ban)</p>
-            <div className="flex gap-2 items-end">
-              <div className="flex-1">
-                <Label className="text-[11px]">Andro</Label>
-                <Input type="number" min={1} max={365} value={excludeDays} onChange={(e) => setExcludeDays(e.target.value)} />
-              </div>
-              <Button variant="destructive" onClick={selfExclude}>Sakàno aho</Button>
-            </div>
-            {rg?.self_excluded_until && new Date(rg.self_excluded_until) > new Date() && (
-              <p className="text-xs text-destructive mt-2 font-bold">
-                Voasakana hatramin'ny {new Date(rg.self_excluded_until).toLocaleString("fr-FR")}
-              </p>
-            )}
-          </div>
-        </div>
       </div>
 
       <AlertDialog open={!!confirmId} onOpenChange={(o) => !o && setConfirmId(null)}>

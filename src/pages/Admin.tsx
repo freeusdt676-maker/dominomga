@@ -402,13 +402,41 @@ export default function Admin() {
   const openGameDetails = async (h: any) => {
     setSelectedGame(h);
     setGameMoves([]);
-    if (h.game_kind !== "domino") return;
-    const { data: mv } = await supabase
-      .from("game_moves")
-      .select("*")
-      .eq("game_id", h.id)
-      .order("created_at", { ascending: true });
-    setGameMoves(mv ?? []);
+    if (h.game_kind === "domino") {
+      const { data: mv } = await supabase
+        .from("game_moves")
+        .select("*")
+        .eq("game_id", h.id)
+        .order("created_at", { ascending: true });
+      setGameMoves(mv ?? []);
+    } else if (h.game_kind === "ludo") {
+      const { data: lg } = await supabase.from("ludo_games" as any).select("*").eq("id", h.id).maybeSingle();
+      if (lg) setSelectedGame({ ...h, _ludoState: lg });
+    } else if (h.game_kind === "petanque") {
+      const { data: pg } = await supabase.from("petanque_games" as any).select("*").eq("id", h.id).maybeSingle();
+      if (pg) setSelectedGame({ ...h, _petState: pg });
+    }
+    // VAR verify
+    try {
+      const { data: v } = await supabase.rpc("verify_game_settlement" as any, { _kind: h.game_kind, _game_id: h.id });
+      setSelectedGame((prev: any) => prev ? { ...prev, _verify: v } : prev);
+    } catch {}
+  };
+
+  const deleteGame = async (h: any) => {
+    if (!adminId) return toast.error("Andraso kely...");
+    if (h.status === "in_progress" || h.status === "waiting") {
+      return toast.error("Tsy azo fafàna ny lalao mbola mandeha. Annuler aloha.");
+    }
+    if (!confirm(`Hamafa ny lalao Nº${h.ticket_number} (${h.game_kind})? Tsy azo averina.`)) return;
+    const rpc = h.game_kind === "ludo" ? "admin_delete_ludo_game"
+              : h.game_kind === "petanque" ? "admin_delete_petanque_game"
+              : "admin_delete_game";
+    const { error } = await supabase.rpc(rpc as any, { _game_id: h.id, _admin_id: adminId });
+    if (error) return toast.error(error.message);
+    toast.success("Voafafa ny tantaran'ny lalao");
+    setSelectedGame(null);
+    load();
   };
 
   const deposits = pending.filter(t => t.type === "deposit");

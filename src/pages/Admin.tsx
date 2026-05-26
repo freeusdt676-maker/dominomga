@@ -807,6 +807,45 @@ export default function Admin() {
                   })}
                 </div>
               </div>}
+              {selectedGame.game_kind === "ludo" && selectedGame._ludoState && (
+                <div className="pt-2">
+                  <p className="text-xs font-bold gold-text mb-2">VAR — État farany Ludo</p>
+                  <div className="rounded-lg border border-primary/20 p-2 bg-card/40 text-[11px] space-y-1">
+                    <p>Seat amperinasa: <b>{selectedGame._ludoState.current_turn_seat}</b> · Dice farany: <b>{selectedGame._ludoState.last_dice ?? "—"}</b></p>
+                    <p>Mpilalao: <b>{(selectedGame._players ?? []).join(" · ")}</b></p>
+                    <details>
+                      <summary className="cursor-pointer text-primary">Pawns (JSON)</summary>
+                      <pre className="text-[10px] whitespace-pre-wrap break-all max-h-48 overflow-y-auto">{JSON.stringify(selectedGame._ludoState.pawns, null, 2)}</pre>
+                    </details>
+                  </div>
+                </div>
+              )}
+              {selectedGame.game_kind === "petanque" && selectedGame._petState && (
+                <div className="pt-2">
+                  <p className="text-xs font-bold gold-text mb-2">VAR — État farany Pétanque</p>
+                  <div className="rounded-lg border border-primary/20 p-2 bg-card/40 text-[11px] space-y-1">
+                    <p>Score: <b>P1 {selectedGame._petState.score_p1} — P2 {selectedGame._petState.score_p2}</b> · Round: <b>{selectedGame._petState.round_number}</b></p>
+                    <details>
+                      <summary className="cursor-pointer text-primary">Balls + Jack (JSON)</summary>
+                      <pre className="text-[10px] whitespace-pre-wrap break-all max-h-48 overflow-y-auto">{JSON.stringify(selectedGame._petState.state, null, 2)}</pre>
+                    </details>
+                  </div>
+                </div>
+              )}
+              {selectedGame._verify && (
+                <div className="pt-2">
+                  <p className="text-xs font-bold gold-text mb-1">Fanamarinana calcul</p>
+                  <div className={`rounded-lg border p-2 text-[11px] ${selectedGame._verify.commission_ok && selectedGame._verify.pot_ok ? "border-success/40 bg-success/5" : "border-destructive/40 bg-destructive/5"}`}>
+                    <p>Commission attendue: <b>{fmtAr(selectedGame._verify.expected_commission)}</b> · réelle: <b>{fmtAr(selectedGame._verify.actual_commission ?? 0)}</b> {selectedGame._verify.commission_ok ? "✓" : "✗"}</p>
+                    <p>Pot attendu: <b>{fmtAr(selectedGame._verify.expected_pot)}</b> · payé: <b>{fmtAr(selectedGame._verify.pot_paid ?? 0)}</b> {selectedGame._verify.pot_ok ? "✓" : "✗"}</p>
+                  </div>
+                </div>
+              )}
+              {(selectedGame.status === "finished" || selectedGame.status === "cancelled") && (
+                <Button variant="outline" className="w-full mt-3 border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => deleteGame(selectedGame)}>
+                  <Trash2 className="w-4 h-4 mr-1" /> Mamafa ny tantaran'ity lalao ity
+                </Button>
+              )}
             </div>
           )}
         </DialogContent>

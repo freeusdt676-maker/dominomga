@@ -755,6 +755,11 @@ export default function Admin() {
                         Annuler
                       </Button>
                     )}
+                    {(h.status === "finished" || h.status === "cancelled") && (
+                      <Button size="sm" variant="outline" className="text-[10px] h-7 ml-2 border-destructive/50 text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); deleteGame(h); }}>
+                        <Trash2 className="w-3 h-3 mr-1" /> Mamafa
+                      </Button>
+                    )}
                   </div>
                 </button>
               );

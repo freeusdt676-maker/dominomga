@@ -1,52 +1,52 @@
-# Plan — Améliorations globales app
 
-## 1. Timeout 2 minutes hoan'ny lobby (Domino, Ludo, Pétanque)
+## Drafan'asa hamafisina ny app
 
-- Rehefa mametraka "demande" (waiting) ny mpilalao, raha tsy mahita mpifanandrina ao anatin'ny **2 minitra**, dia:
-  - Foanana automatique ilay waiting (status → cancelled, vola averina avy hatrany)
-  - Toast: "Tsy nahita mpifanandrina — afaka mametraka demande indray ianao"
-- Mécanisme:
-  - Migration SQL: fonction `cancel_stale_waiting_games()` mamafa ny waiting > 2min (Domino `games`, Ludo `ludo_games`, Pétanque `petanque_games`) + mamerina vola
-  - Antsoina avy aty amin'ny client (setInterval 15s ao amin'ny Lobby pages) + indray mandeha rehefa miditra lobby
-  - UI: countdown kely eo amin'ny "myWaiting" card miseho mandritra ny 2 min
+### 1. Toaster milatsaka avy any ambony (7s)
+- Fanovana ny `<Sonner />` ao @ `src/App.tsx` mba ho `position="top-center"`, `duration={7000}`, `richColors`
+- Ny `toast.success` (maitso) sy `toast.error` (mena) efa hampiasaina manerana app
+- Tsy mila manova ny `toast.*` calls efa misy
 
-## 2. Vocal Appel hoan'ny rehetra (4P koa)
+### 2. Bokotra "Mbola manana lalao mandeha" mihetsiketsika (Lobby/LudoLobby/PetanqueLobby)
+- Esorina ny hafatra teny fotsiny
+- Solo: bokotra mistari-pasiha (floating) miaraka amin'ny animation `animate-pulse` + glow gold
+- Mikitika dia mandeha avy hatrany amin'ny `/game/:id` na `/ludo/:id` na `/petanque/:id`
+- Query: alaina ny lalao misy ny user amin'ny status `in_progress` na `waiting` (player2_id NOT NULL ho azy)
 
-- Amin'izao `LudoVoiceChat` dia efa miasa amin'ny Ludo/Petanque/Domino. Hamarino sy ataovy azo antoka fa:
-  - Asehoy ny bokotra "📞 Appel" hoan'ny **seat rehetra** (4P Ludo koa)
-  - Tsy misy fameperana "host only"
-- Hijery `LudoVoiceChat.tsx` aho hanitsy raha misy fepetra
+### 3. Historique du jeu ao amin'ny Admin + VAR Replay
+- Ao @ `src/pages/Admin.tsx`: vaovao tab "Tantaran'ny lalao" misy lalao 3 (Domino / Ludo / Pétanque)
+- Lisitra: ticket, daty, mpilalao, mise, commission, pandresy, montant gain, status
+- Bokotra "VAR Replay" — modal mampiseho:
+  - Domino: `game_moves` rehetra (piece + side + player + timestamp) + state finale
+  - Ludo: `pawns` history (avy amin'ny `updated_at` snapshots) + last_dice — afaka mampiseho fotsiny ny état farany sy moves raha tsy misy snapshots
+  - Pétanque: `state.balls` + jack + scores per round
+- Bokotra "Mamafa" (mena) — mamafa ilay game record + moves (efa misy `admin_delete_game` ho an'ny domino; hampiana ho an'ny ludo & petanque)
 
-## 3. Bokotra "🔄 Réinitialiser" eo akaiky ny profil
+### 4. Bokotra "Mamafa" ny transactions ao amin'ny Admin
+- Efa misy `admin_delete_transaction` (pending fotsiny) — ampiana fanazavana mazava
+- Ny vola (`wallets.balance`) sy `admin_wallets.balance`: TSY misy bokotra mamafa mihitsy
+- Garde-fou: tsy maintsy `pending` no azo fafàna (efa eo)
 
-- Toerana: eo amin'ny **Home/Index** (header), akaiky ny avatar/profil
-- Dialog confirmation: "Hofafaina daholo ny message, historique du jeu, historique transaction. Ny vola tsy voakitika"
-- Action (RPC `user_reset_data`):
-  - DELETE `chat_messages` (sender = me OR recipient = me)
-  - DELETE `lobby_messages` (sender = me)
-  - DELETE `games` finished/abandoned misy ahy
-  - DELETE `ludo_games`, `petanque_games` finished misy ahy
-  - DELETE `transactions` ahy **AFA-TSY** ny mahakasika balance (jereo: tsy mikitika `wallets`)
-  - Ny solde ao `wallets` **TSY KITIHANA** mihitsy
+### 5. Hamafisina ny calcul commission 10% sy gain
+- Trigger SQL `enforce_settle_integrity` amin'ny `games`/`ludo_games`/`petanque_games`:
+  - Raha `status = 'finished'` sy `winner_id IS NOT NULL`: hamarinina hoe ny `commission = round(stake*0.10) * players_count` ary ny gain natao `INSERT` amin'ny `transactions` (`type='game_win'`) dia mitovy amin'ny `(stake - round(stake*0.10)) * players_count`
+- Function `verify_game_settlement(_game_id)` — admin tool mampiseho raha misy diso
+- Audit log entry isaky ny settle
 
-## 4. Esory ny lobby ao Pétanque
+### 6. Mémoire fitazomana hatsarana
+- Mametraka memory `mem://constraints/money-immutable.md` — tsy azo asiana bokotra mamafa wallet/admin_wallets
+- Memory `mem://features/var-replay.md` — VAR replay structure
 
-- Tsy mazava loatra: ny "lobby" ve ilay liste "Mpilalao vonona" ao anaty `PetanqueLobby.tsx`, sa ilay route `/petanque` manontolo?
-- Heveriko fa: esory ilay **bloc "Mpilalao vonona"** (liste hafa olona) — avelao ny mise + my-waiting fotsiny, ka miandry matchmaking automatique amin'ny stake mitovy.
-- Raha tsy izay no tianao, lazao.
+### Fanavaozana fichier
+- `src/App.tsx` — Sonner top + 7s
+- `src/pages/Lobby.tsx`, `LudoLobby.tsx`, `PetanqueLobby.tsx` — floating active-game button
+- `src/pages/Admin.tsx` — tab Tantaran'ny lalao + VAR modal + delete buttons
+- Migration vaovao:
+  - `admin_delete_ludo_game`, `admin_delete_petanque_game`
+  - `verify_game_settlement` + trigger integrity
+  - Audit logging on settle
 
-## 5. Page voalohany (Home/Index) vaovao
+### Antony tsy idirana
+- Tsy ovaina ny `wallets`/`admin_wallets` schema na RLS (vola voaaro)
+- Tsy ovaina ny engine ny lalao (engine.ts) — tsy hanimba ny gameplay tsara efa misy
 
-- Soloy ireo "2 domy" amin'ny **logos 3 game**: 🁫 Domino, 🎲 Ludo, 🪨 Pétanque (miaraka amin'ny anarana sy chip "Jouer")
-- Asio koa eo ambany: **section "Règles du jeu"** misy ny lalàna an'ny lalao **10** (mamintina ny tena ilaina hoan'ny Domino d120/d150, Ludo, Pétanque) — accordéon mba hadio
-- Hi-design malagasy/élégant amin'ny token efa misy
-
----
-
-## Fanontaniana 2 mialoha ny hanombohako
-
-1. **Pétanque lobby**: ny "esory lobby" ilainao = esory ilay liste "Mpilalao vonona" (#3 etsy ambony) fa avelao ny bokotra mametraka mise? Sa esory ny route `/petanque` mihitsy ka avy ao Home ihany no manindry "Pétanque" + mametraka mise + miandry?
-
-2. **Logos**: tianao ve hamoronako image (illustration) vaovao hoan'ny 3 lalao (Domino, Ludo, Pétanque) sa avela ho icons + emoji fotsiny?
-
-Rehefa mamaly ireo 2 ireo ianao, dia mandeha mivantana ny asa.
+Aorian'ny fanekena dia atao migration aloha, dia code.

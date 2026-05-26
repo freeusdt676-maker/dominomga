@@ -402,13 +402,41 @@ export default function Admin() {
   const openGameDetails = async (h: any) => {
     setSelectedGame(h);
     setGameMoves([]);
-    if (h.game_kind !== "domino") return;
-    const { data: mv } = await supabase
-      .from("game_moves")
-      .select("*")
-      .eq("game_id", h.id)
-      .order("created_at", { ascending: true });
-    setGameMoves(mv ?? []);
+    if (h.game_kind === "domino") {
+      const { data: mv } = await supabase
+        .from("game_moves")
+        .select("*")
+        .eq("game_id", h.id)
+        .order("created_at", { ascending: true });
+      setGameMoves(mv ?? []);
+    } else if (h.game_kind === "ludo") {
+      const { data: lg } = await supabase.from("ludo_games" as any).select("*").eq("id", h.id).maybeSingle();
+      if (lg) setSelectedGame({ ...h, _ludoState: lg });
+    } else if (h.game_kind === "petanque") {
+      const { data: pg } = await supabase.from("petanque_games" as any).select("*").eq("id", h.id).maybeSingle();
+      if (pg) setSelectedGame({ ...h, _petState: pg });
+    }
+    // VAR verify
+    try {
+      const { data: v } = await supabase.rpc("verify_game_settlement" as any, { _kind: h.game_kind, _game_id: h.id });
+      setSelectedGame((prev: any) => prev ? { ...prev, _verify: v } : prev);
+    } catch {}
+  };
+
+  const deleteGame = async (h: any) => {
+    if (!adminId) return toast.error("Andraso kely...");
+    if (h.status === "in_progress" || h.status === "waiting") {
+      return toast.error("Tsy azo fafàna ny lalao mbola mandeha. Annuler aloha.");
+    }
+    if (!confirm(`Hamafa ny lalao Nº${h.ticket_number} (${h.game_kind})? Tsy azo averina.`)) return;
+    const rpc = h.game_kind === "ludo" ? "admin_delete_ludo_game"
+              : h.game_kind === "petanque" ? "admin_delete_petanque_game"
+              : "admin_delete_game";
+    const { error } = await supabase.rpc(rpc as any, { _game_id: h.id, _admin_id: adminId });
+    if (error) return toast.error(error.message);
+    toast.success("Voafafa ny tantaran'ny lalao");
+    setSelectedGame(null);
+    load();
   };
 
   const deposits = pending.filter(t => t.type === "deposit");
@@ -727,6 +755,11 @@ export default function Admin() {
                         Annuler
                       </Button>
                     )}
+                    {(h.status === "finished" || h.status === "cancelled") && (
+                      <Button size="sm" variant="outline" className="text-[10px] h-7 ml-2 border-destructive/50 text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); deleteGame(h); }}>
+                        <Trash2 className="w-3 h-3 mr-1" /> Mamafa
+                      </Button>
+                    )}
                   </div>
                 </button>
               );
@@ -774,6 +807,45 @@ export default function Admin() {
                   })}
                 </div>
               </div>}
+              {selectedGame.game_kind === "ludo" && selectedGame._ludoState && (
+                <div className="pt-2">
+                  <p className="text-xs font-bold gold-text mb-2">VAR — État farany Ludo</p>
+                  <div className="rounded-lg border border-primary/20 p-2 bg-card/40 text-[11px] space-y-1">
+                    <p>Seat amperinasa: <b>{selectedGame._ludoState.current_turn_seat}</b> · Dice farany: <b>{selectedGame._ludoState.last_dice ?? "—"}</b></p>
+                    <p>Mpilalao: <b>{(selectedGame._players ?? []).join(" · ")}</b></p>
+                    <details>
+                      <summary className="cursor-pointer text-primary">Pawns (JSON)</summary>
+                      <pre className="text-[10px] whitespace-pre-wrap break-all max-h-48 overflow-y-auto">{JSON.stringify(selectedGame._ludoState.pawns, null, 2)}</pre>
+                    </details>
+                  </div>
+                </div>
+              )}
+              {selectedGame.game_kind === "petanque" && selectedGame._petState && (
+                <div className="pt-2">
+                  <p className="text-xs font-bold gold-text mb-2">VAR — État farany Pétanque</p>
+                  <div className="rounded-lg border border-primary/20 p-2 bg-card/40 text-[11px] space-y-1">
+                    <p>Score: <b>P1 {selectedGame._petState.score_p1} — P2 {selectedGame._petState.score_p2}</b> · Round: <b>{selectedGame._petState.round_number}</b></p>
+                    <details>
+                      <summary className="cursor-pointer text-primary">Balls + Jack (JSON)</summary>
+                      <pre className="text-[10px] whitespace-pre-wrap break-all max-h-48 overflow-y-auto">{JSON.stringify(selectedGame._petState.state, null, 2)}</pre>
+                    </details>
+                  </div>
+                </div>
+              )}
+              {selectedGame._verify && (
+                <div className="pt-2">
+                  <p className="text-xs font-bold gold-text mb-1">Fanamarinana calcul</p>
+                  <div className={`rounded-lg border p-2 text-[11px] ${selectedGame._verify.commission_ok && selectedGame._verify.pot_ok ? "border-success/40 bg-success/5" : "border-destructive/40 bg-destructive/5"}`}>
+                    <p>Commission attendue: <b>{fmtAr(selectedGame._verify.expected_commission)}</b> · réelle: <b>{fmtAr(selectedGame._verify.actual_commission ?? 0)}</b> {selectedGame._verify.commission_ok ? "✓" : "✗"}</p>
+                    <p>Pot attendu: <b>{fmtAr(selectedGame._verify.expected_pot)}</b> · payé: <b>{fmtAr(selectedGame._verify.pot_paid ?? 0)}</b> {selectedGame._verify.pot_ok ? "✓" : "✗"}</p>
+                  </div>
+                </div>
+              )}
+              {(selectedGame.status === "finished" || selectedGame.status === "cancelled") && (
+                <Button variant="outline" className="w-full mt-3 border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => deleteGame(selectedGame)}>
+                  <Trash2 className="w-4 h-4 mr-1" /> Mamafa ny tantaran'ity lalao ity
+                </Button>
+              )}
             </div>
           )}
         </DialogContent>

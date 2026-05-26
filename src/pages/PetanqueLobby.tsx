@@ -180,17 +180,18 @@ export default function PetanqueLobby() {
 
       <div className="p-4 max-w-lg mx-auto space-y-4">
         {activeGame && (
-          <div className="rounded-2xl p-4 border border-emerald-400/50 bg-emerald-500/10 backdrop-blur">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="font-bold text-emerald-200 text-sm">Mbola misy partie Pétanque tsy vita</p>
-                <p className="text-xs text-emerald-100/70">Duel 2P · {fmtAr(activeGame.stake)}</p>
-              </div>
-              <Button className="shrink-0 bg-emerald-500 text-emerald-950 hover:bg-emerald-400 font-bold" size="sm" onClick={() => nav(`/petanque/${activeGame.id}`)}>
-                Hanohy <span className="ml-1">🔵</span>
-              </Button>
+          <button
+            onClick={() => nav(`/petanque/${activeGame.id}`)}
+            className="w-full rounded-2xl p-4 border-2 border-emerald-400 bg-gradient-to-r from-emerald-600 to-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.6)] hover:shadow-[0_0_28px_rgba(16,185,129,0.85)] transition flex items-center justify-between gap-3 animate-pulse"
+          >
+            <div className="text-left">
+              <p className="text-sm font-bold text-white">Mbola misy partie Pétanque tsy vita</p>
+              <p className="text-xs text-emerald-50/90">Duel 2P · {fmtAr(activeGame.stake)}</p>
             </div>
-          </div>
+            <span className="shrink-0 inline-flex items-center gap-2 bg-white text-emerald-700 font-bold px-4 py-2 rounded-full shadow-md">
+              ▶ Hanohy
+            </span>
+          </button>
         )}
 
         <div className="rounded-2xl p-4 border border-emerald-500/30 bg-emerald-950/40 backdrop-blur">

@@ -184,6 +184,51 @@ export type Database = {
         }
         Relationships: []
       }
+      game_audit: {
+        Row: {
+          action: string
+          commission: number | null
+          created_at: string
+          game_id: string
+          game_kind: string
+          id: string
+          meta: Json | null
+          players_count: number | null
+          pot: number | null
+          stake: number | null
+          ticket_number: string | null
+          winner_id: string | null
+        }
+        Insert: {
+          action: string
+          commission?: number | null
+          created_at?: string
+          game_id: string
+          game_kind: string
+          id?: string
+          meta?: Json | null
+          players_count?: number | null
+          pot?: number | null
+          stake?: number | null
+          ticket_number?: string | null
+          winner_id?: string | null
+        }
+        Update: {
+          action?: string
+          commission?: number | null
+          created_at?: string
+          game_id?: string
+          game_kind?: string
+          id?: string
+          meta?: Json | null
+          players_count?: number | null
+          pot?: number | null
+          stake?: number | null
+          ticket_number?: string | null
+          winner_id?: string | null
+        }
+        Relationships: []
+      }
       game_moves: {
         Row: {
           created_at: string
@@ -870,6 +915,14 @@ export type Database = {
         Args: { _admin_id: string; _msg_id: string }
         Returns: Json
       }
+      admin_delete_ludo_game: {
+        Args: { _admin_id: string; _game_id: string }
+        Returns: Json
+      }
+      admin_delete_petanque_game: {
+        Args: { _admin_id: string; _game_id: string }
+        Returns: Json
+      }
       admin_delete_transaction: {
         Args: { _admin_id: string; _tx_id: string }
         Returns: Json
@@ -1054,6 +1107,10 @@ export type Database = {
         Returns: Json
       }
       user_reset_history: { Args: never; Returns: Json }
+      verify_game_settlement: {
+        Args: { _game_id: string; _kind: string }
+        Returns: Json
+      }
     }
     Enums: {
       account_status: "pending" | "active" | "blocked"

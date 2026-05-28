@@ -508,6 +508,12 @@ export default function Admin() {
           <p className="text-[10px] text-muted-foreground mt-1">Fitambaran'ny solde rehetran'ny mpilalao</p>
         </button>
 
+        <div className="card-felt rounded-xl p-3 mb-4 border border-amber-500/30">
+          <p className="text-xs text-muted-foreground">🔒 Vola voafihina amin'ny lalao mandeha (cash_pool)</p>
+          <p className="text-xl font-display gold-text font-bold">{fmtAr(lockedCashPool ?? 0)}</p>
+          <p className="text-[10px] text-muted-foreground mt-1">Tsy tafiditra ao amin'ny solde mpilalao — averina amin'ny pandresy rehefa vita ny lalao</p>
+        </div>
+
         <Tabs defaultValue="users">
           <TabsList className="grid grid-cols-6 w-full text-[10px]">
             <TabsTrigger value="users" className="relative">

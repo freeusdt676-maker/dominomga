@@ -151,6 +151,8 @@ export default function Admin() {
       setAdminBalance(Number(aw?.balance ?? 0));
       const { data: tot } = await supabase.rpc("admin_total_player_balance", { _admin_id: aid });
       setTotalPlayerBalance(Number(tot ?? 0));
+      const { data: lp } = await supabase.rpc("admin_total_locked_cash_pool" as any, { _admin_id: aid });
+      setLockedCashPool(Number(lp ?? 0));
     }
 
     // Historique Domino + Ludo

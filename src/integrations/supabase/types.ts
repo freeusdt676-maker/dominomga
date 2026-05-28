@@ -268,6 +268,7 @@ export type Database = {
         Row: {
           board_state: Json | null
           boneyard: Json | null
+          cash_pool: number
           commission: number
           created_at: string
           current_turn: string | null
@@ -300,6 +301,7 @@ export type Database = {
         Insert: {
           board_state?: Json | null
           boneyard?: Json | null
+          cash_pool?: number
           commission?: number
           created_at?: string
           current_turn?: string | null
@@ -332,6 +334,7 @@ export type Database = {
         Update: {
           board_state?: Json | null
           boneyard?: Json | null
+          cash_pool?: number
           commission?: number
           created_at?: string
           current_turn?: string | null
@@ -413,6 +416,7 @@ export type Database = {
       }
       ludo_games: {
         Row: {
+          cash_pool: number
           commission: number
           consecutive_sixes: number
           created_at: string
@@ -437,6 +441,7 @@ export type Database = {
           winner_id: string | null
         }
         Insert: {
+          cash_pool?: number
           commission?: number
           consecutive_sixes?: number
           created_at?: string
@@ -461,6 +466,7 @@ export type Database = {
           winner_id?: string | null
         }
         Update: {
+          cash_pool?: number
           commission?: number
           consecutive_sixes?: number
           created_at?: string
@@ -551,6 +557,7 @@ export type Database = {
       }
       petanque_games: {
         Row: {
+          cash_pool: number
           commission: number
           created_at: string
           current_turn: string | null
@@ -570,6 +577,7 @@ export type Database = {
           winner_id: string | null
         }
         Insert: {
+          cash_pool?: number
           commission?: number
           created_at?: string
           current_turn?: string | null
@@ -589,6 +597,7 @@ export type Database = {
           winner_id?: string | null
         }
         Update: {
+          cash_pool?: number
           commission?: number
           created_at?: string
           current_turn?: string | null
@@ -956,6 +965,10 @@ export type Database = {
         Args: { _admin_id: string; _content: string }
         Returns: Json
       }
+      admin_total_locked_cash_pool: {
+        Args: { _admin_id: string }
+        Returns: number
+      }
       admin_total_player_balance: {
         Args: { _admin_id: string }
         Returns: number
@@ -968,6 +981,7 @@ export type Database = {
         Args: { _admin_id: string; _user_id: string }
         Returns: Json
       }
+      allow_wallet_mutation: { Args: never; Returns: undefined }
       approve_user: { Args: { _user_id: string }; Returns: Json }
       approve_user_with_message: {
         Args: { _admin_id: string; _user_id: string }

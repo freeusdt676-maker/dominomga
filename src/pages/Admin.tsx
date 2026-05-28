@@ -24,6 +24,7 @@ export default function Admin() {
   const [broadcast, setBroadcast] = useState("");
   const [adminBalance, setAdminBalance] = useState(0);
   const [totalPlayerBalance, setTotalPlayerBalance] = useState<number | null>(null);
+  const [lockedCashPool, setLockedCashPool] = useState<number | null>(null);
   const [showTotal, setShowTotal] = useState(false);
   const [showSecrets, setShowSecrets] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);

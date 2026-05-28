@@ -24,6 +24,7 @@ export default function Admin() {
   const [broadcast, setBroadcast] = useState("");
   const [adminBalance, setAdminBalance] = useState(0);
   const [totalPlayerBalance, setTotalPlayerBalance] = useState<number | null>(null);
+  const [lockedCashPool, setLockedCashPool] = useState<number | null>(null);
   const [showTotal, setShowTotal] = useState(false);
   const [showSecrets, setShowSecrets] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
@@ -150,6 +151,8 @@ export default function Admin() {
       setAdminBalance(Number(aw?.balance ?? 0));
       const { data: tot } = await supabase.rpc("admin_total_player_balance", { _admin_id: aid });
       setTotalPlayerBalance(Number(tot ?? 0));
+      const { data: lp } = await supabase.rpc("admin_total_locked_cash_pool" as any, { _admin_id: aid });
+      setLockedCashPool(Number(lp ?? 0));
     }
 
     // Historique Domino + Ludo
@@ -504,6 +507,12 @@ export default function Admin() {
           )}
           <p className="text-[10px] text-muted-foreground mt-1">Fitambaran'ny solde rehetran'ny mpilalao</p>
         </button>
+
+        <div className="card-felt rounded-xl p-3 mb-4 border border-amber-500/30">
+          <p className="text-xs text-muted-foreground">🔒 Vola voafihina amin'ny lalao mandeha (cash_pool)</p>
+          <p className="text-xl font-display gold-text font-bold">{fmtAr(lockedCashPool ?? 0)}</p>
+          <p className="text-[10px] text-muted-foreground mt-1">Tsy tafiditra ao amin'ny solde mpilalao — averina amin'ny pandresy rehefa vita ny lalao</p>
+        </div>
 
         <Tabs defaultValue="users">
           <TabsList className="grid grid-cols-6 w-full text-[10px]">

@@ -44,8 +44,10 @@ type GameState = {
 const ABANDONED_GAME_KEY = "domino_abandoned_game_id";
 
 type GameMode = "d120" | "d80" | "hand";
-const MODE_LABEL: Record<GameMode, string> = { d120: "Maty 120", d80: "Maty 80", hand: "Maty atanana" };
-const MODE_TARGET: Record<GameMode, number | null> = { d120: 120, d80: 80, hand: null };
+// Mode "hand" (Maty atànana) nesorina — tsy misy intsony karazana lalao "atànana".
+// Ny lalao rehetra dia tonga amin'ny target (80 na 120) ihany no mamarana azy.
+const MODE_LABEL: Record<GameMode, string> = { d120: "Maty 120", d80: "Maty 80", hand: "Maty 120" };
+const MODE_TARGET: Record<GameMode, number | null> = { d120: 120, d80: 80, hand: 120 };
 
 function getPlayerIds(g: any): string[] {
   const pc = Number(g?.players_count ?? 2);
@@ -54,7 +56,10 @@ function getPlayerIds(g: any): string[] {
     : [g.player1_id, g.player2_id].filter(Boolean);
 }
 function nextTurnId(g: any, currentId: string): string {
-  const ids = getPlayerIds(g);
+  // Fihodinana mifanohitra amin'ny famataranandro (counter-clockwise).
+  // 2P: P1 ↔ P2 (tsy miova). 3P: P1 → P3 → P2 → P1.
+  const baseIds = getPlayerIds(g);
+  const ids = baseIds.length === 3 ? [baseIds[0], baseIds[2], baseIds[1]] : baseIds;
   const i = ids.indexOf(currentId);
   return ids[(i + 1) % ids.length] ?? ids[0];
 }

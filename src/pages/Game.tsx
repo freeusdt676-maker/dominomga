@@ -44,8 +44,10 @@ type GameState = {
 const ABANDONED_GAME_KEY = "domino_abandoned_game_id";
 
 type GameMode = "d120" | "d80" | "hand";
-const MODE_LABEL: Record<GameMode, string> = { d120: "Maty 120", d80: "Maty 80", hand: "Maty atanana" };
-const MODE_TARGET: Record<GameMode, number | null> = { d120: 120, d80: 80, hand: null };
+// Mode "hand" (Maty atànana) nesorina — tsy misy intsony karazana lalao "atànana".
+// Ny lalao rehetra dia tonga amin'ny target (80 na 120) ihany no mamarana azy.
+const MODE_LABEL: Record<GameMode, string> = { d120: "Maty 120", d80: "Maty 80", hand: "Maty 120" };
+const MODE_TARGET: Record<GameMode, number | null> = { d120: 120, d80: 80, hand: 120 };
 
 function getPlayerIds(g: any): string[] {
   const pc = Number(g?.players_count ?? 2);
@@ -54,7 +56,10 @@ function getPlayerIds(g: any): string[] {
     : [g.player1_id, g.player2_id].filter(Boolean);
 }
 function nextTurnId(g: any, currentId: string): string {
-  const ids = getPlayerIds(g);
+  // Fihodinana mifanohitra amin'ny famataranandro (counter-clockwise).
+  // 2P: P1 ↔ P2 (tsy miova). 3P: P1 → P3 → P2 → P1.
+  const baseIds = getPlayerIds(g);
+  const ids = baseIds.length === 3 ? [baseIds[0], baseIds[2], baseIds[1]] : baseIds;
   const i = ids.indexOf(currentId);
   return ids[(i + 1) % ids.length] ?? ids[0];
 }
@@ -146,7 +151,9 @@ export default function Game() {
       // lehibe indrindra intsony — io no mahatonga ny "mifanatrika" mateti-piverina.
       const ids = getPlayerIds(currentGame);
       const round1 = Number(currentGame.round_number ?? 1);
-      const openerIdxInit = (round1 - 1) % ids.length;
+      // Rotation manomboka isaky ny round: mifanohitra amin'ny famataranandro (3P: P1 → P3 → P2).
+      const rotIds = ids.length === 3 ? [ids[0], ids[2], ids[1]] : ids;
+      const openerIdxInit = ids.indexOf(rotIds[(round1 - 1) % rotIds.length]);
       const opener = { ...chooseOpening(hands, mode), playerIndex: openerIdxInit, forced: false };
       const openerId = ids[openerIdxInit];
       let board: Placed[] = [];
@@ -250,8 +257,8 @@ export default function Game() {
     const aloneReached =
       half !== null && wScore >= half && wScore < (target ?? Infinity) && opponentsAllZero;
     const dateMatch = points > 0 && points === today;
-    const handMode = mode === "hand";
-    const instantWin = isDouble6Win || dateMatch || handMode || targetReached || aloneReached;
+    // "Maty atànana" nesorina — tsy mahatonga fandresena intsony.
+    const instantWin = isDouble6Win || dateMatch || targetReached || aloneReached;
 
     // Build a human-readable "porofo" of how this round was won, for the replay banner.
     const winnerName = (profileNames[winnerId] ?? "Mpandresy");
@@ -268,13 +275,11 @@ export default function Game() {
         ? `${loserName} maty satria niala double 6 (paire de six) — ${winnerName} +${points}`
         : dateMatch
           ? `${loserName} maty satria datin'andro ${today} — ${winnerName} +${points}`
-          : handMode
-            ? `${loserName} maty atànana — ${winnerName} +${points}`
-            : targetReached
-              ? `${winnerName} tonga ${target} • Mpandresy ny lalao`
-              : points > 0
-                ? `${loserName} maty satria lany ny vaton'i ${winnerName} (+${points} vato sisa)`
-                : `${winnerName} mpandresy ny tour`);
+          : targetReached
+            ? `${winnerName} tonga ${target} • Mpandresy ny lalao`
+            : points > 0
+              ? `${loserName} maty satria lany ny vaton'i ${winnerName} (+${points} vato sisa)`
+              : `${winnerName} mpandresy ny tour`);
     if (aloneReached && !targetReached) {
       reason = `${winnerName} tonga ${wScore} nandeha irery (target ${target}) • ${loserName} mbola 0`;
     }
@@ -331,10 +336,10 @@ export default function Game() {
       // Tour 2+: tsy misy double terena, ny topon'ny tour no mametraka izay tiany.
       // Mihodina automatique makany ANKAVIA isaky ny tour.
       const ids = pc === 3 ? [game.player1_id, game.player2_id, game.player3_id] : [game.player1_id, game.player2_id];
-      // Rotation tour: player1 → player2 → player3 → player1 ...
-      const openerIdx = (nextRound - 1) % ids.length;
+      // Rotation counter-clockwise (3P: P1 → P3 → P2).
+      const rotIds = pc === 3 ? [ids[0], ids[2], ids[1]] : ids;
       const hands = pc === 3 ? [h1, h2, h3] : [h1, h2];
-      const nextId = ids[openerIdx];
+      const nextId = rotIds[(nextRound - 1) % rotIds.length];
       const updateNext: any = {
         round_number: nextRound,
         player1_hand: hands[0],
@@ -388,10 +393,10 @@ export default function Game() {
         return;
       }
       const ids = idsTied;
-      // Rotation tour: player1 → player2 → player3 → player1 ...
-      const openerIdx = (nextRound - 1) % ids.length;
+      // Rotation counter-clockwise (3P: P1 → P3 → P2).
+      const rotIds = pc === 3 ? [ids[0], ids[2], ids[1]] : ids;
       const hands = pc === 3 ? [h1, h2, h3] : [h1, h2];
-      const nextId = ids[openerIdx];
+      const nextId = rotIds[(nextRound - 1) % rotIds.length];
       setRoundBanner(`Mitovy vato — tour vaovao`);
       setTimeout(() => setRoundBanner(null), 3500);
       const updateNext: any = {

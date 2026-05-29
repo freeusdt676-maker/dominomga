@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Check, X, Megaphone, Wallet as WalletIcon, UserCheck, Eye, EyeOff, MessageSquare, ArrowDownToLine, ArrowUpFromLine, History, Search, Unlock, Trash2, RotateCcw, ShieldAlert } from "lucide-react";
+import { ArrowLeft, Check, X, Megaphone, Wallet as WalletIcon, UserCheck, Eye, EyeOff, MessageSquare, ArrowDownToLine, ArrowUpFromLine, History, Search, Unlock, Trash2, RotateCcw, ShieldAlert, Share2 } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 import { toast } from "sonner";
 import { DominoTile } from "@/components/DominoTile";
@@ -794,21 +794,28 @@ export default function Admin() {
               <Row label="Niatomboka" value={new Date(selectedGame.turn_started_at ?? selectedGame.created_at).toLocaleString()} />
               <Row label="Niafarany" value={selectedGame.finished_at ? new Date(selectedGame.finished_at).toLocaleString() : "—"} />
               {selectedGame.game_kind === "domino" && <div className="pt-2">
-                <p className="text-xs font-bold gold-text mb-2">Filaharan'ny vato napetraka ({gameMoves.length})</p>
+                <p className="text-xs font-bold gold-text mb-2">Filaharan'ny vato napetraka ({gameMoves.length}) — flèche = lafiny nametrahana</p>
                 <div className="max-h-72 overflow-y-auto space-y-1">
                   {gameMoves.length === 0 && <p className="text-[11px] text-muted-foreground text-center py-3">Tsy misy hetsika voarakitra</p>}
                   {gameMoves.map((m, i) => {
                     const piece = m.piece as { tile?: [number, number]; flipped?: boolean } | null;
                     const tile = piece?.tile;
                     const playerName = (selectedGame._players ?? [])[m.player_id === selectedGame.player1_id ? 0 : m.player_id === selectedGame.player2_id ? 1 : 2] ?? "?";
+                    const prevPlayer = i > 0 ? (selectedGame._players ?? [])[gameMoves[i-1].player_id === selectedGame.player1_id ? 0 : gameMoves[i-1].player_id === selectedGame.player2_id ? 1 : 2] : null;
                     return (
                       <div key={m.id} className="flex items-center gap-2 rounded-lg border border-primary/20 p-2 bg-card/40">
                         <span className="text-[10px] font-mono text-muted-foreground w-6">{i + 1}.</span>
                         {tile ? <DominoTile a={tile[0]} b={tile[1]} size="sm" horizontal /> : <span className="text-xs">—</span>}
                         <div className="flex-1 text-[11px]">
-                          <p className="font-bold">{playerName}</p>
+                          <p className="font-bold">
+                            {prevPlayer && <span className="text-muted-foreground font-normal">{prevPlayer} → </span>}
+                            {playerName}
+                          </p>
                           <p className="text-muted-foreground">
-                            {m.side === "left" ? "⬅ havia" : m.side === "right" ? "havanana ➡" : "—"} · {new Date(m.created_at).toLocaleTimeString(undefined, { hour12: false })}
+                            {m.side === "left" ? "⬅ napetraka havia" : m.side === "right" ? "napetraka havanana ➡" : "—"}
+                            {(m.piece as any)?.auto ? " · ⏱ auto (timeout)" : ""}
+                            {" · "}
+                            {new Date(m.created_at).toLocaleTimeString(undefined, { hour12: false })}
                           </p>
                         </div>
                       </div>
@@ -855,6 +862,45 @@ export default function Admin() {
                   <Trash2 className="w-4 h-4 mr-1" /> Mamafa ny tantaran'ity lalao ity
                 </Button>
               )}
+              <Button
+                variant="outline"
+                className="w-full mt-2 border-primary/50 text-primary hover:bg-primary/10"
+                onClick={async () => {
+                  const kind = selectedGame.game_kind;
+                  const url = `${window.location.origin}/replay/${kind}/${selectedGame.id}`;
+                  const movesText = kind === "domino" ? gameMoves.map((m, i) => {
+                    const piece = m.piece as any;
+                    const tile = piece?.tile;
+                    const pName = (selectedGame._players ?? [])[m.player_id === selectedGame.player1_id ? 0 : m.player_id === selectedGame.player2_id ? 1 : 2] ?? "?";
+                    return `${i + 1}. ${pName} → [${tile?.[0]}|${tile?.[1]}] ${m.side === "left" ? "⬅" : "➡"}`;
+                  }).join("\n") : "";
+                  const summary =
+                    `🎴 ${kind?.toUpperCase()} · Nº${selectedGame.ticket_number}\n` +
+                    `Mpilalao: ${(selectedGame._players ?? []).join(" · ")}\n` +
+                    `Mise: ${fmtAr(selectedGame.stake)}\n` +
+                    `🏆 Pandresy: ${selectedGame._winnerName ?? "—"}\n` +
+                    `Status: ${selectedGame.status}\n` +
+                    (movesText ? `\n— Filaharana —\n${movesText}\n` : "") +
+                    `\n🔗 ${url}`;
+                  try {
+                    if (navigator.share) {
+                      await navigator.share({ title: `Tatara lalao Nº${selectedGame.ticket_number}`, text: summary });
+                    } else {
+                      await navigator.clipboard.writeText(summary);
+                      toast.success("Voakopia — azonao apetaka any amin'ny reseau sociaux");
+                    }
+                  } catch {
+                    try {
+                      await navigator.clipboard.writeText(summary);
+                      toast.success("Voakopia ny tatara");
+                    } catch {
+                      toast.error("Tsy nahomby ny fanakopiana");
+                    }
+                  }
+                }}
+              >
+                <Share2 className="w-4 h-4 mr-1" /> Hizara ity tatara ity
+              </Button>
             </div>
           )}
         </DialogContent>

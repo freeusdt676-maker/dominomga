@@ -255,8 +255,8 @@ export default function Game() {
     const aloneReached =
       half !== null && wScore >= half && wScore < (target ?? Infinity) && opponentsAllZero;
     const dateMatch = points > 0 && points === today;
-    const handMode = mode === "hand";
-    const instantWin = isDouble6Win || dateMatch || handMode || targetReached || aloneReached;
+    // "Maty atànana" nesorina — tsy mahatonga fandresena intsony.
+    const instantWin = isDouble6Win || dateMatch || targetReached || aloneReached;
 
     // Build a human-readable "porofo" of how this round was won, for the replay banner.
     const winnerName = (profileNames[winnerId] ?? "Mpandresy");
@@ -273,13 +273,11 @@ export default function Game() {
         ? `${loserName} maty satria niala double 6 (paire de six) — ${winnerName} +${points}`
         : dateMatch
           ? `${loserName} maty satria datin'andro ${today} — ${winnerName} +${points}`
-          : handMode
-            ? `${loserName} maty atànana — ${winnerName} +${points}`
-            : targetReached
-              ? `${winnerName} tonga ${target} • Mpandresy ny lalao`
-              : points > 0
-                ? `${loserName} maty satria lany ny vaton'i ${winnerName} (+${points} vato sisa)`
-                : `${winnerName} mpandresy ny tour`);
+          : targetReached
+            ? `${winnerName} tonga ${target} • Mpandresy ny lalao`
+            : points > 0
+              ? `${loserName} maty satria lany ny vaton'i ${winnerName} (+${points} vato sisa)`
+              : `${winnerName} mpandresy ny tour`);
     if (aloneReached && !targetReached) {
       reason = `${winnerName} tonga ${wScore} nandeha irery (target ${target}) • ${loserName} mbola 0`;
     }

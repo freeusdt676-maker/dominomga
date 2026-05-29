@@ -21,7 +21,6 @@ const ABANDONED_GAME_KEY = "domino_abandoned_game_id";
 const MODES: { value: string; label: string; short: string }[] = [
   { value: "d120", label: "Maty 120", short: "120" },
   { value: "d80", label: "Maty 80", short: "80" },
-  { value: "hand", label: "Domy maty atanana", short: "Atanana" },
 ];
 
 export default function Lobby() {
@@ -211,7 +210,7 @@ export default function Lobby() {
             <div className="text-left">
               <p className="text-sm font-bold text-white">Mbola misy lalao tsy vita</p>
               <p className="text-xs text-blue-50/90">
-                {activeGame.players_count}P · {activeGame.game_mode === "d80" ? "Maty 80" : activeGame.game_mode === "hand" ? "Atanana" : "Maty 120"} · {fmtAr(activeGame.stake)}
+                {activeGame.players_count}P · {activeGame.game_mode === "d80" ? "Maty 80" : "Maty 120"} · {fmtAr(activeGame.stake)}
               </p>
             </div>
             <span className="shrink-0 inline-flex items-center gap-2 bg-white text-blue-700 font-bold px-4 py-2 rounded-full shadow-md">
@@ -245,7 +244,7 @@ export default function Lobby() {
           </div>
 
           <p className="text-sm text-muted-foreground mb-2">3. Karazana lalao</p>
-          <div className="grid grid-cols-3 gap-2 mb-4">
+          <div className="grid grid-cols-2 gap-2 mb-4">
             {MODES.map((m) => (
               <button
                 key={m.value}

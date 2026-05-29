@@ -151,7 +151,9 @@ export default function Game() {
       // lehibe indrindra intsony — io no mahatonga ny "mifanatrika" mateti-piverina.
       const ids = getPlayerIds(currentGame);
       const round1 = Number(currentGame.round_number ?? 1);
-      const openerIdxInit = (round1 - 1) % ids.length;
+      // Rotation manomboka isaky ny round: mifanohitra amin'ny famataranandro (3P: P1 → P3 → P2).
+      const rotIds = ids.length === 3 ? [ids[0], ids[2], ids[1]] : ids;
+      const openerIdxInit = ids.indexOf(rotIds[(round1 - 1) % rotIds.length]);
       const opener = { ...chooseOpening(hands, mode), playerIndex: openerIdxInit, forced: false };
       const openerId = ids[openerIdxInit];
       let board: Placed[] = [];
@@ -334,10 +336,10 @@ export default function Game() {
       // Tour 2+: tsy misy double terena, ny topon'ny tour no mametraka izay tiany.
       // Mihodina automatique makany ANKAVIA isaky ny tour.
       const ids = pc === 3 ? [game.player1_id, game.player2_id, game.player3_id] : [game.player1_id, game.player2_id];
-      // Rotation tour: player1 → player2 → player3 → player1 ...
-      const openerIdx = (nextRound - 1) % ids.length;
+      // Rotation counter-clockwise (3P: P1 → P3 → P2).
+      const rotIds = pc === 3 ? [ids[0], ids[2], ids[1]] : ids;
       const hands = pc === 3 ? [h1, h2, h3] : [h1, h2];
-      const nextId = ids[openerIdx];
+      const nextId = rotIds[(nextRound - 1) % rotIds.length];
       const updateNext: any = {
         round_number: nextRound,
         player1_hand: hands[0],
@@ -391,10 +393,10 @@ export default function Game() {
         return;
       }
       const ids = idsTied;
-      // Rotation tour: player1 → player2 → player3 → player1 ...
-      const openerIdx = (nextRound - 1) % ids.length;
+      // Rotation counter-clockwise (3P: P1 → P3 → P2).
+      const rotIds = pc === 3 ? [ids[0], ids[2], ids[1]] : ids;
       const hands = pc === 3 ? [h1, h2, h3] : [h1, h2];
-      const nextId = ids[openerIdx];
+      const nextId = rotIds[(nextRound - 1) % rotIds.length];
       setRoundBanner(`Mitovy vato — tour vaovao`);
       setTimeout(() => setRoundBanner(null), 3500);
       const updateNext: any = {

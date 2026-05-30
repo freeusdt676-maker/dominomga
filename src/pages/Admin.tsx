@@ -497,7 +497,7 @@ export default function Admin() {
           onClick={() => setShowTotal((v) => !v)}
           className="card-felt rounded-xl p-3 mb-4 w-full text-left border border-primary/30 hover:bg-primary/5 transition"
         >
-          <p className="text-xs text-muted-foreground">💰 Solde mpilalao (kitiho hijery)</p>
+          <p className="text-xs text-muted-foreground">💰 Solde mpilalao azo ampiasaina (kitiho hijery)</p>
           {showTotal ? (
             <p className="text-2xl font-display gold-text font-bold">
               {fmtAr(totalPlayerBalance ?? 0)}
@@ -505,7 +505,7 @@ export default function Admin() {
           ) : (
             <p className="text-2xl font-display gold-text font-bold tracking-widest">••••••</p>
           )}
-          <p className="text-[10px] text-muted-foreground mt-1">Fitambaran'ny solde rehetran'ny mpilalao</p>
+          <p className="text-[10px] text-muted-foreground mt-1">Wallet an'ny mpilalao rehetra, nesorina ny vola mbola mihidy ao anaty lalao mandeha</p>
         </button>
 
         <div className="card-felt rounded-xl p-3 mb-4 border border-amber-500/30">

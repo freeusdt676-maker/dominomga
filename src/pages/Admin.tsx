@@ -538,7 +538,7 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="users">
-          <TabsList className="grid grid-cols-6 w-full text-[10px]">
+          <TabsList className="grid grid-cols-7 w-full text-[10px]">
             <TabsTrigger value="users" className="relative">
               Mpilalao
               {pendingUsersCount > 0 && (
@@ -562,6 +562,7 @@ export default function Admin() {
             <TabsTrigger value="reset">Reset</TabsTrigger>
             <TabsTrigger value="broadcast">Annonce</TabsTrigger>
             <TabsTrigger value="history">Historique</TabsTrigger>
+            <TabsTrigger value="commissions">Commission</TabsTrigger>
           </TabsList>
 
           {/* MPILALAO */}

@@ -241,11 +241,19 @@ export default function Game() {
       winnerId === game.player1_id ? newScoreP1 : winnerId === game.player2_id ? newScoreP2 : newScoreP3;
 
     const targetReached = target !== null && wScore >= target;
+    const soloThreshold = target !== null ? Math.floor(target / 2) : null;
+    const otherScores = pc === 3
+      ? [
+          winnerId === game.player1_id ? newScoreP2 : newScoreP1,
+          winnerId === game.player3_id ? (winnerId === game.player1_id ? newScoreP2 : newScoreP1) : newScoreP3,
+        ]
+      : [winnerId === game.player1_id ? newScoreP2 : newScoreP1];
+    const soloReached = soloThreshold !== null && wScore >= soloThreshold && otherScores.every((score) => Number(score ?? 0) === 0);
     const dateMatch = points > 0 && points === today;
     // Fandresena ny lalao ihany no atao: tratra ny target (80/120),
     // double 6 niala, na datin'andro. Ny "lany vato" dia tsy mandresy ny lalao
     // fa famaranana ny tour ihany (ho ampiana eo amin'ny score).
-    const instantWin = isDouble6Win || dateMatch || targetReached;
+    const instantWin = isDouble6Win || dateMatch || targetReached || soloReached;
 
     // Build a human-readable "porofo" of how this round was won, for the replay banner.
     const winnerName = (profileNames[winnerId] ?? "Mpandresy");
@@ -264,8 +272,10 @@ export default function Game() {
           ? `${loserName} maty satria datin'andro ${today} — ${winnerName} +${points}`
           : targetReached
             ? `${winnerName} tonga ${target} • Mpandresy ny lalao`
+            : soloReached
+              ? `${winnerName} nahazo ${soloThreshold} mandeha irery • Mpandresy ny lalao`
             : points > 0
-              ? `${loserName} maty satria lany ny vaton'i ${winnerName} (+${points} vato sisa)`
+              ? `${winnerName} nahazo +${points} isa amin'ny tour`
               : `${winnerName} mpandresy ny tour`);
 
     const REVEAL_MS = 5000;
@@ -294,7 +304,7 @@ export default function Game() {
     setTimeout(async () => {
       if (instantWin) {
         // Tsy misy bokotra "Continuer" intsony: tonga dia mamarana ny lalao raha tratra ny target,
-        // miala 6/6, datinandro, na "tonga antsasaka irery". Ny écran fandresena dia mamerina
+          // miala 6/6, datinandro, na tonga antsasaka irery. Ny écran fandresena dia mamerina
         // automatique any amin'ny lobby aorian'ny 5s.
         await supabase.rpc("settle_game", { _game_id: game.id, _winner: winnerId });
         return;

@@ -1268,7 +1268,7 @@ export default function Game() {
               {isMyTurn && (
                 <button
                   type="button"
-                  onClick={() => { if (noMove) void autoPass(); }}
+                  onClick={() => { if (noMove) void passTurn(); }}
                   disabled={!noMove}
                   className={`px-3 py-1.5 rounded-md text-[11px] font-extrabold uppercase tracking-wider border-2 transition active:scale-95 ${
                     noMove

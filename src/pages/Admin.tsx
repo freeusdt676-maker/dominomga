@@ -799,6 +799,41 @@ export default function Admin() {
             })}
             {filteredHistory.length === 0 && <p className="text-center text-muted-foreground py-6">Tsy misy historique</p>}
           </TabsContent>
+
+          {/* COMMISSIONS ADMIN */}
+          <TabsContent value="commissions" className="mt-3 space-y-2 max-h-[70vh] overflow-y-auto">
+            <div className="card-felt rounded-xl p-3 mb-2 border-l-4 border-amber-500">
+              <p className="text-xs text-foreground/80">
+                <b>Lisitra ny commission 10% azon'ny Admi</b> isaky ny lalao vita (Domino · Ludo · Pétanque).
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Fitambarany: <b className="gold-text">{fmtAr(commissions.reduce((s, c) => s + c.commission, 0))}</b>
+                {" · "}{commissions.length} lalao
+              </p>
+            </div>
+            {commissions.map((c) => (
+              <div key={`${c.game_kind}-${c.id}`} className="card-felt rounded-xl p-3 text-xs space-y-1">
+                <div className="flex justify-between items-start">
+                  <p className="font-mono font-bold gold-text uppercase">{c.game_kind} · Nº{c.ticket_number}</p>
+                  <span className="px-2 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-600 font-bold">
+                    +{fmtAr(c.commission)}
+                  </span>
+                </div>
+                <p><b>{(c.players ?? []).join(" · ")}</b></p>
+                <p>
+                  Mise: <b>{fmtAr(c.stake)}</b> × {c.players_count} mpilalao
+                  {" → "}10% = <b className="gold-text">{fmtAr(c.commission)}</b>
+                </p>
+                {c.winner && <p>🏆 Pandresy: <b className="text-success">{c.winner}</b></p>}
+                <p className="text-[10px] text-muted-foreground">
+                  {c.finished_at ? new Date(c.finished_at).toLocaleString() : ""}
+                </p>
+              </div>
+            ))}
+            {commissions.length === 0 && (
+              <p className="text-center text-muted-foreground py-6">Tsy mbola misy commission</p>
+            )}
+          </TabsContent>
         </Tabs>
       </div>
 

@@ -34,6 +34,7 @@ export default function Admin() {
   const [resolvedAdminId, setResolvedAdminId] = useState<string | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [historySearch, setHistorySearch] = useState("");
+  const [commissions, setCommissions] = useState<any[]>([]);
   const [allTx, setAllTx] = useState<any[]>([]);
   const [adminNames, setAdminNames] = useState<Record<string, string>>({});
   const [selectedGame, setSelectedGame] = useState<any | null>(null);

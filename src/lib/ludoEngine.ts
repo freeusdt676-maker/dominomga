@@ -61,6 +61,28 @@ export function rollDice(): number {
   return 1 + Math.floor(Math.random() * 6);
 }
 
+export function rollBalancedDice(pawns: Pawn[], seat: number): number {
+  const seatPawns = pawns.filter((p) => p.seat === seat);
+  const outCount = seatPawns.filter((p) => p.pos > 0 && p.pos < 57).length;
+  const allInBase = seatPawns.length > 0 && seatPawns.every((p) => p.pos <= 0);
+  const almostBlocked = outCount === 0;
+
+  const weights = [1, 1, 1, 1, 1, 1];
+  if (allInBase) {
+    weights[5] = 3.2;
+  } else if (almostBlocked) {
+    weights[5] = 2.1;
+  }
+
+  const totalWeight = weights.reduce((sum, value) => sum + value, 0);
+  let pick = Math.random() * totalWeight;
+  for (let face = 1; face <= 6; face += 1) {
+    pick -= weights[face - 1];
+    if (pick <= 0) return face;
+  }
+  return 6;
+ }
+
 // Get absolute track index for a pawn on track, or null if base/home/finished
 export function pawnTrackIdx(p: Pawn): number | null {
   if (p.pos >= 1 && p.pos <= 51) {

@@ -7,7 +7,7 @@ import { ArrowLeft, Loader2, ChevronDown, RefreshCw } from "lucide-react";
 import LudoBoard from "@/components/LudoBoard";
 import LudoDice3D from "@/components/LudoDice3D";
 import {
-  activeSeats, applyMove, legalMoves, rollDice, seatHasFinished,
+  activeSeats, applyMove, legalMoves, rollBalancedDice, seatHasFinished,
   SEAT_COLOR, SEAT_NAME, nextSeatFromList, pawnXY, type Pawn,
 } from "@/lib/ludoEngine";
 import { fmtAr } from "@/lib/constants";
@@ -40,10 +40,8 @@ type LG = {
 
 const TURN_LIMIT = 10;
 const MOVE_ANIMATION_MS = 520;
-const QUICK_PASS_DELAY_MS = 850;
 const BLOCKER_SAFETY_MS = 8000;
 const STEP_ANIMATION_MS = 140; // per-cell hop for pawn walking animation
-const AUTO_MOVE_DELAY_MS = 320; // delay before auto-executing the single legal move
 
 function normalizeGame(raw: any): LG {
   return {
@@ -269,7 +267,7 @@ export default function LudoGame() {
 
     try {
       await new Promise((r) => setTimeout(r, 650));
-      const dice = rollDice();
+      const dice = rollBalancedDice(state.pawns ?? [], state.current_turn_seat);
 
       if (dice === 6 && state.consecutive_sixes >= 2) {
         const i = seats.indexOf(state.current_turn_seat);
@@ -295,7 +293,6 @@ export default function LudoGame() {
         return;
       }
 
-      const moves = legalMoves(state.pawns ?? [], state.current_turn_seat, dice);
       const nextSixes = dice === 6 ? state.consecutive_sixes + 1 : 0;
       setG((cur) => cur ? ({
         ...cur,
@@ -377,13 +374,13 @@ export default function LudoGame() {
       }
 
       const sixes = dice === 6 ? state.consecutive_sixes : 0;
-      // Bonus turn on a 6, a capture, or when a pawn reaches Home.
-      const gotBonus = (dice === 6 && sixes < 3) || res.captured > 0 || res.finishedPawn;
+      // Bonus turn on a 6 only.
+      const gotBonus = dice === 6 && sixes < 3;
       let ns: number;
       let resetSixes = false;
       if (gotBonus) {
         ns = state.current_turn_seat;
-        resetSixes = dice !== 6; // capture/finish bonus resets the sixes counter
+        resetSixes = false;
       } else {
         const i = seats.indexOf(state.current_turn_seat);
         ns = seats[(i + 1) % seats.length];
@@ -513,7 +510,7 @@ export default function LudoGame() {
       };
 
       if (!state.dice_rolled) {
-        const dice = rollDice();
+        const dice = rollBalancedDice(state.pawns ?? [], state.current_turn_seat);
         const rollAt = new Date().toISOString();
         const nextSixes = dice === 6 ? state.consecutive_sixes + 1 : 0;
         if (dice === 6 && state.consecutive_sixes >= 2) {
@@ -555,7 +552,6 @@ export default function LudoGame() {
         });
 
         if (moves.length === 0) {
-          await new Promise((r) => setTimeout(r, QUICK_PASS_DELAY_MS));
           // Unusable dice (even a 6) ⇒ no bonus, hand off
           const { seat: ns } = nextSeatFromList(state.current_turn_seat, liveSeats, false, 0, 0);
           const nextTurnAt = new Date().toISOString();

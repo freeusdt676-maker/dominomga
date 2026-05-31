@@ -90,7 +90,6 @@ export default function Game() {
   const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null);
   const autoActedRef = useRef<string | null>(null);
   const initLockRef = useRef(false);
-  const autoPassRef = useRef<string | null>(null);
   const roundEndLockRef = useRef<string | null>(null);
   const revealCommitRef = useRef<string | null>(null);
   const endgameLockRef = useRef<string | null>(null);
@@ -241,11 +240,21 @@ export default function Game() {
       winnerId === game.player1_id ? newScoreP1 : winnerId === game.player2_id ? newScoreP2 : newScoreP3;
 
     const targetReached = target !== null && wScore >= target;
+    const soloThreshold = target !== null ? Math.floor(target / 2) : null;
+    const scoreMap: Record<string, number> = {
+      [game.player1_id]: newScoreP1,
+      [game.player2_id]: newScoreP2,
+      ...(pc === 3 && game.player3_id ? { [game.player3_id]: newScoreP3 } : {}),
+    };
+    const otherScores = Object.entries(scoreMap)
+      .filter(([uid]) => uid !== winnerId)
+      .map(([, score]) => Number(score ?? 0));
+    const soloReached = soloThreshold !== null && wScore >= soloThreshold && otherScores.every((score) => Number(score ?? 0) === 0);
     const dateMatch = points > 0 && points === today;
     // Fandresena ny lalao ihany no atao: tratra ny target (80/120),
     // double 6 niala, na datin'andro. Ny "lany vato" dia tsy mandresy ny lalao
     // fa famaranana ny tour ihany (ho ampiana eo amin'ny score).
-    const instantWin = isDouble6Win || dateMatch || targetReached;
+    const instantWin = isDouble6Win || dateMatch || targetReached || soloReached;
 
     // Build a human-readable "porofo" of how this round was won, for the replay banner.
     const winnerName = (profileNames[winnerId] ?? "Mpandresy");
@@ -264,8 +273,10 @@ export default function Game() {
           ? `${loserName} maty satria datin'andro ${today} — ${winnerName} +${points}`
           : targetReached
             ? `${winnerName} tonga ${target} • Mpandresy ny lalao`
+            : soloReached
+              ? `${winnerName} nahazo ${soloThreshold} mandeha irery • Mpandresy ny lalao`
             : points > 0
-              ? `${loserName} maty satria lany ny vaton'i ${winnerName} (+${points} vato sisa)`
+              ? `${winnerName} nahazo +${points} isa amin'ny tour`
               : `${winnerName} mpandresy ny tour`);
 
     const REVEAL_MS = 5000;
@@ -294,7 +305,7 @@ export default function Game() {
     setTimeout(async () => {
       if (instantWin) {
         // Tsy misy bokotra "Continuer" intsony: tonga dia mamarana ny lalao raha tratra ny target,
-        // miala 6/6, datinandro, na "tonga antsasaka irery". Ny écran fandresena dia mamerina
+          // miala 6/6, datinandro, na tonga antsasaka irery. Ny écran fandresena dia mamerina
         // automatique any amin'ny lobby aorian'ny 5s.
         await supabase.rpc("settle_game", { _game_id: game.id, _winner: winnerId });
         return;
@@ -409,7 +420,7 @@ export default function Game() {
       winnerId,
       points,
       null,
-      `${loserName} maty satria bloqué (vato lehibe kokoa) — ${winnerName} +${points}`,
+      `Blocage: ${winnerName} nahazo +${points} isa (vato kely indrindra)`,
     );
   };
 
@@ -630,6 +641,7 @@ export default function Game() {
     const oppId = nextTurnId(game, user.id);
     const handKey = getHandKey(game, user.id) as "player1_hand" | "player2_hand" | "player3_hand";
     const remainingOthers: Tile[] = opponents.flatMap((o) => o.hand);
+    const isDouble6Instant = tile[0] === 6 && tile[1] === 6;
 
     setOptimistic({
       ...game,
@@ -642,12 +654,18 @@ export default function Game() {
     });
     setSelected(null);
 
-    if (newHand.length === 0) {
+    if (newHand.length === 0 || isDouble6Instant) {
       await updateGameState({
         board_state: newBoard,
         [handKey]: newHand,
       } as any);
-      const points = pipsTotal(remainingOthers);
+      await supabase.from("game_moves").insert({
+        game_id: game.id,
+        player_id: user.id,
+        piece: { tile, flipped: chosenSide === "left" ? tile[1] !== (ends(board)?.left ?? tile[1]) : tile[0] !== (ends(board)?.right ?? tile[0]) },
+        side: chosenSide,
+      });
+      const points = newHand.length === 0 ? pipsTotal(remainingOthers) : 0;
       await finishRound(user.id, points, tile);
       return;
     }
@@ -679,10 +697,9 @@ export default function Game() {
     void tryPlay(idx, possible === "left" || possible === "right" ? possible : undefined);
   };
 
-  const autoPass = async () => {
+  const passTurn = async () => {
     if (!isMyTurn || !game || !user) return;
-    // Raha lany ny vato (vita ny tour) dia tsy mandalo mihitsy — andraso ny tour vaovao.
-    if (myHand.length === 0) return;
+    if (myHand.length === 0 || hasMove(myHand, board)) return;
     const oppId = nextTurnId(game, user.id);
     const pc = Number(game.players_count ?? 2);
     const passes = (game.passes ?? 0) + 1;
@@ -695,7 +712,7 @@ export default function Game() {
       turn_started_at: new Date().toISOString(),
       passes,
     });
-    toast("TSIMANANA — mandalo any amin'ny adversaire");
+    toast("TSY MANANA — mandalo any amin'ny manaraka");
   };
 
   // Auto-action / Bot — rehefa lany ny 20s, mandeha ho azy ny lalao
@@ -730,17 +747,26 @@ export default function Game() {
         const chosenSide: "left" | "right" = can === "left" ? "left" : can === "right" ? "right" : "right";
         const newBoard = place(liveBoard, tile, chosenSide);
         const newHand = turnHand.filter((_, i) => i !== playableIdx);
-        if (newHand.length === 0) {
+        if (newHand.length === 0 || (tile[0] === 6 && tile[1] === 6)) {
           await updateGameState({
             board_state: newBoard,
             [turnKey]: newHand,
           } as any);
+          const { error: moveLogError } = await supabase.from("game_moves").insert({
+            game_id: game.id,
+            player_id: turnId,
+            piece: { tile, auto: true },
+            side: chosenSide,
+          });
+          if (moveLogError) {
+            console.warn("auto move log failed", moveLogError);
+          }
           const otherIds = getPlayerIds(fresh).filter((x) => x !== turnId);
           const otherTiles: Tile[] = otherIds.flatMap((id) => {
             const k = getHandKey(fresh, id) as any;
             return (fresh[k] as Tile[]) ?? [];
           });
-          await finishRound(turnId, pipsTotal(otherTiles), tile);
+          await finishRound(turnId, newHand.length === 0 ? pipsTotal(otherTiles) : 0, tile);
           return;
         }
         await updateGameState({
@@ -794,20 +820,6 @@ export default function Game() {
     }, delay);
     return () => clearTimeout(t);
   }, [game?.turn_started_at, game?.current_turn, game?.status, isRevealing, game?.id, user?.id]);
-
-  // Auto-pass raha tsy manana vato mety ny mpilalao manana ny tour
-  useEffect(() => {
-    if (!isMyTurn || !game) return;
-    if (isRevealing) return;
-    if (hasMove(myHand, board)) return;
-    // Andraso ho tapitra ny 20s alohan'ny handeha-ho azy mba hahafahan'ny mpilalao mijery
-    if (elapsed < TURN_TIMEOUT_SEC) return;
-    const key = `${game.id}-pass-${game.turn_started_at}`;
-    if (autoPassRef.current === key) return;
-    autoPassRef.current = key;
-    void autoPass();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMyTurn, myHand, board, game?.turn_started_at, isRevealing, elapsed]);
 
   useEffect(() => {
     if (selected === null) return;
@@ -1272,7 +1284,7 @@ export default function Game() {
               {isMyTurn && (
                 <button
                   type="button"
-                  onClick={() => { if (noMove) void autoPass(); }}
+                  onClick={() => { if (noMove) void passTurn(); }}
                   disabled={!noMove}
                   className={`px-3 py-1.5 rounded-md text-[11px] font-extrabold uppercase tracking-wider border-2 transition active:scale-95 ${
                     noMove

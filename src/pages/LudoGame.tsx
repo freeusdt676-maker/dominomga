@@ -510,7 +510,7 @@ export default function LudoGame() {
       };
 
       if (!state.dice_rolled) {
-        const dice = rollDice();
+        const dice = rollBalancedDice(state.pawns ?? [], state.current_turn_seat);
         const rollAt = new Date().toISOString();
         const nextSixes = dice === 6 ? state.consecutive_sixes + 1 : 0;
         if (dice === 6 && state.consecutive_sixes >= 2) {
@@ -552,7 +552,6 @@ export default function LudoGame() {
         });
 
         if (moves.length === 0) {
-          await new Promise((r) => setTimeout(r, QUICK_PASS_DELAY_MS));
           // Unusable dice (even a 6) ⇒ no bonus, hand off
           const { seat: ns } = nextSeatFromList(state.current_turn_seat, liveSeats, false, 0, 0);
           const nextTurnAt = new Date().toISOString();

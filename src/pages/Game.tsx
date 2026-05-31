@@ -90,7 +90,6 @@ export default function Game() {
   const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null);
   const autoActedRef = useRef<string | null>(null);
   const initLockRef = useRef(false);
-  const autoPassRef = useRef<string | null>(null);
   const roundEndLockRef = useRef<string | null>(null);
   const revealCommitRef = useRef<string | null>(null);
   const endgameLockRef = useRef<string | null>(null);
@@ -689,6 +688,24 @@ export default function Game() {
     }
     setSelected(null);
     void tryPlay(idx, possible === "left" || possible === "right" ? possible : undefined);
+  };
+
+  const passTurn = async () => {
+    if (!isMyTurn || !game || !user) return;
+    if (myHand.length === 0 || hasMove(myHand, board)) return;
+    const oppId = nextTurnId(game, user.id);
+    const pc = Number(game.players_count ?? 2);
+    const passes = (game.passes ?? 0) + 1;
+    if (passes >= pc) {
+      await finishBlocked();
+      return;
+    }
+    await updateGameState({
+      current_turn: oppId,
+      turn_started_at: new Date().toISOString(),
+      passes,
+    });
+    toast("TSY MANANA — mandalo any amin'ny manaraka");
   };
 
   // Auto-action / Bot — rehefa lany ny 20s, mandeha ho azy ny lalao

@@ -314,49 +314,9 @@ export default function LudoGame() {
       });
       if (error) throw error;
 
-      if (moves.length === 0) {
-        clearRefTimeout(autoResolveRef);
-        autoResolveRef.current = window.setTimeout(async () => {
-          try {
-            // Unusable 6 = NO bonus, hand off to next seat and reset sixes
-            const { seat: ns } = nextSeatFromList(state.current_turn_seat, seats, false, 0, 0);
-            const nextTurnAt = new Date().toISOString();
-            setG((cur) => cur ? ({
-              ...cur,
-              current_turn_seat: ns,
-              last_dice: null,
-              dice_rolled: false,
-              consecutive_sixes: 0,
-              turn_started_at: nextTurnAt,
-            }) : cur);
-            const { error: passError } = await supabase.rpc("ludo_update_state" as any, {
-              _game_id: state.id,
-              _current_turn_seat: ns,
-              _last_dice: null,
-              _dice_rolled: false,
-              _consecutive_sixes: 0,
-              _turn_started_at: nextTurnAt,
-            });
-            if (passError) throw passError;
-          } catch {
-            await load(true);
-          } finally {
-            clearUiBlockers();
-          }
-        }, QUICK_PASS_DELAY_MS);
-      } else {
-        // Auto-release: if dice=6 and ALL pawns are still in base, auto-exit one pawn.
-        const seatPawns = (state.pawns ?? []).filter((p) => p.seat === state.current_turn_seat);
-        const noneOnBoard = seatPawns.every((p) => p.pos <= 0 || p.pos === 57);
-        const shouldAutoRelease = dice === 6 && noneOnBoard;
-        if (moves.length === 1 || shouldAutoRelease) {
-          clearRefTimeout(autoResolveRef);
-          autoResolveRef.current = window.setTimeout(() => {
-            handlePawn(moves[0]).catch(() => undefined);
-          }, AUTO_MOVE_DELAY_MS);
-        }
-        // Otherwise: dice=6 + pawns already active → wait for manual choice.
-      }
+      // Tsy misy robo intsony: na tsy misy safidy na safidy iray ihany, ny
+      // mpilalao ihany no manapaka. Raha lany ny 10s dia ny timer handler no
+      // mandeha (mametraka pion na mandalo araka ny safidy azo).
     } catch (error: any) {
       toast.error(error?.message ?? "Nisy olana tamin'ny dé");
       await load(true);

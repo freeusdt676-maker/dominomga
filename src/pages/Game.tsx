@@ -241,24 +241,11 @@ export default function Game() {
       winnerId === game.player1_id ? newScoreP1 : winnerId === game.player2_id ? newScoreP2 : newScoreP3;
 
     const targetReached = target !== null && wScore >= target;
-    // "Tonga X nandeha irery" — nahatratra antsasaky ny target nefa 0 ihany hatrany ny adversaire rehetra.
-    const otherScores = pc === 3
-      ? [
-          winnerId !== game.player1_id ? newScoreP1 : null,
-          winnerId !== game.player2_id ? newScoreP2 : null,
-          winnerId !== game.player3_id ? newScoreP3 : null,
-        ].filter((s) => s !== null) as number[]
-      : [
-          winnerId !== game.player1_id ? newScoreP1 : null,
-          winnerId !== game.player2_id ? newScoreP2 : null,
-        ].filter((s) => s !== null) as number[];
-    const opponentsAllZero = otherScores.every((s) => Number(s ?? 0) === 0);
-    const half = target !== null ? Math.floor(target / 2) : null;
-    const aloneReached =
-      half !== null && wScore >= half && wScore < (target ?? Infinity) && opponentsAllZero;
     const dateMatch = points > 0 && points === today;
-    // "Maty atànana" nesorina — tsy mahatonga fandresena intsony.
-    const instantWin = isDouble6Win || dateMatch || targetReached || aloneReached;
+    // Fandresena ny lalao ihany no atao: tratra ny target (80/120),
+    // double 6 niala, na datin'andro. Ny "lany vato" dia tsy mandresy ny lalao
+    // fa famaranana ny tour ihany (ho ampiana eo amin'ny score).
+    const instantWin = isDouble6Win || dateMatch || targetReached;
 
     // Build a human-readable "porofo" of how this round was won, for the replay banner.
     const winnerName = (profileNames[winnerId] ?? "Mpandresy");
@@ -280,9 +267,6 @@ export default function Game() {
             : points > 0
               ? `${loserName} maty satria lany ny vaton'i ${winnerName} (+${points} vato sisa)`
               : `${winnerName} mpandresy ny tour`);
-    if (aloneReached && !targetReached) {
-      reason = `${winnerName} tonga ${wScore} nandeha irery (target ${target}) • ${loserName} mbola 0`;
-    }
 
     const REVEAL_MS = 5000;
     const revealUntil = new Date(Date.now() + REVEAL_MS).toISOString();

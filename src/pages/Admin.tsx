@@ -34,6 +34,7 @@ export default function Admin() {
   const [resolvedAdminId, setResolvedAdminId] = useState<string | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [historySearch, setHistorySearch] = useState("");
+  const [commissions, setCommissions] = useState<any[]>([]);
   const [allTx, setAllTx] = useState<any[]>([]);
   const [adminNames, setAdminNames] = useState<Record<string, string>>({});
   const [selectedGame, setSelectedGame] = useState<any | null>(null);
@@ -206,6 +207,28 @@ export default function Admin() {
         (a: any, b: any) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime(),
       ),
     );
+
+    // Commissions Admin (10%) — entrées issues des parties finies
+    const commissionRows = [...dominoHistory, ...ludoHistory, ...petHistory]
+      .filter((g: any) => g.status === "finished" && Number(g.stake ?? 0) > 0)
+      .map((g: any) => {
+        const pc = Number(g.players_count ?? 2);
+        const stake = Number(g.stake ?? 0);
+        const commission = Math.round(stake * 0.1) * pc;
+        return {
+          id: g.id,
+          game_kind: g.game_kind,
+          ticket_number: g.ticket_number,
+          stake,
+          players_count: pc,
+          commission,
+          finished_at: g.finished_at ?? g.created_at,
+          players: g._players ?? [],
+          winner: g._winnerName,
+        };
+      })
+      .sort((a, b) => new Date(b.finished_at ?? 0).getTime() - new Date(a.finished_at ?? 0).getTime());
+    setCommissions(commissionRows);
   };
 
   useEffect(() => { if (allowed) load(); }, [allowed, user, resolvedAdminId]);
@@ -515,7 +538,7 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="users">
-          <TabsList className="grid grid-cols-6 w-full text-[10px]">
+          <TabsList className="grid grid-cols-7 w-full text-[10px]">
             <TabsTrigger value="users" className="relative">
               Mpilalao
               {pendingUsersCount > 0 && (
@@ -539,6 +562,7 @@ export default function Admin() {
             <TabsTrigger value="reset">Reset</TabsTrigger>
             <TabsTrigger value="broadcast">Annonce</TabsTrigger>
             <TabsTrigger value="history">Historique</TabsTrigger>
+            <TabsTrigger value="commissions">Commission</TabsTrigger>
           </TabsList>
 
           {/* MPILALAO */}
@@ -774,6 +798,41 @@ export default function Admin() {
               );
             })}
             {filteredHistory.length === 0 && <p className="text-center text-muted-foreground py-6">Tsy misy historique</p>}
+          </TabsContent>
+
+          {/* COMMISSIONS ADMIN */}
+          <TabsContent value="commissions" className="mt-3 space-y-2 max-h-[70vh] overflow-y-auto">
+            <div className="card-felt rounded-xl p-3 mb-2 border-l-4 border-amber-500">
+              <p className="text-xs text-foreground/80">
+                <b>Lisitra ny commission 10% azon'ny Admi</b> isaky ny lalao vita (Domino · Ludo · Pétanque).
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Fitambarany: <b className="gold-text">{fmtAr(commissions.reduce((s, c) => s + c.commission, 0))}</b>
+                {" · "}{commissions.length} lalao
+              </p>
+            </div>
+            {commissions.map((c) => (
+              <div key={`${c.game_kind}-${c.id}`} className="card-felt rounded-xl p-3 text-xs space-y-1">
+                <div className="flex justify-between items-start">
+                  <p className="font-mono font-bold gold-text uppercase">{c.game_kind} · Nº{c.ticket_number}</p>
+                  <span className="px-2 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-600 font-bold">
+                    +{fmtAr(c.commission)}
+                  </span>
+                </div>
+                <p><b>{(c.players ?? []).join(" · ")}</b></p>
+                <p>
+                  Mise: <b>{fmtAr(c.stake)}</b> × {c.players_count} mpilalao
+                  {" → "}10% = <b className="gold-text">{fmtAr(c.commission)}</b>
+                </p>
+                {c.winner && <p>🏆 Pandresy: <b className="text-success">{c.winner}</b></p>}
+                <p className="text-[10px] text-muted-foreground">
+                  {c.finished_at ? new Date(c.finished_at).toLocaleString() : ""}
+                </p>
+              </div>
+            ))}
+            {commissions.length === 0 && (
+              <p className="text-center text-muted-foreground py-6">Tsy mbola misy commission</p>
+            )}
           </TabsContent>
         </Tabs>
       </div>

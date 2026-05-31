@@ -242,12 +242,14 @@ export default function Game() {
 
     const targetReached = target !== null && wScore >= target;
     const soloThreshold = target !== null ? Math.floor(target / 2) : null;
-    const otherScores = pc === 3
-      ? [
-          winnerId === game.player1_id ? newScoreP2 : newScoreP1,
-          winnerId === game.player3_id ? (winnerId === game.player1_id ? newScoreP2 : newScoreP1) : newScoreP3,
-        ]
-      : [winnerId === game.player1_id ? newScoreP2 : newScoreP1];
+    const scoreMap: Record<string, number> = {
+      [game.player1_id]: newScoreP1,
+      [game.player2_id]: newScoreP2,
+      ...(pc === 3 && game.player3_id ? { [game.player3_id]: newScoreP3 } : {}),
+    };
+    const otherScores = Object.entries(scoreMap)
+      .filter(([uid]) => uid !== winnerId)
+      .map(([, score]) => Number(score ?? 0));
     const soloReached = soloThreshold !== null && wScore >= soloThreshold && otherScores.every((score) => Number(score ?? 0) === 0);
     const dateMatch = points > 0 && points === today;
     // Fandresena ny lalao ihany no atao: tratra ny target (80/120),
@@ -419,7 +421,7 @@ export default function Game() {
       winnerId,
       points,
       null,
-      `${loserName} maty satria bloqué (vato lehibe kokoa) — ${winnerName} +${points}`,
+      `Blocage: ${winnerName} nahazo +${points} isa (vato kely indrindra)`,
     );
   };
 
@@ -689,25 +691,6 @@ export default function Game() {
     void tryPlay(idx, possible === "left" || possible === "right" ? possible : undefined);
   };
 
-  const autoPass = async () => {
-    if (!isMyTurn || !game || !user) return;
-    // Raha lany ny vato (vita ny tour) dia tsy mandalo mihitsy — andraso ny tour vaovao.
-    if (myHand.length === 0) return;
-    const oppId = nextTurnId(game, user.id);
-    const pc = Number(game.players_count ?? 2);
-    const passes = (game.passes ?? 0) + 1;
-    if (passes >= pc) {
-      await finishBlocked();
-      return;
-    }
-    await updateGameState({
-      current_turn: oppId,
-      turn_started_at: new Date().toISOString(),
-      passes,
-    });
-    toast("TSIMANANA — mandalo any amin'ny adversaire");
-  };
-
   // Auto-action / Bot — rehefa lany ny 20s, mandeha ho azy ny lalao
   useEffect(() => {
     if (!game || !user) return;
@@ -804,20 +787,6 @@ export default function Game() {
     }, delay);
     return () => clearTimeout(t);
   }, [game?.turn_started_at, game?.current_turn, game?.status, isRevealing, game?.id, user?.id]);
-
-  // Auto-pass raha tsy manana vato mety ny mpilalao manana ny tour
-  useEffect(() => {
-    if (!isMyTurn || !game) return;
-    if (isRevealing) return;
-    if (hasMove(myHand, board)) return;
-    // Andraso ho tapitra ny 20s alohan'ny handeha-ho azy mba hahafahan'ny mpilalao mijery
-    if (elapsed < TURN_TIMEOUT_SEC) return;
-    const key = `${game.id}-pass-${game.turn_started_at}`;
-    if (autoPassRef.current === key) return;
-    autoPassRef.current = key;
-    void autoPass();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMyTurn, myHand, board, game?.turn_started_at, isRevealing, elapsed]);
 
   useEffect(() => {
     if (selected === null) return;

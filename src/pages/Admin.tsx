@@ -207,6 +207,28 @@ export default function Admin() {
         (a: any, b: any) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime(),
       ),
     );
+
+    // Commissions Admin (10%) — entrées issues des parties finies
+    const commissionRows = [...dominoHistory, ...ludoHistory, ...petHistory]
+      .filter((g: any) => g.status === "finished" && Number(g.stake ?? 0) > 0)
+      .map((g: any) => {
+        const pc = Number(g.players_count ?? 2);
+        const stake = Number(g.stake ?? 0);
+        const commission = Math.round(stake * 0.1) * pc;
+        return {
+          id: g.id,
+          game_kind: g.game_kind,
+          ticket_number: g.ticket_number,
+          stake,
+          players_count: pc,
+          commission,
+          finished_at: g.finished_at ?? g.created_at,
+          players: g._players ?? [],
+          winner: g._winnerName,
+        };
+      })
+      .sort((a, b) => new Date(b.finished_at ?? 0).getTime() - new Date(a.finished_at ?? 0).getTime());
+    setCommissions(commissionRows);
   };
 
   useEffect(() => { if (allowed) load(); }, [allowed, user, resolvedAdminId]);

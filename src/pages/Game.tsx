@@ -641,6 +641,7 @@ export default function Game() {
     const oppId = nextTurnId(game, user.id);
     const handKey = getHandKey(game, user.id) as "player1_hand" | "player2_hand" | "player3_hand";
     const remainingOthers: Tile[] = opponents.flatMap((o) => o.hand);
+    const isDouble6Instant = tile[0] === 6 && tile[1] === 6;
 
     setOptimistic({
       ...game,
@@ -653,12 +654,18 @@ export default function Game() {
     });
     setSelected(null);
 
-    if (newHand.length === 0) {
+    if (newHand.length === 0 || isDouble6Instant) {
       await updateGameState({
         board_state: newBoard,
         [handKey]: newHand,
       } as any);
-      const points = pipsTotal(remainingOthers);
+      await supabase.from("game_moves").insert({
+        game_id: game.id,
+        player_id: user.id,
+        piece: { tile, flipped: chosenSide === "left" ? tile[1] !== (ends(board)?.left ?? tile[1]) : tile[0] !== (ends(board)?.right ?? tile[0]) },
+        side: chosenSide,
+      });
+      const points = newHand.length === 0 ? pipsTotal(remainingOthers) : 0;
       await finishRound(user.id, points, tile);
       return;
     }
@@ -740,17 +747,26 @@ export default function Game() {
         const chosenSide: "left" | "right" = can === "left" ? "left" : can === "right" ? "right" : "right";
         const newBoard = place(liveBoard, tile, chosenSide);
         const newHand = turnHand.filter((_, i) => i !== playableIdx);
-        if (newHand.length === 0) {
+        if (newHand.length === 0 || (tile[0] === 6 && tile[1] === 6)) {
           await updateGameState({
             board_state: newBoard,
             [turnKey]: newHand,
           } as any);
+          const { error: moveLogError } = await supabase.from("game_moves").insert({
+            game_id: game.id,
+            player_id: turnId,
+            piece: { tile, auto: true },
+            side: chosenSide,
+          });
+          if (moveLogError) {
+            console.warn("auto move log failed", moveLogError);
+          }
           const otherIds = getPlayerIds(fresh).filter((x) => x !== turnId);
           const otherTiles: Tile[] = otherIds.flatMap((id) => {
             const k = getHandKey(fresh, id) as any;
             return (fresh[k] as Tile[]) ?? [];
           });
-          await finishRound(turnId, pipsTotal(otherTiles), tile);
+          await finishRound(turnId, newHand.length === 0 ? pipsTotal(otherTiles) : 0, tile);
           return;
         }
         await updateGameState({

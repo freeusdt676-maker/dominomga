@@ -31,7 +31,7 @@ Exactly FOUR conditions make a player WIN THE GAME (settle_game). Nothing else d
 1. **Target**: score ≥ target (D120 → 120, D80 → 80).
 2. **Solo (mandeha irery)**: score ≥ target/2 (60 for D120, 40 for D80) while ALL opponents are still at 0.
 3. **Double 6**: placing the 6/6 tile during any turn.
-4. **Datinandro**: placing a double whose face value × 2 equals the sum of today's date digits (e.g. day 15 → 1+5=6 → double-3 wins; day 28 → 2+8=10 → double-5 wins).
+4. **Datinandro**: placing ANY tile (not necessarily a double) whose pip total (a+b) equals the day of the month (e.g. June 1 → tile with 1 pip [0/1] wins; June 2 → tile with 2 pips [0/2 or 1/1] wins; June 12 → tile with 12 pips [6/6 — also triggers Double 6]).
 
 Running out of tiles ("lany vato") and blocage ONLY end the round and award points; they do NOT win the game unless the resulting score crosses condition (1) or (2).
 

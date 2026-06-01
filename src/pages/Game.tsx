@@ -229,22 +229,16 @@ export default function Game() {
 
     const pc = Number(game.players_count ?? 2);
     const today = new Date().getDate();
-    // Date match: ny vato napetraka tour iray dia DOUBLE ary ny isan-tanjony
-    // (a+b) dia mitovy amin'ny fitambaran'ny tarehimarika amin'ny datinandro.
-    // Ohatra: anio 15 → 1+5=6 → double-3 mandresy. Anio 28 → 2+8=10 → double-5.
-    const isDouble = !!lastTile && lastTile[0] === lastTile[1];
+    // Date match: ny fitambaran'ny isan'ny vato napetraka (a+b) dia mitovy
+    // amin'ny datinandro ilalaovana. Ohatra: 1 jona → vato manana 1 isa
+    // (0/1) mandresy; 2 jona → vato manana 2 isa (0/2 na 1/1); sns…
+    // Mety ho vato rehetra (tsy voatery double).
     const isDouble6Win = !!lastTile && lastTile[0] === 6 && lastTile[1] === 6;
-    const dateDigitSum = String(today)
-      .split("")
-      .reduce((s, c) => s + Number(c), 0);
-    const dateMatchedFace = dateDigitSum % 2 === 0 ? dateDigitSum / 2 : -1;
+    const lastPips = lastTile ? lastTile[0] + lastTile[1] : -1;
     const dateMatch =
       !!lastTile &&
-      isDouble &&
       !isDouble6Win &&
-      dateMatchedFace >= 0 &&
-      dateMatchedFace <= 6 &&
-      lastTile[0] === dateMatchedFace;
+      lastPips === today;
     const addTo = (uid: string, base: number) => Number(base ?? 0) + (winnerId === uid ? points : 0);
     const newScoreP1 = addTo(game.player1_id, game.score_p1);
     const newScoreP2 = addTo(game.player2_id, game.score_p2);
@@ -292,7 +286,7 @@ export default function Game() {
       ?? (isDouble6Win
         ? `MANDRESY NY LALAO — ${winnerName} niala double 6 (6/6)`
         : dateMatch
-          ? `MANDRESY NY LALAO — ${winnerName} niala double-${lastTile![0]} mifanaraka amin'ny datinandro (${today})`
+          ? `MANDRESY NY LALAO — ${winnerName} niala vato ${lastTile![0]}/${lastTile![1]} (${lastPips} isa) mifanaraka amin'ny datinandro (${today})`
           : targetReached
             ? `MANDRESY NY LALAO — ${winnerName} tonga ${target} (${mode.toUpperCase()})`
             : soloReached

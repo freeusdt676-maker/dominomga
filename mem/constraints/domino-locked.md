@@ -25,3 +25,14 @@ Frozen parameters (do not change without explicit prompt):
 - Removed "Maty atànana" mode (`hand`) from Lobby + Game. Only `d120` and `d80` remain selectable; legacy `hand` rows fall back to 120-target behaviour.
 - Removed "maty atànana" as an instant-win reason in `finishRound`. Blocked endgame still resolves by lowest pipsTotal via `finishBlocked` (no mode renaming).
 - Turn rotation is now **counter-clockwise**: in 3P the order is P1 → P3 → P2. Applied to `nextTurnId`, opener selection in `initializeGameHands`, `finishRound` next-round, and `finishBlocked` tie re-deal.
+
+## Domino WIN conditions (LOCKED — 2026-06-01)
+Exactly FOUR conditions make a player WIN THE GAME (settle_game). Nothing else does:
+1. **Target**: score ≥ target (D120 → 120, D80 → 80).
+2. **Solo (mandeha irery)**: score ≥ target/2 (60 for D120, 40 for D80) while ALL opponents are still at 0.
+3. **Double 6**: placing the 6/6 tile during any turn.
+4. **Datinandro**: placing a double whose face value × 2 equals the sum of today's date digits (e.g. day 15 → 1+5=6 → double-3 wins; day 28 → 2+8=10 → double-5 wins).
+
+Running out of tiles ("lany vato") and blocage ONLY end the round and award points; they do NOT win the game unless the resulting score crosses condition (1) or (2).
+
+History label `last_reason` MUST be prefixed `MANDRESY NY LALAO — ...` for those four categories and `Tour vita — ...` / `Blocage` otherwise. Profile.tsx `parseReason` depends on the keywords: `6/6`, `datinandro`, `mandeha irery`, `tonga`.

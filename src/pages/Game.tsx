@@ -229,7 +229,22 @@ export default function Game() {
 
     const pc = Number(game.players_count ?? 2);
     const today = new Date().getDate();
+    // Date match: ny vato napetraka tour iray dia DOUBLE ary ny isan-tanjony
+    // (a+b) dia mitovy amin'ny fitambaran'ny tarehimarika amin'ny datinandro.
+    // Ohatra: anio 15 → 1+5=6 → double-3 mandresy. Anio 28 → 2+8=10 → double-5.
+    const isDouble = !!lastTile && lastTile[0] === lastTile[1];
     const isDouble6Win = !!lastTile && lastTile[0] === 6 && lastTile[1] === 6;
+    const dateDigitSum = String(today)
+      .split("")
+      .reduce((s, c) => s + Number(c), 0);
+    const dateMatchedFace = dateDigitSum % 2 === 0 ? dateDigitSum / 2 : -1;
+    const dateMatch =
+      !!lastTile &&
+      isDouble &&
+      !isDouble6Win &&
+      dateMatchedFace >= 0 &&
+      dateMatchedFace <= 6 &&
+      lastTile[0] === dateMatchedFace;
     const addTo = (uid: string, base: number) => Number(base ?? 0) + (winnerId === uid ? points : 0);
     const newScoreP1 = addTo(game.player1_id, game.score_p1);
     const newScoreP2 = addTo(game.player2_id, game.score_p2);
@@ -250,10 +265,13 @@ export default function Game() {
       .filter(([uid]) => uid !== winnerId)
       .map(([, score]) => Number(score ?? 0));
     const soloReached = soloThreshold !== null && wScore >= soloThreshold && otherScores.every((score) => Number(score ?? 0) === 0);
-    const dateMatch = points > 0 && points === today;
-    // Fandresena ny lalao ihany no atao: tratra ny target (80/120),
-    // double 6 niala, na datin'andro. Ny "lany vato" dia tsy mandresy ny lalao
-    // fa famaranana ny tour ihany (ho ampiana eo amin'ny score).
+    // Fandresen'ny LALAO ihany ireto efatra ireto (tsy misy hafa):
+    //   1) Tratra ny target (D120=120, D80=80).
+    //   2) Tonga ny antsasaky ny target (60 na 40) raha mbola 0 ny hafa rehetra.
+    //   3) Niala double 6 (6/6) ao anatin'ny tour iray.
+    //   4) Niala double izay mifanaraka amin'ny datinandro.
+    // Ny "lany vato" sy "blocage" dia tsy mandresy ny LALAO fa famaranana ny tour
+    // ihany (ampiana eo amin'ny score).
     const instantWin = isDouble6Win || dateMatch || targetReached || soloReached;
 
     // Build a human-readable "porofo" of how this round was won, for the replay banner.
@@ -266,18 +284,22 @@ export default function Game() {
     const loserName = loserIds.length === 1
       ? (profileNames[loserIds[0]!] ?? "Mpilalao")
       : loserIds.map((id) => profileNames[id!] ?? "Mpilalao").join(" sy ");
+    // Lazaina mazava tsara ao anatin'ny historique ny ATONY mahatonga ny fandresena.
+    // Anisan'ny sokajy "MANDRESY NY LALAO" ireto efatra ireto ihany:
+    //   • TARGET (D120/D80) • SOLO (60/40 irery) • DOUBLE 6 • DATINANDRO.
+    // Ny ambin'ireo (lany vato, blocage, +N isa) dia tour ihany.
     let reason: string = reasonOverride
       ?? (isDouble6Win
-        ? `${loserName} maty satria niala double 6 (paire de six) — ${winnerName} +${points}`
+        ? `MANDRESY NY LALAO — ${winnerName} niala double 6 (6/6)`
         : dateMatch
-          ? `${loserName} maty satria datin'andro ${today} — ${winnerName} +${points}`
+          ? `MANDRESY NY LALAO — ${winnerName} niala double-${lastTile![0]} mifanaraka amin'ny datinandro (${today})`
           : targetReached
-            ? `${winnerName} tonga ${target} • Mpandresy ny lalao`
+            ? `MANDRESY NY LALAO — ${winnerName} tonga ${target} (${mode.toUpperCase()})`
             : soloReached
-              ? `${winnerName} nahazo ${soloThreshold} mandeha irery • Mpandresy ny lalao`
-            : points > 0
-              ? `${winnerName} nahazo +${points} isa amin'ny tour`
-              : `${winnerName} mpandresy ny tour`);
+              ? `MANDRESY NY LALAO — ${winnerName} nahazo ${soloThreshold} mandeha irery (${loserName} mbola 0)`
+              : points > 0
+                ? `Tour vita — ${winnerName} nahazo +${points} isa`
+                : `Tour vita — ${winnerName}`);
 
     const REVEAL_MS = 5000;
     const revealUntil = new Date(Date.now() + REVEAL_MS).toISOString();

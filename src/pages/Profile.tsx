@@ -113,11 +113,14 @@ export default function Profile() {
   const parseReason = (r: string | null | undefined): { label: string; tone: string } => {
     if (!r) return { label: "Lalao vita", tone: "bg-muted text-foreground" };
     const s = r.toLowerCase();
-    if (s.includes("6/6") || s.includes("paire de six")) return { label: "Niala 6/6 (double 6)", tone: "bg-purple-500/20 text-purple-300 border-purple-500/40" };
-    if (s.includes("datinandro")) return { label: "Maty datinandro", tone: "bg-amber-500/20 text-amber-300 border-amber-500/40" };
-    if (s.includes("bloqué") || s.includes("bloque") || s.includes("blocage")) return { label: "Blocage", tone: "bg-red-500/20 text-red-300 border-red-500/40" };
-    if (s.includes("nandeha irery")) return { label: "Nandeha irery", tone: "bg-blue-500/20 text-blue-300 border-blue-500/40" };
-    if (s.includes("tonga")) return { label: "Nahafeno tanjona", tone: "bg-green-500/20 text-green-300 border-green-500/40" };
+    // 4 sokajy MANDRESY NY LALAO:
+    if (s.includes("6/6") || s.includes("double 6") || s.includes("paire de six")) return { label: "MANDRESY • Double 6", tone: "bg-purple-500/20 text-purple-300 border-purple-500/40" };
+    if (s.includes("datinandro")) return { label: "MANDRESY • Datinandro", tone: "bg-amber-500/20 text-amber-300 border-amber-500/40" };
+    if (s.includes("mandeha irery") || s.includes("nandeha irery")) return { label: "MANDRESY • Mandeha irery", tone: "bg-blue-500/20 text-blue-300 border-blue-500/40" };
+    if (s.includes("tonga")) return { label: "MANDRESY • Target tratra", tone: "bg-green-500/20 text-green-300 border-green-500/40" };
+    // Sokajy hafa (tsy mandresy ny lalao):
+    if (s.includes("bloqué") || s.includes("bloque") || s.includes("blocage")) return { label: "Tour: Blocage", tone: "bg-red-500/20 text-red-300 border-red-500/40" };
+    if (s.includes("tour vita") || s.includes("+")) return { label: "Tour vita", tone: "bg-slate-500/20 text-slate-300 border-slate-500/40" };
     if (s.includes("admin")) return { label: "Naverin'ny admin", tone: "bg-slate-500/20 text-slate-300 border-slate-500/40" };
     return { label: r, tone: "bg-muted text-foreground" };
   };

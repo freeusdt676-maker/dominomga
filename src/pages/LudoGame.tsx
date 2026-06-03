@@ -461,22 +461,6 @@ export default function LudoGame() {
       if (error) throw error;
     };
 
-    const settleIfWinner = async (state: LG, nextPawns: Pawn[]) => {
-      if (!seatHasFinished(nextPawns, state.current_turn_seat)) return false;
-      const winnerUid = seatToUidLocal(state.current_turn_seat);
-      await runRpc({
-        _game_id: state.id,
-        _pawns: nextPawns,
-        _dice_rolled: false,
-        _last_dice: null,
-      });
-      if (winnerUid) {
-        const { error } = await supabase.rpc("ludo_settle" as any, { _game_id: state.id, _winner: winnerUid });
-        if (error) throw error;
-      }
-      return true;
-    };
-
     // PRO POLICY: rehefa lany ny 10s, tsy manao roll na move ho an'ilay mpilalao
     // ny système — fa SKIP fotsiny ny tour ka mandeha aminny manaraka.
     // Tsy misy automatique mihitsy — tsy kitihina ny pion na ny dice.

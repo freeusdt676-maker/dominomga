@@ -537,6 +537,18 @@ export default function Admin() {
           <p className="text-[10px] text-muted-foreground mt-1">Tsy tafiditra ao amin'ny solde mpilalao — averina amin'ny pandresy rehefa vita ny lalao</p>
         </div>
 
+        {/* Fanazavana mazava ny calcul — mba tsy hisalasalana */}
+        <div className="card-felt rounded-xl p-3 mb-4 border border-primary/20">
+          <p className="text-[11px] font-bold text-primary mb-1">📊 Fanazavana calcul vola</p>
+          <div className="text-[10px] text-muted-foreground space-y-1 leading-relaxed">
+            <p><b>Total système</b> = Wallet mpilalao + Wallet Admin + Cash pool mihidy.</p>
+            <p>Manodidina: <b className="gold-text">{fmtAr((totalPlayerBalance ?? 0) + adminBalance + (lockedCashPool ?? 0))}</b></p>
+            <p>► Mitombo IHANY raha misy <b>dépôt nankatoavina</b>.</p>
+            <p>► Mihena IHANY raha misy <b>retrait nankatoavina</b>.</p>
+            <p>► Isaky ny lalao vita: solde mpilalao MIHENA -{`{commission}`} Ar (lasa ao amin'ny Admin), ny totalin'ny système tsy miova.</p>
+          </div>
+        </div>
+
         <Tabs defaultValue="users">
           <TabsList className="grid grid-cols-7 w-full text-[10px]">
             <TabsTrigger value="users" className="relative">

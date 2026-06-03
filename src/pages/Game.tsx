@@ -136,14 +136,9 @@ export default function Game() {
         hands = [d.p1, d.p2];
         boneyard = d.boneyard;
       }
-      // Lalàna vaovao: 5 na 6 double atànana = mandresy avy hatrany.
-      const instantIdx = getInstantDoublesWinner(hands);
-      if (instantIdx !== null) {
-        const ids = getPlayerIds(currentGame);
-        const winnerId = ids[instantIdx];
-        await supabase.rpc("settle_game", { _game_id: currentGame.id, _winner: winnerId });
-        return;
-      }
+      // LOCKED: Tsy misy "instant win" amin'ny double atànana intsony. Ny lalao
+      // dia mandeha hatrany, ary izay tonga aloha amin'ny target (D80=80,
+      // D120=120) no mandresy. (Sokajy hafa rehetra nesorina.)
       // Rotation explicite ny topon'ny tour: tour 1 = player1, tour 2 = player2,
       // tour 3 = player3, dia miverina amin'ny player1. Tsy miankina amin'ny vato
       // lehibe indrindra intsony — io no mahatonga ny "mifanatrika" mateti-piverina.
@@ -232,12 +227,6 @@ export default function Game() {
     // amin'ny datinandro ilalaovana. Ohatra: 1 jona → vato manana 1 isa
     // (0/1) mandresy; 2 jona → vato manana 2 isa (0/2 na 1/1); sns…
     // Mety ho vato rehetra (tsy voatery double).
-    const isDouble6Win = !!lastTile && lastTile[0] === 6 && lastTile[1] === 6;
-    const lastPips = lastTile ? lastTile[0] + lastTile[1] : -1;
-    const dateMatch =
-      !!lastTile &&
-      !isDouble6Win &&
-      lastPips === today;
     const addTo = (uid: string, base: number) => Number(base ?? 0) + (winnerId === uid ? points : 0);
     const newScoreP1 = addTo(game.player1_id, game.score_p1);
     const newScoreP2 = addTo(game.player2_id, game.score_p2);
@@ -248,24 +237,11 @@ export default function Game() {
       winnerId === game.player1_id ? newScoreP1 : winnerId === game.player2_id ? newScoreP2 : newScoreP3;
 
     const targetReached = target !== null && wScore >= target;
-    const soloThreshold = target !== null ? Math.floor(target / 2) : null;
-    const scoreMap: Record<string, number> = {
-      [game.player1_id]: newScoreP1,
-      [game.player2_id]: newScoreP2,
-      ...(pc === 3 && game.player3_id ? { [game.player3_id]: newScoreP3 } : {}),
-    };
-    const otherScores = Object.entries(scoreMap)
-      .filter(([uid]) => uid !== winnerId)
-      .map(([, score]) => Number(score ?? 0));
-    const soloReached = soloThreshold !== null && wScore >= soloThreshold && otherScores.every((score) => Number(score ?? 0) === 0);
-    // Fandresen'ny LALAO ihany ireto efatra ireto (tsy misy hafa):
-    //   1) Tratra ny target (D120=120, D80=80).
-    //   2) Tonga ny antsasaky ny target (60 na 40) raha mbola 0 ny hafa rehetra.
-    //   3) Niala double 6 (6/6) ao anatin'ny tour iray.
-    //   4) Niala double izay mifanaraka amin'ny datinandro.
-    // Ny "lany vato" sy "blocage" dia tsy mandresy ny LALAO fa famaranana ny tour
-    // ihany (ampiana eo amin'ny score).
-    const instantWin = isDouble6Win || dateMatch || targetReached || soloReached;
+    // LOCKED — Fandresena tokana ihany no ekena:
+    //   • TARGET tratra (D120 → 120, D80 → 80).
+    // Sokajy hafa rehetra (double 6, datinandro, mandeha irery, lany vato,
+    // blocage) dia tour ihany — ampiana eo amin'ny score, tsy mandresy.
+    const instantWin = targetReached;
 
     // Build a human-readable "porofo" of how this round was won, for the replay banner.
     const winnerName = (profileNames[winnerId] ?? "Mpandresy");
@@ -282,17 +258,14 @@ export default function Game() {
     //   • TARGET (D120/D80) • SOLO (60/40 irery) • DOUBLE 6 • DATINANDRO.
     // Ny ambin'ireo (lany vato, blocage, +N isa) dia tour ihany.
     let reason: string = reasonOverride
-      ?? (isDouble6Win
-        ? `MANDRESY NY LALAO — ${winnerName} niala double 6 (6/6)`
-        : dateMatch
-          ? `MANDRESY NY LALAO — ${winnerName} niala vato ${lastTile![0]}/${lastTile![1]} (${lastPips} isa) mifanaraka amin'ny datinandro (${today})`
-          : targetReached
-            ? `MANDRESY NY LALAO — ${winnerName} tonga ${target} (${mode.toUpperCase()})`
-            : soloReached
-              ? `MANDRESY NY LALAO — ${winnerName} nahazo ${soloThreshold} mandeha irery (${loserName} mbola 0)`
-              : points > 0
-                ? `Tour vita — ${winnerName} nahazo +${points} isa`
-                : `Tour vita — ${winnerName}`);
+      ?? (targetReached
+        ? `MANDRESY NY LALAO — ${winnerName} tonga ${target} (${mode.toUpperCase()})`
+        : points > 0
+          ? `Tour vita — ${winnerName} nahazo +${points} isa`
+          : `Tour vita — ${winnerName}`);
+    // `loserName` voatahiry ho an'ny famaharana hafa (raha tsy ampiasaina, tsy
+    // mamotika ny build satria mety ho diso interpretation ny linter).
+    void loserName;
 
     const REVEAL_MS = 5000;
     const revealUntil = new Date(Date.now() + REVEAL_MS).toISOString();
@@ -333,16 +306,7 @@ export default function Game() {
       } else {
         const d = deal(seed); h1 = d.p1; h2 = d.p2; boneyard = d.boneyard;
       }
-      // Lalàna: 5+ double atànana = mandresy avy hatrany na amin'ny tour vaovao aza.
-      const handsNext = pc === 3 ? [h1, h2, h3] : [h1, h2];
-      const instantIdx2 = getInstantDoublesWinner(handsNext);
-      if (instantIdx2 !== null) {
-        const idsIw = pc === 3
-          ? [game.player1_id, game.player2_id, game.player3_id]
-          : [game.player1_id, game.player2_id];
-        await supabase.rpc("settle_game", { _game_id: game.id, _winner: idsIw[instantIdx2] });
-        return;
-      }
+      // LOCKED: tsy misy "instant win" mandritra ny re-deal — target ihany.
       // Tour 2+: tsy misy double terena, ny topon'ny tour no mametraka izay tiany.
       // Mihodina automatique makany ANKAVIA isaky ny tour.
       const ids = pc === 3 ? [game.player1_id, game.player2_id, game.player3_id] : [game.player1_id, game.player2_id];
@@ -392,16 +356,10 @@ export default function Game() {
       } else {
         const d = deal(seed); h1 = d.p1; h2 = d.p2; boneyard = d.boneyard;
       }
-      // 5+ double atànana = mandresy avy hatrany (na tour vaovao avy amin'ny blocage aza).
-      const handsTied = pc === 3 ? [h1, h2, h3] : [h1, h2];
       const idsTied = pc === 3
         ? [game.player1_id, game.player2_id, game.player3_id]
         : [game.player1_id, game.player2_id];
-      const instantIdxT = getInstantDoublesWinner(handsTied);
-      if (instantIdxT !== null) {
-        await supabase.rpc("settle_game", { _game_id: game.id, _winner: idsTied[instantIdxT] });
-        return;
-      }
+      // LOCKED: tsy misy "instant win" — target ihany ny fandresena.
       const ids = idsTied;
       // Rotation counter-clockwise (3P: P1 → P3 → P2).
       const rotIds = pc === 3 ? [ids[0], ids[2], ids[1]] : ids;

@@ -231,15 +231,15 @@ export default function Profile() {
               const kindLabel = kind === "ludo" ? "LUDO" : kind === "petanque" ? "PÉTANQUE" : (g.game_mode ?? "d120");
               const KindIcon = kind === "ludo" ? Dice5 : kind === "petanque" ? Target : Trophy;
               // Pétanque outcome reason: Fani (6-0) ou Maty 12
-              const petReason = (() => {
+              const petReason: { label: string; tone: string; raw?: string | null } | null = (() => {
                 if (kind !== "petanque" || !g.winner_id) return null;
                 const s1 = Number(g.score_p1 ?? 0);
                 const s2 = Number(g.score_p2 ?? 0);
                 const hi = Math.max(s1, s2);
                 const lo = Math.min(s1, s2);
-                if (lo === 0 && hi >= 6 && hi < 12) return { label: `FANI ${hi}-0`, tone: "bg-purple-500/20 text-purple-300 border-purple-500/40" };
-                if (hi >= 12) return { label: `Maty 12 (${hi}-${lo})`, tone: "bg-amber-500/20 text-amber-300 border-amber-500/40" };
-                return { label: `Vita ${hi}-${lo}`, tone: "bg-green-500/20 text-green-300 border-green-500/40" };
+                if (lo === 0 && hi >= 6 && hi < 12) return { label: `FANI ${hi}-0`, tone: "bg-purple-500/20 text-purple-300 border-purple-500/40", raw: null };
+                if (hi >= 12) return { label: `Maty 12 (${hi}-${lo})`, tone: "bg-amber-500/20 text-amber-300 border-amber-500/40", raw: null };
+                return { label: `Vita ${hi}-${lo}`, tone: "bg-green-500/20 text-green-300 border-green-500/40", raw: null };
               })();
               const showReason = petReason ?? reason;
               return (

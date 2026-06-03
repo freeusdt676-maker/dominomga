@@ -27,7 +27,6 @@ import LudoVoiceChat from "@/components/LudoVoiceChat";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Tile, Placed, deal, deal3, ends, canPlace, place, pipsTotal, hasMove, chooseOpening,
-  getInstantDoublesWinner,
 } from "@/lib/dominoEngine";
 import { toast } from "sonner";
 import { sfx } from "@/lib/sfx";

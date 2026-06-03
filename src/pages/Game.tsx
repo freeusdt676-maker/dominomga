@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, Home as HomeIcon, Clock, Flag, LogOut } from "lucide-react";
+import { ArrowLeft, Loader2, Home as HomeIcon, Clock, LogOut } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,7 +46,6 @@ const ABANDONED_GAME_KEY = "domino_abandoned_game_id";
 type GameMode = "d120" | "d80" | "hand";
 // Mode "hand" (Maty atànana) nesorina — tsy misy intsony karazana lalao "atànana".
 // Ny lalao rehetra dia tonga amin'ny target (80 na 120) ihany no mamarana azy.
-const MODE_LABEL: Record<GameMode, string> = { d120: "Maty 120", d80: "Maty 80", hand: "Maty 120" };
 
 function getPlayerIds(g: any): string[] {
   const pc = Number(g?.players_count ?? 2);
@@ -774,8 +773,6 @@ export default function Game() {
   const myScore = scoreOf(user?.id ?? "");
   const targetPts = getDominoTarget(gameMode);
   const playersCount = Number(game?.players_count ?? 2);
-  const turnName = game?.current_turn ? (profileNames[game.current_turn] ?? "Mpilalao") : "";
-
   const abandonGame = async () => {
     if (!game || !user || isAbandoning) return;
     const oppId = game.player1_id === user.id ? game.player2_id : game.player1_id;

@@ -26,13 +26,20 @@ Frozen parameters (do not change without explicit prompt):
 - Removed "maty atànana" as an instant-win reason in `finishRound`. Blocked endgame still resolves by lowest pipsTotal via `finishBlocked` (no mode renaming).
 - Turn rotation is now **counter-clockwise**: in 3P the order is P1 → P3 → P2. Applied to `nextTurnId`, opener selection in `initializeGameHands`, `finishRound` next-round, and `finishBlocked` tie re-deal.
 
-## Domino WIN conditions (LOCKED — 2026-06-01)
-Exactly FOUR conditions make a player WIN THE GAME (settle_game). Nothing else does:
-1. **Target**: score ≥ target (D120 → 120, D80 → 80).
-2. **Solo (mandeha irery)**: score ≥ target/2 (60 for D120, 40 for D80) while ALL opponents are still at 0.
-3. **Double 6**: placing the 6/6 tile during any turn.
-4. **Datinandro**: placing ANY tile (not necessarily a double) whose pip total (a+b) equals the day of the month (e.g. June 1 → tile with 1 pip [0/1] wins; June 2 → tile with 2 pips [0/2 or 1/1] wins; June 12 → tile with 12 pips [6/6 — also triggers Double 6]).
+## Domino WIN conditions (LOCKED — 2026-06-03, FINAL)
+Exactly ONE condition makes a player WIN THE GAME (settle_game). Nothing else does, ever:
+1. **Target reached**: score ≥ target (D120 → 120, D80 → 80).
 
-Running out of tiles ("lany vato") and blocage ONLY end the round and award points; they do NOT win the game unless the resulting score crosses condition (1) or (2).
+ALL of these are removed and MUST NOT be reintroduced — even partially, even as an opt-in:
+- ❌ Double 6 instant win
+- ❌ Datinandro / date-match instant win
+- ❌ "Mandeha irery" / solo 40 or 60 instant win
+- ❌ "5+ double atànana" deal-time instant win
+- ❌ "Maty atànana" / running out of tiles instant win
+- ❌ Blocage instant win
 
-History label `last_reason` MUST be prefixed `MANDRESY NY LALAO — ...` for those four categories and `Tour vita — ...` / `Blocage` otherwise. Profile.tsx `parseReason` depends on the keywords: `6/6`, `datinandro`, `mandeha irery`, `tonga`.
+Running out of tiles, blocage and "mitovy vato" only end the ROUND and may add points. They only win the GAME if the resulting score crosses the target.
+
+History label `last_reason` MUST be prefixed `MANDRESY NY LALAO — … tonga {target}` for the only win category and `Tour vita — …` / `Blocage` otherwise. Profile.tsx `parseReason` only relies on the keyword `tonga` for win detection now.
+
+**Why:** The user repeatedly demanded that ONLY the target wins ("ny akoatrizay tsimisy"). Any re-introduction of bonus win conditions is a regression. If a future task asks for a new win category, push back and ask for explicit confirmation that this lock is being intentionally lifted.

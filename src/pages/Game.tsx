@@ -222,11 +222,9 @@ export default function Game() {
     roundEndLockRef.current = key;
 
     const pc = Number(game.players_count ?? 2);
-    const today = new Date().getDate();
-    // Date match: ny fitambaran'ny isan'ny vato napetraka (a+b) dia mitovy
-    // amin'ny datinandro ilalaovana. Ohatra: 1 jona → vato manana 1 isa
-    // (0/1) mandresy; 2 jona → vato manana 2 isa (0/2 na 1/1); sns…
-    // Mety ho vato rehetra (tsy voatery double).
+    // LOCKED: Tsy misy intsony datinandro/double-6 ho fandresena. Ny target
+    // ihany (D80 → 80, D120 → 120) no mandresy ny lalao.
+    void lastTile; // tahirizina ho an'ny historique fotsiny
     const addTo = (uid: string, base: number) => Number(base ?? 0) + (winnerId === uid ? points : 0);
     const newScoreP1 = addTo(game.player1_id, game.score_p1);
     const newScoreP2 = addTo(game.player2_id, game.score_p2);
@@ -614,8 +612,6 @@ export default function Game() {
     const oppId = nextTurnId(game, user.id);
     const handKey = getHandKey(game, user.id) as "player1_hand" | "player2_hand" | "player3_hand";
     const remainingOthers: Tile[] = opponents.flatMap((o) => o.hand);
-    const isDouble6Instant = tile[0] === 6 && tile[1] === 6;
-
     setOptimistic({
       ...game,
       board_state: newBoard,
@@ -627,7 +623,7 @@ export default function Game() {
     });
     setSelected(null);
 
-    if (newHand.length === 0 || isDouble6Instant) {
+    if (newHand.length === 0) {
       await updateGameState({
         board_state: newBoard,
         [handKey]: newHand,

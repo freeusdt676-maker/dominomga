@@ -35,8 +35,10 @@ ALL of these are removed and MUST NOT be reintroduced — even partially, even a
 - ❌ Datinandro / date-match instant win
 - ❌ "Mandeha irery" / solo 40 or 60 instant win
 - ❌ "5+ double atànana" deal-time instant win
+- ❌ Auto-play branch that settles when tile = [6,6]
 - ❌ "Maty atànana" / running out of tiles instant win
 - ❌ Blocage instant win
+- ❌ Endgame vote / continue-stop flow after target
 
 Running out of tiles, blocage and "mitovy vato" only end the ROUND and may add points. They only win the GAME if the resulting score crosses the target.
 

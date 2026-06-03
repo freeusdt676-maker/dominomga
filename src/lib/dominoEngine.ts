@@ -42,21 +42,12 @@ function countDoubles(hand: Tile[]): number {
 
 // Lalàna:
 //  - 4 double atànana ihany no mahatonga ny redeal (averina ny fizarana).
-//  - 5 na 6 double atànana = mandresy avy hatrany ny mpilalao mahazo izany.
-// Noho izany, manaiky deal isika rehefa:
-//    * tsy misy mpilalao manana double mihoatra ny 3 (deal mahazatra), NA
-//    * misy mpilalao manana >= 5 double (instant win — tsy averina).
+//  - TSY MISY instant win amin'ny double atànana.
+// Noho izany, manaiky deal isika rehefa tsy misy mpilalao manana double = 4.
 const REDEAL_DOUBLES = 4;
 
 function dealNeedsRedeal(hands: Tile[][]): boolean {
   return hands.some((h) => countDoubles(h) === REDEAL_DOUBLES);
-}
-
-export function getInstantDoublesWinner(hands: Tile[][]): number | null {
-  for (let i = 0; i < hands.length; i += 1) {
-    if (countDoubles(hands[i]) >= 5) return i;
-  }
-  return null;
 }
 
 function shuffleDeckWithSeed(seed?: string): Tile[] {

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, Home as HomeIcon, Clock, Flag, LogOut } from "lucide-react";
+import { ArrowLeft, Loader2, Home as HomeIcon, Clock, LogOut } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +30,7 @@ import {
 } from "@/lib/dominoEngine";
 import { toast } from "sonner";
 import { sfx } from "@/lib/sfx";
+import { getDominoRoundReason, getDominoTarget, isDominoGameWin } from "@/lib/dominoRules";
 
 type GameState = {
   player1_hand: Tile[];
@@ -45,8 +46,6 @@ const ABANDONED_GAME_KEY = "domino_abandoned_game_id";
 type GameMode = "d120" | "d80" | "hand";
 // Mode "hand" (Maty atànana) nesorina — tsy misy intsony karazana lalao "atànana".
 // Ny lalao rehetra dia tonga amin'ny target (80 na 120) ihany no mamarana azy.
-const MODE_LABEL: Record<GameMode, string> = { d120: "Maty 120", d80: "Maty 80", hand: "Maty 120" };
-const MODE_TARGET: Record<GameMode, number | null> = { d120: 120, d80: 80, hand: 120 };
 
 function getPlayerIds(g: any): string[] {
   const pc = Number(g?.players_count ?? 2);
@@ -91,7 +90,6 @@ export default function Game() {
   const initLockRef = useRef(false);
   const roundEndLockRef = useRef<string | null>(null);
   const revealCommitRef = useRef<string | null>(null);
-  const endgameLockRef = useRef<string | null>(null);
   const isMobile = useIsMobile();
 
   const getAbandonedGameId = () => sessionStorage.getItem(ABANDONED_GAME_KEY);
@@ -230,11 +228,11 @@ export default function Game() {
     const newScoreP2 = addTo(game.player2_id, game.score_p2);
     const newScoreP3 = pc === 3 ? addTo(game.player3_id, game.score_p3) : 0;
     const mode = (game.game_mode ?? "d120") as GameMode;
-    const target = MODE_TARGET[mode];
+    const target = getDominoTarget(mode);
     const wScore =
       winnerId === game.player1_id ? newScoreP1 : winnerId === game.player2_id ? newScoreP2 : newScoreP3;
 
-    const targetReached = target !== null && wScore >= target;
+    const targetReached = isDominoGameWin(wScore, mode);
     // LOCKED — Fandresena tokana ihany no ekena:
     //   • TARGET tratra (D120 → 120, D80 → 80).
     // Sokajy hafa rehetra (double 6, datinandro, mandeha irery, lany vato,
@@ -255,12 +253,13 @@ export default function Game() {
     // Anisan'ny sokajy "MANDRESY NY LALAO" ireto efatra ireto ihany:
     //   • TARGET (D120/D80) • SOLO (60/40 irery) • DOUBLE 6 • DATINANDRO.
     // Ny ambin'ireo (lany vato, blocage, +N isa) dia tour ihany.
-    let reason: string = reasonOverride
-      ?? (targetReached
-        ? `MANDRESY NY LALAO — ${winnerName} tonga ${target} (${mode.toUpperCase()})`
-        : points > 0
-          ? `Tour vita — ${winnerName} nahazo +${points} isa`
-          : `Tour vita — ${winnerName}`);
+    const reason = getDominoRoundReason({
+      winnerName,
+      mode,
+      winnerScore: wScore,
+      points,
+      reasonOverride,
+    });
     // `loserName` voatahiry ho an'ny famaharana hafa (raha tsy ampiasaina, tsy
     // mamotika ny build satria mety ho diso interpretation ny linter).
     void loserName;
@@ -291,7 +290,7 @@ export default function Game() {
     setTimeout(async () => {
       if (instantWin) {
         // Tsy misy bokotra "Continuer" intsony: tonga dia mamarana ny lalao raha tratra ny target,
-          // miala 6/6, datinandro, na tonga antsasaka irery. Ny écran fandresena dia mamerina
+          // raha tratra ny target ihany. Ny écran fandresena dia mamerina
         // automatique any amin'ny lobby aorian'ny 5s.
         await supabase.rpc("settle_game", { _game_id: game.id, _winner: winnerId });
         return;
@@ -476,53 +475,8 @@ export default function Game() {
     }
   }, [game?.status, id]);
 
-  // Endgame vote resolver — kicks in once both players have voted (2-player only).
-  useEffect(() => {
-    if (!game) return;
-    if (game.status !== "in_progress") return;
-    if (Number(game.players_count ?? 2) !== 2) return;
-    const votes = game.endgame_votes as Record<string, "continue" | "stop"> | null | undefined;
-    if (!votes) return;
-    const ids = [game.player1_id, game.player2_id].filter(Boolean) as string[];
-    const allVoted = ids.every((id) => votes[id] === "continue" || votes[id] === "stop");
-    if (!allVoted) return;
-    const key = `${game.id}-r${game.round_number ?? 1}-endvote`;
-    if (endgameLockRef.current === key) return;
-    // Only the host (player1) commits the resolution to avoid double-writes.
-    if (user?.id !== game.player1_id) return;
-    endgameLockRef.current = key;
-    (async () => {
-      const stopper = ids.find((id) => votes[id] === "stop");
-      if (stopper) {
-        const winner = ids.find((id) => id !== stopper) as string;
-        await supabase.rpc("settle_game", { _game_id: game.id, _winner: winner });
-        return;
-      }
-      // Both continue → reset scores and start a fresh round
-      const nextRound = (game.round_number ?? 1) + 1;
-      const seed = `${game.ticket_number || game.id}-r${nextRound}`;
-      const d = deal(seed);
-      const hands = [d.p1, d.p2];
-      const board: Placed[] = [];
-      // Rotation: tour pair = player1, impair = player2 (alterne).
-      const openerIdx = (nextRound - 1) % ids.length;
-      const nextId = ids[openerIdx];
-      await supabase.from("games").update({
-        round_number: nextRound,
-        score_p1: 0,
-        score_p2: 0,
-        player1_hand: hands[0],
-        player2_hand: hands[1],
-        boneyard: d.boneyard,
-        board_state: board,
-        current_turn: nextId,
-        turn_started_at: new Date().toISOString(),
-        passes: 0,
-        endgame_votes: null,
-        reveal_until: null,
-      }).eq("id", game.id);
-    })();
-  }, [game?.endgame_votes, game?.status, game?.id, user?.id]);
+  // LOCKED: tsy misy intsony "endgame vote" ao amin'ny Domino.
+  // Raha tratra ny target dia vita avy hatrany ny lalao.
 
   // Mamboatra ny lalao raha vao nivadika ho in_progress saingy mbola tsy nizara piesy
   useEffect(() => {
@@ -716,7 +670,7 @@ export default function Game() {
         const chosenSide: "left" | "right" = can === "left" ? "left" : can === "right" ? "right" : "right";
         const newBoard = place(liveBoard, tile, chosenSide);
         const newHand = turnHand.filter((_, i) => i !== playableIdx);
-        if (newHand.length === 0 || (tile[0] === 6 && tile[1] === 6)) {
+        if (newHand.length === 0) {
           await updateGameState({
             board_state: newBoard,
             [turnKey]: newHand,
@@ -817,10 +771,8 @@ export default function Game() {
     return 0;
   };
   const myScore = scoreOf(user?.id ?? "");
-  const targetPts = MODE_TARGET[gameMode];
+  const targetPts = getDominoTarget(gameMode);
   const playersCount = Number(game?.players_count ?? 2);
-  const turnName = game?.current_turn ? (profileNames[game.current_turn] ?? "Mpilalao") : "";
-
   const abandonGame = async () => {
     if (!game || !user || isAbandoning) return;
     const oppId = game.player1_id === user.id ? game.player2_id : game.player1_id;
@@ -853,21 +805,6 @@ export default function Game() {
     toast("Resy avy hatrany ianao noho ny abandonné");
     nav("/lobby", { replace: true });
   };
-
-  const submitEndgameVote = async (choice: "continue" | "stop") => {
-    if (!game || !user) return;
-    const votes = (game.endgame_votes as Record<string, "continue" | "stop"> | null) ?? {};
-    if (votes[user.id]) return; // already voted
-    const next = { ...votes, [user.id]: choice };
-    await supabase.from("games").update({ endgame_votes: next }).eq("id", game.id);
-  };
-
-  const endgameVotes = (game?.endgame_votes as Record<string, "continue" | "stop"> | null) ?? null;
-  const showEndgameVote =
-    !!endgameVotes &&
-    game?.status === "in_progress" &&
-    Number(game?.players_count ?? 2) === 2;
-  const myVote = endgameVotes && user ? endgameVotes[user.id] : undefined;
 
   // Sary kely kokoa amin'ny mobile mba tsy hifanaikitra
   const handTileSize = isMobile ? "md" : "lg";
@@ -1047,44 +984,6 @@ export default function Game() {
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Endgame vote — Mbola hanohy / Tsy hanohy (target tratra) */}
-      <AlertDialog open={showEndgameVote}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>🏁 Tratra ny target — Mbola hanohy ve?</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <span className="block">
-                Tratra ny <b>{targetPts}</b> point. Samy mifidy ianareo:
-              </span>
-              <span className="block">• <b>Mbola hanohy</b> — averina amin'ny 0-0 ny score, mitohy ny lalao.</span>
-              <span className="block">• <b>Tsy hanohy</b> — <span className="text-destructive font-bold">ho resy avy hatrany</span> ilay nifidy izany; ny adversaire no handresy sy hahazo ny gain.</span>
-              {myVote && (
-                <span className="block pt-2 italic text-xs">
-                  Voarakitra ny safidinao: <b>{myVote === "continue" ? "Mbola hanohy" : "Tsy hanohy"}</b>. Miandry ny adversaire…
-                </span>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <Button
-              variant="outline"
-              disabled={!!myVote}
-              onClick={() => submitEndgameVote("stop")}
-              className="border-destructive text-destructive hover:bg-destructive/10"
-            >
-              Tsy hanohy
-            </Button>
-            <Button
-              disabled={!!myVote}
-              onClick={() => submitEndgameVote("continue")}
-              className="btn-gold"
-            >
-              Mbola hanohy
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* TSIMANANA banner nesorina — tsy mibahana intsony, indikatera kely fotsiny ao amin'ny tanana */}
 

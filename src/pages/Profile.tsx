@@ -110,19 +110,17 @@ export default function Profile() {
     toast.success("Voafafa daholo ny historique");
   };
 
-  const parseReason = (r: string | null | undefined): { label: string; tone: string } => {
+  const parseReason = (r: string | null | undefined): { label: string; tone: string; raw?: string | null } => {
     if (!r) return { label: "Lalao vita", tone: "bg-muted text-foreground" };
     const s = r.toLowerCase();
-    // 4 sokajy MANDRESY NY LALAO:
-    if (s.includes("6/6") || s.includes("double 6") || s.includes("paire de six")) return { label: "MANDRESY • Double 6", tone: "bg-purple-500/20 text-purple-300 border-purple-500/40" };
-    if (s.includes("datinandro")) return { label: "MANDRESY • Datinandro", tone: "bg-amber-500/20 text-amber-300 border-amber-500/40" };
-    if (s.includes("mandeha irery") || s.includes("nandeha irery")) return { label: "MANDRESY • Mandeha irery", tone: "bg-blue-500/20 text-blue-300 border-blue-500/40" };
-    if (s.includes("tonga")) return { label: "MANDRESY • Target tratra", tone: "bg-green-500/20 text-green-300 border-green-500/40" };
-    // Sokajy hafa (tsy mandresy ny lalao):
-    if (s.includes("bloqué") || s.includes("bloque") || s.includes("blocage")) return { label: "Tour: Blocage", tone: "bg-red-500/20 text-red-300 border-red-500/40" };
-    if (s.includes("tour vita") || s.includes("+")) return { label: "Tour vita", tone: "bg-slate-500/20 text-slate-300 border-slate-500/40" };
-    if (s.includes("admin")) return { label: "Naverin'ny admin", tone: "bg-slate-500/20 text-slate-300 border-slate-500/40" };
-    return { label: r, tone: "bg-muted text-foreground" };
+    if (s.includes("tonga")) return { label: "MANDRESY • Target tratra", tone: "bg-green-500/20 text-green-300 border-green-500/40", raw: r };
+    if (s.includes("bloqué") || s.includes("bloque") || s.includes("blocage")) return { label: "Tour: Blocage", tone: "bg-red-500/20 text-red-300 border-red-500/40", raw: r };
+    if (s.includes("double 6") || s.includes("6/6") || s.includes("paire de six") || s.includes("datinandro") || s.includes("mandeha irery") || s.includes("nandeha irery")) {
+      return { label: "Historique taloha diso", tone: "bg-amber-500/20 text-amber-300 border-amber-500/40", raw: "Règle taloha diso — tsy ekena intsony io karazana fandresena io." };
+    }
+    if (s.includes("tour vita") || s.includes("+")) return { label: "Tour vita", tone: "bg-slate-500/20 text-slate-300 border-slate-500/40", raw: r };
+    if (s.includes("admin")) return { label: "Naverin'ny admin", tone: "bg-slate-500/20 text-slate-300 border-slate-500/40", raw: r };
+    return { label: r, tone: "bg-muted text-foreground", raw: r };
   };
 
   const copyTicket = (t: string) => {
@@ -228,20 +226,20 @@ export default function Profile() {
               const reason = parseReason(g.last_reason);
               const date = g.finished_at ?? g.created_at;
               const target = kind === "domino"
-                ? (g.game_mode === "d80" ? 80 : g.game_mode === "hand" ? (pc === 3 ? 60 : 40) : 120)
+                ? (g.game_mode === "d80" ? 80 : 120)
                 : kind === "petanque" ? 12 : 4;
               const kindLabel = kind === "ludo" ? "LUDO" : kind === "petanque" ? "PÉTANQUE" : (g.game_mode ?? "d120");
               const KindIcon = kind === "ludo" ? Dice5 : kind === "petanque" ? Target : Trophy;
               // Pétanque outcome reason: Fani (6-0) ou Maty 12
-              const petReason = (() => {
+              const petReason: { label: string; tone: string; raw?: string | null } | null = (() => {
                 if (kind !== "petanque" || !g.winner_id) return null;
                 const s1 = Number(g.score_p1 ?? 0);
                 const s2 = Number(g.score_p2 ?? 0);
                 const hi = Math.max(s1, s2);
                 const lo = Math.min(s1, s2);
-                if (lo === 0 && hi >= 6 && hi < 12) return { label: `FANI ${hi}-0`, tone: "bg-purple-500/20 text-purple-300 border-purple-500/40" };
-                if (hi >= 12) return { label: `Maty 12 (${hi}-${lo})`, tone: "bg-amber-500/20 text-amber-300 border-amber-500/40" };
-                return { label: `Vita ${hi}-${lo}`, tone: "bg-green-500/20 text-green-300 border-green-500/40" };
+                if (lo === 0 && hi >= 6 && hi < 12) return { label: `FANI ${hi}-0`, tone: "bg-purple-500/20 text-purple-300 border-purple-500/40", raw: null };
+                if (hi >= 12) return { label: `Maty 12 (${hi}-${lo})`, tone: "bg-amber-500/20 text-amber-300 border-amber-500/40", raw: null };
+                return { label: `Vita ${hi}-${lo}`, tone: "bg-green-500/20 text-green-300 border-green-500/40", raw: null };
               })();
               const showReason = petReason ?? reason;
               return (
@@ -313,8 +311,8 @@ export default function Profile() {
                       {!iWon && !draw && <span className="text-red-400 font-bold"> · -{fmtAr(stake)}</span>}
                     </span>
                   </div>
-                  {g.last_reason && (
-                    <p className="text-[10px] text-muted-foreground/80 mt-1 italic">{g.last_reason}</p>
+                  {showReason.raw && (
+                    <p className="text-[10px] text-muted-foreground/80 mt-1 italic">{showReason.raw}</p>
                   )}
                   <p className="text-[10px] text-muted-foreground/70 mt-1">
                     {date ? new Date(date).toLocaleString("fr-FR") : ""}

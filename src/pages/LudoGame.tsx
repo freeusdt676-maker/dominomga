@@ -41,7 +41,7 @@ type LG = {
 const TURN_LIMIT = 10;
 const MOVE_ANIMATION_MS = 520;
 const BLOCKER_SAFETY_MS = 8000;
-const STEP_ANIMATION_MS = 140; // per-cell hop for pawn walking animation
+const STEP_ANIMATION_MS = 180; // per-cell hop for pawn walking animation (smooth pro feel)
 
 function normalizeGame(raw: any): LG {
   return {

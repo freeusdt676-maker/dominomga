@@ -83,15 +83,15 @@ export function rollBalancedDice(pawns: Pawn[], seat: number): number {
   }
   const trailing = leaderFinished - finishedCount;
 
-  // Baseline: every face slightly favors 6 so 6s appear frequently for ALL.
-  const weights = [1, 1, 1, 1, 1, 1.8];
+  // Baseline: 6s appear VERY often for every player (pro/fun feel).
+  const weights = [1, 1, 1, 1, 1, 2.8];
   if (allInBase) {
-    weights[5] = 3.6; // strong boost — let them join the game
+    weights[5] = 4.5; // strong boost — let them join the game
   } else if (outCount === 0) {
-    weights[5] = 2.6; // all pawns either finished or in base
+    weights[5] = 3.6; // all pawns either finished or in base
   }
-  if (trailing >= 2) weights[5] = Math.max(weights[5], 2.8);
-  else if (trailing === 1) weights[5] = Math.max(weights[5], 2.2);
+  if (trailing >= 2) weights[5] = Math.max(weights[5], 3.8);
+  else if (trailing === 1) weights[5] = Math.max(weights[5], 3.2);
 
   const totalWeight = weights.reduce((sum, value) => sum + value, 0);
   let pick = Math.random() * totalWeight;

@@ -35,7 +35,6 @@ export default function LudoLobby() {
   const load = async () => {
     if (!user) return;
     try { await supabase.rpc("expire_stale_waiting_games" as any); } catch {}
-    const abandonedGameId = sessionStorage.getItem(ABANDONED_GAME_KEY);
     const { data: mine } = await supabase
       .from("ludo_games" as any)
       .select("id, stake, players_count")
@@ -43,7 +42,7 @@ export default function LudoLobby() {
       .eq("status", "in_progress")
       .order("updated_at", { ascending: false })
       .limit(1);
-    const m: any = mine?.find((row: any) => row.id !== abandonedGameId) ?? mine?.[0] ?? null;
+    const m: any = mine?.[0] ?? null;
     setActiveGame(m ? { id: m.id, stake: Number(m.stake ?? 0), players_count: Number(m.players_count ?? 4) } : null);
 
     const { data: gs } = await supabase
@@ -76,6 +75,10 @@ export default function LudoLobby() {
     const debounced = () => { if (t) clearTimeout(t); t = setTimeout(load, 250); };
     const ch = supabase.channel("ludo-lobby-rt")
       .on("postgres_changes", { event: "*", schema: "public", table: "ludo_games", filter: "status=eq.waiting" }, debounced)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "ludo_games", filter: `player1_id=eq.${user.id}` }, debounced)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "ludo_games", filter: `player2_id=eq.${user.id}` }, debounced)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "ludo_games", filter: `player3_id=eq.${user.id}` }, debounced)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "ludo_games", filter: `player4_id=eq.${user.id}` }, debounced)
       .subscribe();
     const itv = setInterval(load, 5000);
     const tick = setInterval(() => setNowTs(Date.now()), 1000);

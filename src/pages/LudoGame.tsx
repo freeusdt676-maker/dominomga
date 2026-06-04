@@ -374,13 +374,13 @@ export default function LudoGame() {
       }
 
       const sixes = dice === 6 ? state.consecutive_sixes : 0;
-      // Bonus turn on a 6 only.
-      const gotBonus = dice === 6 && sixes < 3;
+      // Bonus turn on a 6 (max 3 in a row), OR when a pawn enters home (finishes).
+      const gotBonus = (dice === 6 && sixes < 3) || res.finishedPawn;
       let ns: number;
       let resetSixes = false;
       if (gotBonus) {
         ns = state.current_turn_seat;
-        resetSixes = false;
+        resetSixes = dice !== 6;
       } else {
         const i = seats.indexOf(state.current_turn_seat);
         ns = seats[(i + 1) % seats.length];
@@ -450,8 +450,18 @@ export default function LudoGame() {
   useEffect(() => {
     if (!g || g.status !== "in_progress") return;
     if (!turnStartMs) return;
-    if (remainingSec > 0) return;
     if (!isOperator) return;
+
+    // FAST-SKIP: if the dice has been rolled but the current player has NO
+    // legal moves at all, immediately pass the turn — no need to wait the
+    // full 10s. This keeps the game flowing instead of stalling.
+    const noMoves =
+      g.dice_rolled &&
+      !!g.last_dice &&
+      legalMoves(g.pawns ?? [], g.current_turn_seat, g.last_dice).length === 0;
+
+    if (remainingSec > 0 && !noMoves) return;
+
     const key = `${g.id}-${g.current_turn_seat}-${g.dice_rolled ? "m" : "r"}-${turnStartMs}`;
     if (botActedRef.__ludoBotKey === key) return;
     botActedRef.__ludoBotKey = key;
@@ -480,7 +490,11 @@ export default function LudoGame() {
         ? new Date(state.turn_started_at).getTime()
         : (state.updated_at ? new Date(state.updated_at).getTime() : 0);
       if (!stateTurnStartMs) return;
-      if (Date.now() - stateTurnStartMs < TURN_LIMIT * 1000) {
+      const stateNoMoves =
+        state.dice_rolled &&
+        !!state.last_dice &&
+        legalMoves(state.pawns ?? [], state.current_turn_seat, state.last_dice).length === 0;
+      if (Date.now() - stateTurnStartMs < TURN_LIMIT * 1000 && !stateNoMoves) {
         botActedRef.__ludoBotKey = null;
         return;
       }

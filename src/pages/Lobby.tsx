@@ -40,7 +40,8 @@ export default function Lobby() {
   const load = async () => {
     if (!user) return;
     try { await supabase.rpc("expire_stale_waiting_games" as any); } catch {}
-    const abandonedGameId = sessionStorage.getItem(ABANDONED_GAME_KEY);
+    // Tsy mampiasa filtre "abandoned" intsony — raha mbola mandeha ny lalao
+    // dia tsy maintsy hita ny bokotra "Hanohy" mba hahafahana miverina mahalaky.
     const { data: mine } = await supabase
       .from("games")
       .select("id, updated_at, stake, game_mode, players_count")
@@ -48,7 +49,7 @@ export default function Lobby() {
       .eq("status", "in_progress")
       .order("updated_at", { ascending: false })
       .limit(1);
-    const latestActiveGame = mine?.find((g) => g.id !== abandonedGameId) ?? mine?.[0] ?? null;
+    const latestActiveGame = mine?.[0] ?? null;
     setActiveGame(latestActiveGame ? {
       id: latestActiveGame.id,
       stake: Number(latestActiveGame.stake ?? 0),
@@ -106,6 +107,9 @@ export default function Lobby() {
     // Filter to waiting rooms only — drastically reduces event volume at scale.
     const ch = supabase.channel("lobby-rt")
       .on("postgres_changes", { event: "*", schema: "public", table: "games", filter: "status=eq.waiting" }, debounced)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "games", filter: `player1_id=eq.${user.id}` }, debounced)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "games", filter: `player2_id=eq.${user.id}` }, debounced)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "games", filter: `player3_id=eq.${user.id}` }, debounced)
       .subscribe();
     const itv = setInterval(load, 20000);
     return () => { supabase.removeChannel(ch); clearInterval(itv); if (t) clearTimeout(t); };

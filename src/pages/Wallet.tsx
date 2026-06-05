@@ -44,7 +44,7 @@ export default function Wallet() {
 
   const submitDeposit = async () => {
     const a = Number(amount);
-    if (a < 1000) return toast.error("Min 1000 Ar");
+    if (a < 100) return toast.error("Min 100 Ar");
     if (!ref.trim()) return toast.error("Référence MVOLA ilaina");
     // Block: at most ONE pending deposit/withdrawal per user.
     const { data: pendings } = await supabase

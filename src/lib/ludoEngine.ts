@@ -62,36 +62,45 @@ export function rollDice(): number {
 }
 
 export function rollBalancedDice(pawns: Pawn[], seat: number): number {
-  // PRO fairness policy:
-  // - Base 6-rate is boosted for every player (every seat gets 6 often).
-  // - Players still stuck in base get a strong extra boost so they can come
-  //   out and stay competitive — no game ends with an opponent never having
-  //   moved a pawn.
-  // - Players who are clearly trailing (fewer finished pawns than the
-  //   leader) get a moderate boost so the match stays balanced.
+  // PRO fairness policy (tena mifandanja):
+  // - Baseline: 6 mipoitra matetika ho an'ny tsirairay (fun).
+  // - Raha mbola ato anaty trano daholo ny pion ny pilalao IRAY nefa efa
+  //   nivoaka na efa tafiditra ny an'ny hafa → quasi-tsy maintsy 6 (tsy ho
+  //   tavela mihitsy ilay adverse).
+  // - Trailing-catchup: arakaraka ny halaviran-dàlana ny mpitarika no
+  //   itombon'ny chance hahazo 6.
   const seatPawns = pawns.filter((p) => p.seat === seat);
   const outCount = seatPawns.filter((p) => p.pos > 0 && p.pos < 57).length;
   const finishedCount = seatPawns.filter((p) => p.pos === 57).length;
   const allInBase = seatPawns.length > 0 && seatPawns.every((p) => p.pos <= 0);
 
-  // Compute the current leader's finished-pawn count (across other seats).
+  // Progress totals across opponents (out + finished pawns).
   const otherSeats = Array.from(new Set(pawns.filter((p) => p.seat !== seat).map((p) => p.seat)));
   let leaderFinished = 0;
+  let opponentsProgress = 0; // pawns that have left base (anywhere)
   for (const s of otherSeats) {
     const f = pawns.filter((p) => p.seat === s && p.pos === 57).length;
     if (f > leaderFinished) leaderFinished = f;
+    opponentsProgress += pawns.filter((p) => p.seat === s && p.pos > 0).length;
   }
   const trailing = leaderFinished - finishedCount;
 
-  // Baseline: 6s appear VERY often for every player (pro/fun feel).
+  // Baseline: 6s appear often for every player.
   const weights = [1, 1, 1, 1, 1, 2.8];
+
   if (allInBase) {
-    weights[5] = 4.5; // strong boost — let them join the game
+    // Tena STUCK. Raha efa nivoaka ny adverse → quasi-tsy maintsy 6.
+    if (opponentsProgress >= 4) weights[5] = 24;      // very strong rescue
+    else if (opponentsProgress >= 2) weights[5] = 14; // strong rescue
+    else if (opponentsProgress >= 1) weights[5] = 8;  // moderate
+    else weights[5] = 4.5;                             // game just started
   } else if (outCount === 0) {
-    weights[5] = 3.6; // all pawns either finished or in base
+    weights[5] = 4.5; // finished or in-base only
   }
-  if (trailing >= 2) weights[5] = Math.max(weights[5], 3.8);
-  else if (trailing === 1) weights[5] = Math.max(weights[5], 3.2);
+
+  if (trailing >= 3) weights[5] = Math.max(weights[5], 5.5);
+  else if (trailing >= 2) weights[5] = Math.max(weights[5], 4.2);
+  else if (trailing === 1) weights[5] = Math.max(weights[5], 3.4);
 
   const totalWeight = weights.reduce((sum, value) => sum + value, 0);
   let pick = Math.random() * totalWeight;

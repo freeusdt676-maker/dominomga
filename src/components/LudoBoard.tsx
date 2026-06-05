@@ -218,7 +218,11 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
               className="pawn-group"
               transform={`translate(${x} ${y}) scale(${sc})`}
               onClick={() => movable && onPawnClick?.(p.idx)}
-              style={{ cursor: movable ? "pointer" : "default" }}
+              style={{
+                cursor: movable ? "pointer" : "default",
+                transition: "transform 180ms cubic-bezier(0.22, 1, 0.36, 1)",
+                transformBox: "fill-box",
+              }}
             >
               <defs>
                 {/* Vertical glossy fill — light on left, dark on right */}

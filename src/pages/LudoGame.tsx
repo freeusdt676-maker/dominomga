@@ -452,16 +452,7 @@ export default function LudoGame() {
     if (!g || g.status !== "in_progress") return;
     if (!turnStartMs) return;
     if (!isOperator) return;
-
-    // FAST-SKIP: if the dice has been rolled but the current player has NO
-    // legal moves at all, immediately pass the turn — no need to wait the
-    // full 10s. This keeps the game flowing instead of stalling.
-    const noMoves =
-      g.dice_rolled &&
-      !!g.last_dice &&
-      legalMoves(g.pawns ?? [], g.current_turn_seat, g.last_dice).length === 0;
-
-    if (remainingSec > 0 && !noMoves) return;
+    if (remainingSec > 0) return;
 
     const key = `${g.id}-${g.current_turn_seat}-${g.dice_rolled ? "m" : "r"}-${turnStartMs}`;
     if (botActedRef.__ludoBotKey === key) return;
@@ -472,30 +463,39 @@ export default function LudoGame() {
       if (error) throw error;
     };
 
-    // PRO POLICY: rehefa lany ny 10s, tsy manao roll na move ho an'ilay mpilalao
-    // ny système — fa SKIP fotsiny ny tour ka mandeha aminny manaraka.
-    // Tsy misy automatique mihitsy — tsy kitihina ny pion na ny dice.
+    const pickAutoMove = (state: LG, dice: number) => {
+      const moves = legalMoves(state.pawns ?? [], state.current_turn_seat, dice);
+      if (!moves.length) return null;
+      const ranked = moves
+        .map((pawnIdx) => {
+          const before = (state.pawns ?? []).find((p) => p.seat === state.current_turn_seat && p.idx === pawnIdx);
+          const res = applyMove(state.pawns ?? [], state.current_turn_seat, pawnIdx, dice);
+          const after = res.pawns.find((p) => p.seat === state.current_turn_seat && p.idx === pawnIdx);
+          const score =
+            (res.captured * 1000) +
+            (res.finishedPawn ? 500 : 0) +
+            ((before?.pos ?? 0) <= 0 ? 40 : 0) +
+            (after?.pos ?? 0) +
+            Math.random();
+          return { pawnIdx, res, score };
+        })
+        .sort((a, b) => b.score - a.score);
+      return ranked[0] ?? null;
+    };
+
     (async () => {
       const { data: fresh, error } = await supabase.from("ludo_games" as any).select("*").eq("id", g.id).single();
       if (error || !fresh) throw error ?? new Error("ludo_refresh_failed");
 
-      const state: LG = {
-        ...(fresh as any),
-        pawns: Array.isArray((fresh as any).pawns)
-          ? (fresh as any).pawns.map((p: any) => ({ ...p, pos: Number(p?.pos) < 0 ? 0 : Number(p?.pos) }))
-          : [],
-      };
+      const state: LG = normalizeGame(fresh);
       if (state.status !== "in_progress") return;
       if (state.current_turn_seat !== g.current_turn_seat) return;
+
       const stateTurnStartMs = state.turn_started_at
         ? new Date(state.turn_started_at).getTime()
         : (state.updated_at ? new Date(state.updated_at).getTime() : 0);
       if (!stateTurnStartMs) return;
-      const stateNoMoves =
-        state.dice_rolled &&
-        !!state.last_dice &&
-        legalMoves(state.pawns ?? [], state.current_turn_seat, state.last_dice).length === 0;
-      if (Date.now() - stateTurnStartMs < TURN_LIMIT * 1000 && !stateNoMoves) {
+      if (Date.now() - stateTurnStartMs < TURN_LIMIT * 1000) {
         botActedRef.__ludoBotKey = null;
         return;
       }
@@ -505,18 +505,85 @@ export default function LudoGame() {
         : activeSeats(state.players_count);
       if (!liveSeats.length) throw new Error("no_active_seats");
 
-      // Skip turn: pass to next seat, clear dice. No roll, no move.
-      const i = liveSeats.indexOf(state.current_turn_seat);
-      const ns = liveSeats[(i + 1) % liveSeats.length];
-      const nextTurnAt = new Date().toISOString();
-      await runRpc({
-        _game_id: state.id,
-        _current_turn_seat: ns,
-        _dice_rolled: false,
-        _last_dice: null,
-        _consecutive_sixes: 0,
-        _turn_started_at: nextTurnAt,
-      });
+      const rotateSeat = (seat: number) => {
+        const i = liveSeats.indexOf(seat);
+        return liveSeats[(i + 1) % liveSeats.length];
+      };
+      const seatToUidForState = (seat: number) => {
+        const slot = liveSeats.indexOf(seat);
+        if (slot < 0) return null;
+        const players = [state.player1_id, state.player2_id, state.player3_id, state.player4_id];
+        return players[slot] ?? null;
+      };
+
+      const currentSeat = state.current_turn_seat;
+      const resolveMoveState = async (dice: number, baseState: LG, rolledSixes: number) => {
+        const picked = pickAutoMove(baseState, dice);
+        const nextTurnAt = new Date().toISOString();
+
+        if (!picked) {
+          await runRpc({
+            _game_id: baseState.id,
+            _current_turn_seat: rotateSeat(currentSeat),
+            _dice_rolled: false,
+            _last_dice: null,
+            _consecutive_sixes: 0,
+            _turn_started_at: nextTurnAt,
+          });
+          return;
+        }
+
+        const { res } = picked;
+        if (seatHasFinished(res.pawns, currentSeat)) {
+          await runRpc({
+            _game_id: baseState.id,
+            _pawns: res.pawns,
+            _last_dice: null,
+            _dice_rolled: false,
+          });
+          const winnerUid = seatToUidForState(currentSeat);
+          if (winnerUid) {
+            const { error: settleError } = await supabase.rpc("ludo_settle" as any, { _game_id: baseState.id, _winner: winnerUid });
+            if (settleError) throw settleError;
+          }
+          return;
+        }
+
+        const gotBonus = (dice === 6 && rolledSixes < 3) || res.finishedPawn || res.captured > 0;
+        const ns = gotBonus ? currentSeat : rotateSeat(currentSeat);
+        const resetSixes = gotBonus ? dice !== 6 : true;
+        await runRpc({
+          _game_id: baseState.id,
+          _pawns: res.pawns,
+          _current_turn_seat: ns,
+          _last_dice: null,
+          _dice_rolled: false,
+          _consecutive_sixes: resetSixes ? 0 : rolledSixes,
+          _turn_started_at: nextTurnAt,
+        });
+      };
+
+      if (!state.dice_rolled) {
+        const dice = rollBalancedDice(state.pawns ?? [], currentSeat);
+        const rolledSixes = dice === 6 ? state.consecutive_sixes + 1 : 0;
+
+        if (dice === 6 && state.consecutive_sixes >= 2) {
+          await runRpc({
+            _game_id: state.id,
+            _last_dice: dice,
+            _dice_rolled: false,
+            _current_turn_seat: rotateSeat(currentSeat),
+            _consecutive_sixes: 0,
+            _turn_started_at: new Date().toISOString(),
+          });
+          return;
+        }
+
+        await resolveMoveState(dice, { ...state, last_dice: dice, dice_rolled: true }, rolledSixes);
+        return;
+      }
+
+      await resolveMoveState(state.last_dice ?? 1, state, state.last_dice === 6 ? state.consecutive_sixes : 0);
     })().catch(() => {
       botActedRef.__ludoBotKey = null;
       load(true).catch(() => undefined);

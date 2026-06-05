@@ -374,8 +374,9 @@ export default function LudoGame() {
       }
 
       const sixes = dice === 6 ? state.consecutive_sixes : 0;
-      // Bonus turn on a 6 (max 3 in a row), OR when a pawn enters home (finishes).
-      const gotBonus = (dice === 6 && sixes < 3) || res.finishedPawn;
+      // Bonus turn on a 6 (max 3 in a row), OR when a pawn enters home (finishes),
+      // OR when an opponent's pawn was captured.
+      const gotBonus = (dice === 6 && sixes < 3) || res.finishedPawn || res.captured > 0;
       let ns: number;
       let resetSixes = false;
       if (gotBonus) {

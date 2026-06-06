@@ -1109,6 +1109,8 @@ export type Database = {
         Args: { _game_id: string; _winner: string }
         Returns: Json
       }
+      spectator_get: { Args: { _game: string; _id: string }; Returns: Json }
+      spectator_list: { Args: { _game: string }; Returns: Json }
       start_game_deduct: { Args: { _game_id: string }; Returns: Json }
       submit_profile_change_request: {
         Args: {

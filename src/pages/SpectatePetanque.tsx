@@ -72,7 +72,7 @@ export default function SpectatePetanque() {
     if (!id) return;
     let alive = true;
     const load = async () => {
-      const { data } = await supabase.rpc("spectator_get", { _game: "petanque", _id: id });
+      const { data } = await (supabase.rpc as any)("spectator_get", { _game: "petanque", _id: id });
       if (!alive) return;
       if (!data) { setMissing(true); setS(null); return; }
       setMissing(false);

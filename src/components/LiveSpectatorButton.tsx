@@ -23,7 +23,7 @@ export default function LiveSpectatorButton({ position = "home" }: Props) {
         const games = ["domino", "ludo", "petanque"] as const;
         let total = 0;
         for (const g of games) {
-          const { data } = await supabase.rpc("spectator_list", { _game: g });
+          const { data } = await (supabase.rpc as any)("spectator_list", { _game: g });
           total += Array.isArray(data) ? data.length : 0;
         }
         if (alive) setCount(total);

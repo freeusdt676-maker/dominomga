@@ -47,7 +47,7 @@ function GamesList({
   useEffect(() => {
     let alive = true;
     const load = async () => {
-      const { data } = await supabase.rpc("spectator_list", { _game: type });
+      const { data } = await (supabase.rpc as any)("spectator_list", { _game: type });
       if (alive) setRows(Array.isArray(data) ? (data as Row[]) : []);
     };
     load();

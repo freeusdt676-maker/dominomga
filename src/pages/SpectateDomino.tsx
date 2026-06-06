@@ -57,7 +57,7 @@ export default function SpectateDomino() {
     if (!id) return;
     let alive = true;
     const load = async () => {
-      const { data } = await supabase.rpc("spectator_get", { _game: "domino", _id: id });
+      const { data } = await (supabase.rpc as any)("spectator_get", { _game: "domino", _id: id });
       if (!alive) return;
       if (!data) { setMissing(true); setS(null); return; }
       setMissing(false);

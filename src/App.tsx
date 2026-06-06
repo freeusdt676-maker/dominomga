@@ -19,6 +19,9 @@ import PetanqueGame from "./pages/PetanqueGame";
 import Discussions from "./pages/Discussions";
 import Profile from "./pages/Profile";
 import ProfileEdit from "./pages/ProfileEdit";
+import SpectateDomino from "./pages/SpectateDomino";
+import SpectateLudo from "./pages/SpectateLudo";
+import SpectatePetanque from "./pages/SpectatePetanque";
 import { AuthProvider } from "./contexts/AuthContext";
 import BlockedOverlay from "./components/BlockedOverlay";
 
@@ -48,6 +51,9 @@ const App = () => (
             <Route path="/discussions" element={<Discussions />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/profile/edit" element={<ProfileEdit />} />
+            <Route path="/spectate/domino/:id" element={<SpectateDomino />} />
+            <Route path="/spectate/ludo/:id" element={<SpectateLudo />} />
+            <Route path="/spectate/petanque/:id" element={<SpectatePetanque />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

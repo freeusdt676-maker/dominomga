@@ -24,6 +24,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import LiveSpectatorButton from "@/components/LiveSpectatorButton";
 
 const ABANDONED_GAME_KEY = "domino_abandoned_game_id";
 
@@ -491,6 +492,8 @@ export default function Home() {
           <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] rounded-full w-5 h-5 flex items-center justify-center font-bold">{tapCount}</span>
         )}
       </button>
+
+      <LiveSpectatorButton position="home" />
 
       <Dialog open={showCode} onOpenChange={setShowCode}>
         <DialogContent>

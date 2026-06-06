@@ -16,6 +16,7 @@ import { Camera, Shield, X } from "lucide-react";
 import { ADMIN_CODE, ADMIN_CODE_ALT } from "@/lib/constants";
 import { Link } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
+import LiveSpectatorButton from "@/components/LiveSpectatorButton";
 
 export default function Auth() {
   const nav = useNavigate();
@@ -337,6 +338,8 @@ export default function Auth() {
         <Shield className="w-4 h-4" />
         ADMINISTRATIF
       </button>
+
+      <LiveSpectatorButton position="auth" />
 
       {adminOpen && (
         <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4" onClick={() => setAdminOpen(false)}>

@@ -158,7 +158,22 @@ export default function LudoVoiceChat({ gameId }: { gameId: string }) {
       toast.success("Voice chat misokatra 🎙️");
     } catch (e: any) {
       console.error("[agora] turnOn failed", e);
-      toast.error("Tsy afaka misokatra: " + (e?.message ?? e));
+      const msg = String(e?.message ?? e ?? "");
+      const code = String(e?.code ?? "");
+      if (
+        e?.name === "NotAllowedError" ||
+        code === "PERMISSION_DENIED" ||
+        /permission|denied|notallowed/i.test(msg)
+      ) {
+        toast.error(
+          "Tsy nahazo alalana hampiasa micro 🎙️ — sokafy ny fahazoan-dalana Microphone amin'ny Paramètres na navigateur, dia averina kitihina ny APEL.",
+          { duration: 9000 },
+        );
+      } else if (e?.name === "NotFoundError" || /not.*found|nomedia/i.test(msg)) {
+        toast.error("Tsy misy micro hita amin'io finday io.");
+      } else {
+        toast.error("Tsy afaka misokatra ny APEL: " + msg);
+      }
       await cleanup();
     } finally {
       setBusy(false);

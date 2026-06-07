@@ -80,6 +80,7 @@ export default function Game() {
   const [profileNames, setProfileNames] = useState<Record<string, string>>({});
   const [profilePhotos, setProfilePhotos] = useState<Record<string, string | null>>({});
   const [selected, setSelected] = useState<number | null>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [ticketBanner, setTicketBanner] = useState<string | null>(null);
   const [roundBanner, setRoundBanner] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
@@ -91,6 +92,12 @@ export default function Game() {
   const roundEndLockRef = useRef<string | null>(null);
   const revealCommitRef = useRef<string | null>(null);
   const isMobile = useIsMobile();
+  const longPressRef = useRef<number | null>(null);
+  const longPressTriggeredRef = useRef(false);
+  const suppressClickRef = useRef(false);
+  const pressStartXRef = useRef(0);
+  const pressStartYRef = useRef(0);
+  const pointerTileIndexRef = useRef<number | null>(null);
 
   const getAbandonedGameId = () => sessionStorage.getItem(ABANDONED_GAME_KEY);
 
@@ -618,6 +625,73 @@ export default function Game() {
     }
     setSelected(null);
     void tryPlay(idx, possible === "left" || possible === "right" ? possible : undefined);
+  };
+
+  const clearLongPress = () => {
+    if (longPressRef.current !== null) {
+      window.clearTimeout(longPressRef.current);
+      longPressRef.current = null;
+    }
+  };
+
+  const reorderHand = async (fromIdx: number, toIdx: number) => {
+    if (!game || fromIdx === toIdx) return;
+    const nextHand = [...myHand];
+    const [moved] = nextHand.splice(fromIdx, 1);
+    nextHand.splice(toIdx, 0, moved);
+    setOptimistic({
+      ...game,
+      [myHandKey]: nextHand,
+      updated_at: new Date().toISOString(),
+    });
+    await updateGameState({ [myHandKey]: nextHand } as any);
+  };
+
+  const handleHandPointerDown = (idx: number, e: React.PointerEvent<HTMLButtonElement>) => {
+    pointerTileIndexRef.current = idx;
+    longPressTriggeredRef.current = false;
+    pressStartXRef.current = e.clientX;
+    pressStartYRef.current = e.clientY;
+    clearLongPress();
+    longPressRef.current = window.setTimeout(() => {
+      longPressTriggeredRef.current = true;
+      setSelected(null);
+      setDragIndex(idx);
+    }, 320);
+  };
+
+  const handleHandPointerMove = (_idx: number, e: React.PointerEvent<HTMLButtonElement>) => {
+    const dx = Math.abs(e.clientX - pressStartXRef.current);
+    const dy = Math.abs(e.clientY - pressStartYRef.current);
+    if (!longPressTriggeredRef.current && (dx > 8 || dy > 8)) {
+      clearLongPress();
+    }
+  };
+
+  const handleHandPointerEnter = (idx: number) => {
+    if (longPressTriggeredRef.current) {
+      setDragIndex(idx);
+    }
+  };
+
+  const handleHandPointerUp = async (idx: number) => {
+    clearLongPress();
+    const startIdx = pointerTileIndexRef.current;
+    pointerTileIndexRef.current = null;
+    if (longPressTriggeredRef.current && startIdx !== null) {
+      const dropIdx = dragIndex ?? idx;
+      suppressClickRef.current = true;
+      longPressTriggeredRef.current = false;
+      setDragIndex(null);
+      if (startIdx !== dropIdx) await reorderHand(startIdx, dropIdx);
+      return;
+    }
+    longPressTriggeredRef.current = false;
+    setDragIndex(null);
+  };
+
+  const handleHandPointerLeave = () => {
+    clearLongPress();
   };
 
   const passTurn = async () => {
@@ -1175,9 +1249,22 @@ export default function Game() {
                     b={t[1]}
                     size={handTileSize}
                     fluid
-                    onClick={() => isMyTurn && placeable && handleTileTap(i)}
-                    selected={selected === i}
+                    onPointerDown={(e) => handleHandPointerDown(i, e)}
+                    onPointerMove={(e) => handleHandPointerMove(i, e)}
+                    onPointerEnter={() => handleHandPointerEnter(i)}
+                    onPointerUp={() => void handleHandPointerUp(i)}
+                    onPointerLeave={handleHandPointerLeave}
+                    onContextMenu={(e) => e.preventDefault()}
+                    onClick={() => {
+                      if (suppressClickRef.current) {
+                        suppressClickRef.current = false;
+                        return;
+                      }
+                      if (isMyTurn && placeable) handleTileTap(i);
+                    }}
+                    selected={selected === i || dragIndex === i}
                     disabled={!isMyTurn || !placeable}
+                    allowPointerWhenDisabled
                   />
                 );
               })}

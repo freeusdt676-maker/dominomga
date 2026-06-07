@@ -45,8 +45,15 @@ export function DominoTile({
   size = "md",
   horizontal = false,
   onClick,
+  onPointerDown,
+  onPointerEnter,
+  onPointerMove,
+  onPointerUp,
+  onPointerLeave,
+  onContextMenu,
   selected = false,
   disabled = false,
+  allowPointerWhenDisabled = false,
   fluid = false,
   variant = "ivory",
 }: {
@@ -55,14 +62,23 @@ export function DominoTile({
   size?: keyof typeof SIZES;
   horizontal?: boolean;
   onClick?: () => void;
+  onPointerDown?: React.PointerEventHandler<HTMLButtonElement>;
+  onPointerEnter?: React.PointerEventHandler<HTMLButtonElement>;
+  onPointerMove?: React.PointerEventHandler<HTMLButtonElement>;
+  onPointerUp?: React.PointerEventHandler<HTMLButtonElement>;
+  onPointerLeave?: React.PointerEventHandler<HTMLButtonElement>;
+  onContextMenu?: React.MouseEventHandler<HTMLButtonElement>;
   selected?: boolean;
   disabled?: boolean;
+  allowPointerWhenDisabled?: boolean;
   fluid?: boolean;
   variant?: "ivory" | "white";
 }) {
   const { w, h } = SIZES[size];
   const tileW = horizontal ? h : w;
   const tileH = horizontal ? w : h;
+  const visuallyDisabled = disabled || !onClick;
+  const domDisabled = visuallyDisabled && !allowPointerWhenDisabled;
   // SVG viewBox dimensions (use tileW × tileH)
   const half = horizontal ? { w: tileW / 2, h: tileH } : { w: tileW, h: tileH / 2 };
   const uid = `g${a}${b}${size}${horizontal ? "h" : "v"}`;
@@ -70,10 +86,17 @@ export function DominoTile({
     <button
       type="button"
       onClick={onClick}
-      disabled={disabled || !onClick}
+      onPointerDown={onPointerDown}
+      onPointerEnter={onPointerEnter}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerLeave={onPointerLeave}
+      onContextMenu={onContextMenu}
+      disabled={domDisabled}
+      aria-disabled={visuallyDisabled}
       className={`relative ${fluid ? "w-full" : "shrink-0"} transition ${
         onClick && !disabled ? "cursor-pointer hover:-translate-y-1 active:scale-95" : "cursor-default"
-      } ${selected ? "ring-2 ring-primary -translate-y-2" : ""} ${disabled && onClick ? "opacity-50" : ""}`}
+      } ${selected ? "ring-2 ring-primary -translate-y-2" : ""} ${visuallyDisabled ? "opacity-50" : ""}`}
       style={{
         width: fluid ? "100%" : tileW,
         height: fluid ? "auto" : tileH,

@@ -94,6 +94,7 @@ export default function Game() {
   const isMobile = useIsMobile();
   const longPressRef = useRef<number | null>(null);
   const longPressTriggeredRef = useRef(false);
+  const suppressClickRef = useRef(false);
   const pressStartXRef = useRef(0);
   const pressStartYRef = useRef(0);
   const pointerTileIndexRef = useRef<number | null>(null);
@@ -676,6 +677,7 @@ export default function Game() {
     pointerTileIndexRef.current = null;
     if (longPressTriggeredRef.current && startIdx !== null) {
       const dropIdx = dragIndex ?? idx;
+      suppressClickRef.current = true;
       longPressTriggeredRef.current = false;
       setDragIndex(null);
       if (startIdx !== dropIdx) await reorderHand(startIdx, dropIdx);
@@ -1249,7 +1251,13 @@ export default function Game() {
                     onPointerUp={() => void handleHandPointerUp(i)}
                     onPointerLeave={handleHandPointerLeave}
                     onContextMenu={(e) => e.preventDefault()}
-                    onClick={() => isMyTurn && placeable && handleTileTap(i)}
+                    onClick={() => {
+                      if (suppressClickRef.current) {
+                        suppressClickRef.current = false;
+                        return;
+                      }
+                      if (isMyTurn && placeable) handleTileTap(i);
+                    }}
                     selected={selected === i || dragIndex === i}
                     disabled={!isMyTurn || !placeable}
                     allowPointerWhenDisabled

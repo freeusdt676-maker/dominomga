@@ -660,13 +660,16 @@ export default function Game() {
     }, 320);
   };
 
-  const handleHandPointerMove = (idx: number, e: React.PointerEvent<HTMLButtonElement>) => {
+  const handleHandPointerMove = (_idx: number, e: React.PointerEvent<HTMLButtonElement>) => {
     const dx = Math.abs(e.clientX - pressStartXRef.current);
     const dy = Math.abs(e.clientY - pressStartYRef.current);
     if (!longPressTriggeredRef.current && (dx > 8 || dy > 8)) {
       clearLongPress();
     }
-    if (dragIndex !== null && dragIndex !== idx) {
+  };
+
+  const handleHandPointerEnter = (idx: number) => {
+    if (longPressTriggeredRef.current) {
       setDragIndex(idx);
     }
   };
@@ -1248,6 +1251,7 @@ export default function Game() {
                     fluid
                     onPointerDown={(e) => handleHandPointerDown(i, e)}
                     onPointerMove={(e) => handleHandPointerMove(i, e)}
+                    onPointerEnter={() => handleHandPointerEnter(i)}
                     onPointerUp={() => void handleHandPointerUp(i)}
                     onPointerLeave={handleHandPointerLeave}
                     onContextMenu={(e) => e.preventDefault()}

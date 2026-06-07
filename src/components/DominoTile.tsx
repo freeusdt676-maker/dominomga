@@ -46,6 +46,7 @@ export function DominoTile({
   horizontal = false,
   onClick,
   onPointerDown,
+  onPointerEnter,
   onPointerMove,
   onPointerUp,
   onPointerLeave,
@@ -62,6 +63,7 @@ export function DominoTile({
   horizontal?: boolean;
   onClick?: () => void;
   onPointerDown?: React.PointerEventHandler<HTMLButtonElement>;
+  onPointerEnter?: React.PointerEventHandler<HTMLButtonElement>;
   onPointerMove?: React.PointerEventHandler<HTMLButtonElement>;
   onPointerUp?: React.PointerEventHandler<HTMLButtonElement>;
   onPointerLeave?: React.PointerEventHandler<HTMLButtonElement>;
@@ -85,6 +87,7 @@ export function DominoTile({
       type="button"
       onClick={onClick}
       onPointerDown={onPointerDown}
+      onPointerEnter={onPointerEnter}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerLeave={onPointerLeave}

@@ -77,8 +77,11 @@ export function DominoTile({
   const { w, h } = SIZES[size];
   const tileW = horizontal ? h : w;
   const tileH = horizontal ? w : h;
-  const visuallyDisabled = disabled || !onClick;
-  const domDisabled = visuallyDisabled && !allowPointerWhenDisabled;
+  // Visual dimming is ONLY tied to an explicit `disabled` prop. A tile without
+  // an onClick handler (e.g. board tiles, hidden hand backs) must stay fully
+  // opaque & bright like a real ivory domino.
+  const visuallyDisabled = !!disabled;
+  const domDisabled = (visuallyDisabled || !onClick) && !allowPointerWhenDisabled;
   // SVG viewBox dimensions (use tileW × tileH)
   const half = horizontal ? { w: tileW / 2, h: tileH } : { w: tileW, h: tileH / 2 };
   const uid = `g${a}${b}${size}${horizontal ? "h" : "v"}`;

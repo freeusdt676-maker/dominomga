@@ -85,22 +85,22 @@ export function rollBalancedDice(pawns: Pawn[], seat: number): number {
   }
   const trailing = leaderFinished - finishedCount;
 
-  // Baseline: 6s appear often for every player.
-  const weights = [1, 1, 1, 1, 1, 2.8];
+  // Baseline: 6 mety mipoitra fa tsy maharitra (atonony — tsy be loatra).
+  const weights = [1, 1, 1, 1, 1, 1.35];
 
   if (allInBase) {
-    // Tena STUCK. Raha efa nivoaka ny adverse → quasi-tsy maintsy 6.
-    if (opponentsProgress >= 4) weights[5] = 24;      // very strong rescue
-    else if (opponentsProgress >= 2) weights[5] = 14; // strong rescue
-    else if (opponentsProgress >= 1) weights[5] = 8;  // moderate
-    else weights[5] = 4.5;                             // game just started
+    // Tena STUCK. Atonony ihany ny rescue — tsy be loatra ny 6.
+    if (opponentsProgress >= 4) weights[5] = 6;
+    else if (opponentsProgress >= 2) weights[5] = 4;
+    else if (opponentsProgress >= 1) weights[5] = 3;
+    else weights[5] = 2;
   } else if (outCount === 0) {
-    weights[5] = 4.5; // finished or in-base only
+    weights[5] = 2;
   }
 
-  if (trailing >= 3) weights[5] = Math.max(weights[5], 5.5);
-  else if (trailing >= 2) weights[5] = Math.max(weights[5], 4.2);
-  else if (trailing === 1) weights[5] = Math.max(weights[5], 3.4);
+  if (trailing >= 3) weights[5] = Math.max(weights[5], 2.6);
+  else if (trailing >= 2) weights[5] = Math.max(weights[5], 2.0);
+  else if (trailing === 1) weights[5] = Math.max(weights[5], 1.7);
 
   const totalWeight = weights.reduce((sum, value) => sum + value, 0);
   let pick = Math.random() * totalWeight;

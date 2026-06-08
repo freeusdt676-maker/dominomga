@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Radio, Hash, Loader2 } from "lucide-react";
 import LudoBoard from "@/components/LudoBoard";
 import { SEAT_COLOR, activeSeats, type Pawn } from "@/lib/ludoEngine";
+import SpectatorWinner from "@/components/SpectatorWinner";
 
 type Snap = {
   id: string;
@@ -25,6 +26,7 @@ export default function SpectateLudo() {
   const { id } = useParams<{ id: string }>();
   const [s, setS] = useState<Snap | null>(null);
   const [missing, setMissing] = useState(false);
+  const [lastSnap, setLastSnap] = useState<Snap | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -35,28 +37,38 @@ export default function SpectateLudo() {
       if (!data) { setMissing(true); setS(null); return; }
       setMissing(false);
       setS(data as Snap);
+      setLastSnap(data as Snap);
     };
     load();
     const t = window.setInterval(load, 1500);
     return () => { alive = false; window.clearInterval(t); };
   }, [id]);
 
+  if (missing && lastSnap) {
+    const ranking = activeSeats(lastSnap.players_count).map((seat) => {
+      const name = (lastSnap as any)[`p${seat}_name`] as string | null;
+      const finished = (lastSnap.pawns ?? []).filter((p) => p.seat === seat && p.pos === 57).length;
+      return { name: name ?? `Seat ${seat}`, score: finished, color: SEAT_COLOR[seat] };
+    });
+    return <SpectatorWinner ranking={ranking} />;
+  }
+
   return (
     <div className="min-h-screen felt-bg flex flex-col">
       <header className="flex items-center justify-between p-3 border-b border-primary/20">
         <Link to="/" className="flex items-center gap-2 text-sm text-foreground">
-          <ArrowLeft className="w-4 h-4" /> Hiverina
+          <ArrowLeft className="w-5 h-5" /> <span className="text-base font-bold">Hiverina</span>
         </Link>
-        <div className="flex items-center gap-2 text-xs">
-          <Radio className="w-4 h-4 text-red-500 animate-pulse" />
-          <span className="font-bold text-red-500">LIVE</span>
+        <div className="flex items-center gap-2 text-base">
+          <Radio className="w-5 h-5 text-red-500 animate-pulse" />
+          <span className="font-extrabold text-red-500 text-lg tracking-widest">LIVE</span>
           <span className="text-muted-foreground">·</span>
-          <Hash className="w-3 h-3 text-primary" />
-          <span className="font-mono font-bold">
+          <Hash className="w-4 h-4 text-primary" />
+          <span className="font-mono font-extrabold text-base">
             {s?.ticket ?? id?.replace(/-/g, "").slice(-6).toUpperCase()}
           </span>
         </div>
-        <div className="w-16 text-right text-[10px] text-muted-foreground italic">Spectateur</div>
+        <div className="w-20 text-right text-xs font-bold text-muted-foreground italic">Spectateur</div>
       </header>
 
       {missing && (
@@ -80,10 +92,10 @@ export default function SpectateLudo() {
                   key={seat}
                   className={`p-2 rounded-xl border-2 ${active ? "border-primary shadow-[0_0_14px_rgba(212,175,55,0.5)]" : "border-primary/20"} bg-card/40 flex items-center gap-2`}
                 >
-                  <span className="inline-block w-3 h-3 rounded-full" style={{ background: SEAT_COLOR[seat] }} />
-                  <span className="text-xs font-bold truncate flex-1">{name ?? `Seat ${seat}`}</span>
+                  <span className="inline-block w-4 h-4 rounded-full" style={{ background: SEAT_COLOR[seat] }} />
+                  <span className="text-sm font-extrabold truncate flex-1">{name ?? `Seat ${seat}`}</span>
                   {active && s.last_dice && (
-                    <span className="text-xs font-mono font-bold text-primary">🎲 {s.last_dice}</span>
+                    <span className="text-base font-mono font-extrabold text-primary">🎲 {s.last_dice}</span>
                   )}
                 </div>
               );

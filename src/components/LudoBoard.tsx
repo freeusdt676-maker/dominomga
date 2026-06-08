@@ -179,6 +179,8 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
         const offsets: Record<number, [number, number]> = {};
         const scales: Record<number, number> = {};
         groups.forEach((idxs) => {
+          // Stable order across renders → no jiggle when polling updates.
+          idxs.sort((a, b) => (pawns[a].seat - pawns[b].seat) || (pawns[a].idx - pawns[b].idx));
           const n = idxs.length;
           if (n === 1) {
             offsets[idxs[0]] = [0, 0];

@@ -52,7 +52,7 @@ function resolveWinnerId(game: Pick<GameRow, "player1_id" | "player2_id">, score
 
 /* ---------- 3D Scene Components ---------- */
 
-function Baobab({ position }: { position: [number, number, number] }) {
+export function Baobab({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
       {/* trunk - thick swollen baobab */}
@@ -84,7 +84,7 @@ function Baobab({ position }: { position: [number, number, number] }) {
   );
 }
 
-function MadagascarFlag() {
+export function MadagascarFlag() {
   const ref = useRef<THREE.Mesh>(null);
   const tex = useMemo(() => {
     const c = document.createElement("canvas");
@@ -127,7 +127,7 @@ function MadagascarFlag() {
   );
 }
 
-function Aloalo({ position }: { position: [number, number, number] }) {
+export function Aloalo({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
       <mesh position={[0, 1, 0]} castShadow>
@@ -146,7 +146,7 @@ function Aloalo({ position }: { position: [number, number, number] }) {
   );
 }
 
-function Court() {
+export function Court() {
   // Tany mena (terre rouge / latérite malgache) — 100% thème malgache
   const sandTex = useMemo(() => {
     const c = document.createElement("canvas");
@@ -286,7 +286,7 @@ function Court() {
   );
 }
 
-function Crowd() {
+export function Crowd() {
   const data = useMemo(() => {
     const arr: { x: number; z: number; color: string; phase: number }[] = [];
     const palette = ["#c44569", "#f7b733", "#4a90e2", "#7ed321", "#9b59b6", "#e67e22"];
@@ -335,7 +335,7 @@ function Crowd() {
   );
 }
 
-function Zebu({ position }: { position: [number, number, number] }) {
+export function Zebu({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
       <mesh position={[0, 0.45, 0]} castShadow>
@@ -357,7 +357,7 @@ function Zebu({ position }: { position: [number, number, number] }) {
   );
 }
 
-function BallMesh({ ball, isJack }: { ball: Ball | Jack; isJack?: boolean }) {
+export function BallMesh({ ball, isJack }: { ball: Ball | Jack; isJack?: boolean }) {
   const color = isJack ? "#0a0a0a" : (ball as Ball).owner === "p1" ? "#dc2626" : "#2563eb";
   const r = isJack ? COURT.jackR : COURT.ballR;
   const sphereRef = useRef<any>(null);
@@ -409,7 +409,7 @@ function BallMesh({ ball, isJack }: { ball: Ball | Jack; isJack?: boolean }) {
   );
 }
 
-function CameraRig() {
+export function CameraRig() {
   const { camera } = useThree();
   useEffect(() => {
     camera.position.set(0, 5.5, -3.5);

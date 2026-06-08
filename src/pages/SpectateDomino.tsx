@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Radio, Hash, Loader2 } from "lucide-react";
 import { SnakeBoard } from "@/components/SnakeBoard";
 import { DominoBack } from "@/components/DominoTile";
+import SpectatorWinner from "@/components/SpectatorWinner";
 import type { Placed } from "@/lib/dominoEngine";
 
 type Snap = {
@@ -52,6 +53,7 @@ export default function SpectateDomino() {
   const { id } = useParams<{ id: string }>();
   const [s, setS] = useState<Snap | null>(null);
   const [missing, setMissing] = useState(false);
+  const [lastSnap, setLastSnap] = useState<Snap | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -62,28 +64,41 @@ export default function SpectateDomino() {
       if (!data) { setMissing(true); setS(null); return; }
       setMissing(false);
       setS(data as Snap);
+      setLastSnap(data as Snap);
     };
     load();
     const t = window.setInterval(load, 1500);
     return () => { alive = false; window.clearInterval(t); };
   }, [id]);
 
+  // Lalao tapitra → endriky ny mpandresy
+  if (missing && lastSnap) {
+    const ranking = [
+      { name: lastSnap.p1_name ?? "P1", score: Number(lastSnap.score_p1 ?? 0) },
+      { name: lastSnap.p2_name ?? "P2", score: Number(lastSnap.score_p2 ?? 0) },
+      ...(lastSnap.players_count === 3
+        ? [{ name: lastSnap.p3_name ?? "P3", score: Number(lastSnap.score_p3 ?? 0) }]
+        : []),
+    ];
+    return <SpectatorWinner ranking={ranking} />;
+  }
+
   return (
     <div className="min-h-screen felt-bg flex flex-col">
       <header className="flex items-center justify-between p-3 border-b border-primary/20">
         <Link to="/" className="flex items-center gap-2 text-sm text-foreground">
-          <ArrowLeft className="w-4 h-4" /> Hiverina
+          <ArrowLeft className="w-5 h-5" /> <span className="text-base font-bold">Hiverina</span>
         </Link>
-        <div className="flex items-center gap-2 text-xs">
-          <Radio className="w-4 h-4 text-red-500 animate-pulse" />
-          <span className="font-bold text-red-500">LIVE</span>
+        <div className="flex items-center gap-2 text-base">
+          <Radio className="w-5 h-5 text-red-500 animate-pulse" />
+          <span className="font-extrabold text-red-500 text-lg tracking-widest">LIVE</span>
           <span className="text-muted-foreground">·</span>
-          <Hash className="w-3 h-3 text-primary" />
-          <span className="font-mono font-bold">
+          <Hash className="w-4 h-4 text-primary" />
+          <span className="font-mono font-extrabold text-base">
             {s?.ticket ?? id?.replace(/-/g, "").slice(-6).toUpperCase()}
           </span>
         </div>
-        <div className="w-16 text-right text-[10px] text-muted-foreground italic">Spectateur</div>
+        <div className="w-20 text-right text-xs font-bold text-muted-foreground italic">Spectateur</div>
       </header>
 
       {missing && (
@@ -114,8 +129,8 @@ export default function SpectateDomino() {
                   className={`p-2 rounded-xl border-2 ${active ? "border-primary" : "border-primary/20"} bg-card/40`}
                 >
                   <div className="flex justify-between items-center">
-                    <span className="text-[11px] font-bold truncate">{p.name ?? "—"}</span>
-                    <span className="font-display text-lg gold-text">{Number(p.score ?? 0)}</span>
+                    <span className="text-sm font-extrabold truncate">{p.name ?? "—"}</span>
+                    <span className="font-display text-2xl gold-text">{Number(p.score ?? 0)}</span>
                   </div>
                 </div>
               );

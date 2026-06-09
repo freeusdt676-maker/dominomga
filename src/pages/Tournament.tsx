@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { toast } from "sonner";
-import { ArrowLeft, Trophy, Users, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { ArrowLeft, Trophy, CheckCircle2 } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 import logoTournoi from "@/assets/logo-tournoi.png";
 

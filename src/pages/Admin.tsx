@@ -12,6 +12,7 @@ import { fmtAr } from "@/lib/constants";
 import { toast } from "sonner";
 import { DominoTile } from "@/components/DominoTile";
 import PendingProfileApprovals from "@/components/PendingProfileApprovals";
+import TournamentAdmin from "@/components/TournamentAdmin";
 export default function Admin() {
   const { user, isAdmin } = useAuth();
   const nav = useNavigate();
@@ -550,7 +551,7 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="users">
-          <TabsList className="grid grid-cols-7 w-full text-[10px]">
+          <TabsList className="grid grid-cols-8 w-full text-[10px]">
             <TabsTrigger value="users" className="relative">
               Mpilalao
               {pendingUsersCount > 0 && (
@@ -575,6 +576,7 @@ export default function Admin() {
             <TabsTrigger value="broadcast">Annonce</TabsTrigger>
             <TabsTrigger value="history">Historique</TabsTrigger>
             <TabsTrigger value="commissions">Commission</TabsTrigger>
+            <TabsTrigger value="tournoi">🏆 Tournoi</TabsTrigger>
           </TabsList>
 
           {/* MPILALAO */}

@@ -277,6 +277,7 @@ export type Database = {
           finished_at: string | null
           game_mode: string
           id: string
+          is_tournament: boolean
           last_reason: string | null
           passes: number
           player1_hand: Json | null
@@ -294,6 +295,7 @@ export type Database = {
           stake: number
           status: Database["public"]["Enums"]["game_status"]
           ticket_number: string | null
+          tournament_match_id: string | null
           turn_started_at: string | null
           updated_at: string
           winner_id: string | null
@@ -310,6 +312,7 @@ export type Database = {
           finished_at?: string | null
           game_mode?: string
           id?: string
+          is_tournament?: boolean
           last_reason?: string | null
           passes?: number
           player1_hand?: Json | null
@@ -327,6 +330,7 @@ export type Database = {
           stake: number
           status?: Database["public"]["Enums"]["game_status"]
           ticket_number?: string | null
+          tournament_match_id?: string | null
           turn_started_at?: string | null
           updated_at?: string
           winner_id?: string | null
@@ -343,6 +347,7 @@ export type Database = {
           finished_at?: string | null
           game_mode?: string
           id?: string
+          is_tournament?: boolean
           last_reason?: string | null
           passes?: number
           player1_hand?: Json | null
@@ -360,11 +365,20 @@ export type Database = {
           stake?: number
           status?: Database["public"]["Enums"]["game_status"]
           ticket_number?: string | null
+          tournament_match_id?: string | null
           turn_started_at?: string | null
           updated_at?: string
           winner_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "games_tournament_match_id_fkey"
+            columns: ["tournament_match_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_matches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lobby_messages: {
         Row: {
@@ -774,6 +788,166 @@ export type Database = {
         }
         Relationships: []
       }
+      tournament_matches: {
+        Row: {
+          created_at: string
+          finished_at: string | null
+          game_id: string | null
+          id: string
+          match_index: number
+          player1_id: string | null
+          player2_id: string | null
+          round: Database["public"]["Enums"]["tournament_round"]
+          scheduled_at: string
+          started_at: string | null
+          tournament_id: string
+          winner_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          finished_at?: string | null
+          game_id?: string | null
+          id?: string
+          match_index: number
+          player1_id?: string | null
+          player2_id?: string | null
+          round: Database["public"]["Enums"]["tournament_round"]
+          scheduled_at: string
+          started_at?: string | null
+          tournament_id: string
+          winner_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          finished_at?: string | null
+          game_id?: string | null
+          id?: string
+          match_index?: number
+          player1_id?: string | null
+          player2_id?: string | null
+          round?: Database["public"]["Enums"]["tournament_round"]
+          scheduled_at?: string
+          started_at?: string | null
+          tournament_id?: string
+          winner_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_matches_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournament_registrations: {
+        Row: {
+          cancelled_at: string | null
+          cancelled_by: string | null
+          group_letter: string
+          id: string
+          id_card: string
+          nom: string
+          paid_amount: number
+          registered_at: string
+          slot: number
+          tel: string
+          tournament_id: string
+          user_id: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          group_letter: string
+          id?: string
+          id_card: string
+          nom: string
+          paid_amount?: number
+          registered_at?: string
+          slot: number
+          tel: string
+          tournament_id: string
+          user_id: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          group_letter?: string
+          id?: string
+          id_card?: string
+          nom?: string
+          paid_amount?: number
+          registered_at?: string
+          slot?: number
+          tel?: string
+          tournament_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_registrations_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournaments: {
+        Row: {
+          created_at: string
+          final_at: string
+          id: string
+          qf_at: string
+          reg_close: string
+          reset_at: string
+          runner_up_id: string | null
+          settled_at: string | null
+          sf_at: string
+          status: Database["public"]["Enums"]["tournament_status"]
+          third_at: string
+          total_collected: number
+          updated_at: string
+          week_start: string
+          winner_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          final_at: string
+          id?: string
+          qf_at: string
+          reg_close: string
+          reset_at: string
+          runner_up_id?: string | null
+          settled_at?: string | null
+          sf_at: string
+          status?: Database["public"]["Enums"]["tournament_status"]
+          third_at: string
+          total_collected?: number
+          updated_at?: string
+          week_start: string
+          winner_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          final_at?: string
+          id?: string
+          qf_at?: string
+          reg_close?: string
+          reset_at?: string
+          runner_up_id?: string | null
+          settled_at?: string | null
+          sf_at?: string
+          status?: Database["public"]["Enums"]["tournament_status"]
+          third_at?: string
+          total_collected?: number
+          updated_at?: string
+          week_start?: string
+          winner_id?: string | null
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           admin_note: string | null
@@ -1122,6 +1296,28 @@ export type Database = {
         }
         Returns: Json
       }
+      tournament_admin_cancel: { Args: { _pin: string }; Returns: Json }
+      tournament_admin_cancel_auto: {
+        Args: { _tid: string }
+        Returns: undefined
+      }
+      tournament_admin_cancel_registration: {
+        Args: { _pin: string; _reg_id: string }
+        Returns: Json
+      }
+      tournament_advance: { Args: never; Returns: Json }
+      tournament_create_match_game: {
+        Args: { _p1: string; _p2: string; _tid: string }
+        Returns: string
+      }
+      tournament_ensure_current: { Args: never; Returns: string }
+      tournament_get_current: { Args: never; Returns: Json }
+      tournament_register: {
+        Args: { _id_card: string; _nom: string; _pin: string; _tel: string }
+        Returns: Json
+      }
+      tournament_settle_prizes: { Args: { _tid: string }; Returns: Json }
+      tournament_week_start_for: { Args: { _at: string }; Returns: string }
       user_reset_history: { Args: never; Returns: Json }
       verify_game_settlement: {
         Args: { _game_id: string; _kind: string }
@@ -1141,6 +1337,8 @@ export type Database = {
         | "cancelled"
         | "blocked"
       gender: "male" | "female" | "other"
+      tournament_round: "qf" | "sf" | "third" | "final"
+      tournament_status: "registration" | "running" | "finished" | "cancelled"
       transaction_status: "pending" | "approved" | "rejected" | "completed"
       transaction_type:
         | "deposit"
@@ -1289,6 +1487,8 @@ export const Constants = {
         "blocked",
       ],
       gender: ["male", "female", "other"],
+      tournament_round: ["qf", "sf", "third", "final"],
+      tournament_status: ["registration", "running", "finished", "cancelled"],
       transaction_status: ["pending", "approved", "rejected", "completed"],
       transaction_type: [
         "deposit",

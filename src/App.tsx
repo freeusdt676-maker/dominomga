@@ -22,6 +22,7 @@ import ProfileEdit from "./pages/ProfileEdit";
 import SpectateDomino from "./pages/SpectateDomino";
 import SpectateLudo from "./pages/SpectateLudo";
 import SpectatePetanque from "./pages/SpectatePetanque";
+import Tournament from "./pages/Tournament";
 import { AuthProvider } from "./contexts/AuthContext";
 import BlockedOverlay from "./components/BlockedOverlay";
 
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/spectate/domino/:id" element={<SpectateDomino />} />
             <Route path="/spectate/ludo/:id" element={<SpectateLudo />} />
             <Route path="/spectate/petanque/:id" element={<SpectatePetanque />} />
+            <Route path="/tournament" element={<Tournament />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

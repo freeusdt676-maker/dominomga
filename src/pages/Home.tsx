@@ -12,6 +12,7 @@ import logo from "@/assets/logo.png";
 import logoDomino from "@/assets/logo-domino.png";
 import logoLudo from "@/assets/logo-ludo.png";
 import logoPetanque from "@/assets/logo-petanque.png";
+import logoTournoi from "@/assets/logo-tournoi.png";
 import MessageInbox from "@/components/MessageInbox";
 import {
   AlertDialog,
@@ -320,6 +321,20 @@ export default function Home() {
                 <p className="eyebrow">Tropical 3D</p>
                 <h3 className="font-serif-luxe text-2xl gold-luxe-text leading-tight">Pétanque MGA</h3>
                 <p className="text-xs text-muted-foreground mt-1">Duel 2P — Maty 12 · Décor Malagasy</p>
+              </div>
+              <span className="text-[hsl(var(--gold-1))] opacity-50 group-hover:opacity-100 transition text-xl">→</span>
+            </div>
+          </Link>
+
+          <Link to="/tournament" className="block luxe-card p-5 group transition hover:border-[hsl(var(--gold-1)/0.5)] ring-1 ring-[hsl(var(--gold-1)/0.35)]">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-xl flex items-center justify-center bg-gradient-to-br from-[#8a6c10] to-[#3a2a04] border border-[hsl(var(--gold-1)/0.5)] overflow-hidden">
+                <img src={logoTournoi} alt="Tournoi" className="w-14 h-14 object-contain" width={56} height={56} loading="lazy" />
+              </div>
+              <div className="flex-1">
+                <p className="eyebrow">Hebdomadaire</p>
+                <h3 className="font-serif-luxe text-2xl gold-luxe-text leading-tight">Tournoi du Semaine</h3>
+                <p className="text-xs text-muted-foreground mt-1">8 mpilalao · 5 000 Ar · Loka 30 000 Ar</p>
               </div>
               <span className="text-[hsl(var(--gold-1))] opacity-50 group-hover:opacity-100 transition text-xl">→</span>
             </div>

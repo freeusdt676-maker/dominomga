@@ -848,6 +848,11 @@ export default function Admin() {
               <p className="text-center text-muted-foreground py-6">Tsy mbola misy commission</p>
             )}
           </TabsContent>
+
+          {/* TOURNOI DU SEMAINE */}
+          <TabsContent value="tournoi" className="mt-3 max-h-[70vh] overflow-y-auto">
+            <TournamentAdmin />
+          </TabsContent>
         </Tabs>
       </div>
 

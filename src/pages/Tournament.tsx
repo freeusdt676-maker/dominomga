@@ -47,7 +47,7 @@ export default function Tournament() {
     setData(d);
     setLoading(false);
     // also advance (idempotent) — picks up new rounds when time arrives
-    supabase.rpc("tournament_advance" as any).catch(() => {});
+    try { await supabase.rpc("tournament_advance" as any); } catch {}
   };
 
   useEffect(() => {

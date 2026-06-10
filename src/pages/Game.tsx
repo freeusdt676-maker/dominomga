@@ -972,12 +972,12 @@ export default function Game() {
 
       {/* Tableau ny score — mazava sy ngeza */}
       {game.status === "in_progress" && (
-        <div className="px-3 py-2 bg-[#0a2818] border-b-2 border-[#d4a52c]/50">
+        <div className="px-3 py-3 bg-[linear-gradient(180deg,#0a2818_0%,#072013_100%)] border-b-2 border-[#d4a52c]/60 shadow-[inset_0_-2px_0_rgba(212,165,44,0.25)]">
           <div className="max-w-md mx-auto">
-            <div className="text-center text-[10px] uppercase tracking-[0.25em] text-[#ffe27a]/70 mb-1 font-bold">
+            <div className="text-center text-[11px] uppercase tracking-[0.3em] text-[#ffe27a] mb-2 font-extrabold drop-shadow">
               SCORE {targetPts ? `(Tanjona ${targetPts})` : ""}
             </div>
-            <div className={`grid ${playersCount === 3 ? "grid-cols-3" : "grid-cols-2"} gap-2`}>
+            <div className={`grid ${playersCount === 3 ? "grid-cols-3" : "grid-cols-2"} gap-3`}>
               {[user?.id ?? "", ...opponents.map(o => o.id)].map((pid) => {
                 const isMe = pid === user?.id;
                 const name = isMe ? myName : (profileNames[pid] ?? "Mpilalao");
@@ -987,15 +987,15 @@ export default function Game() {
                 return (
                   <div
                     key={pid}
-                    className={`rounded-lg p-2 border-2 ${isTurn ? "border-[#ffe27a] bg-[#d4a52c]/15 shadow-[0_0_12px_rgba(255,226,122,0.3)]" : "border-[#d4a52c]/30 bg-black/30"}`}
+                    className={`rounded-xl px-3 py-2.5 border-2 ${isTurn ? "border-[#ffe27a] bg-[linear-gradient(180deg,rgba(212,165,44,0.25),rgba(0,0,0,0.45))] shadow-[0_0_18px_rgba(255,226,122,0.45)]" : "border-[#d4a52c]/40 bg-[linear-gradient(180deg,rgba(0,0,0,0.55),rgba(0,0,0,0.35))]"}`}
                   >
-                    <div className="flex items-baseline justify-between gap-1">
-                      <span className="text-[11px] font-bold text-[#ffe27a]/90 truncate">{name}</span>
-                      <span className="text-2xl font-black gold-text leading-none tabular-nums">{sc}</span>
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-xs font-extrabold text-white/95 truncate uppercase tracking-wide">{name}</span>
+                      <span className="text-4xl font-black gold-text leading-none tabular-nums drop-shadow-[0_2px_6px_rgba(212,165,44,0.6)]">{sc}</span>
                     </div>
                     {targetPts && (
-                      <div className="mt-1 h-1.5 bg-black/50 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-[#d4a52c] to-[#ffe27a] transition-all" style={{ width: `${pct}%` }} />
+                      <div className="mt-1.5 h-2 bg-black/60 rounded-full overflow-hidden border border-[#d4a52c]/30">
+                        <div className="h-full bg-gradient-to-r from-[#d4a52c] via-[#ffe27a] to-[#fff4b8] transition-all shadow-[0_0_8px_rgba(255,226,122,0.6)]" style={{ width: `${pct}%` }} />
                       </div>
                     )}
                   </div>

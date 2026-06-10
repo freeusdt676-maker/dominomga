@@ -719,6 +719,7 @@ export default function Game() {
     if (!game || !user) return;
     if (game.status !== "in_progress") return;
     if (!game.current_turn) return;
+    if (!game.turn_started_at) return;
     if (isRevealing) return;
     if (elapsed < TURN_TIMEOUT_SEC) return;
     const key = `${game.id}-${game.turn_started_at}-${game.current_turn}`;

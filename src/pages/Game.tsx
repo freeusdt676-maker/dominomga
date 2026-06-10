@@ -1136,7 +1136,7 @@ export default function Game() {
           </div>
 
           {/* Latabatra — felt poker, snake path mihodina amin'ny sisiny */}
-          <div className="relative flex-1 px-3 py-3 min-h-[300px]">
+          <div className="relative flex-1 px-2 sm:px-4 py-4 min-h-[380px]">
             {/* Floating side action buttons */}
             <RadioPlayer />
             {id && <GameChat gameId={id} names={profileNames} />}
@@ -1146,7 +1146,7 @@ export default function Game() {
               </div>
             )}
 
-            <div className="felt-board relative w-full h-full min-h-[280px] mx-auto overflow-hidden">
+            <div className="felt-board relative w-full h-full min-h-[360px] mx-auto overflow-hidden">
               <div className="domino-arena absolute inset-[10px] rounded-[1rem]" aria-hidden="true" />
               {board.length === 0 ? (
                 <div className="absolute inset-0 flex items-center justify-center px-4">

@@ -145,6 +145,12 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
   const offsetX = (vp.w - boundsW * scale) / 2;
   const offsetY = (vp.h - boundsH * scale) / 2;
 
+  useEffect(() => {
+    const next = new Set<string>();
+    for (const p of board) next.add(`${p.tile[0]}-${p.tile[1]}`);
+    seenRef.current = next;
+  }, [board]);
+
   return (
     <div
       ref={wrapRef}

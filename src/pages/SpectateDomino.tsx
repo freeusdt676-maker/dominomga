@@ -149,8 +149,8 @@ export default function SpectateDomino() {
           </div>
 
           {/* Board */}
-          <div className="flex-1 relative rounded-2xl border-2 border-primary/40 overflow-hidden min-h-[340px]" style={{ background: "radial-gradient(circle at 50% 40%, #1e6e3a, #0a3a1c)" }}>
-            <div className="absolute inset-2">
+          <div className="felt-board relative w-full min-h-[460px] flex-1 overflow-hidden">
+            <div className="domino-arena absolute inset-0 rounded-2xl">
               <SnakeBoard board={(s.board ?? []) as Placed[]} tileSize="sm" />
             </div>
           </div>

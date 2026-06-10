@@ -16,8 +16,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { fmtAr } from "@/lib/constants";
-// Domino: tour mandritra 20 segondra (tsy mitovy amin'ny Ludo izay 10s)
-const TURN_TIMEOUT_SEC = 20;
+// Domino: tour mandritra 10 segondra. Aloha ny 10s dia ny mpilalao no manindry,
+// rehefa tapitra dia mandeha automatique (auto-play).
+const TURN_TIMEOUT_SEC = 10;
 import { DominoTile, DominoBack } from "@/components/DominoTile";
 import { SnakeBoard } from "@/components/SnakeBoard";
 import { useThemeClass } from "@/hooks/use-theme-class";
@@ -1136,7 +1137,7 @@ export default function Game() {
           </div>
 
           {/* Latabatra — felt poker, snake path mihodina amin'ny sisiny */}
-          <div className="relative flex-1 px-1 sm:px-3 py-4 min-h-[480px]">
+          <div className="relative flex-1 px-1 sm:px-3 py-3 min-h-[340px]">
             {/* Floating side action buttons */}
             <RadioPlayer />
             {id && <GameChat gameId={id} names={profileNames} />}
@@ -1146,7 +1147,7 @@ export default function Game() {
               </div>
             )}
 
-            <div className="felt-board relative w-full h-full min-h-[460px] mx-auto overflow-hidden">
+            <div className="felt-board relative w-full h-full min-h-[320px] mx-auto overflow-hidden">
               <div className="domino-arena absolute inset-[10px] rounded-[1rem]" aria-hidden="true" />
               {board.length === 0 ? (
                 <div className="absolute inset-0 flex items-center justify-center px-4">

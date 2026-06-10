@@ -20,6 +20,7 @@ type Direction = "right" | "left" | "down";
 export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSize?: Sz }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [vp, setVp] = useState({ w: 360, h: 240 });
+  const seenRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!wrapRef.current) return;
@@ -153,6 +154,9 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
         {items.map((it, i) => {
           const isHead = i === 0;
           const isTail = items.length > 1 && i === items.length - 1;
+          const placed = board[i];
+          const tileKey = placed ? `${placed.tile[0]}-${placed.tile[1]}` : `i-${i}`;
+          const isNew = !seenRef.current.has(tileKey);
           const ringColor = isHead
             ? "0 0 0 3px rgba(34,197,94,0.95), 0 0 14px 4px rgba(34,197,94,0.55)"
             : isTail
@@ -160,8 +164,8 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
             : undefined;
           return (
             <div
-              key={i}
-              className="absolute animate-scale-in"
+              key={tileKey}
+              className={`absolute ${isNew ? "animate-scale-in" : ""}`}
               style={{
                 left: it.x * scale + offsetX,
                 top: it.y * scale + offsetY,

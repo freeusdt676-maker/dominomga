@@ -555,8 +555,10 @@ export default function Game() {
 
   // Faharetan'ny Tour
   const turnStart = game?.turn_started_at ? new Date(game.turn_started_at).getTime() : 0;
-  const elapsed = Math.max(0, Math.floor((now - turnStart) / 1000));
-  const remaining = Math.max(0, TURN_TIMEOUT_SEC - elapsed);
+  // Raha mbola tsy voarakitra ny turn_started_at (anelanelan'ny tour, reveal,
+  // sns.) dia ataovy 0 ny elapsed mba tsy hipoaka ho azy ny auto-play.
+  const elapsed = turnStart > 0 ? Math.max(0, Math.floor((now - turnStart) / 1000)) : 0;
+  const remaining = turnStart > 0 ? Math.max(0, TURN_TIMEOUT_SEC - elapsed) : TURN_TIMEOUT_SEC;
 
   const tryPlay = async (idx: number, side?: "left" | "right") => {
     if (!isMyTurn || !game || !user) return;
@@ -717,6 +719,7 @@ export default function Game() {
     if (!game || !user) return;
     if (game.status !== "in_progress") return;
     if (!game.current_turn) return;
+    if (!game.turn_started_at) return;
     if (isRevealing) return;
     if (elapsed < TURN_TIMEOUT_SEC) return;
     const key = `${game.id}-${game.turn_started_at}-${game.current_turn}`;
@@ -1133,7 +1136,7 @@ export default function Game() {
           </div>
 
           {/* Latabatra — felt poker, snake path mihodina amin'ny sisiny */}
-          <div className="relative flex-1 px-3 py-3 min-h-[300px]">
+          <div className="relative flex-1 px-2 sm:px-4 py-4 min-h-[380px]">
             {/* Floating side action buttons */}
             <RadioPlayer />
             {id && <GameChat gameId={id} names={profileNames} />}
@@ -1143,7 +1146,7 @@ export default function Game() {
               </div>
             )}
 
-            <div className="felt-board relative w-full h-full min-h-[280px] mx-auto overflow-hidden">
+            <div className="felt-board relative w-full h-full min-h-[360px] mx-auto overflow-hidden">
               <div className="domino-arena absolute inset-[10px] rounded-[1rem]" aria-hidden="true" />
               {board.length === 0 ? (
                 <div className="absolute inset-0 flex items-center justify-center px-4">

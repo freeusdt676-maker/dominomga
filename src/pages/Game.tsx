@@ -555,8 +555,10 @@ export default function Game() {
 
   // Faharetan'ny Tour
   const turnStart = game?.turn_started_at ? new Date(game.turn_started_at).getTime() : 0;
-  const elapsed = Math.max(0, Math.floor((now - turnStart) / 1000));
-  const remaining = Math.max(0, TURN_TIMEOUT_SEC - elapsed);
+  // Raha mbola tsy voarakitra ny turn_started_at (anelanelan'ny tour, reveal,
+  // sns.) dia ataovy 0 ny elapsed mba tsy hipoaka ho azy ny auto-play.
+  const elapsed = turnStart > 0 ? Math.max(0, Math.floor((now - turnStart) / 1000)) : 0;
+  const remaining = turnStart > 0 ? Math.max(0, TURN_TIMEOUT_SEC - elapsed) : TURN_TIMEOUT_SEC;
 
   const tryPlay = async (idx: number, side?: "left" | "right") => {
     if (!isMyTurn || !game || !user) return;

@@ -16,9 +16,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { fmtAr } from "@/lib/constants";
-// Domino: tour mandritra 10 segondra. Aloha ny 10s dia ny mpilalao no manindry,
-// rehefa tapitra dia mandeha automatique (auto-play).
-const TURN_TIMEOUT_SEC = 10;
+// Domino: tour mandritra 20 segondra. Aloha ny 20s dia ny mpilalao IHANY no
+// manindry, rehefa tapitra ny 20s vao mandeha automatique (auto-play).
+const TURN_TIMEOUT_SEC = 20;
+// Grace ho an'ny mpijery (tsy tompon'ny tour): miandry 2s fanampiny mba ny
+// client an'ilay mpilalao no manao auto aloha — tsy misy fifanenjanana.
+const AUTO_OTHER_GRACE_SEC = 2;
 import { DominoTile, DominoBack } from "@/components/DominoTile";
 import { SnakeBoard } from "@/components/SnakeBoard";
 import { useThemeClass } from "@/hooks/use-theme-class";
@@ -89,6 +92,10 @@ export default function Game() {
   const [confirmAbandon, setConfirmAbandon] = useState(false);
   const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null);
   const autoActedRef = useRef<string | null>(null);
+  // Fantsona local: rehefa miova ny tour dia raketina ny ora LOCAL — izany no
+  // miaro amin'ny "clock skew" (ora server ≠ ora telefaona) izay nahatonga ny
+  // auto-play handeha mialoha ny 20s.
+  const turnAnchorRef = useRef<{ key: string; at: number }>({ key: "", at: 0 });
   const initLockRef = useRef(false);
   const roundEndLockRef = useRef<string | null>(null);
   const revealCommitRef = useRef<string | null>(null);
@@ -558,7 +565,17 @@ export default function Game() {
   const turnStart = game?.turn_started_at ? new Date(game.turn_started_at).getTime() : 0;
   // Raha mbola tsy voarakitra ny turn_started_at (anelanelan'ny tour, reveal,
   // sns.) dia ataovy 0 ny elapsed mba tsy hipoaka ho azy ny auto-play.
-  const elapsed = turnStart > 0 ? Math.max(0, Math.floor((now - turnStart) / 1000)) : 0;
+  const turnKeyNow = game ? `${game.id}-${game.turn_started_at}-${game.current_turn}` : "";
+  if (turnKeyNow && turnAnchorRef.current.key !== turnKeyNow) {
+    turnAnchorRef.current = { key: turnKeyNow, at: Date.now() };
+  }
+  const serverElapsed = turnStart > 0 ? Math.max(0, Math.floor((now - turnStart) / 1000)) : 0;
+  const localElapsed = turnStart > 0
+    ? Math.max(0, Math.floor((now - turnAnchorRef.current.at) / 1000))
+    : 0;
+  // Ny kely indrindra no raisina: tsy maintsy lany 20s HITA teto an-toerana vao
+  // mandeha automatique — na inona na inona fahasamihafan'ny ora server.
+  const elapsed = Math.min(serverElapsed, localElapsed);
   const remaining = turnStart > 0 ? Math.max(0, TURN_TIMEOUT_SEC - elapsed) : TURN_TIMEOUT_SEC;
 
   const tryPlay = async (idx: number, side?: "left" | "right") => {
@@ -623,6 +640,13 @@ export default function Game() {
     const possible = canPlace(board, tile);
     if (!possible) return;
     if (possible === "either" && board.length > 0) {
+      const e2 = ends(board);
+      // Raha mitovy ny tendro roa, tsy ilaina mifidy lafiny — apetraka avy hatrany.
+      if (e2 && e2.left === e2.right) {
+        setSelected(null);
+        void tryPlay(idx, "right");
+        return;
+      }
       setSelected(idx);
       return;
     }
@@ -660,7 +684,7 @@ export default function Game() {
       longPressTriggeredRef.current = true;
       setSelected(null);
       setDragIndex(idx);
-    }, 320);
+    }, 420);
   };
 
   const handleHandPointerMove = (_idx: number, e: React.PointerEvent<HTMLButtonElement>) => {
@@ -683,10 +707,15 @@ export default function Game() {
     pointerTileIndexRef.current = null;
     if (longPressTriggeredRef.current && startIdx !== null) {
       const dropIdx = dragIndex ?? idx;
-      suppressClickRef.current = true;
       longPressTriggeredRef.current = false;
       setDragIndex(null);
-      if (startIdx !== dropIdx) await reorderHand(startIdx, dropIdx);
+      if (startIdx !== dropIdx) {
+        // Tena nisy famindrana toerana → aza alefa ny click.
+        suppressClickRef.current = true;
+        await reorderHand(startIdx, dropIdx);
+      }
+      // Raha tsy nisy famindrana (notazonina fotsiny teo amin'ny toerany),
+      // avela handeha ny click mba ho voapetraka ihany ny vato.
       return;
     }
     longPressTriggeredRef.current = false;
@@ -722,7 +751,10 @@ export default function Game() {
     if (!game.current_turn) return;
     if (!game.turn_started_at) return;
     if (isRevealing) return;
-    if (elapsed < TURN_TIMEOUT_SEC) return;
+    // Aloha ny 20s: TSY MISY auto mihitsy — miandry ny kitika.
+    // Ny client an'ny tompon'ny tour no manao auto aloha; ny hafa miandry 2s grâce.
+    const graceSec = game.current_turn === user.id ? 0 : AUTO_OTHER_GRACE_SEC;
+    if (elapsed < TURN_TIMEOUT_SEC + graceSec) return;
     const key = `${game.id}-${game.turn_started_at}-${game.current_turn}`;
     if (autoActedRef.current === key) return;
     autoActedRef.current = key;
@@ -812,8 +844,10 @@ export default function Game() {
     if (game.status !== "in_progress") return;
     if (!game.current_turn || !game.turn_started_at) return;
     if (isRevealing) return;
-    const startMs = new Date(game.turn_started_at).getTime();
-    const deadline = startMs + TURN_TIMEOUT_SEC * 1000;
+    // Mifototra amin'ny fantsona LOCAL (tsy ny ora server) mba tsy hipoaka mialoha.
+    const startMs = Math.max(new Date(game.turn_started_at).getTime(), turnAnchorRef.current.at);
+    const graceSec = game.current_turn === user.id ? 0 : AUTO_OTHER_GRACE_SEC;
+    const deadline = startMs + (TURN_TIMEOUT_SEC + graceSec) * 1000;
     const delay = Math.max(0, deadline - Date.now()) + 250; // 250ms grâce
     const t = setTimeout(() => {
       // Bump `now` so the existing elapsed-based effect re-runs and fires

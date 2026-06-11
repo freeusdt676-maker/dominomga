@@ -167,14 +167,7 @@ export default function LudoGame() {
     // would cut the step-by-step walk short (e.g. dice=5 but pawn visually
     // moves only 4 cells before the server payload snaps it to the final
     // position). The local handler will commit the final state itself.
-    if (localBusy) {
-      prevGameRef.current = next;
-      return;
-    }
-
-    // If a remote animation is in flight, also skip — the running animation
-    // will commit `next` when it finishes.
-    if (remoteAnimRef.current.animating) {
+    if (!forceUnlock && (localBusy || remoteAnimRef.current.animating)) {
       prevGameRef.current = next;
       return;
     }

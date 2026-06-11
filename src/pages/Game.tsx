@@ -207,6 +207,10 @@ export default function Game() {
       const openerIdxInit = ids.indexOf(rotIds[(round1 - 1) % rotIds.length]);
       const opener = { ...chooseOpening(hands, mode), playerIndex: openerIdxInit, forced: false };
       const openerId = ids[openerIdxInit];
+      // DATINANDRO check on initial deal — instant win.
+      if (await tryDatinandroWin(currentGame, hands, boneyard)) {
+        return;
+      }
       let board: Placed[] = [];
       let nextId = openerId;
       if (opener.forced) {

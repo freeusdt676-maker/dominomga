@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { toast } from "sonner";
-import { ArrowLeft, Trophy, CheckCircle2, Dices, Target } from "lucide-react";
+import { ArrowLeft, Trophy, CheckCircle2, Dices, Target, BookOpen, BarChart3, History, Eye } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 import logoTournoi from "@/assets/logo-tournoi.png";
 
@@ -115,6 +115,8 @@ export default function Tournament() {
         registration_closed: "Mikatona ny fisoratana anarana",
         registration_closed_time: "Tapitra ny ora fisoratana anarana",
         fields_required: "Fenoy daholo ny tsipika",
+        id_card_already_used: "Efa nampiasaina io ID kara-panondro io",
+        has_active_tournament_match: "Mbola misy match tornoi tsy vita anananao",
       };
       return toast.error(map[error.message] ?? error.message);
     }

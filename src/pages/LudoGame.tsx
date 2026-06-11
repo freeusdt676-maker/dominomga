@@ -311,6 +311,37 @@ export default function LudoGame() {
       });
       if (error) throw error;
 
+      // ===== No playable move → auto-pass right away (pro behavior) =====
+      const moves = legalMoves(state.pawns ?? [], state.current_turn_seat, dice);
+      if (!moves.length) {
+        // Let the player see the dice result briefly
+        await new Promise((r) => setTimeout(r, 1300));
+        // Pro rule: a 6 with no playable move still grants a re-roll (max 3 sixes)
+        const keepSeat = dice === 6 && nextSixes < 3;
+        const i = seats.indexOf(state.current_turn_seat);
+        const ns = keepSeat ? state.current_turn_seat : seats[(i + 1) % seats.length];
+        const passAt = new Date().toISOString();
+        setG((cur) => cur ? ({
+          ...cur,
+          current_turn_seat: ns,
+          last_dice: null,
+          dice_rolled: false,
+          consecutive_sixes: keepSeat ? nextSixes : 0,
+          turn_started_at: passAt,
+        }) : cur);
+        const { error: passErr } = await supabase.rpc("ludo_update_state" as any, {
+          _game_id: state.id,
+          _current_turn_seat: ns,
+          _last_dice: null,
+          _dice_rolled: false,
+          _consecutive_sixes: keepSeat ? nextSixes : 0,
+          _turn_started_at: passAt,
+        });
+        if (passErr) throw passErr;
+        toast(keepSeat ? "6 nefa tsy misy fihetsika — alefaso indray ny dé" : "Tsy misy fihetsika azo atao — mifindra ny tour");
+        return;
+      }
+
       // Tsy misy robo intsony: na tsy misy safidy na safidy iray ihany, ny
       // mpilalao ihany no manapaka. Raha lany ny 10s dia ny timer handler no
       // mandeha (mametraka pion na mandalo araka ny safidy azo).

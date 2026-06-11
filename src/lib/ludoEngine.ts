@@ -162,14 +162,22 @@ export function applyMove(pawns: Pawn[], seat: number, pawnIdx: number, dice: nu
   // Check capture (only if on track and not on safe square)
   const tIdx = pawnTrackIdx(me);
   if (tIdx !== null && !SAFE_INDICES.has(tIdx)) {
+    // Pro rule: 2+ pawns of the SAME color on a cell form a "block" — safe.
+    const bySeat = new Map<number, Pawn[]>();
     for (const other of next) {
       if (other.seat === me.seat) continue;
-      const oIdx = pawnTrackIdx(other);
-      if (oIdx === tIdx) {
-        other.pos = 0;
-        captured += 1;
+      if (pawnTrackIdx(other) === tIdx) {
+        const arr = bySeat.get(other.seat) ?? [];
+        arr.push(other);
+        bySeat.set(other.seat, arr);
       }
     }
+    bySeat.forEach((arr) => {
+      if (arr.length === 1) {
+        arr[0].pos = 0;
+        captured += 1;
+      }
+    });
   }
   const finishedPawn = me.pos === 57;
   return { pawns: next, captured, finishedPawn };

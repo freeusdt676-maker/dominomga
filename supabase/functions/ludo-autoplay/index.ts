@@ -46,13 +46,22 @@ function applyMove(pawns: Pawn[], seat: number, pawnIdx: number, dice: number) {
   else me.pos += dice;
   const tIdx = pawnTrackIdx(me);
   if (tIdx !== null && !SAFE_INDICES.has(tIdx)) {
+    // Pro rule: 2+ pawns of the SAME color on a cell form a "block" — safe.
+    const bySeat = new Map<number, Pawn[]>();
     for (const other of next) {
       if (other.seat === me.seat) continue;
       if (pawnTrackIdx(other) === tIdx) {
-        other.pos = 0;
-        captured += 1;
+        const arr = bySeat.get(other.seat) ?? [];
+        arr.push(other);
+        bySeat.set(other.seat, arr);
       }
     }
+    bySeat.forEach((arr) => {
+      if (arr.length === 1) {
+        arr[0].pos = 0;
+        captured += 1;
+      }
+    });
   }
   return { pawns: next, captured, finishedPawn: me.pos === 57 };
 }
@@ -171,12 +180,14 @@ Deno.serve(async (_req) => {
         const picked = pickAutoMove(basePawns, currentSeat, dice);
         const nextTurnAt = new Date().toISOString();
         if (!picked) {
+          // Pro rule: a 6 with no playable move still grants a re-roll (max 3 sixes).
+          const keepSeat = dice === 6 && rolledSixes < 3;
           await runRpc({
             _game_id: g.id,
-            _current_turn_seat: rotateSeat(currentSeat),
+            _current_turn_seat: keepSeat ? currentSeat : rotateSeat(currentSeat),
             _dice_rolled: false,
             _last_dice: null,
-            _consecutive_sixes: 0,
+            _consecutive_sixes: keepSeat ? rolledSixes : 0,
             _turn_started_at: nextTurnAt,
           });
           return;

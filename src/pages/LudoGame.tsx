@@ -78,6 +78,7 @@ export default function LudoGame() {
   const phaseKeyRef = useRef<string | null>(null);
   const prevGameRef = useRef<LG | null>(null);
   const remoteAnimRef = useRef<{ token: number; animating: boolean }>({ token: 0, animating: false });
+  const pendingGameRef = useRef<any>(null);
   const botActedRef = (typeof window !== "undefined" ? (window as any) : {}) as any;
 
   const clearRefTimeout = (ref: { current: number | null }) => {

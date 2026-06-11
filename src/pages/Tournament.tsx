@@ -11,7 +11,6 @@ import { toast } from "sonner";
 import { ArrowLeft, Trophy, CheckCircle2 } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 import logoTournoi from "@/assets/logo-tournoi.png";
-import TournamentChat from "@/components/TournamentChat";
 
 const MG_TZ_OFFSET = 3 * 3600_000;
 
@@ -333,19 +332,48 @@ export default function Tournament() {
                 <p className="mt-4 text-sm text-amber-400">
                   {count >= 8 ? "Feno ny tournoi" : "Mikatona ny fisoratana anarana"}
                 </p>
-              ) : (
-                <button onClick={() => { setStep("form"); setOpenReg(true); }}
-                  className="mt-4 w-full btn-luxe text-base py-3">
-                  HANDRAY ANJARA
-                </button>
-              )}
+              ) : null}
 
               <p className="mt-4 text-[10px] text-muted-foreground">
                 Amin'ny fanindriana CONFIRMER + PIN, ekenao fa hanaisotra <b>5 000 Ar</b> amin'ny wallet-nao avy hatrany.
               </p>
             </div>
 
-            <TournamentChat />
+            {/* Inline registration form */}
+            {!myReg && isOpen && (
+              <div className="luxe-card p-4 space-y-3">
+                <p className="font-serif-luxe text-base gold-luxe-text text-center">
+                  ✍️ Fenoy ny fisoratana anarana
+                </p>
+
+                <div>
+                  <label className="text-[11px] tracking-widest text-[hsl(var(--gold-1))] uppercase">Anarana</label>
+                  <Input value={fNom} onChange={(e) => setFNom(e.target.value)} placeholder="Anaranao feno" />
+                </div>
+                <div>
+                  <label className="text-[11px] tracking-widest text-[hsl(var(--gold-1))] uppercase">Numéro</label>
+                  <Input value={fTel} onChange={(e) => setFTel(e.target.value)} placeholder="034 / 038..." inputMode="tel" />
+                </div>
+                <div>
+                  <label className="text-[11px] tracking-widest text-[hsl(var(--gold-1))] uppercase">ID</label>
+                  <Input value={fId} onChange={(e) => setFId(e.target.value)} placeholder="ID kara-panondro" />
+                </div>
+                <div className="hairline rounded-lg p-3 text-center bg-[hsl(var(--gold-1)/0.06)]">
+                  <p className="text-[11px] tracking-widest text-[hsl(var(--gold-1))] uppercase">Mise</p>
+                  <p className="font-serif-luxe text-2xl gold-luxe-text">5 000 Ar</p>
+                </div>
+
+                <Button onClick={() => {
+                  if (!fNom.trim() || !fTel.trim() || !fId.trim()) { toast.error("Fenoy daholo ny tsipika"); return; }
+                  setStep("pin"); setOpenReg(true);
+                }} className="w-full btn-luxe text-base py-3">
+                  CONFIRMER
+                </Button>
+                <p className="text-[10px] text-muted-foreground text-center">
+                  Avy eo: hangataka ny <b>Code PIN</b> mba hanesorana ny 5 000 Ar amin'ny wallet-nao.
+                </p>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
         )}

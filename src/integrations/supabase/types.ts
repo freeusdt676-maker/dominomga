@@ -912,6 +912,7 @@ export type Database = {
           final_at: string
           game_type: Database["public"]["Enums"]["tournament_game_type"]
           id: string
+          notified_phases: Json
           qf_at: string
           reg_close: string
           reset_at: string
@@ -930,6 +931,7 @@ export type Database = {
           final_at: string
           game_type?: Database["public"]["Enums"]["tournament_game_type"]
           id?: string
+          notified_phases?: Json
           qf_at: string
           reg_close: string
           reset_at: string
@@ -948,6 +950,7 @@ export type Database = {
           final_at?: string
           game_type?: Database["public"]["Enums"]["tournament_game_type"]
           id?: string
+          notified_phases?: Json
           qf_at?: string
           reg_close?: string
           reset_at?: string
@@ -1340,7 +1343,13 @@ export type Database = {
         Args: { _pin: string; _reg_id: string }
         Returns: Json
       }
+      tournament_admin_force_advance: { Args: { _pin: string }; Returns: Json }
+      tournament_admin_force_forfeit: {
+        Args: { _loser: string; _match_id: string; _pin: string }
+        Returns: Json
+      }
       tournament_advance: { Args: { _game_type?: string }; Returns: Json }
+      tournament_check_forfeit: { Args: never; Returns: Json }
       tournament_create_match_game: {
         Args: { _game_type: string; _p1: string; _p2: string; _tid: string }
         Returns: string
@@ -1350,10 +1359,16 @@ export type Database = {
         Returns: string
       }
       tournament_get_current: { Args: { _game_type?: string }; Returns: Json }
+      tournament_history: {
+        Args: { _game_type?: string; _limit?: number }
+        Returns: Json
+      }
+      tournament_leaderboard: { Args: { _game_type?: string }; Returns: Json }
       tournament_link_game_to_match: {
         Args: { _game_id: string; _game_type: string; _tid: string }
         Returns: undefined
       }
+      tournament_notify_phase: { Args: never; Returns: Json }
       tournament_register: {
         Args: {
           _game_type: string

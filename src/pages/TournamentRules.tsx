@@ -62,7 +62,6 @@ const SECTIONS = [
     "Vola loka totaly: tatitra mazava",
   ]},
   { t: "10. ADMINISTRATIF", b: [
-    "PIN admin = 2583 (anatin'ny admin irery)",
     "Force advance — manery hampandeha ny dingana manaraka",
     "Force forfait — manery resy ny mpilalao iray (raha misy tranga manokana)",
     "Famerenana vola — raha misy match tsy tafita",

@@ -136,6 +136,16 @@ export default function Tournament() {
 
   const meta = GAME_META[gameType];
 
+  // Auto-redirect: rehefa misy match efa vonona ho an'ity mpilalao ity → tonga
+  // dia mafofona ao anaty table du jeu izy (tsy mila mipiana bokotra).
+  useEffect(() => {
+    if (!myActiveMatch?.game_id) return;
+    const t = setTimeout(() => {
+      nav(meta.gameRoute(myActiveMatch.game_id));
+    }, 800);
+    return () => clearTimeout(t);
+  }, [myActiveMatch?.game_id]);
+
   return (
     <div className="min-h-screen luxe-bg">
       <header className="px-4 py-3 flex items-center gap-3 hairline-b">

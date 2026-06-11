@@ -557,12 +557,14 @@ export default function LudoGame() {
         const nextTurnAt = new Date().toISOString();
 
         if (!picked) {
+          // Pro rule: a 6 with no playable move still grants a re-roll (max 3 sixes)
+          const keepSeat = dice === 6 && rolledSixes < 3;
           await runRpc({
             _game_id: baseState.id,
-            _current_turn_seat: rotateSeat(currentSeat),
+            _current_turn_seat: keepSeat ? currentSeat : rotateSeat(currentSeat),
             _dice_rolled: false,
             _last_dice: null,
-            _consecutive_sixes: 0,
+            _consecutive_sixes: keepSeat ? rolledSixes : 0,
             _turn_started_at: nextTurnAt,
           });
           return;

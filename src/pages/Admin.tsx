@@ -551,14 +551,14 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="users">
-          <TabsList className="grid grid-cols-8 w-full text-[10px]">
-            <TabsTrigger value="users" className="relative">
+          <TabsList className="flex w-full overflow-x-auto no-scrollbar gap-1 text-[11px] justify-start">
+            <TabsTrigger value="users" className="relative shrink-0 whitespace-nowrap px-3">
               Mpilalao
               {pendingUsersCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-5 h-5 text-[10px] flex items-center justify-center font-bold">{pendingUsersCount}</span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="profiles" className="relative">
+            <TabsTrigger value="profiles" className="relative shrink-0 whitespace-nowrap px-3">
               Profils
               {pendingProfileCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full min-w-[22px] h-[22px] px-1.5 text-[10px] flex items-center justify-center font-bold ring-2 ring-red-300 animate-pulse shadow-lg shadow-red-500/60">
@@ -566,17 +566,17 @@ export default function Admin() {
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="tx" className="relative">
+            <TabsTrigger value="tx" className="relative shrink-0 whitespace-nowrap px-3">
               Transactions
               {txCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-destructive rounded-full w-2.5 h-2.5" />
               )}
             </TabsTrigger>
-            <TabsTrigger value="reset">Reset</TabsTrigger>
-            <TabsTrigger value="broadcast">Annonce</TabsTrigger>
-            <TabsTrigger value="history">Historique</TabsTrigger>
-            <TabsTrigger value="commissions">Commission</TabsTrigger>
-            <TabsTrigger value="tournoi">🏆 Tournoi</TabsTrigger>
+            <TabsTrigger value="reset" className="shrink-0 whitespace-nowrap px-3">Reset</TabsTrigger>
+            <TabsTrigger value="broadcast" className="shrink-0 whitespace-nowrap px-3">Annonce</TabsTrigger>
+            <TabsTrigger value="history" className="shrink-0 whitespace-nowrap px-3">Historique</TabsTrigger>
+            <TabsTrigger value="commissions" className="shrink-0 whitespace-nowrap px-3">Commission</TabsTrigger>
+            <TabsTrigger value="tournoi" className="shrink-0 whitespace-nowrap px-3">🏆 Tournoi</TabsTrigger>
           </TabsList>
 
           {/* MPILALAO */}

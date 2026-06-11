@@ -254,8 +254,27 @@ export default function Game() {
     turn_started_at?: string;
     passes?: number;
     status?: "waiting" | "in_progress" | "finished" | "cancelled" | "blocked";
+  }, options?: {
+    expectedCurrentTurn?: string | null;
+    expectedTurnStartedAt?: string | null;
   }) => {
     if (!game?.id) return { error: new Error("game_missing") };
+    if (options?.expectedCurrentTurn || options?.expectedTurnStartedAt) {
+      return (supabase.rpc as any)("player_update_game_state_guarded", {
+        _game_id: game.id,
+        _board_state: payload.board_state ?? null,
+        _player1_hand: payload.player1_hand ?? null,
+        _player2_hand: payload.player2_hand ?? null,
+        _boneyard: payload.boneyard ?? null,
+        _current_turn: payload.current_turn ?? null,
+        _turn_started_at: payload.turn_started_at ?? null,
+        _passes: payload.passes ?? null,
+        _status: payload.status ?? null,
+        _player3_hand: payload.player3_hand ?? null,
+        _expected_current_turn: options.expectedCurrentTurn ?? null,
+        _expected_turn_started_at: options.expectedTurnStartedAt ?? null,
+      });
+    }
     return supabase.rpc("player_update_game_state", {
       _game_id: game.id,
       _board_state: payload.board_state ?? null,
@@ -501,7 +520,13 @@ export default function Game() {
     load();
     const ch = supabase.channel("game-" + id)
       .on("postgres_changes", { event: "*", schema: "public", table: "games", filter: `id=eq.${id}` },
-        (p: any) => setServerGame(p.new))
+        (p: any) => setServerGame((prev: any) => {
+          if (!p.new) return prev;
+          if (!prev) return p.new;
+          const a = new Date(prev.updated_at ?? 0).getTime();
+          const b = new Date(p.new.updated_at ?? 0).getTime();
+          return b >= a ? p.new : prev;
+        }))
       .subscribe();
     // Polling fallback (1.5s) — raha sendra tara ny realtime, mba hifohazan'ny tour avy hatrany
     const poll = setInterval(async () => {

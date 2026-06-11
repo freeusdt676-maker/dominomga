@@ -320,9 +320,16 @@ export default function Game() {
 
     const targetReached = isDominoGameWin(wScore, mode);
     // MANDEHA IRERY — Raha mahazo isa ≥ 60 (D120) na ≥ 40 (D80) amin'ny
-    // tour iray monja ny mpilalao iray, dia mandresy avy hatrany ny lalao.
+    // tour iray monja ny mpilalao iray, ARY ny mpanohitra rehetra dia 0 isa
+    // hatrany (mbola tsy nahazo na inona na inona), dia mandresy avy hatrany.
+    // Raha efa nahazo isa ny mpanohitra (na iray monja aza), dia TSY mandeha
+    // irery intsony — tour fotsiny no vita.
     const soloThreshold = mode === "d80" ? 40 : 60;
-    const soloWin = points >= soloThreshold;
+    const opponentsZero =
+      (winnerId === game.player1_id ? true : Number(game.score_p1 ?? 0) === 0) &&
+      (winnerId === game.player2_id ? true : Number(game.score_p2 ?? 0) === 0) &&
+      (pc !== 3 || winnerId === game.player3_id ? true : Number(game.score_p3 ?? 0) === 0);
+    const soloWin = points >= soloThreshold && opponentsZero;
     // DOUBLE 6 OUT — Raha ny [6,6] no piesy farany napetraky ny mpilalao
     // (izay vao lany ny vato rehetra eny an-tanany), dia mandresy avy hatrany
     // ny lalao. Tsy mihatra raha mametraka double-6 fotsiny fa mbola misy

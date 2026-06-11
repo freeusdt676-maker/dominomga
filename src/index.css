@@ -333,49 +333,44 @@ html.theme-petanque{ --primary: 200 85% 42%; --ring: 200 85% 42%; --accent: 200 
     font-family: 'Instrument Serif', serif;
     letter-spacing: -0.02em;
   }
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-shadow: 0 1px 0 rgba(0,0,0,0.4);
-    letter-spacing: 0.05em;
-  }
 
-  /* ===== MVola theme (jaune/orange) ===== */
+  /* ===== MVola — clean minimal ===== */
   .mvola-bg {
-    background: linear-gradient(135deg, #ffd200 0%, #f7971e 60%, #ee5a24 100%);
-    color: #1a1a1a;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
   }
   .mvola-gradient-text {
-    background: linear-gradient(135deg, #f7971e, #ffd200);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    font-weight: 800;
+    color: hsl(var(--foreground));
+    font-family: 'Instrument Serif', serif;
+    font-weight: 400;
+    letter-spacing: -0.02em;
   }
   .btn-mvola {
-    background: linear-gradient(135deg, #ffd200 0%, #f7971e 50%, #ee5a24 100%);
-    color: #1a1a1a;
-    font-weight: 800;
+    background: hsl(var(--foreground));
+    color: hsl(var(--background));
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    box-shadow: 0 6px 18px -4px rgba(247,151,30,0.55), inset 0 1px 0 rgba(255,255,255,0.4);
-    border: 1px solid rgba(0,0,0,0.15);
+    letter-spacing: 0.06em;
+    box-shadow: 0 1px 0 hsl(0 0% 0% / 0.06);
+    border: 1px solid hsl(var(--foreground));
+    border-radius: 999px;
   }
-  .btn-mvola:hover { filter: brightness(1.06); }
+  .btn-mvola:hover { background: hsl(var(--primary)); border-color: hsl(var(--primary)); }
   .btn-mvola:disabled { opacity: 0.55; cursor: not-allowed; }
   .mvola-card {
-    background: linear-gradient(180deg, hsl(155 40% 11%), hsl(155 45% 7%));
-    border: 1px solid #f7971e80;
-    box-shadow: 0 0 0 1px rgba(247,151,30,0.15), 0 12px 32px -10px rgba(247,151,30,0.25);
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-luxe);
+    border-radius: 1rem;
   }
   .mvola-banner {
-    background: linear-gradient(135deg, #ffd200, #f7971e);
-    color: #1a1a1a;
+    background: hsl(var(--foreground));
+    color: hsl(var(--background));
     border-radius: 0.75rem;
     padding: 0.5rem 0.75rem;
-    font-weight: 800;
+    font-weight: 600;
     text-align: center;
-    box-shadow: 0 4px 14px -4px rgba(247,151,30,0.5);
+    box-shadow: 0 1px 0 hsl(0 0% 0% / 0.06);
   }
 }
 

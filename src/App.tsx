@@ -23,6 +23,9 @@ import SpectateDomino from "./pages/SpectateDomino";
 import SpectateLudo from "./pages/SpectateLudo";
 import SpectatePetanque from "./pages/SpectatePetanque";
 import Tournament from "./pages/Tournament";
+import TournamentRules from "./pages/TournamentRules";
+import TournamentHistory from "./pages/TournamentHistory";
+import TournamentLeaderboard from "./pages/TournamentLeaderboard";
 import { AuthProvider } from "./contexts/AuthContext";
 import BlockedOverlay from "./components/BlockedOverlay";
 

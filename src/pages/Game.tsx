@@ -640,6 +640,13 @@ export default function Game() {
     const possible = canPlace(board, tile);
     if (!possible) return;
     if (possible === "either" && board.length > 0) {
+      const e2 = ends(board);
+      // Raha mitovy ny tendro roa, tsy ilaina mifidy lafiny — apetraka avy hatrany.
+      if (e2 && e2.left === e2.right) {
+        setSelected(null);
+        void tryPlay(idx, "right");
+        return;
+      }
       setSelected(idx);
       return;
     }
@@ -677,7 +684,7 @@ export default function Game() {
       longPressTriggeredRef.current = true;
       setSelected(null);
       setDragIndex(idx);
-    }, 320);
+    }, 420);
   };
 
   const handleHandPointerMove = (_idx: number, e: React.PointerEvent<HTMLButtonElement>) => {
@@ -700,10 +707,15 @@ export default function Game() {
     pointerTileIndexRef.current = null;
     if (longPressTriggeredRef.current && startIdx !== null) {
       const dropIdx = dragIndex ?? idx;
-      suppressClickRef.current = true;
       longPressTriggeredRef.current = false;
       setDragIndex(null);
-      if (startIdx !== dropIdx) await reorderHand(startIdx, dropIdx);
+      if (startIdx !== dropIdx) {
+        // Tena nisy famindrana toerana → aza alefa ny click.
+        suppressClickRef.current = true;
+        await reorderHand(startIdx, dropIdx);
+      }
+      // Raha tsy nisy famindrana (notazonina fotsiny teo amin'ny toerany),
+      // avela handeha ny click mba ho voapetraka ihany ny vato.
       return;
     }
     longPressTriggeredRef.current = false;

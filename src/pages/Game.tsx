@@ -432,6 +432,10 @@ export default function Game() {
       const nextId = rotIds[(nextRound - 1) % rotIds.length];
       setRoundBanner(`Mitovy vato — tour vaovao`);
       setTimeout(() => setRoundBanner(null), 3500);
+      // DATINANDRO check on tied re-deal — instant win.
+      if (await tryDatinandroWin(game, hands, boneyard, { round_number: nextRound })) {
+        return;
+      }
       const updateNext: any = {
         round_number: nextRound,
         player1_hand: hands[0],

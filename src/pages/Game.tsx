@@ -254,8 +254,27 @@ export default function Game() {
     turn_started_at?: string;
     passes?: number;
     status?: "waiting" | "in_progress" | "finished" | "cancelled" | "blocked";
+  }, options?: {
+    expectedCurrentTurn?: string | null;
+    expectedTurnStartedAt?: string | null;
   }) => {
     if (!game?.id) return { error: new Error("game_missing") };
+    if (options?.expectedCurrentTurn || options?.expectedTurnStartedAt) {
+      return (supabase.rpc as any)("player_update_game_state_guarded", {
+        _game_id: game.id,
+        _board_state: payload.board_state ?? null,
+        _player1_hand: payload.player1_hand ?? null,
+        _player2_hand: payload.player2_hand ?? null,
+        _boneyard: payload.boneyard ?? null,
+        _current_turn: payload.current_turn ?? null,
+        _turn_started_at: payload.turn_started_at ?? null,
+        _passes: payload.passes ?? null,
+        _status: payload.status ?? null,
+        _player3_hand: payload.player3_hand ?? null,
+        _expected_current_turn: options.expectedCurrentTurn ?? null,
+        _expected_turn_started_at: options.expectedTurnStartedAt ?? null,
+      });
+    }
     return supabase.rpc("player_update_game_state", {
       _game_id: game.id,
       _board_state: payload.board_state ?? null,
@@ -501,7 +520,13 @@ export default function Game() {
     load();
     const ch = supabase.channel("game-" + id)
       .on("postgres_changes", { event: "*", schema: "public", table: "games", filter: `id=eq.${id}` },
-        (p: any) => setServerGame(p.new))
+        (p: any) => setServerGame((prev: any) => {
+          if (!p.new) return prev;
+          if (!prev) return p.new;
+          const a = new Date(prev.updated_at ?? 0).getTime();
+          const b = new Date(p.new.updated_at ?? 0).getTime();
+          return b >= a ? p.new : prev;
+        }))
       .subscribe();
     // Polling fallback (1.5s) — raha sendra tara ny realtime, mba hifohazan'ny tour avy hatrany
     const poll = setInterval(async () => {
@@ -661,6 +686,9 @@ export default function Game() {
     if (possible !== "either" && side && side !== possible) {
       return toast.error("Tsy mifanaraka amin'io tendro io");
     }
+    const expectedCurrentTurn = game.current_turn ?? null;
+    const expectedTurnStartedAt = game.turn_started_at ?? null;
+    const startedAt = new Date().toISOString();
     const newBoard = place(board, tile, chosenSide);
     const newHand = myHand.filter((_, i) => i !== idx);
     sfx.move();
@@ -672,17 +700,25 @@ export default function Game() {
       board_state: newBoard,
       [handKey]: newHand,
       current_turn: newHand.length === 0 ? game.current_turn : oppId,
-      turn_started_at: new Date().toISOString(),
+      turn_started_at: startedAt,
       passes: 0,
       updated_at: new Date().toISOString(),
     });
     setSelected(null);
 
     if (newHand.length === 0) {
-      await updateGameState({
+      const { error } = await updateGameState({
         board_state: newBoard,
         [handKey]: newHand,
-      } as any);
+      } as any, {
+        expectedCurrentTurn,
+        expectedTurnStartedAt,
+      });
+      if (error) {
+        setOptimistic(null);
+        toast.error("Tsy voaray ilay placement, andramo indray");
+        return;
+      }
       await supabase.from("game_moves").insert({
         game_id: game.id,
         player_id: user.id,
@@ -693,13 +729,21 @@ export default function Game() {
       await finishRound(user.id, points, tile);
       return;
     }
-    await updateGameState({
+    const { error } = await updateGameState({
       board_state: newBoard,
       [handKey]: newHand,
       current_turn: oppId,
-      turn_started_at: new Date().toISOString(),
+      turn_started_at: startedAt,
       passes: 0,
-    } as any);
+    } as any, {
+      expectedCurrentTurn,
+      expectedTurnStartedAt,
+    });
+    if (error) {
+      setOptimistic(null);
+      toast.error("Nisy fifanenjanana tamin'ny tour, andramo indray");
+      return;
+    }
     await supabase.from("game_moves").insert({
       game_id: game.id,
       player_id: user.id,
@@ -855,10 +899,17 @@ export default function Game() {
         const newBoard = place(liveBoard, tile, chosenSide);
         const newHand = turnHand.filter((_, i) => i !== playableIdx);
         if (newHand.length === 0) {
-          await updateGameState({
+          const { error: updateError } = await updateGameState({
             board_state: newBoard,
             [turnKey]: newHand,
-          } as any);
+          } as any, {
+            expectedCurrentTurn: turnId,
+            expectedTurnStartedAt: fresh.turn_started_at,
+          });
+          if (updateError) {
+            autoActedRef.current = null;
+            return;
+          }
           const { error: moveLogError } = await supabase.from("game_moves").insert({
             game_id: game.id,
             player_id: turnId,
@@ -876,13 +927,21 @@ export default function Game() {
           await finishRound(turnId, newHand.length === 0 ? pipsTotal(otherTiles) : 0, tile);
           return;
         }
-        await updateGameState({
+        const startedAt = new Date().toISOString();
+        const { error: updateError } = await updateGameState({
           board_state: newBoard,
           [turnKey]: newHand,
           current_turn: oppId,
-          turn_started_at: new Date().toISOString(),
+          turn_started_at: startedAt,
           passes: 0,
-        } as any);
+        } as any, {
+          expectedCurrentTurn: turnId,
+          expectedTurnStartedAt: fresh.turn_started_at,
+        });
+        if (updateError) {
+          autoActedRef.current = null;
+          return;
+        }
       const { error: moveLogError } = await supabase.from("game_moves").insert({
         game_id: game.id,
         player_id: turnId,

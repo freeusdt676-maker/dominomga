@@ -1271,6 +1271,23 @@ export type Database = {
             }
             Returns: Json
           }
+      player_update_game_state_guarded: {
+        Args: {
+          _board_state?: Json
+          _boneyard?: Json
+          _current_turn?: string
+          _expected_current_turn?: string
+          _expected_turn_started_at?: string
+          _game_id: string
+          _passes?: number
+          _player1_hand?: Json
+          _player2_hand?: Json
+          _player3_hand?: Json
+          _status?: Database["public"]["Enums"]["game_status"]
+          _turn_started_at?: string
+        }
+        Returns: Json
+      }
       record_login_attempt: {
         Args: { _phone: string; _success: boolean }
         Returns: Json

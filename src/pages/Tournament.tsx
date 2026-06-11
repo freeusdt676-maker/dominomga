@@ -332,12 +332,7 @@ export default function Tournament() {
                 <p className="mt-4 text-sm text-amber-400">
                   {count >= 8 ? "Feno ny tournoi" : "Mikatona ny fisoratana anarana"}
                 </p>
-              ) : (
-                <button onClick={() => { setStep("form"); setOpenReg(true); }}
-                  className="mt-4 w-full btn-luxe text-base py-3">
-                  HANDRAY ANJARA
-                </button>
-              )}
+              ) : null}
 
               <p className="mt-4 text-[10px] text-muted-foreground">
                 Amin'ny fanindriana CONFIRMER + PIN, ekenao fa hanaisotra <b>5 000 Ar</b> amin'ny wallet-nao avy hatrany.

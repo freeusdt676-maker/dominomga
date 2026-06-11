@@ -994,7 +994,7 @@ export default function Admin() {
             <Row label="Ticket" value={detectedCancelGame?.ticket_number ? `Nº${detectedCancelGame.ticket_number}` : cancelTicketInput || "—"} mono />
             <Row label="Sokajy" value={detectedCancelGame ? (detectedCancelGame.game_kind === "ludo" ? "Ludo" : detectedCancelGame.game_kind === "petanque" ? "Pétanque" : "Domino") : "—"} />
             <Row label="Status" value={detectedCancelGame?.status ?? "—"} />
-            <Input type="password" inputMode="numeric" maxLength={6} value={cancelPin} onChange={(e) => setCancelPin(e.target.value)} placeholder="Codé ADMINISTRATIF 2583" />
+            <Input type="password" inputMode="numeric" maxLength={6} value={cancelPin} onChange={(e) => setCancelPin(e.target.value)} placeholder="Codé ADMINISTRATIF" />
             <DialogFooter>
               <Button variant="outline" onClick={() => setCancelOpen(false)}>Annuler</Button>
               <Button variant="destructive" disabled={!detectedCancelGame} onClick={cancelGameByTicket}>OK voafafa avy hatrany</Button>
@@ -1010,7 +1010,7 @@ export default function Admin() {
           </DialogHeader>
           <div className="space-y-3 text-sm">
             <p className="text-muted-foreground">Foanana daholo ny Domino sy Ludo mbola mandeha na miandry amin'izao fotoana izao, ary averina amin'ny mpilalao tsirairay ny volany.</p>
-            <Input type="password" inputMode="numeric" maxLength={6} value={cancelAllPin} onChange={(e) => setCancelAllPin(e.target.value)} placeholder="Codé ADMINISTRATIF 2583" />
+            <Input type="password" inputMode="numeric" maxLength={6} value={cancelAllPin} onChange={(e) => setCancelAllPin(e.target.value)} placeholder="Codé ADMINISTRATIF" />
             <DialogFooter>
               <Button variant="outline" onClick={() => setCancelAllOpen(false)}>Annuler</Button>
               <Button variant="destructive" onClick={cancelAllActiveGames}>Confirmer</Button>
@@ -1026,7 +1026,7 @@ export default function Admin() {
           </DialogHeader>
           <div className="space-y-3 text-sm">
             <p className="text-muted-foreground">Hosakanana daholo ny compte mpilalao rehetra eto amin'ny app (afa-tsy ny compte administratif). Tsy hisy afaka miditra intsony.</p>
-            <Input type="password" inputMode="numeric" maxLength={6} value={blockAllPin} onChange={(e) => setBlockAllPin(e.target.value)} placeholder="Codé ADMINISTRATIF 2583" />
+            <Input type="password" inputMode="numeric" maxLength={6} value={blockAllPin} onChange={(e) => setBlockAllPin(e.target.value)} placeholder="Codé ADMINISTRATIF" />
             <DialogFooter>
               <Button variant="outline" onClick={() => setBlockAllOpen(false)}>Hialana</Button>
               <Button variant="destructive" onClick={blockAllAccounts}>Hamarino — Sakàno daholo</Button>
@@ -1042,7 +1042,7 @@ export default function Admin() {
           </DialogHeader>
           <div className="space-y-3 text-sm">
             <p className="text-muted-foreground">Hosokafana daholo ny compte mpilalao voasakana rehetra. Afaka miverina milalao avokoa izy ireo.</p>
-            <Input type="password" inputMode="numeric" maxLength={6} value={unblockAllPin} onChange={(e) => setUnblockAllPin(e.target.value)} placeholder="Codé ADMINISTRATIF 2583" />
+            <Input type="password" inputMode="numeric" maxLength={6} value={unblockAllPin} onChange={(e) => setUnblockAllPin(e.target.value)} placeholder="Codé ADMINISTRATIF" />
             <DialogFooter>
               <Button variant="outline" onClick={() => setUnblockAllOpen(false)}>Hialana</Button>
               <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={unblockAllAccounts}>Hamarino — Sokafy daholo</Button>
@@ -1144,13 +1144,13 @@ export default function Admin() {
         </DialogContent>
       </Dialog>
 
-      {/* RESET BALANCE — mila PIN 2583 */}
+      {/* RESET BALANCE — mila PIN admin */}
       <Dialog open={!!resetTarget} onOpenChange={(o) => !o && setResetTarget(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Réinitialiser solde — {resetTarget?.mvola_name}</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">Ny solde dia hiverina 0 Ar. Ampidiro ny PIN administratif (2583) hanamafisana.</p>
+          <p className="text-sm text-muted-foreground">Ny solde dia hiverina 0 Ar. Ampidiro ny PIN administratif hanamafisana.</p>
           <Input type="password" inputMode="numeric" maxLength={6} value={resetPin} onChange={(e) => setResetPin(e.target.value)} placeholder="PIN" />
           <DialogFooter>
             <Button variant="outline" onClick={() => setResetTarget(null)}>Aoka</Button>
@@ -1159,14 +1159,14 @@ export default function Admin() {
         </DialogContent>
       </Dialog>
 
-      {/* RESET COMMISSION ADMIN — mila PIN 2583 */}
+      {/* RESET COMMISSION ADMIN — mila PIN admin */}
       <Dialog open={commissionResetOpen} onOpenChange={(o) => { if (!o) { setCommissionResetOpen(false); setCommissionPin(""); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Réinitialiser solde commission</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Ny solde Wallet Admin (commission) dia hiverina 0 Ar. Ampidiro ny PIN administratif (2583) hanamafisana.
+            Ny solde Wallet Admin (commission) dia hiverina 0 Ar. Ampidiro ny PIN administratif hanamafisana.
           </p>
           <Input
             type="password"

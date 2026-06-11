@@ -16,9 +16,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { fmtAr } from "@/lib/constants";
-// Domino: tour mandritra 10 segondra. Aloha ny 10s dia ny mpilalao no manindry,
-// rehefa tapitra dia mandeha automatique (auto-play).
-const TURN_TIMEOUT_SEC = 10;
+// Domino: tour mandritra 20 segondra. Aloha ny 20s dia ny mpilalao IHANY no
+// manindry, rehefa tapitra ny 20s vao mandeha automatique (auto-play).
+const TURN_TIMEOUT_SEC = 20;
+// Grace ho an'ny mpijery (tsy tompon'ny tour): miandry 2s fanampiny mba ny
+// client an'ilay mpilalao no manao auto aloha — tsy misy fifanenjanana.
+const AUTO_OTHER_GRACE_SEC = 2;
 import { DominoTile, DominoBack } from "@/components/DominoTile";
 import { SnakeBoard } from "@/components/SnakeBoard";
 import { useThemeClass } from "@/hooks/use-theme-class";
@@ -89,6 +92,10 @@ export default function Game() {
   const [confirmAbandon, setConfirmAbandon] = useState(false);
   const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null);
   const autoActedRef = useRef<string | null>(null);
+  // Fantsona local: rehefa miova ny tour dia raketina ny ora LOCAL — izany no
+  // miaro amin'ny "clock skew" (ora server ≠ ora telefaona) izay nahatonga ny
+  // auto-play handeha mialoha ny 20s.
+  const turnAnchorRef = useRef<{ key: string; at: number }>({ key: "", at: 0 });
   const initLockRef = useRef(false);
   const roundEndLockRef = useRef<string | null>(null);
   const revealCommitRef = useRef<string | null>(null);

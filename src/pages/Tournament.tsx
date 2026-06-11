@@ -173,7 +173,7 @@ export default function Tournament() {
               </div>
 
               <div className="mt-4 text-left text-xs space-y-1 hairline rounded-lg p-3">
-                <p className="flex justify-between"><span>📅 Inscription:</span><span>Latsinainy → Sabotsy 00:00</span></p>
+                <p className="flex justify-between"><span>📅 Inscription:</span><span>{fmtMG(tournament?.week_start)} → {fmtMG(tournament?.reg_close)}</span></p>
                 <p className="flex justify-between"><span>⏰ ¼ finale:</span><span>{fmtMG(tournament?.qf_at)}</span></p>
                 <p className="flex justify-between"><span>⏰ ½ finale:</span><span>{fmtMG(tournament?.sf_at)}</span></p>
                 <p className="flex justify-between"><span>⏰ Petite finale:</span><span>{fmtMG(tournament?.third_at)}</span></p>

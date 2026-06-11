@@ -32,35 +32,53 @@ function LudoDice3DBase({ face, size = 64, idle = false, rolling = false }: Prop
       <defs>
         <linearGradient id="dieFill" x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="55%" stopColor="#f4efe3" />
-          <stop offset="100%" stopColor="#c9bfa6" />
+          <stop offset="40%" stopColor="#fbf6e8" />
+          <stop offset="75%" stopColor="#e9dfbf" />
+          <stop offset="100%" stopColor="#a8956b" />
         </linearGradient>
-        <radialGradient id="dieGloss" cx="30%" cy="22%" r="55%">
+        <linearGradient id="dieEdge" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#ffe27a" />
+          <stop offset="50%" stopColor="#d4a52c" />
+          <stop offset="100%" stopColor="#7a5a14" />
+        </linearGradient>
+        <radialGradient id="dieGloss" cx="30%" cy="20%" r="60%">
           <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
           <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
         </radialGradient>
-        <radialGradient id="pipGrad" cx="35%" cy="30%" r="70%">
-          <stop offset="0%" stopColor="#5a2bd6" />
-          <stop offset="60%" stopColor="#2c1356" />
-          <stop offset="100%" stopColor="#0d0420" />
+        <radialGradient id="dieCorner" cx="100%" cy="100%" r="80%">
+          <stop offset="0%" stopColor="#000" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="#000" stopOpacity="0" />
         </radialGradient>
+        <radialGradient id="pipGrad" cx="35%" cy="28%" r="75%">
+          <stop offset="0%" stopColor="#7d4dff" />
+          <stop offset="55%" stopColor="#3a1a78" />
+          <stop offset="100%" stopColor="#0a0218" />
+        </radialGradient>
+        <filter id="dieDrop" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="3" stdDeviation="2.2" floodOpacity="0.55" />
+        </filter>
         <filter id="pipShade" x="-20%" y="-20%" width="140%" height="140%">
           <feGaussianBlur stdDeviation="0.6" />
         </filter>
       </defs>
-      {/* Body */}
-      <rect x="5" y="5" width="90" height="90" rx="18" ry="18" fill="url(#dieFill)" stroke="#2c1356" strokeWidth="3" />
+      {/* Body w/ gold edge */}
+      <rect x="4" y="4" width="92" height="92" rx="20" ry="20" fill="url(#dieEdge)" filter="url(#dieDrop)" />
+      <rect x="7" y="7" width="86" height="86" rx="17" ry="17" fill="url(#dieFill)" stroke="#3a2410" strokeWidth="1.2" />
+      {/* Corner shade for 3D depth */}
+      <rect x="7" y="7" width="86" height="86" rx="17" ry="17" fill="url(#dieCorner)" />
       {/* Top highlight */}
-      <rect x="10" y="10" width="80" height="36" rx="14" ry="14" fill="url(#dieGloss)" />
-      {/* Inner bevel */}
-      <rect x="8" y="8" width="84" height="84" rx="16" ry="16" fill="none" stroke="#ffffff" strokeOpacity="0.55" strokeWidth="1.2" />
-      <rect x="8" y="8" width="84" height="84" rx="16" ry="16" fill="none" stroke="#000" strokeOpacity="0.15" strokeWidth="1.2" transform="translate(0 1)" />
+      <rect x="12" y="11" width="76" height="34" rx="14" ry="14" fill="url(#dieGloss)" />
+      {/* Inner bevels */}
+      <rect x="9" y="9" width="82" height="82" rx="15" ry="15" fill="none" stroke="#ffffff" strokeOpacity="0.7" strokeWidth="1.1" />
+      <rect x="9" y="10" width="82" height="82" rx="15" ry="15" fill="none" stroke="#000" strokeOpacity="0.18" strokeWidth="1.1" />
       {/* Pips */}
       {pips.map(([cx, cy], i) => (
         <g key={i}>
-          <circle cx={cx * 100} cy={cy * 100 + 1.5} r="8" fill="#000" opacity="0.18" filter="url(#pipShade)" />
-          <circle cx={cx * 100} cy={cy * 100} r="8" fill="url(#pipGrad)" />
-          <circle cx={cx * 100 - 2} cy={cy * 100 - 2.5} r="2.6" fill="#ffffff" opacity="0.55" />
+          {/* Recessed socket */}
+          <circle cx={cx * 100} cy={cy * 100 + 1.8} r="9" fill="#000" opacity="0.22" filter="url(#pipShade)" />
+          <circle cx={cx * 100} cy={cy * 100} r="8.5" fill="url(#pipGrad)" stroke="#0a0218" strokeWidth="0.6" />
+          <circle cx={cx * 100 - 2.4} cy={cy * 100 - 2.8} r="2.8" fill="#ffffff" opacity="0.7" />
+          <circle cx={cx * 100 + 2.4} cy={cy * 100 + 2.6} r="1.2" fill="#ffffff" opacity="0.35" />
         </g>
       ))}
     </svg>

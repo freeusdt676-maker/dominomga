@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Trophy, XCircle, AlertTriangle } from "lucide-react";
+import { Trophy, XCircle, AlertTriangle, FastForward, UserX } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 
 function fmtMG(iso?: string | null) {
@@ -23,6 +23,8 @@ export default function TournamentAdmin() {
   const [cancelReg, setCancelReg] = useState<any | null>(null);
   const [cancelAllOpen, setCancelAllOpen] = useState(false);
   const [pin, setPin] = useState("");
+  const [forfeitMatch, setForfeitMatch] = useState<any | null>(null);
+  const [forfeitLoser, setForfeitLoser] = useState<string>("");
 
   const load = async () => {
     const { data: d } = await supabase.rpc("tournament_get_current" as any, { _game_type: gameType });
@@ -53,6 +55,26 @@ export default function TournamentAdmin() {
     if (error) { toast.error(error.message); return; }
     toast.success(`Voafoana — ${(r as any)?.refunded ?? 0} mpilalao naverin'ny vola`);
     setCancelAllOpen(false); setPin("");
+    load();
+  };
+
+  const handleForceAdvance = async () => {
+    const pin2 = prompt("PIN admin?");
+    if (!pin2) return;
+    const { error } = await supabase.rpc("tournament_admin_force_advance" as any, { _pin: pin2 });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Force advance tafita");
+    load();
+  };
+
+  const handleForceForfeit = async () => {
+    if (!forfeitMatch || !forfeitLoser) return;
+    const { error } = await supabase.rpc("tournament_admin_force_forfeit" as any, {
+      _match_id: forfeitMatch.id, _loser: forfeitLoser, _pin: pin,
+    });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Forfait voarakitra");
+    setForfeitMatch(null); setForfeitLoser(""); setPin("");
     load();
   };
 
@@ -151,7 +173,7 @@ export default function TournamentAdmin() {
             {matches.map((m) => {
               const nameOf = (uid?: string) => regs.find((r) => r.user_id === uid)?.nom ?? "?";
               return (
-                <div key={m.id} className="hairline rounded p-2 flex items-center justify-between">
+                <div key={m.id} className="hairline rounded p-2 flex items-center justify-between gap-2">
                   <div>
                     <p className="text-[10px] text-[hsl(var(--gold-1))]">{m.round.toUpperCase()} #{m.match_index}</p>
                     <p>{nameOf(m.player1_id)} <span className="text-muted-foreground">vs</span> {nameOf(m.player2_id)}</p>
@@ -160,7 +182,15 @@ export default function TournamentAdmin() {
                     {m.winner_id ? (
                       <p className="text-emerald-400 font-bold">🏆 {nameOf(m.winner_id)}</p>
                     ) : (
-                      <p className="text-amber-400">⏳ Miandry</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-amber-400">⏳ Miandry</p>
+                        {m.game_id && (
+                          <Button size="sm" variant="ghost" className="text-red-400 h-7 px-2"
+                            onClick={() => { setForfeitMatch(m); setForfeitLoser(""); }}>
+                            <UserX className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -171,9 +201,14 @@ export default function TournamentAdmin() {
       )}
 
       {t.status !== "finished" && t.status !== "cancelled" && (
-        <Button variant="destructive" className="w-full" onClick={() => setCancelAllOpen(true)}>
-          <AlertTriangle className="w-4 h-4 mr-2" /> HANAFOANA ny tournoi manontolo
-        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button variant="outline" className="w-full" onClick={handleForceAdvance}>
+            <FastForward className="w-4 h-4 mr-1" /> Force advance
+          </Button>
+          <Button variant="destructive" className="w-full" onClick={() => setCancelAllOpen(true)}>
+            <AlertTriangle className="w-4 h-4 mr-1" /> HANAFOANA
+          </Button>
+        </div>
       )}
 
       {/* Cancel single */}
@@ -197,6 +232,35 @@ export default function TournamentAdmin() {
           <DialogFooter>
             <Button variant="ghost" onClick={() => setCancelAllOpen(false)}>Tsia</Button>
             <Button variant="destructive" onClick={handleCancelAll}>FOANANA DAHOLO</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Force forfeit */}
+      <Dialog open={!!forfeitMatch} onOpenChange={(o) => { if (!o) { setForfeitMatch(null); setForfeitLoser(""); setPin(""); } }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Force forfait — Match {forfeitMatch?.round?.toUpperCase()} #{forfeitMatch?.match_index}</DialogTitle></DialogHeader>
+          <p className="text-xs text-muted-foreground">Safidio izay mpilalao resy:</p>
+          {forfeitMatch && (
+            <div className="grid grid-cols-2 gap-2">
+              {[forfeitMatch.player1_id, forfeitMatch.player2_id].map((pid) => {
+                const nm = regs.find((r) => r.user_id === pid)?.nom ?? "?";
+                const active = forfeitLoser === pid;
+                return (
+                  <button key={pid} onClick={() => setForfeitLoser(pid)}
+                    className={`hairline rounded p-2 text-sm ${active ? "bg-red-500/20 border-red-400" : ""}`}>
+                    {nm}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          <Input type="password" value={pin} onChange={(e) => setPin(e.target.value)} placeholder="Code PIN 2583" />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setForfeitMatch(null)}>Tsia</Button>
+            <Button variant="destructive" onClick={handleForceForfeit} disabled={!forfeitLoser || !pin}>
+              Forfait
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

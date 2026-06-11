@@ -85,6 +85,9 @@ export default function Game() {
   const [profilePhotos, setProfilePhotos] = useState<Record<string, string | null>>({});
   const [selected, setSelected] = useState<number | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  // Famadihana an-tànana: ny pilalao afaka mamadika ny vato ao am-pelatànany
+  // araka izay tiany (rotation 180°), nefa tsy miova ny valeur azo ametraka.
+  const [flippedHand, setFlippedHand] = useState<Record<number, boolean>>({});
   const [ticketBanner, setTicketBanner] = useState<string | null>(null);
   const [roundBanner, setRoundBanner] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());

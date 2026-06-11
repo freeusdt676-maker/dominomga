@@ -1,64 +1,99 @@
-## Vinavina
+## Tanjona
 
-Onglet vaovao "TOURNOI DU SEMAINE" (logo coupe d'or) eo amin'ny Home, manelanelana ny lalao Domino sy ny lalao hafa. Ny rafitra:
+Hampidirina ny **Tornoi Ludo** sy **Tornoi Pétanque** miaraka amin'ny Tornoi Domino efa misy ao amin'ny pejy "Tournoi du Semaine". Tornoi 3 samihafa, mitovy rafitra tanteraka:
+- 8 mpilalao isaky ny tornoi
+- 5 000 Ar mise
+- Loka mitovy: 30 000 / 6 000 / 4 000 Ar
+- Sabotsy 14h00 (¼) → 14h40 (½) → 15h20 (3è) → 16h00 (Finale)
 
-1. **TOURNOI DU SEMAINE** (page miverina avy amin'ny ongles)
-2. **RÉGLER** (lalàna feno, emoji)
-3. **HANDRAY ANJARA** (formulaire: NOM, TÉL, ID, MISE 5000Ar → CONFIRMER → PIN)
+Ny mpilalao iray dia afaka misoratra anarana amin'ny 1, 2 na 3 tornoi miaraka (samy manana wallet deduction azy).
 
-## Lalàna (tena hatao mazava amin'ny "RÉGLER")
+## Endrika UI
 
-- 🎮 Lalao: Domino 2 mpilalao (tena mitovy amin'ny lalao tsotra)
-- 👥 Mpandray anjara: **8 ihany** (raha feno dia mikatona)
-- 💰 Mise: **5 000 Ar / olona** (alaina avy hatrany rehefa CONFIRMER)
-- 🏆 Loka: 1<sup>er</sup> **30 000 Ar** · 2<sup>è</sup> **6 000 Ar** · Admin **4 000 Ar**
-- 🗓️ Inscription: **Latsinainy 00:00** ka hatramin'ny **Sabotsy 00:00** (ora MG)
-- 🪙 Wallet iray = inscription iray (tsy azo soratana indroa)
-- 🧩 Bracket: apahavalon-dalana avy hatrany. Group A/B/C/D (olona 2 isaky ny groupe), arahan'ny fahatongavana ny fizarana.
-- ⏰ Fandaharana (ora MG):
-  - 14:00 — ¼ finale (A1vA2, B1vB2, C1vC2, D1vD2)
-  - 14:40 — ½ finale (Mpandresy A vs B, C vs D)
-  - 15:20 — Petite finale (faharoa)
-  - 16:00 — Finale
-- ❌ Ny ADMINISTRATIF irery no afaka manafoana mpandray anjara na ny tournoi manontolo (PIN 2583, miverina ny vola)
-- 🔄 Alahady 00:00: mifafa ho azy ny tournoi taloha, manomboka indray ny inscription vaovao
-- 🚫 Tsy misy halatra: snapshot atao isaky ny round, audit log, integrity trigger
+Onglet vaovao mahitsy ao **ambonin'ny** "Tournoi / Règler / Handray":
+```text
+[ 🁫 DOMINO ] [ 🎲 LUDO ] [ 🎯 PÉTANQUE ]
+       └── 🏆 Tournoi   📖 Règler   ✍️ Handray
+```
+Ny safidy iray dia mamadika ny rehetra (count, bracket, regs, formulaire, lalàna). Mitazona ny endrika "luxe-card" misy efa eo.
 
-## Fototra teknika
+Bracket-na Ludo: 2 mpilalao isaky ny lalao (mode 2P). Pétanque: 2 mpilalao. Domino: tsy miova.
 
-### Base données (migration)
-- `tournaments` — week_start, week_end, status (registration / running / finished / cancelled), winner_id, runner_up_id, total_collected
-- `tournament_registrations` — tournament_id, user_id (UNIQUE), nom, tel, id_card, paid_amount, group_letter, slot, cancelled_at
-- `tournament_matches` — tournament_id, round (qf/sf/3rd/final), match_index, player1_id, player2_id, winner_id, game_id, scheduled_at, started_at, finished_at
+Bouton "▶️ Miditra amin'ny lalao-ko" mandeha amin'ny route mety:
+- Domino → `/game/:id`
+- Ludo → `/ludo/:id`
+- Pétanque → `/petanque/:id`
 
-### RPC vaovao
-- `tournament_get_current()` — manome ny tournoi mandeha (na manamboatra azy raha tsy misy)
-- `tournament_register(_nom, _tel, _id_card, _pin)` — manamarina PIN, manala 5000, mametraka groupe/slot, mikatona raha 8
-- `tournament_admin_cancel_registration(_reg_id, _pin)` — miverina 5000
-- `tournament_admin_cancel_tournament(_pin)` — miverina ny vola rehetra
-- `tournament_advance()` — idempotent, antsoina any amin'ny client. Mamorona ny lalao Domino isaky ny round rehefa tonga ny ora
-- `tournament_record_match_winner(_match_id, _winner)` — antsoina avy ao @Game.tsx amin'ny faran'ny lalao tournoi
-- `tournament_settle()` — mizara ny loka rehefa vita ny finale & petite finale
+## Backend (migration tokana)
 
-### Sary / Pages
-- `src/pages/Tournament.tsx` — ongles 3 (Tournoi / Règler / Handray anjara)
-- `src/components/TournamentBracket.tsx` — sary bracket tsara tarehy (Lucide Trophy icon)
-- `src/components/TournamentRegisterDialog.tsx` — formulaire + PIN modal
-- `src/components/admin/TournamentAdmin.tsx` — vinavina ho an'ny ADM (lisitra, total, bokotra annuler)
-- Home.tsx — bokotra vaovao + logo Trophy
-- Admin.tsx — bokotra "TORNOI DU SEMAINE"
-- Game.tsx — raha `tournament_match_id` dia tsy miala mise indray fa antsoina `tournament_record_match_winner` rehefa vita
+### Database
+1. ENUM vaovao `tournament_game_type` ('domino','ludo','petanque').
+2. `tournaments.game_type` (default 'domino' ho an'ny rakitra efa misy). Esorina ny UNIQUE(week_start), apetraka UNIQUE(week_start, game_type).
+3. Atao seeded ny tournoi Ludo + Pétanque ho an'ny herinandro misy ankehitriny.
+4. Atao `ludo_games.tournament_match_id` + `is_tournament`, toy izany koa `petanque_games`.
 
-### Vola — invariant
-Total tafiditra = 8 × 5000 = **40 000 Ar**. Fizarana = 30 000 + 6 000 + 4 000 = **40 000 Ar**. Net delta = 0. ✓
-- Inscription: wallet -5000, tournament.total_collected +5000
-- Annulation: wallet +5000, total_collected -5000
-- Settle: wallet[winner] +30000, wallet[runner_up] +6000, admin_wallet +4000
+### RPC novaina (rehetra mandray `_game_type text` parameter)
+- `tournament_ensure_current(_game_type)` → mahazo na mamorona herinandro misy ny game_type.
+- `tournament_get_current(_game_type)` → mamerina tournoi + regs + matches ho an'ny game_type.
+- `tournament_register(_game_type, _nom, _tel, _id_card, _pin)` → manesotra 5000 amin'ny wallet, manisy groupe + slot ao amin'ny game_type tiana.
+- `tournament_admin_cancel(_game_type, _pin)` sy `tournament_admin_cancel_registration(_reg_id, _pin)` (efa scoped amin'ny reg).
+- `tournament_advance(_game_type)` → mamorona matches: 
+  - domino → `games` (efa misy)
+  - ludo → `ludo_games` (players_count=2, status='in_progress', stake=0)
+  - petanque → `petanque_games` (stake=0)
+- `tournament_create_match_game(_tid, _game_type, _p1, _p2)` → branch isaky ny game_type.
+- `ludo_settle` sy `petanque_settle`: ampiana branch "if is_tournament" toy ny efa misy ao amin'ny `settle_game` — tsy misy vola mifindra, tsy mila cash_pool, fa manamarika winner_id + mamerina amin'ny `tournament_matches`.
+- `tournament_settle_prizes(_tid)` mitovy.
 
-### Ora
-Ampiasaina `Africa/Antananarivo` (UTC+3) amin'ny calcul rehetra ny week_start / round_scheduled_at.
+### Compatibility
+Ny RPC efa misy tsy mandray parameter (`tournament_get_current()`) dia tehirizina ho overload mamerina ilay tournoi 'domino' mba tsy hahatapaka ny code efa misy ankehitriny (TournamentAdmin.tsx atomboka manaitra azy ireo amin'ny `_game_type='domino'`).
 
-### Tsy hovàna
-- Aza kitihina ny lalao Domino misy (engine), Ludo, Pétanque, Spectator.
-- Aza kitihina ny rafitra wallet/admin_wallets.
-- Ny RPC `start_game_deduct` tsy antsoina amin'ny lalao tournoi (efa nandoa mialoha amin'ny inscription).
+## Frontend
+
+### `src/pages/Tournament.tsx`
+- State vaovao `gameType: 'domino' | 'ludo' | 'petanque'`.
+- Segmented control eo ambony (chip 3 misy logo + anarana).
+- Antsoina `tournament_get_current` miaraka amin'ny `_game_type`.
+- Antsoina `tournament_register` sy `tournament_advance` miaraka amin'ny `_game_type`.
+- Subscription realtime: filter amin'ny `tournament_id` ankehitriny mba tsy ho be loatra ny load.
+- `myActiveMatch` route adika arakaraka ny game_type.
+
+### `src/components/TournamentAdmin.tsx`
+- Segmented control mitovy. Mahatazona ny PIN 2583.
+
+### `src/pages/Home.tsx` (kely fotsiny)
+- Ny bokotra Trophy efa mitondra amin'ny `/tournament` — tsy miova. (Ny safidin'ny game_type ao anatin'ny pejy.)
+
+## Sary teknika (txt diagram)
+
+```text
+tournaments
+ ├─ (week_start, game_type) UNIQUE   ← NEW composite key
+ └─ game_type: domino | ludo | petanque
+
+tournament_matches
+ └─ game_id   ── (game_type) ──►   games  /  ludo_games  /  petanque_games
+                                   (is_tournament=true, cash_pool=0)
+
+tournament_advance(_game_type)
+ ├─ ensure_current(_game_type)
+ ├─ close registration / cancel-if-not-8
+ ├─ create QF (4) → SF (2) → 3rd + Final
+ └─ settle_prizes (30k / 6k / 4k Ar)
+```
+
+## Tsy hovàna
+
+- Engine Domino (LOCKED): tsy kitihina.
+- Engine Ludo / Pétanque: tsy kitihina mihitsy ny logique lalao; ny `is_tournament` branch dia ao amin'ny settle RPC fotsiny mba tsy misy vola mifindra (efa nandoa amin'ny inscription).
+- Wallet/admin_wallets: tsy ovàna ny invariant. 8×5000 = 40 000 = 30 000+6 000+4 000.
+- Tsy misy ovàna ny tournoi Domino efa mandeha izao (game_type='domino' ho azy).
+
+## Dingana
+
+1. Mamorona migration miaraka amin'ny ENUM, ALTER tabilao, sy ny RPC rehetra (~250 andalana SQL).
+2. Mamboatra `src/pages/Tournament.tsx` (manampy game_type selector + nampifanaraka ny appel RPC).
+3. Mamboatra `src/components/TournamentAdmin.tsx` (mitovy).
+4. QA: jereo ny console + network rehefa misafidy game_type, register, advance.
+
+Ho lava ny migration fa tokana — tsy hokitihina ny code lalao Domino/Ludo/Pétanque.

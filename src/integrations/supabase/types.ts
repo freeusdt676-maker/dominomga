@@ -438,6 +438,7 @@ export type Database = {
           dice_rolled: boolean
           finished_at: string | null
           id: string
+          is_tournament: boolean
           last_dice: number | null
           pawns: Json
           player1_id: string
@@ -450,6 +451,7 @@ export type Database = {
           stake: number
           status: Database["public"]["Enums"]["game_status"]
           ticket_number: string | null
+          tournament_match_id: string | null
           turn_started_at: string | null
           updated_at: string
           winner_id: string | null
@@ -463,6 +465,7 @@ export type Database = {
           dice_rolled?: boolean
           finished_at?: string | null
           id?: string
+          is_tournament?: boolean
           last_dice?: number | null
           pawns?: Json
           player1_id: string
@@ -475,6 +478,7 @@ export type Database = {
           stake: number
           status?: Database["public"]["Enums"]["game_status"]
           ticket_number?: string | null
+          tournament_match_id?: string | null
           turn_started_at?: string | null
           updated_at?: string
           winner_id?: string | null
@@ -488,6 +492,7 @@ export type Database = {
           dice_rolled?: boolean
           finished_at?: string | null
           id?: string
+          is_tournament?: boolean
           last_dice?: number | null
           pawns?: Json
           player1_id?: string
@@ -500,6 +505,7 @@ export type Database = {
           stake?: number
           status?: Database["public"]["Enums"]["game_status"]
           ticket_number?: string | null
+          tournament_match_id?: string | null
           turn_started_at?: string | null
           updated_at?: string
           winner_id?: string | null
@@ -577,6 +583,7 @@ export type Database = {
           current_turn: string | null
           finished_at: string | null
           id: string
+          is_tournament: boolean
           player1_id: string
           player2_id: string | null
           round_number: number
@@ -586,6 +593,7 @@ export type Database = {
           state: Json
           status: Database["public"]["Enums"]["game_status"]
           ticket_number: string | null
+          tournament_match_id: string | null
           turn_started_at: string | null
           updated_at: string
           winner_id: string | null
@@ -597,6 +605,7 @@ export type Database = {
           current_turn?: string | null
           finished_at?: string | null
           id?: string
+          is_tournament?: boolean
           player1_id: string
           player2_id?: string | null
           round_number?: number
@@ -606,6 +615,7 @@ export type Database = {
           state?: Json
           status?: Database["public"]["Enums"]["game_status"]
           ticket_number?: string | null
+          tournament_match_id?: string | null
           turn_started_at?: string | null
           updated_at?: string
           winner_id?: string | null
@@ -617,6 +627,7 @@ export type Database = {
           current_turn?: string | null
           finished_at?: string | null
           id?: string
+          is_tournament?: boolean
           player1_id?: string
           player2_id?: string | null
           round_number?: number
@@ -626,6 +637,7 @@ export type Database = {
           state?: Json
           status?: Database["public"]["Enums"]["game_status"]
           ticket_number?: string | null
+          tournament_match_id?: string | null
           turn_started_at?: string | null
           updated_at?: string
           winner_id?: string | null
@@ -898,6 +910,7 @@ export type Database = {
         Row: {
           created_at: string
           final_at: string
+          game_type: Database["public"]["Enums"]["tournament_game_type"]
           id: string
           qf_at: string
           reg_close: string
@@ -915,6 +928,7 @@ export type Database = {
         Insert: {
           created_at?: string
           final_at: string
+          game_type?: Database["public"]["Enums"]["tournament_game_type"]
           id?: string
           qf_at: string
           reg_close: string
@@ -932,6 +946,7 @@ export type Database = {
         Update: {
           created_at?: string
           final_at?: string
+          game_type?: Database["public"]["Enums"]["tournament_game_type"]
           id?: string
           qf_at?: string
           reg_close?: string
@@ -1313,7 +1328,10 @@ export type Database = {
         }
         Returns: Json
       }
-      tournament_admin_cancel: { Args: { _pin: string }; Returns: Json }
+      tournament_admin_cancel: {
+        Args: { _game_type: string; _pin: string }
+        Returns: Json
+      }
       tournament_admin_cancel_auto: {
         Args: { _tid: string }
         Returns: undefined
@@ -1322,18 +1340,35 @@ export type Database = {
         Args: { _pin: string; _reg_id: string }
         Returns: Json
       }
-      tournament_advance: { Args: never; Returns: Json }
+      tournament_advance: { Args: { _game_type?: string }; Returns: Json }
       tournament_create_match_game: {
-        Args: { _p1: string; _p2: string; _tid: string }
+        Args: { _game_type: string; _p1: string; _p2: string; _tid: string }
         Returns: string
       }
-      tournament_ensure_current: { Args: never; Returns: string }
-      tournament_get_current: { Args: never; Returns: Json }
+      tournament_ensure_current: {
+        Args: { _game_type?: string }
+        Returns: string
+      }
+      tournament_get_current: { Args: { _game_type?: string }; Returns: Json }
+      tournament_link_game_to_match: {
+        Args: { _game_id: string; _game_type: string; _tid: string }
+        Returns: undefined
+      }
       tournament_register: {
-        Args: { _id_card: string; _nom: string; _pin: string; _tel: string }
+        Args: {
+          _game_type: string
+          _id_card: string
+          _nom: string
+          _pin: string
+          _tel: string
+        }
         Returns: Json
       }
       tournament_settle_prizes: { Args: { _tid: string }; Returns: Json }
+      tournament_sync_match_winners: {
+        Args: { _game_type: string; _tid: string }
+        Returns: undefined
+      }
       tournament_week_start_for: { Args: { _at: string }; Returns: string }
       user_reset_history: { Args: never; Returns: Json }
       verify_game_settlement: {
@@ -1354,6 +1389,7 @@ export type Database = {
         | "cancelled"
         | "blocked"
       gender: "male" | "female" | "other"
+      tournament_game_type: "domino" | "ludo" | "petanque"
       tournament_round: "qf" | "sf" | "third" | "final"
       tournament_status: "registration" | "running" | "finished" | "cancelled"
       transaction_status: "pending" | "approved" | "rejected" | "completed"
@@ -1504,6 +1540,7 @@ export const Constants = {
         "blocked",
       ],
       gender: ["male", "female", "other"],
+      tournament_game_type: ["domino", "ludo", "petanque"],
       tournament_round: ["qf", "sf", "third", "final"],
       tournament_status: ["registration", "running", "finished", "cancelled"],
       transaction_status: ["pending", "approved", "rejected", "completed"],

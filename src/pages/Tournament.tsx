@@ -344,7 +344,39 @@ export default function Tournament() {
               </p>
             </div>
 
-            <TournamentChat />
+            {/* Inline registration form */}
+            {!myReg && isOpen && (
+              <div className="luxe-card p-4 space-y-3">
+                <p className="font-serif-luxe text-base gold-luxe-text text-center">
+                  ✍️ Fenoy ny fisoratana anarana
+                </p>
+
+                <div>
+                  <label className="text-[11px] tracking-widest text-[hsl(var(--gold-1))] uppercase">Anarana</label>
+                  <Input value={fNom} onChange={(e) => setFNom(e.target.value)} placeholder="Anaranao feno" />
+                </div>
+                <div>
+                  <label className="text-[11px] tracking-widest text-[hsl(var(--gold-1))] uppercase">Numéro</label>
+                  <Input value={fTel} onChange={(e) => setFTel(e.target.value)} placeholder="034 / 038..." inputMode="tel" />
+                </div>
+                <div>
+                  <label className="text-[11px] tracking-widest text-[hsl(var(--gold-1))] uppercase">ID</label>
+                  <Input value={fId} onChange={(e) => setFId(e.target.value)} placeholder="ID kara-panondro" />
+                </div>
+                <div className="hairline rounded-lg p-3 text-center bg-[hsl(var(--gold-1)/0.06)]">
+                  <p className="text-[11px] tracking-widest text-[hsl(var(--gold-1))] uppercase">Mise</p>
+                  <p className="font-serif-luxe text-2xl gold-luxe-text">5 000 Ar</p>
+                </div>
+
+                <Button onClick={() => { setStep("pin"); setOpenReg(true); handleConfirmForm(); }}
+                  className="w-full btn-luxe text-base py-3">
+                  CONFIRMER
+                </Button>
+                <p className="text-[10px] text-muted-foreground text-center">
+                  Avy eo: hangataka ny <b>Code PIN</b> mba hanesorana ny 5 000 Ar amin'ny wallet-nao.
+                </p>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
         )}

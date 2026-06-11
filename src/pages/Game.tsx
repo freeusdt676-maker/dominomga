@@ -297,11 +297,11 @@ export default function Game() {
       winnerId === game.player1_id ? newScoreP1 : winnerId === game.player2_id ? newScoreP2 : newScoreP3;
 
     const targetReached = isDominoGameWin(wScore, mode);
-    // LOCKED — Fandresena tokana ihany no ekena:
-    //   • TARGET tratra (D120 → 120, D80 → 80).
-    // Sokajy hafa rehetra (double 6, datinandro, mandeha irery, lany vato,
-    // blocage) dia tour ihany — ampiana eo amin'ny score, tsy mandresy.
-    const instantWin = targetReached;
+    // MANDEHA IRERY — Raha mahazo isa ≥ 60 (D120) na ≥ 40 (D80) amin'ny
+    // tour iray monja ny mpilalao iray, dia mandresy avy hatrany ny lalao.
+    const soloThreshold = mode === "d80" ? 40 : 60;
+    const soloWin = points >= soloThreshold;
+    const instantWin = targetReached || soloWin;
 
     // Build a human-readable "porofo" of how this round was won, for the replay banner.
     const winnerName = (profileNames[winnerId] ?? "Mpandresy");
@@ -317,13 +317,15 @@ export default function Game() {
     // Anisan'ny sokajy "MANDRESY NY LALAO" ireto efatra ireto ihany:
     //   • TARGET (D120/D80) • SOLO (60/40 irery) • DOUBLE 6 • DATINANDRO.
     // Ny ambin'ireo (lany vato, blocage, +N isa) dia tour ihany.
-    const reason = getDominoRoundReason({
-      winnerName,
-      mode,
-      winnerScore: wScore,
-      points,
-      reasonOverride,
-    });
+    const reason = soloWin && !targetReached
+      ? `MANDRESY NY LALAO — MANDEHA IRERY • ${winnerName} nahazo +${points} amin'ny tour iray (${soloThreshold}+)`
+      : getDominoRoundReason({
+          winnerName,
+          mode,
+          winnerScore: wScore,
+          points,
+          reasonOverride,
+        });
     // `loserName` voatahiry ho an'ny famaharana hafa (raha tsy ampiasaina, tsy
     // mamotika ny build satria mety ho diso interpretation ny linter).
     void loserName;
@@ -348,6 +350,12 @@ export default function Game() {
       passes: 0,
     };
     if (pc === 3) updatePayload.score_p3 = newScoreP3;
+    // Raha mandeha irery: terena mitovy amin'ny target ny score-n'ny mpandresy
+    // mba ho rakitry ny historique fa lalao vita.
+    if (soloWin && !targetReached) {
+      const slot = winnerId === game.player1_id ? 1 : winnerId === game.player2_id ? 2 : 3;
+      updatePayload[`score_p${slot}`] = target;
+    }
     await supabase.from("games").update(updatePayload).eq("id", game.id);
     setOptimistic(null);
 

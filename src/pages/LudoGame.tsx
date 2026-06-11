@@ -163,6 +163,15 @@ export default function LudoGame() {
     const localBusy = rolling || acting;
     let didAnimate = false;
 
+    // If a local animation is running, do NOT overwrite the pawn state — that
+    // would cut the step-by-step walk short (e.g. dice=5 but pawn visually
+    // moves only 4 cells before the server payload snaps it to the final
+    // position). The local handler will commit the final state itself.
+    if (!forceUnlock && (localBusy || remoteAnimRef.current.animating)) {
+      prevGameRef.current = next;
+      return;
+    }
+
     if (!localBusy && !forceUnlock && prev && prev.status === "in_progress" && next.status === "in_progress") {
       // === 1) Remote dice roll animation ===
       // Opponent just rolled: prev.dice_rolled false → next.dice_rolled true on the same seat.

@@ -218,6 +218,32 @@ export default function Tournament() {
           })}
         </div>
 
+        {/* Quick nav: Rules · History · Leaderboard */}
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          <button onClick={() => nav("/tournament/rules")}
+            className="luxe-card py-2 px-2 text-[11px] font-bold flex items-center justify-center gap-1 text-muted-foreground hover:gold-luxe-text">
+            <BookOpen className="w-3.5 h-3.5" /> FITSIPIKA
+          </button>
+          <button onClick={() => nav("/tournament/history")}
+            className="luxe-card py-2 px-2 text-[11px] font-bold flex items-center justify-center gap-1 text-muted-foreground hover:gold-luxe-text">
+            <History className="w-3.5 h-3.5" /> TANTARA
+          </button>
+          <button onClick={() => nav("/tournament/leaderboard")}
+            className="luxe-card py-2 px-2 text-[11px] font-bold flex items-center justify-center gap-1 text-muted-foreground hover:gold-luxe-text">
+            <BarChart3 className="w-3.5 h-3.5" /> TOP 20
+          </button>
+        </div>
+
+        {countdown && nextPhase && tournament?.status !== "finished" && tournament?.status !== "cancelled" && (
+          <div className="luxe-card p-3 mb-4 flex items-center justify-between bg-[hsl(var(--gold-1)/0.06)]">
+            <div>
+              <p className="text-[10px] tracking-widest text-[hsl(var(--gold-1))] uppercase">⏱️ Manaraka</p>
+              <p className="text-sm font-bold">{nextPhase.label}</p>
+            </div>
+            <p className="font-serif-luxe text-2xl gold-luxe-text tabular-nums">{countdown}</p>
+          </div>
+        )}
+
         {loading ? (
           <p className="text-center text-muted-foreground py-12">Mihandry...</p>
         ) : (

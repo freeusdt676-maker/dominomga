@@ -209,6 +209,9 @@ export default function LudoGame() {
           last_dice: diceForAnim,
           current_turn_seat: moverSeat,
         });
+        // Track latest authoritative state immediately so subsequent payloads
+        // diff against it (avoid re-animating the same move).
+        prevGameRef.current = next;
         (async () => {
           const animPawns = startPawns.map((p) => ({ ...p }));
           const me = animPawns.find((p) => p.seat === movedPawn!.seat && p.idx === movedPawn!.idx)!;

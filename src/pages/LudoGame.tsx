@@ -678,20 +678,61 @@ export default function LudoGame() {
                   strokeWidth={3}
                 />
               )}
-              {isMe && !g.dice_rolled ? (
-                <button
-                  onClick={handleRoll}
-                  disabled={rolling}
-                  className="w-16 h-16 flex items-center justify-center transition active:translate-y-0.5"
-                  aria-label="Roll dice"
-                >
-                  <LudoDice3D face={diceFace} size={62} rolling={isAnim} idle={!g.last_dice} />
-                </button>
-              ) : (
-                <div className="w-16 h-16 flex items-center justify-center">
-                  <LudoDice3D face={g.last_dice ?? 5} size={62} rolling={isAnim} idle={!g.dice_rolled} />
-                </div>
-              )}
+              {(() => {
+                const RING_SIZE = 72;
+                const R = 32;
+                const C = 2 * Math.PI * R;
+                const pct = Math.max(0, Math.min(1, remainingSec / TURN_LIMIT));
+                const urgent = remainingSec <= 3;
+                const ringColor = urgent ? "#ff3b3b" : "#ffe27a";
+                const ring = (
+                  <svg
+                    width={RING_SIZE}
+                    height={RING_SIZE}
+                    viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
+                    className={`absolute inset-0 pointer-events-none ${urgent ? "animate-pulse" : ""}`}
+                    style={{ transform: "rotate(-90deg)" }}
+                  >
+                    <circle cx={RING_SIZE/2} cy={RING_SIZE/2} r={R} stroke="rgba(0,0,0,0.55)" strokeWidth={4} fill="none" />
+                    <circle
+                      cx={RING_SIZE/2} cy={RING_SIZE/2} r={R}
+                      stroke={ringColor} strokeWidth={4} fill="none" strokeLinecap="round"
+                      strokeDasharray={C}
+                      strokeDashoffset={C * (1 - pct)}
+                      style={{ transition: "stroke-dashoffset 0.4s linear, stroke 0.2s linear" }}
+                    />
+                  </svg>
+                );
+                const sec = (
+                  <span
+                    className={`absolute -bottom-1 left-1/2 -translate-x-1/2 text-[10px] font-extrabold px-1.5 rounded-full ${urgent ? "bg-red-600 text-white" : "bg-yellow-300 text-purple-900"} drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]`}
+                    style={{ lineHeight: "14px", minWidth: 18, textAlign: "center" }}
+                  >
+                    {remainingSec}
+                  </span>
+                );
+                const inner = isMe && !g.dice_rolled ? (
+                  <button
+                    onClick={handleRoll}
+                    disabled={rolling}
+                    className="absolute inset-0 flex items-center justify-center transition active:translate-y-0.5"
+                    aria-label="Roll dice"
+                  >
+                    <LudoDice3D face={diceFace} size={56} rolling={isAnim} idle={!g.last_dice} />
+                  </button>
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <LudoDice3D face={g.last_dice ?? 5} size={56} rolling={isAnim} idle={!g.dice_rolled} />
+                  </div>
+                );
+                return (
+                  <div className="relative" style={{ width: RING_SIZE, height: RING_SIZE }}>
+                    {ring}
+                    {inner}
+                    {sec}
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>

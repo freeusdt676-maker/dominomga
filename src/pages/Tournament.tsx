@@ -148,6 +148,39 @@ export default function Tournament() {
     return () => clearTimeout(t);
   }, [myActiveMatch?.game_id]);
 
+  // Countdown live: dingana manaraka
+  const nextPhase = useMemo(() => {
+    if (!tournament) return null;
+    const now = Date.now();
+    const phases: { label: string; at: string }[] = [
+      { label: "Mikatona inscription", at: tournament.reg_close },
+      { label: "Quart de finale", at: tournament.qf_at },
+      { label: "Demi-finale", at: tournament.sf_at },
+      { label: "Petite finale", at: tournament.third_at },
+      { label: "Finale", at: tournament.final_at },
+    ];
+    return phases.find((p) => new Date(p.at).getTime() > now) ?? null;
+  }, [tournament, data]);
+
+  const [tick, setTick] = useState(0);
+  useEffect(() => { const i = setInterval(() => setTick((x) => x + 1), 1000); return () => clearInterval(i); }, []);
+  const countdown = useMemo(() => {
+    if (!nextPhase) return null;
+    const ms = new Date(nextPhase.at).getTime() - Date.now();
+    if (ms <= 0) return "Manomboka...";
+    const h = Math.floor(ms / 3600_000);
+    const m = Math.floor((ms % 3600_000) / 60_000);
+    const s = Math.floor((ms % 60_000) / 1000);
+    if (h > 0) return `${h}h ${String(m).padStart(2,"0")}mn`;
+    return `${m}mn ${String(s).padStart(2,"0")}s`;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nextPhase, tick]);
+
+  const liveMatches = matches.filter((m) => !m.winner_id && m.game_id && new Date(m.scheduled_at).getTime() <= Date.now());
+  const spectateRoute = (id: string) => ({
+    domino: `/spectate/domino/${id}`, ludo: `/spectate/ludo/${id}`, petanque: `/spectate/petanque/${id}`,
+  } as const)[gameType];
+
   return (
     <div className="min-h-screen luxe-bg">
       <header className="px-4 py-3 flex items-center gap-3 hairline-b">

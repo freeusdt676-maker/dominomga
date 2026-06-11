@@ -731,3 +731,6 @@ button, [role="button"] {
 button:active:not(:disabled), [role="button"]:active:not([aria-disabled="true"]) {
   transform: scale(0.97);
 }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

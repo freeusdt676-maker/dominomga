@@ -334,6 +334,33 @@ export default function Tournament() {
               </div>
             </div>
 
+            {/* Live spectator matches */}
+            {liveMatches.length > 0 && (
+              <div className="luxe-card p-4">
+                <h3 className="font-serif-luxe text-lg gold-luxe-text mb-3 flex items-center gap-2">
+                  <span className="inline-block w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                  Matchs an-dalana
+                </h3>
+                <div className="space-y-2">
+                  {liveMatches.map((m) => {
+                    const nameOf = (uid?: string) => regs.find((r) => r.user_id === uid)?.nom ?? "?";
+                    return (
+                      <div key={m.id} className="hairline rounded p-2 flex items-center justify-between text-xs">
+                        <div>
+                          <p className="text-[10px] text-[hsl(var(--gold-1))]">{String(m.round).toUpperCase()} #{m.match_index}</p>
+                          <p>{nameOf(m.player1_id)} <span className="text-muted-foreground">vs</span> {nameOf(m.player2_id)}</p>
+                        </div>
+                        <button onClick={() => nav(spectateRoute(m.game_id))}
+                          className="px-3 py-1.5 rounded bg-[hsl(var(--gold-1)/0.18)] gold-luxe-text font-bold flex items-center gap-1">
+                          <Eye className="w-3.5 h-3.5" /> Jereo
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {tournament?.status === "finished" && tournament.winner_id && (
               <div className="luxe-card p-4 text-center">
                 <Trophy className="w-12 h-12 mx-auto text-[hsl(var(--gold-1))]" />

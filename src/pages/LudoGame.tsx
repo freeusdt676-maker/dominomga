@@ -455,8 +455,11 @@ export default function LudoGame() {
     if (remainingSec > 0) return;
 
     const key = `${g.id}-${g.current_turn_seat}-${g.dice_rolled ? "m" : "r"}-${turnStartMs}`;
-    if (botActedRef.__ludoBotKey === key) return;
-    botActedRef.__ludoBotKey = key;
+    // Retry-friendly idempotency: allow re-firing the same expired turn every 3s
+    // so auto-play ALWAYS proceeds even if a previous attempt silently failed.
+    const lastFire = botActedRef.__ludoBotFire as { key: string; at: number } | null | undefined;
+    if (lastFire && lastFire.key === key && Date.now() - lastFire.at < 3000) return;
+    botActedRef.__ludoBotFire = { key, at: Date.now() };
 
     const runRpc = async (payload: Record<string, unknown>) => {
       const { error } = await supabase.rpc("ludo_update_state" as any, payload);
@@ -495,8 +498,9 @@ export default function LudoGame() {
         ? new Date(state.turn_started_at).getTime()
         : (state.updated_at ? new Date(state.updated_at).getTime() : 0);
       if (!stateTurnStartMs) return;
-      if (Date.now() - stateTurnStartMs < TURN_LIMIT * 1000) {
-        botActedRef.__ludoBotKey = null;
+      // 1s tolerance for clock skew between players' devices
+      if (Date.now() - stateTurnStartMs < (TURN_LIMIT - 1) * 1000) {
+        botActedRef.__ludoBotFire = null;
         return;
       }
 
@@ -585,11 +589,11 @@ export default function LudoGame() {
 
       await resolveMoveState(state.last_dice ?? 1, state, state.last_dice === 6 ? state.consecutive_sixes : 0);
     })().catch(() => {
-      botActedRef.__ludoBotKey = null;
+      botActedRef.__ludoBotFire = null;
       load(true).catch(() => undefined);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [remainingSec, isOperator, g?.id, g?.current_turn_seat, g?.dice_rolled, g?.last_dice, turnStartMs, g?.status]);
+  }, [now, remainingSec, isOperator, g?.id, g?.current_turn_seat, g?.dice_rolled, g?.last_dice, turnStartMs, g?.status]);
 
   if (loadError) {
     return (

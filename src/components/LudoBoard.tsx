@@ -227,25 +227,32 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
               }}
             >
               <defs>
-                {/* Vertical glossy fill — light on left, dark on right */}
+                {/* Rich vertical glossy fill — porcelain sheen */}
                 <linearGradient id={idBody} x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%"   stopColor="#ffffff" stopOpacity="0.55" />
-                  <stop offset="22%"  stopColor={color} />
-                  <stop offset="60%"  stopColor={color} />
-                  <stop offset="100%" stopColor="#000000" stopOpacity="0.55" />
+                  <stop offset="0%"   stopColor="#ffffff" stopOpacity="0.7" />
+                  <stop offset="18%"  stopColor={color} />
+                  <stop offset="55%"  stopColor={color} />
+                  <stop offset="82%"  stopColor="#000000" stopOpacity="0.35" />
+                  <stop offset="100%" stopColor="#000000" stopOpacity="0.75" />
                 </linearGradient>
                 {/* Top head highlight */}
-                <radialGradient id={id} cx="35%" cy="30%" r="70%">
-                  <stop offset="0%"  stopColor="#ffffff" stopOpacity="0.9" />
+                <radialGradient id={id} cx="32%" cy="25%" r="75%">
+                  <stop offset="0%"  stopColor="#ffffff" stopOpacity="1" />
                   <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
                 </radialGradient>
                 <radialGradient id={idShine} cx="50%" cy="50%" r="50%">
                   <stop offset="0%"  stopColor="#ffffff" stopOpacity="0.95" />
                   <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
                 </radialGradient>
+                {/* Gold base ring */}
+                <linearGradient id={`${stableKey}-ring`} x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#ffe27a" />
+                  <stop offset="100%" stopColor="#8a5a0a" />
+                </linearGradient>
               </defs>
-              {/* Floor shadow */}
-              <ellipse cx={0} cy={H * 0.42} rx={W * 0.55} ry={W * 0.16} fill="#000" opacity={0.5} />
+              {/* Floor shadow — soft + tight */}
+              <ellipse cx={W * 0.05} cy={H * 0.44} rx={W * 0.6} ry={W * 0.17} fill="#000" opacity={0.55} />
+              <ellipse cx={W * 0.05} cy={H * 0.44} rx={W * 0.42} ry={W * 0.11} fill="#000" opacity={0.35} />
               {/* Bottle / bowling-pin silhouette built with a path:
                   - wide round base
                   - narrow neck
@@ -264,14 +271,20 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
                 `}
                 fill={`url(#${idBody})`}
                 stroke="#1c1235"
-                strokeWidth={1.4}
+                strokeWidth={1.6}
               />
+              {/* Gold collar at neck */}
+              <ellipse cx={0} cy={-H*0.28} rx={W*0.24} ry={H*0.04} fill={`url(#${stableKey}-ring)`} stroke="#3a2410" strokeWidth={0.7} />
+              {/* Gold base ring */}
+              <ellipse cx={0} cy={H*0.36} rx={W*0.50} ry={W*0.14} fill={`url(#${stableKey}-ring)`} stroke="#3a2410" strokeWidth={0.7} />
               {/* Glossy head highlight */}
-              <ellipse cx={-W*0.05} cy={-H*0.50} rx={W*0.18} ry={H*0.10} fill={`url(#${id})`} />
+              <ellipse cx={-W*0.06} cy={-H*0.52} rx={W*0.22} ry={H*0.12} fill={`url(#${id})`} />
               {/* Body specular streak */}
-              <ellipse cx={-W*0.18} cy={ H*0.10} rx={W*0.10} ry={H*0.22} fill={`url(#${idShine})`} opacity={0.7} />
+              <ellipse cx={-W*0.20} cy={ H*0.08} rx={W*0.09} ry={H*0.24} fill={`url(#${idShine})`} opacity={0.75} />
+              {/* Right-side rim light */}
+              <ellipse cx={ W*0.22} cy={ H*0.05} rx={W*0.04} ry={H*0.20} fill="#ffffff" opacity={0.18} />
               {/* Crisp tiny highlight on head */}
-              <circle cx={-W*0.10} cy={-H*0.52} r={W*0.06} fill="#ffffff" opacity={0.95} />
+              <circle cx={-W*0.10} cy={-H*0.53} r={W*0.07} fill="#ffffff" opacity={1} />
               {/* Movable indicator: gold ring + pulse around the base */}
               {movable && (
                 <>

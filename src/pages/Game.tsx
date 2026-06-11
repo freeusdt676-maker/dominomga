@@ -1029,6 +1029,43 @@ export default function Game() {
           </div>
         );
       })()}
+      {(() => {
+        // Overlay mazava ho an'ny tetezamita "tour vita → tour vaovao".
+        // Tsy hiseho raha datinandro (efa misy overlay manokana) na raha vita
+        // tanteraka ny lalao (DominoResultOverlay no miandraikitra).
+        const r: string = (game as any)?.last_reason ?? "";
+        const ru = (game as any)?.reveal_until ? new Date((game as any).reveal_until).getTime() : 0;
+        const active =
+          ru > now &&
+          !!r &&
+          !r.includes("DATINANDRO") &&
+          game?.status === "in_progress";
+        if (!active) return null;
+        const isGameWin = r.startsWith("MANDRESY NY LALAO");
+        const sec = Math.max(1, Math.ceil((ru - now) / 1000));
+        const pc = Number(game.players_count ?? 2);
+        return (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in p-4">
+            <div className="w-full max-w-md rounded-2xl border-4 border-[#ffe27a] bg-[linear-gradient(180deg,#0d3b22,#0a2818)] p-6 text-center shadow-2xl">
+              <div className="text-5xl mb-2">{isGameWin ? "🏆" : "🏁"}</div>
+              <div className="text-xl font-extrabold text-[#ffe27a] tracking-wide mb-2">
+                {isGameWin ? "LALAO VITA" : "TOUR VITA"}
+              </div>
+              <div className="text-sm text-white font-semibold mb-3">{r}</div>
+              <div className="text-base text-white font-bold mb-3">
+                {pc === 3
+                  ? `${Number(game.score_p1 ?? 0)} — ${Number(game.score_p2 ?? 0)} — ${Number(game.score_p3 ?? 0)}`
+                  : `${Number(game.score_p1 ?? 0)} — ${Number(game.score_p2 ?? 0)}`}
+              </div>
+              {!isGameWin && (
+                <div className="text-xs text-[#ffe27a]/90 italic">
+                  Tour vaovao manomboka amin'ny {sec}s… vato vaovao ho zaraina
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
       {/* Header style "Rolland | Tour | Opponent" */}
       <header className="relative px-3 py-2 grid grid-cols-3 items-center gap-2 border-b-2 border-[#d4a52c]/60 bg-[linear-gradient(180deg,#0d3b22_0%,#0a2818_100%)] shadow-[inset_0_-2px_0_rgba(212,165,44,0.25)]">
         <div className="flex items-center gap-2 min-w-0">

@@ -565,7 +565,17 @@ export default function Game() {
   const turnStart = game?.turn_started_at ? new Date(game.turn_started_at).getTime() : 0;
   // Raha mbola tsy voarakitra ny turn_started_at (anelanelan'ny tour, reveal,
   // sns.) dia ataovy 0 ny elapsed mba tsy hipoaka ho azy ny auto-play.
-  const elapsed = turnStart > 0 ? Math.max(0, Math.floor((now - turnStart) / 1000)) : 0;
+  const turnKeyNow = game ? `${game.id}-${game.turn_started_at}-${game.current_turn}` : "";
+  if (turnKeyNow && turnAnchorRef.current.key !== turnKeyNow) {
+    turnAnchorRef.current = { key: turnKeyNow, at: Date.now() };
+  }
+  const serverElapsed = turnStart > 0 ? Math.max(0, Math.floor((now - turnStart) / 1000)) : 0;
+  const localElapsed = turnStart > 0
+    ? Math.max(0, Math.floor((now - turnAnchorRef.current.at) / 1000))
+    : 0;
+  // Ny kely indrindra no raisina: tsy maintsy lany 20s HITA teto an-toerana vao
+  // mandeha automatique — na inona na inona fahasamihafan'ny ora server.
+  const elapsed = Math.min(serverElapsed, localElapsed);
   const remaining = turnStart > 0 ? Math.max(0, TURN_TIMEOUT_SEC - elapsed) : TURN_TIMEOUT_SEC;
 
   const tryPlay = async (idx: number, side?: "left" | "right") => {

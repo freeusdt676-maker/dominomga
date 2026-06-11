@@ -567,7 +567,7 @@ html.theme-petanque {
 .pulse-ring { animation: ludo-pulse-ring 1.2s ease-out infinite; transform-origin: center; }
 
 /* Token hop: pawns transition smoothly between cells; LudoBoard adds a -translateY mid-flight */
-.pawn-group { transition: transform 520ms cubic-bezier(.22,.9,.3,1); will-change: transform; }
+.pawn-group { will-change: transform; }
 
 /* Highlight legal landing cells */
 @keyframes ludo-cell-pulse {

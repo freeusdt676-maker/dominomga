@@ -686,6 +686,9 @@ export default function Game() {
     if (possible !== "either" && side && side !== possible) {
       return toast.error("Tsy mifanaraka amin'io tendro io");
     }
+    const expectedCurrentTurn = game.current_turn ?? null;
+    const expectedTurnStartedAt = game.turn_started_at ?? null;
+    const startedAt = new Date().toISOString();
     const newBoard = place(board, tile, chosenSide);
     const newHand = myHand.filter((_, i) => i !== idx);
     sfx.move();
@@ -697,17 +700,25 @@ export default function Game() {
       board_state: newBoard,
       [handKey]: newHand,
       current_turn: newHand.length === 0 ? game.current_turn : oppId,
-      turn_started_at: new Date().toISOString(),
+      turn_started_at: startedAt,
       passes: 0,
       updated_at: new Date().toISOString(),
     });
     setSelected(null);
 
     if (newHand.length === 0) {
-      await updateGameState({
+      const { error } = await updateGameState({
         board_state: newBoard,
         [handKey]: newHand,
-      } as any);
+      } as any, {
+        expectedCurrentTurn,
+        expectedTurnStartedAt,
+      });
+      if (error) {
+        setOptimistic(null);
+        toast.error("Tsy voaray ilay placement, andramo indray");
+        return;
+      }
       await supabase.from("game_moves").insert({
         game_id: game.id,
         player_id: user.id,
@@ -718,13 +729,21 @@ export default function Game() {
       await finishRound(user.id, points, tile);
       return;
     }
-    await updateGameState({
+    const { error } = await updateGameState({
       board_state: newBoard,
       [handKey]: newHand,
       current_turn: oppId,
-      turn_started_at: new Date().toISOString(),
+      turn_started_at: startedAt,
       passes: 0,
-    } as any);
+    } as any, {
+      expectedCurrentTurn,
+      expectedTurnStartedAt,
+    });
+    if (error) {
+      setOptimistic(null);
+      toast.error("Nisy fifanenjanana tamin'ny tour, andramo indray");
+      return;
+    }
     await supabase.from("game_moves").insert({
       game_id: game.id,
       player_id: user.id,
@@ -880,10 +899,17 @@ export default function Game() {
         const newBoard = place(liveBoard, tile, chosenSide);
         const newHand = turnHand.filter((_, i) => i !== playableIdx);
         if (newHand.length === 0) {
-          await updateGameState({
+          const { error: updateError } = await updateGameState({
             board_state: newBoard,
             [turnKey]: newHand,
-          } as any);
+          } as any, {
+            expectedCurrentTurn: turnId,
+            expectedTurnStartedAt: fresh.turn_started_at,
+          });
+          if (updateError) {
+            autoActedRef.current = null;
+            return;
+          }
           const { error: moveLogError } = await supabase.from("game_moves").insert({
             game_id: game.id,
             player_id: turnId,
@@ -901,13 +927,21 @@ export default function Game() {
           await finishRound(turnId, newHand.length === 0 ? pipsTotal(otherTiles) : 0, tile);
           return;
         }
-        await updateGameState({
+        const startedAt = new Date().toISOString();
+        const { error: updateError } = await updateGameState({
           board_state: newBoard,
           [turnKey]: newHand,
           current_turn: oppId,
-          turn_started_at: new Date().toISOString(),
+          turn_started_at: startedAt,
           passes: 0,
-        } as any);
+        } as any, {
+          expectedCurrentTurn: turnId,
+          expectedTurnStartedAt: fresh.turn_started_at,
+        });
+        if (updateError) {
+          autoActedRef.current = null;
+          return;
+        }
       const { error: moveLogError } = await supabase.from("game_moves").insert({
         game_id: game.id,
         player_id: turnId,

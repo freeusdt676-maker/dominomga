@@ -76,6 +76,8 @@ export default function LudoGame() {
   const autoResolveRef = useRef<number | null>(null);
   const blockerSafetyRef = useRef<number | null>(null);
   const phaseKeyRef = useRef<string | null>(null);
+  const prevGameRef = useRef<LG | null>(null);
+  const remoteAnimRef = useRef<{ token: number; animating: boolean }>({ token: 0, animating: false });
   const botActedRef = (typeof window !== "undefined" ? (window as any) : {}) as any;
 
   const clearRefTimeout = (ref: { current: number | null }) => {
@@ -153,8 +155,105 @@ export default function LudoGame() {
       clearUiBlockers();
     }
     setLoadError(null);
-    setG(next);
     hydrateProfiles(next).catch(() => undefined);
+
+    const prev = prevGameRef.current;
+    // If a local action (roll/move) is in flight, we already animate locally —
+    // just commit the authoritative state without replaying it.
+    const localBusy = rolling || acting;
+    let didAnimate = false;
+
+    if (!localBusy && !forceUnlock && prev && prev.status === "in_progress" && next.status === "in_progress") {
+      // === 1) Remote dice roll animation ===
+      // Opponent just rolled: prev.dice_rolled false → next.dice_rolled true on the same seat.
+      const sameSeat = prev.current_turn_seat === next.current_turn_seat;
+      const remoteRoll = sameSeat && !prev.dice_rolled && next.dice_rolled && next.last_dice && next.current_turn_seat !== mySeat;
+      if (remoteRoll) {
+        sfx.dice();
+        setRollAnimSeat(next.current_turn_seat);
+        clearRefTimeout(rollAnimResetRef);
+        rollAnimResetRef.current = window.setTimeout(() => setRollAnimSeat(null), 700);
+      }
+
+      // === 2) Remote pawn walking animation ===
+      // A pawn moved (pos increased) and we are not the actor.
+      const moverSeat = prev.current_turn_seat;
+      const isRemoteMover = moverSeat !== mySeat;
+      let movedPawn: Pawn | null = null;
+      let movedFrom = 0;
+      if (isRemoteMover && Array.isArray(prev.pawns) && Array.isArray(next.pawns)) {
+        for (const np of next.pawns) {
+          const op = prev.pawns.find((q) => q.seat === np.seat && q.idx === np.idx);
+          if (op && np.seat === moverSeat && np.pos !== op.pos && np.pos > 0 && (op.pos === 0 || np.pos > op.pos)) {
+            movedPawn = np;
+            movedFrom = op.pos;
+            break;
+          }
+        }
+      }
+      // We need a dice count to animate steps. Use prev.last_dice if it was rolled,
+      // otherwise next.last_dice (server-bot single-shot case), otherwise infer
+      // from the position delta (server bot may have already cleared last_dice).
+      let diceForAnim: number | null = (prev.dice_rolled && prev.last_dice) ? prev.last_dice : (next.last_dice ?? null);
+      if (!diceForAnim && movedPawn) {
+        const delta = movedFrom <= 0 ? 6 : Math.max(1, movedPawn.pos - movedFrom);
+        diceForAnim = Math.min(6, delta);
+      }
+      // If we still couldn't see the dice but a remote move happened, at least
+      // flash the dice animation so the opponent's turn is visible.
+      if (!remoteRoll && movedPawn && diceForAnim && next.current_turn_seat !== mySeat && moverSeat !== mySeat) {
+        sfx.dice();
+        setRollAnimSeat(moverSeat);
+        clearRefTimeout(rollAnimResetRef);
+        rollAnimResetRef.current = window.setTimeout(() => setRollAnimSeat(null), 500);
+      }
+      if (movedPawn && diceForAnim) {
+        didAnimate = true;
+        const token = ++remoteAnimRef.current.token;
+        remoteAnimRef.current.animating = true;
+        // Build a transient state: keep previous pawn positions but adopt the new
+        // dice/turn metadata so the dice face matches what the opponent rolled.
+        const startPawns = prev.pawns.map((p) => ({ ...p }));
+        setG({
+          ...next,
+          pawns: startPawns,
+          // Keep dice_rolled visible during the walk so the rolled face shows.
+          dice_rolled: true,
+          last_dice: diceForAnim,
+          current_turn_seat: moverSeat,
+        });
+        // Track latest authoritative state immediately so subsequent payloads
+        // diff against it (avoid re-animating the same move).
+        prevGameRef.current = next;
+        (async () => {
+          const animPawns = startPawns.map((p) => ({ ...p }));
+          const me = animPawns.find((p) => p.seat === movedPawn!.seat && p.idx === movedPawn!.idx)!;
+          if (movedFrom <= 0) {
+            me.pos = 1;
+            setG((cur) => (cur && remoteAnimRef.current.token === token ? { ...cur, pawns: animPawns.map((p) => ({ ...p })) } : cur));
+            await new Promise((r) => setTimeout(r, STEP_ANIMATION_MS * 2));
+          } else {
+            const target = movedPawn!.pos;
+            while (me.pos < target) {
+              me.pos = Math.min(target, me.pos + 1);
+              setG((cur) => (cur && remoteAnimRef.current.token === token ? { ...cur, pawns: animPawns.map((p) => ({ ...p })) } : cur));
+              await new Promise((r) => setTimeout(r, STEP_ANIMATION_MS));
+            }
+          }
+          // Commit authoritative state if no newer animation started.
+          if (remoteAnimRef.current.token === token) {
+            remoteAnimRef.current.animating = false;
+            setG(next);
+            prevGameRef.current = next;
+          }
+        })();
+      }
+    }
+
+    if (!didAnimate) {
+      setG(next);
+      prevGameRef.current = next;
+    }
   };
 
   const load = async (forceUnlock = false) => {

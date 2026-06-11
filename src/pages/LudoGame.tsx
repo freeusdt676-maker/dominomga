@@ -192,8 +192,21 @@ export default function LudoGame() {
         }
       }
       // We need a dice count to animate steps. Use prev.last_dice if it was rolled,
-      // otherwise next.last_dice (server-bot single-shot case).
-      const diceForAnim = (prev.dice_rolled && prev.last_dice) ? prev.last_dice : next.last_dice;
+      // otherwise next.last_dice (server-bot single-shot case), otherwise infer
+      // from the position delta (server bot may have already cleared last_dice).
+      let diceForAnim: number | null = (prev.dice_rolled && prev.last_dice) ? prev.last_dice : (next.last_dice ?? null);
+      if (!diceForAnim && movedPawn) {
+        const delta = movedFrom <= 0 ? 6 : Math.max(1, movedPawn.pos - movedFrom);
+        diceForAnim = Math.min(6, delta);
+      }
+      // If we still couldn't see the dice but a remote move happened, at least
+      // flash the dice animation so the opponent's turn is visible.
+      if (!remoteRoll && movedPawn && diceForAnim && next.current_turn_seat !== mySeat && moverSeat !== mySeat) {
+        sfx.dice();
+        setRollAnimSeat(moverSeat);
+        clearRefTimeout(rollAnimResetRef);
+        rollAnimResetRef.current = window.setTimeout(() => setRollAnimSeat(null), 500);
+      }
       if (movedPawn && diceForAnim) {
         didAnimate = true;
         const token = ++remoteAnimRef.current.token;

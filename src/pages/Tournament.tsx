@@ -8,11 +8,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { toast } from "sonner";
-import { ArrowLeft, Trophy, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Trophy, CheckCircle2, Dices, Target } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 import logoTournoi from "@/assets/logo-tournoi.png";
 
 const MG_TZ_OFFSET = 3 * 3600_000;
+
+type GameType = "domino" | "ludo" | "petanque";
+
+const GAME_META: Record<GameType, { label: string; icon: any; emoji: string; gameRoute: (id: string) => string; subtitle: string }> = {
+  domino: { label: "Domino", icon: Trophy, emoji: "🁫", gameRoute: (id) => `/game/${id}`, subtitle: "Bracket apahavalon-dalana · Domino 2P" },
+  ludo:   { label: "Ludo",   icon: Dices,  emoji: "🎲", gameRoute: (id) => `/ludo/${id}`, subtitle: "Bracket apahavalon-dalana · Ludo 2P" },
+  petanque: { label: "Pétanque", icon: Target, emoji: "🎯", gameRoute: (id) => `/petanque/${id}`, subtitle: "Bracket apahavalon-dalana · Pétanque 2P" },
+};
 
 function fmtMG(iso?: string | null) {
   if (!iso) return "—";
@@ -26,6 +34,7 @@ function fmtMG(iso?: string | null) {
 export default function Tournament() {
   const { user } = useAuth();
   const nav = useNavigate();
+  const [gameType, setGameType] = useState<GameType>("domino");
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
@@ -42,15 +51,16 @@ export default function Tournament() {
   const [submitting, setSubmitting] = useState(false);
 
   const load = async () => {
-    const { data: d, error } = await supabase.rpc("tournament_get_current" as any);
+    const { data: d, error } = await supabase.rpc("tournament_get_current" as any, { _game_type: gameType });
     if (error) { toast.error(error.message); return; }
     setData(d);
     setLoading(false);
     // also advance (idempotent) — picks up new rounds when time arrives
-    try { await supabase.rpc("tournament_advance" as any); } catch {}
+    try { await supabase.rpc("tournament_advance" as any, { _game_type: gameType }); } catch {}
   };
 
   useEffect(() => {
+    setLoading(true);
     load();
     const ch = supabase.channel("tourn-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "tournaments" }, () => load())
@@ -59,7 +69,7 @@ export default function Tournament() {
       .subscribe();
     const itv = setInterval(load, 30_000);
     return () => { supabase.removeChannel(ch); clearInterval(itv); };
-  }, []);
+  }, [gameType]);
 
   useEffect(() => {
     if (!user) return;
@@ -92,7 +102,7 @@ export default function Tournament() {
     if (!pin.trim()) return toast.error("Soraty ny code PIN");
     setSubmitting(true);
     const { data: r, error } = await supabase.rpc("tournament_register" as any, {
-      _nom: fNom.trim(), _tel: fTel.trim(), _id_card: fId.trim(), _pin: pin.trim()
+      _game_type: gameType, _nom: fNom.trim(), _tel: fTel.trim(), _id_card: fId.trim(), _pin: pin.trim()
     });
     setSubmitting(false);
     if (error) {
@@ -124,6 +134,8 @@ export default function Tournament() {
     && !m.winner_id && m.game_id && new Date(m.scheduled_at).getTime() <= Date.now()
   );
 
+  const meta = GAME_META[gameType];
+
   return (
     <div className="min-h-screen luxe-bg">
       <header className="px-4 py-3 flex items-center gap-3 hairline-b">
@@ -140,6 +152,27 @@ export default function Tournament() {
       </header>
 
       <div className="px-4 pt-4 pb-24 max-w-lg mx-auto">
+        {/* Game type selector */}
+        <div className="luxe-card p-1.5 mb-4 grid grid-cols-3 gap-1">
+          {(Object.keys(GAME_META) as GameType[]).map((gt) => {
+            const m = GAME_META[gt];
+            const active = gameType === gt;
+            return (
+              <button
+                key={gt}
+                onClick={() => { if (gt !== gameType) { setGameType(gt); setData(null); } }}
+                className={`rounded-md py-2 px-1 text-xs font-bold transition-all ${
+                  active
+                    ? "bg-[hsl(var(--gold-1)/0.18)] gold-luxe-text shadow-inner"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span className="text-base mr-1">{m.emoji}</span>{m.label.toUpperCase()}
+              </button>
+            );
+          })}
+        </div>
+
         {loading ? (
           <p className="text-center text-muted-foreground py-12">Mihandry...</p>
         ) : (
@@ -154,8 +187,8 @@ export default function Tournament() {
           <TabsContent value="tournoi" className="space-y-4 mt-4">
             <div className="luxe-card p-5 text-center">
               <img src={logoTournoi} alt="" className="w-24 h-24 mx-auto" loading="lazy" />
-              <h2 className="font-serif-luxe text-2xl gold-luxe-text mt-2">Tournoi du Semaine</h2>
-              <p className="text-xs text-muted-foreground mt-1">Bracket apahavalon-dalana · Domino 2P</p>
+              <h2 className="font-serif-luxe text-2xl gold-luxe-text mt-2">Tournoi {meta.label}</h2>
+              <p className="text-xs text-muted-foreground mt-1">{meta.subtitle}</p>
 
               <div className="grid grid-cols-3 gap-2 mt-4 text-center">
                 <div className="hairline rounded-lg p-2">
@@ -197,7 +230,7 @@ export default function Tournament() {
               )}
 
               {myActiveMatch && (
-                <button onClick={() => nav(`/game/${myActiveMatch.game_id}`)}
+                <button onClick={() => nav(meta.gameRoute(myActiveMatch.game_id))}
                   className="mt-3 w-full btn-luxe animate-pulse">
                   ▶️ Miditra amin'ny lalao-ko
                 </button>
@@ -247,12 +280,12 @@ export default function Tournament() {
           {/* TAB 2 — RÈGLER */}
           <TabsContent value="regle" className="space-y-3 mt-4">
             <div className="luxe-card p-4">
-              <h3 className="font-serif-luxe text-xl gold-luxe-text mb-3">📖 Lalàna feno</h3>
+              <h3 className="font-serif-luxe text-xl gold-luxe-text mb-3">📖 Lalàna feno — {meta.label}</h3>
               <Accordion type="single" collapsible defaultValue="r1">
                 <AccordionItem value="r1">
                   <AccordionTrigger className="text-sm">🎮 1. Lalao sy rafitra</AccordionTrigger>
                   <AccordionContent className="text-xs text-muted-foreground space-y-1">
-                    <p>• Domino 2P (mitovy amin'ny lalao tsotra: 120 isa)</p>
+                    <p>• {meta.label} 2P (mitovy amin'ny lalao tsotra)</p>
                     <p>• 8 mpilalao no ekena (raha feno = mikatona)</p>
                     <p>• Apahavalon-dalana avy hatrany (single-elimination)</p>
                     <p>• Group A/B/C/D (olona 2 isaky ny groupe), miankina amin'ny fahatongavana aloha</p>

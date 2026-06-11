@@ -11,7 +11,6 @@ import { toast } from "sonner";
 import { ArrowLeft, Trophy, CheckCircle2 } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 import logoTournoi from "@/assets/logo-tournoi.png";
-import TournamentChat from "@/components/TournamentChat";
 
 const MG_TZ_OFFSET = 3 * 3600_000;
 

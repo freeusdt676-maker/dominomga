@@ -739,7 +739,10 @@ export default function Game() {
     if (!game.current_turn) return;
     if (!game.turn_started_at) return;
     if (isRevealing) return;
-    if (elapsed < TURN_TIMEOUT_SEC) return;
+    // Aloha ny 20s: TSY MISY auto mihitsy — miandry ny kitika.
+    // Ny client an'ny tompon'ny tour no manao auto aloha; ny hafa miandry 2s grâce.
+    const graceSec = game.current_turn === user.id ? 0 : AUTO_OTHER_GRACE_SEC;
+    if (elapsed < TURN_TIMEOUT_SEC + graceSec) return;
     const key = `${game.id}-${game.turn_started_at}-${game.current_turn}`;
     if (autoActedRef.current === key) return;
     autoActedRef.current = key;
@@ -829,8 +832,10 @@ export default function Game() {
     if (game.status !== "in_progress") return;
     if (!game.current_turn || !game.turn_started_at) return;
     if (isRevealing) return;
-    const startMs = new Date(game.turn_started_at).getTime();
-    const deadline = startMs + TURN_TIMEOUT_SEC * 1000;
+    // Mifototra amin'ny fantsona LOCAL (tsy ny ora server) mba tsy hipoaka mialoha.
+    const startMs = Math.max(new Date(game.turn_started_at).getTime(), turnAnchorRef.current.at);
+    const graceSec = game.current_turn === user.id ? 0 : AUTO_OTHER_GRACE_SEC;
+    const deadline = startMs + (TURN_TIMEOUT_SEC + graceSec) * 1000;
     const delay = Math.max(0, deadline - Date.now()) + 250; // 250ms grâce
     const t = setTimeout(() => {
       // Bump `now` so the existing elapsed-based effect re-runs and fires

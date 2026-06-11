@@ -76,6 +76,7 @@ export default function LudoGame() {
   const autoResolveRef = useRef<number | null>(null);
   const blockerSafetyRef = useRef<number | null>(null);
   const phaseKeyRef = useRef<string | null>(null);
+  const lastDiceSigRef = useRef<string | null>(null);
   const botActedRef = (typeof window !== "undefined" ? (window as any) : {}) as any;
 
   const clearRefTimeout = (ref: { current: number | null }) => {
@@ -151,6 +152,25 @@ export default function LudoGame() {
     if (forceUnlock || phaseKeyRef.current !== nextPhaseKey) {
       phaseKeyRef.current = nextPhaseKey;
       clearUiBlockers();
+    }
+    // ===== Trigger dice rolling animation for ALL players (incl. opponents) =====
+    // When a payload shows the dice just rolled (or rolled a new value), play
+    // the same tumbling animation + sound the active player saw locally.
+    if (next.dice_rolled && next.last_dice) {
+      const sig = `${next.current_turn_seat}:${next.last_dice}:${next.turn_started_at ?? ""}`;
+      if (lastDiceSigRef.current !== sig) {
+        lastDiceSigRef.current = sig;
+        // Only animate for opponents — the active local player already ran
+        // its own animation inside handleRoll().
+        if (mySeat !== next.current_turn_seat) {
+          setRollAnimSeat(next.current_turn_seat);
+          sfx.dice();
+          clearRefTimeout(rollAnimResetRef);
+          rollAnimResetRef.current = window.setTimeout(() => setRollAnimSeat(null), 750);
+        }
+      }
+    } else if (!next.dice_rolled && !next.last_dice) {
+      lastDiceSigRef.current = null;
     }
     setLoadError(null);
     setG(next);

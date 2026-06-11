@@ -56,6 +56,9 @@ const App = () => (
             <Route path="/spectate/ludo/:id" element={<SpectateLudo />} />
             <Route path="/spectate/petanque/:id" element={<SpectatePetanque />} />
             <Route path="/tournament" element={<Tournament />} />
+            <Route path="/tournament/rules" element={<TournamentRules />} />
+            <Route path="/tournament/history" element={<TournamentHistory />} />
+            <Route path="/tournament/leaderboard" element={<TournamentLeaderboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

@@ -27,13 +27,13 @@ Frozen parameters (do not change without explicit prompt):
 - Turn rotation is now **counter-clockwise**: in 3P the order is P1 → P3 → P2. Applied to `nextTurnId`, opener selection in `initializeGameHands`, `finishRound` next-round, and `finishBlocked` tie re-deal.
 
 ## Domino WIN conditions (LOCKED — 2026-06-03, FINAL)
-Two conditions make a player WIN THE GAME (settle_game):
+Three conditions make a player WIN THE GAME (settle_game):
 1. **Target reached**: score ≥ target (D120 → 120, D80 → 80).
 2. **Datinandro**: at deal time, a player's hand pip total equals today's day-of-month (1–31). Triggers instant settle_game; all hands are written to DB so spectators/opponents can verify. A center-screen overlay announces the winner.
+3. **Mandeha irery**: in a single round, a player earns points ≥ 60 (D120) or ≥ 40 (D80). Triggers instant settle_game. Winner score is forced to target for history.
 
 ALL of these are removed and MUST NOT be reintroduced — even partially, even as an opt-in:
 - ❌ Double 6 instant win
-- ❌ "Mandeha irery" / solo 40 or 60 instant win
 - ❌ "5+ double atànana" deal-time instant win
 - ❌ Auto-play branch that settles when tile = [6,6]
 - ❌ "Maty atànana" / running out of tiles instant win

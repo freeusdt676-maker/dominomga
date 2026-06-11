@@ -21,7 +21,7 @@ import { fmtAr } from "@/lib/constants";
 const TURN_TIMEOUT_SEC = 20;
 // Grace ho an'ny mpijery (tsy tompon'ny tour): miandry 2s fanampiny mba ny
 // client an'ilay mpilalao no manao auto aloha — tsy misy fifanenjanana.
-const AUTO_OTHER_GRACE_SEC = 2;
+const AUTO_OTHER_GRACE_SEC = 0.6;
 import { DominoTile, DominoBack } from "@/components/DominoTile";
 import { SnakeBoard } from "@/components/SnakeBoard";
 import { useThemeClass } from "@/hooks/use-theme-class";

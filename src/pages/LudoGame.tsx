@@ -142,6 +142,7 @@ export default function LudoGame() {
 
   const applyIncomingGame = (raw: any, forceUnlock = false) => {
     const next = normalizeGame(raw);
+    if (forceUnlock) pendingGameRef.current = null;
     const nextPhaseKey = [
       next.status,
       next.current_turn_seat,
@@ -168,7 +169,15 @@ export default function LudoGame() {
     // moves only 4 cells before the server payload snaps it to the final
     // position). The local handler will commit the final state itself.
     if (!forceUnlock && (localBusy || remoteAnimRef.current.animating)) {
-      prevGameRef.current = next;
+      if (remoteAnimRef.current.animating && !localBusy) {
+        // Queue the payload so it is replayed (and animated with the FULL
+        // step count) once the current walk finishes — never drop it, or the
+        // next animation diffs from the wrong position (e.g. dice=5 but the
+        // pawn visually walks only 3 cells).
+        pendingGameRef.current = raw;
+      } else {
+        prevGameRef.current = next;
+      }
       return;
     }
 
@@ -254,6 +263,9 @@ export default function LudoGame() {
             remoteAnimRef.current.animating = false;
             setG(next);
             prevGameRef.current = next;
+            const pending = pendingGameRef.current;
+            pendingGameRef.current = null;
+            if (pending) applyIncomingGame(pending);
           }
         })();
       }

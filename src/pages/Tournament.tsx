@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { toast } from "sonner";
-import { ArrowLeft, Trophy, CheckCircle2, Dices, Target } from "lucide-react";
+import { ArrowLeft, Trophy, CheckCircle2, Dices, Target, BookOpen, BarChart3, History, Eye } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 import logoTournoi from "@/assets/logo-tournoi.png";
 
@@ -115,6 +115,8 @@ export default function Tournament() {
         registration_closed: "Mikatona ny fisoratana anarana",
         registration_closed_time: "Tapitra ny ora fisoratana anarana",
         fields_required: "Fenoy daholo ny tsipika",
+        id_card_already_used: "Efa nampiasaina io ID kara-panondro io",
+        has_active_tournament_match: "Mbola misy match tornoi tsy vita anananao",
       };
       return toast.error(map[error.message] ?? error.message);
     }
@@ -145,6 +147,39 @@ export default function Tournament() {
     }, 800);
     return () => clearTimeout(t);
   }, [myActiveMatch?.game_id]);
+
+  // Countdown live: dingana manaraka
+  const nextPhase = useMemo(() => {
+    if (!tournament) return null;
+    const now = Date.now();
+    const phases: { label: string; at: string }[] = [
+      { label: "Mikatona inscription", at: tournament.reg_close },
+      { label: "Quart de finale", at: tournament.qf_at },
+      { label: "Demi-finale", at: tournament.sf_at },
+      { label: "Petite finale", at: tournament.third_at },
+      { label: "Finale", at: tournament.final_at },
+    ];
+    return phases.find((p) => new Date(p.at).getTime() > now) ?? null;
+  }, [tournament, data]);
+
+  const [tick, setTick] = useState(0);
+  useEffect(() => { const i = setInterval(() => setTick((x) => x + 1), 1000); return () => clearInterval(i); }, []);
+  const countdown = useMemo(() => {
+    if (!nextPhase) return null;
+    const ms = new Date(nextPhase.at).getTime() - Date.now();
+    if (ms <= 0) return "Manomboka...";
+    const h = Math.floor(ms / 3600_000);
+    const m = Math.floor((ms % 3600_000) / 60_000);
+    const s = Math.floor((ms % 60_000) / 1000);
+    if (h > 0) return `${h}h ${String(m).padStart(2,"0")}mn`;
+    return `${m}mn ${String(s).padStart(2,"0")}s`;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nextPhase, tick]);
+
+  const liveMatches = matches.filter((m) => !m.winner_id && m.game_id && new Date(m.scheduled_at).getTime() <= Date.now());
+  const spectateRoute = (id: string) => ({
+    domino: `/spectate/domino/${id}`, ludo: `/spectate/ludo/${id}`, petanque: `/spectate/petanque/${id}`,
+  } as const)[gameType];
 
   return (
     <div className="min-h-screen luxe-bg">
@@ -182,6 +217,32 @@ export default function Tournament() {
             );
           })}
         </div>
+
+        {/* Quick nav: Rules · History · Leaderboard */}
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          <button onClick={() => nav("/tournament/rules")}
+            className="luxe-card py-2 px-2 text-[11px] font-bold flex items-center justify-center gap-1 text-muted-foreground hover:gold-luxe-text">
+            <BookOpen className="w-3.5 h-3.5" /> FITSIPIKA
+          </button>
+          <button onClick={() => nav("/tournament/history")}
+            className="luxe-card py-2 px-2 text-[11px] font-bold flex items-center justify-center gap-1 text-muted-foreground hover:gold-luxe-text">
+            <History className="w-3.5 h-3.5" /> TANTARA
+          </button>
+          <button onClick={() => nav("/tournament/leaderboard")}
+            className="luxe-card py-2 px-2 text-[11px] font-bold flex items-center justify-center gap-1 text-muted-foreground hover:gold-luxe-text">
+            <BarChart3 className="w-3.5 h-3.5" /> TOP 20
+          </button>
+        </div>
+
+        {countdown && nextPhase && tournament?.status !== "finished" && tournament?.status !== "cancelled" && (
+          <div className="luxe-card p-3 mb-4 flex items-center justify-between bg-[hsl(var(--gold-1)/0.06)]">
+            <div>
+              <p className="text-[10px] tracking-widest text-[hsl(var(--gold-1))] uppercase">⏱️ Manaraka</p>
+              <p className="text-sm font-bold">{nextPhase.label}</p>
+            </div>
+            <p className="font-serif-luxe text-2xl gold-luxe-text tabular-nums">{countdown}</p>
+          </div>
+        )}
 
         {loading ? (
           <p className="text-center text-muted-foreground py-12">Mihandry...</p>
@@ -272,6 +333,33 @@ export default function Tournament() {
                 ))}
               </div>
             </div>
+
+            {/* Live spectator matches */}
+            {liveMatches.length > 0 && (
+              <div className="luxe-card p-4">
+                <h3 className="font-serif-luxe text-lg gold-luxe-text mb-3 flex items-center gap-2">
+                  <span className="inline-block w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                  Matchs an-dalana
+                </h3>
+                <div className="space-y-2">
+                  {liveMatches.map((m) => {
+                    const nameOf = (uid?: string) => regs.find((r) => r.user_id === uid)?.nom ?? "?";
+                    return (
+                      <div key={m.id} className="hairline rounded p-2 flex items-center justify-between text-xs">
+                        <div>
+                          <p className="text-[10px] text-[hsl(var(--gold-1))]">{String(m.round).toUpperCase()} #{m.match_index}</p>
+                          <p>{nameOf(m.player1_id)} <span className="text-muted-foreground">vs</span> {nameOf(m.player2_id)}</p>
+                        </div>
+                        <button onClick={() => nav(spectateRoute(m.game_id))}
+                          className="px-3 py-1.5 rounded bg-[hsl(var(--gold-1)/0.18)] gold-luxe-text font-bold flex items-center gap-1">
+                          <Eye className="w-3.5 h-3.5" /> Jereo
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {tournament?.status === "finished" && tournament.winner_id && (
               <div className="luxe-card p-4 text-center">

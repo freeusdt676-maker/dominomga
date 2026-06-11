@@ -27,10 +27,11 @@ Frozen parameters (do not change without explicit prompt):
 - Turn rotation is now **counter-clockwise**: in 3P the order is P1 → P3 → P2. Applied to `nextTurnId`, opener selection in `initializeGameHands`, `finishRound` next-round, and `finishBlocked` tie re-deal.
 
 ## Domino WIN conditions (LOCKED — 2026-06-03, FINAL)
-Three conditions make a player WIN THE GAME (settle_game):
+Four conditions make a player WIN THE GAME (settle_game):
 1. **Target reached**: score ≥ target (D120 → 120, D80 → 80).
 2. **Datinandro**: at deal time, a player's hand pip total equals today's day-of-month (1–31). Triggers instant settle_game; all hands are written to DB so spectators/opponents can verify. A center-screen overlay announces the winner.
 3. **Mandeha irery**: in a single round, a player earns points ≥ 60 (D120) or ≥ 40 (D80). Triggers instant settle_game. Winner score is forced to target for history.
+4. **Double 6 out**: a player ENDS the round by placing the [6|6] as their LAST tile (empties their hand with double-6). Triggers instant settle_game. Winner score is forced to target for history. NOT triggered if double-6 is played mid-round with tiles still in hand.
 
 ALL of these are removed and MUST NOT be reintroduced — even partially, even as an opt-in:
 - ❌ Double 6 instant win
@@ -42,6 +43,6 @@ ALL of these are removed and MUST NOT be reintroduced — even partially, even a
 
 Running out of tiles, blocage and "mitovy vato" only end the ROUND and may add points. They only win the GAME if the resulting score crosses the target.
 
-History label `last_reason` MUST be prefixed `MANDRESY NY LALAO — …`. Target wins use `… tonga {target}`; datinandro wins use `… DATINANDRO {day} • {name} tonga datinandro`. Profile.tsx `parseReason` detects `datinandro` first, then falls back to `tonga`.
+History label `last_reason` MUST be prefixed `MANDRESY NY LALAO — …`. Target wins use `… tonga {target}`; datinandro wins use `… DATINANDRO {day} • {name} tonga datinandro`; mandeha irery uses `… MANDEHA IRERY • {name} nahazo +{points} amin'ny tour iray ({threshold}+)`; double-6 out uses `… DOUBLE 6 • {name} namarana ny tour tamin'ny [6|6]`. Profile.tsx `parseReason` order: datinandro → mandeha irery → double-6 out → tonga.
 
 **Why:** The user repeatedly demanded that ONLY the target wins ("ny akoatrizay tsimisy"). Any re-introduction of bonus win conditions is a regression. If a future task asks for a new win category, push back and ask for explicit confirmation that this lock is being intentionally lifted.

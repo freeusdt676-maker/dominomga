@@ -205,12 +205,14 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
           const y = cy * CELL + oy;
           const movable = movableSeat === p.seat && movablePawns?.includes(p.idx);
           const color = SEAT_COLOR[p.seat];
-          // Bowling-pin / bottle proportions — taller than wide
-          const W = CELL * 0.78;     // overall width
-          const H = CELL * 1.25;     // overall height
+          // Ludo-King style — short, wide disc base + dome body + ball head
+          const W = CELL * 0.92;
+          const H = CELL * 1.05;
           const id = `pgrad-${i}`;
           const idShine = `pshine-${i}`;
           const idBody = `pbody-${i}`;
+          const idHead = `phead-${i}`;
+          const idBase = `pbase-${i}`;
           const stableKey = `pawn-${p.seat}-${p.idx}`;
           // Lift the pawn up so the BASE sits on the cell center (cy)
           // body anchor = bottom of the pawn
@@ -227,69 +229,67 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
               }}
             >
               <defs>
-                {/* Rich vertical glossy fill — porcelain sheen */}
-                <linearGradient id={idBody} x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%"   stopColor="#ffffff" stopOpacity="0.7" />
-                  <stop offset="18%"  stopColor={color} />
-                  <stop offset="55%"  stopColor={color} />
-                  <stop offset="82%"  stopColor="#000000" stopOpacity="0.35" />
-                  <stop offset="100%" stopColor="#000000" stopOpacity="0.75" />
-                </linearGradient>
-                {/* Top head highlight */}
-                <radialGradient id={id} cx="32%" cy="25%" r="75%">
+                {/* Dome body fill — light top, deep saturated bottom */}
+                <radialGradient id={idBody} cx="35%" cy="25%" r="85%">
+                  <stop offset="0%"  stopColor="#ffffff" stopOpacity="0.85" />
+                  <stop offset="22%" stopColor={color} />
+                  <stop offset="75%" stopColor={color} />
+                  <stop offset="100%" stopColor="#000" stopOpacity="0.65" />
+                </radialGradient>
+                {/* Disc base — darker rim */}
+                <radialGradient id={idBase} cx="50%" cy="35%" r="75%">
+                  <stop offset="0%"  stopColor={color} />
+                  <stop offset="70%" stopColor={color} />
+                  <stop offset="100%" stopColor="#000" stopOpacity="0.7" />
+                </radialGradient>
+                {/* Head ball */}
+                <radialGradient id={idHead} cx="32%" cy="28%" r="80%">
+                  <stop offset="0%"  stopColor="#ffffff" stopOpacity="0.9" />
+                  <stop offset="30%" stopColor={color} />
+                  <stop offset="100%" stopColor="#000" stopOpacity="0.55" />
+                </radialGradient>
+                <radialGradient id={id} cx="35%" cy="25%" r="60%">
                   <stop offset="0%"  stopColor="#ffffff" stopOpacity="1" />
                   <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
                 </radialGradient>
                 <radialGradient id={idShine} cx="50%" cy="50%" r="50%">
-                  <stop offset="0%"  stopColor="#ffffff" stopOpacity="0.95" />
+                  <stop offset="0%"  stopColor="#ffffff" stopOpacity="0.9" />
                   <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
                 </radialGradient>
-                {/* Gold base ring */}
-                <linearGradient id={`${stableKey}-ring`} x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#ffe27a" />
-                  <stop offset="100%" stopColor="#8a5a0a" />
-                </linearGradient>
               </defs>
-              {/* Floor shadow — soft + tight */}
-              <ellipse cx={W * 0.05} cy={H * 0.44} rx={W * 0.6} ry={W * 0.17} fill="#000" opacity={0.55} />
-              <ellipse cx={W * 0.05} cy={H * 0.44} rx={W * 0.42} ry={W * 0.11} fill="#000" opacity={0.35} />
-              {/* Bottle / bowling-pin silhouette built with a path:
-                  - wide round base
-                  - narrow neck
-                  - small round head on top */}
+              {/* Floor shadow */}
+              <ellipse cx={W*0.04} cy={H*0.44} rx={W*0.55} ry={W*0.14} fill="#000" opacity={0.55} />
+              {/* Disc base (wide flat foot) */}
+              <ellipse cx={0} cy={H*0.34} rx={W*0.50} ry={W*0.14} fill={`url(#${idBase})`} stroke="#1c1235" strokeWidth={1.4} />
+              <ellipse cx={0} cy={H*0.32} rx={W*0.50} ry={W*0.13} fill="none" stroke="#ffffff" strokeOpacity={0.45} strokeWidth={1} />
+              {/* Dome body — bell silhouette sitting on disc */}
               <path
                 d={`
-                  M ${-W*0.50} ${ H*0.38}
-                  C ${-W*0.62} ${ H*0.20}, ${-W*0.62} ${ H*0.05}, ${-W*0.40} ${-H*0.05}
-                  C ${-W*0.28} ${-H*0.12}, ${-W*0.22} ${-H*0.22}, ${-W*0.22} ${-H*0.32}
-                  C ${-W*0.42} ${-H*0.40}, ${-W*0.42} ${-H*0.55}, ${-W*0.18} ${-H*0.58}
-                  C ${-W*0.06} ${-H*0.62},  ${ W*0.06} ${-H*0.62}, ${ W*0.18} ${-H*0.58}
-                  C ${ W*0.42} ${-H*0.55},  ${ W*0.42} ${-H*0.40}, ${ W*0.22} ${-H*0.32}
-                  C ${ W*0.22} ${-H*0.22},  ${ W*0.28} ${-H*0.12}, ${ W*0.40} ${-H*0.05}
-                  C ${ W*0.62} ${ H*0.05},  ${ W*0.62} ${ H*0.20}, ${ W*0.50} ${ H*0.38}
+                  M ${-W*0.48} ${ H*0.34}
+                  C ${-W*0.52} ${ H*0.10}, ${-W*0.40} ${-H*0.05}, ${-W*0.22} ${-H*0.12}
+                  C ${-W*0.22} ${-H*0.22}, ${-W*0.22} ${-H*0.22}, ${-W*0.18} ${-H*0.25}
+                  L ${ W*0.18} ${-H*0.25}
+                  C ${ W*0.22} ${-H*0.22},  ${ W*0.22} ${-H*0.22},  ${ W*0.22} ${-H*0.12}
+                  C ${ W*0.40} ${-H*0.05},  ${ W*0.52} ${ H*0.10},  ${ W*0.48} ${ H*0.34}
                   Z
                 `}
                 fill={`url(#${idBody})`}
                 stroke="#1c1235"
-                strokeWidth={1.6}
+                strokeWidth={1.4}
               />
-              {/* Gold collar at neck */}
-              <ellipse cx={0} cy={-H*0.28} rx={W*0.24} ry={H*0.04} fill={`url(#${stableKey}-ring)`} stroke="#3a2410" strokeWidth={0.7} />
-              {/* Gold base ring */}
-              <ellipse cx={0} cy={H*0.36} rx={W*0.50} ry={W*0.14} fill={`url(#${stableKey}-ring)`} stroke="#3a2410" strokeWidth={0.7} />
-              {/* Glossy head highlight */}
-              <ellipse cx={-W*0.06} cy={-H*0.52} rx={W*0.22} ry={H*0.12} fill={`url(#${id})`} />
-              {/* Body specular streak */}
-              <ellipse cx={-W*0.20} cy={ H*0.08} rx={W*0.09} ry={H*0.24} fill={`url(#${idShine})`} opacity={0.75} />
-              {/* Right-side rim light */}
-              <ellipse cx={ W*0.22} cy={ H*0.05} rx={W*0.04} ry={H*0.20} fill="#ffffff" opacity={0.18} />
-              {/* Crisp tiny highlight on head */}
-              <circle cx={-W*0.10} cy={-H*0.53} r={W*0.07} fill="#ffffff" opacity={1} />
+              {/* Neck shadow line where head meets body */}
+              <ellipse cx={0} cy={-H*0.22} rx={W*0.20} ry={H*0.03} fill="#000" opacity={0.35} />
+              {/* Round head ball */}
+              <circle cx={0} cy={-H*0.38} r={W*0.22} fill={`url(#${idHead})`} stroke="#1c1235" strokeWidth={1.4} />
+              {/* Highlights */}
+              <ellipse cx={-W*0.08} cy={-H*0.43} rx={W*0.10} ry={W*0.07} fill={`url(#${id})`} />
+              <ellipse cx={-W*0.20} cy={ H*0.05} rx={W*0.08} ry={H*0.18} fill={`url(#${idShine})`} opacity={0.7} />
+              <circle cx={-W*0.10} cy={-H*0.45} r={W*0.05} fill="#ffffff" opacity={0.95} />
               {/* Movable indicator: gold ring + pulse around the base */}
               {movable && (
                 <>
-                  <ellipse cx={0} cy={H*0.30} rx={W*0.55} ry={W*0.20} fill="none" stroke="#ffe27a" strokeWidth={2.5} opacity={0.95} />
-                  <ellipse cx={0} cy={H*0.30} rx={W*0.55} ry={W*0.20} fill="none" stroke="#ffe27a" strokeWidth={2} className="pulse-ring" />
+                  <ellipse cx={0} cy={H*0.34} rx={W*0.56} ry={W*0.17} fill="none" stroke="#ffe27a" strokeWidth={2.5} opacity={0.95} />
+                  <ellipse cx={0} cy={H*0.34} rx={W*0.56} ry={W*0.17} fill="none" stroke="#ffe27a" strokeWidth={2} className="pulse-ring" />
                 </>
               )}
             </g>

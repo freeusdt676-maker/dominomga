@@ -800,6 +800,10 @@ export default function Game() {
     longPressTriggeredRef.current = false;
     pressStartXRef.current = e.clientX;
     pressStartYRef.current = e.clientY;
+    // Avela handeha amin'ny element hafa ny pointer events (raha tsy izany dia
+    // ny button niandohany ihany no mahazo events, ka tsy mahafantatra ny
+    // toerana hilatsahan'ny vato).
+    try { (e.currentTarget as Element).releasePointerCapture?.(e.pointerId); } catch {}
     clearLongPress();
     longPressRef.current = window.setTimeout(() => {
       longPressTriggeredRef.current = true;
@@ -813,6 +817,14 @@ export default function Game() {
     const dy = Math.abs(e.clientY - pressStartYRef.current);
     if (!longPressTriggeredRef.current && (dx > 8 || dy > 8)) {
       clearLongPress();
+    }
+    if (longPressTriggeredRef.current) {
+      const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
+      const target = el?.closest?.("[data-hand-index]") as HTMLElement | null;
+      if (target) {
+        const idx = Number(target.getAttribute("data-hand-index"));
+        if (!Number.isNaN(idx)) setDragIndex(idx);
+      }
     }
   };
 
@@ -1475,8 +1487,8 @@ export default function Game() {
                 const showA = isFlipped ? t[1] : t[0];
                 const showB = isFlipped ? t[0] : t[1];
                 return (
+                  <div key={i} data-hand-index={i} style={{ touchAction: "none" }}>
                   <DominoTile
-                    key={i}
                     a={showA}
                     b={showB}
                     size={handTileSize}
@@ -1504,6 +1516,7 @@ export default function Game() {
                     disabled={!isMyTurn || !placeable}
                     allowPointerWhenDisabled
                   />
+                  </div>
                 );
               })}
             </div>

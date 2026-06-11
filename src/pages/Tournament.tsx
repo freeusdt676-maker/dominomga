@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Trophy, CheckCircle2 } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 import logoTournoi from "@/assets/logo-tournoi.png";
+import TournamentChat from "@/components/TournamentChat";
 
 const MG_TZ_OFFSET = 3 * 3600_000;
 
@@ -343,6 +344,8 @@ export default function Tournament() {
                 Amin'ny fanindriana CONFIRMER + PIN, ekenao fa hanaisotra <b>5 000 Ar</b> amin'ny wallet-nao avy hatrany.
               </p>
             </div>
+
+            <TournamentChat />
           </TabsContent>
         </Tabs>
         )}

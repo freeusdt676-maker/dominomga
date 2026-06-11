@@ -205,9 +205,9 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
           const y = cy * CELL + oy;
           const movable = movableSeat === p.seat && movablePawns?.includes(p.idx);
           const color = SEAT_COLOR[p.seat];
-          // Ludo-King style — short, wide disc base + dome body + ball head
-          const W = CELL * 0.92;
-          const H = CELL * 1.05;
+          // Ludo-King style — taller, slimmer pion (disc base + dome body + ball head)
+          const W = CELL * 0.72;
+          const H = CELL * 1.45;
           const id = `pgrad-${i}`;
           const idShine = `pshine-${i}`;
           const idBody = `pbody-${i}`;
@@ -224,7 +224,6 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
               onClick={() => movable && onPawnClick?.(p.idx)}
               style={{
                 cursor: movable ? "pointer" : "default",
-                transition: "transform 180ms cubic-bezier(0.22, 1, 0.36, 1)",
                 transformBox: "fill-box",
               }}
             >

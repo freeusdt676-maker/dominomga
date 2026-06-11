@@ -115,6 +115,9 @@ export default function Profile() {
     const s = r.toLowerCase();
     if (s.includes("datinandro")) return { label: "MANDRESY • Datinandro", tone: "bg-amber-400/20 text-amber-200 border-amber-400/50", raw: r };
     if (s.includes("mandeha irery")) return { label: "MANDRESY • Mandeha irery", tone: "bg-fuchsia-500/20 text-fuchsia-200 border-fuchsia-500/40", raw: r };
+    if (s.includes("mandresy") && (s.includes("double 6") || s.includes("[6|6]") || s.includes("6/6"))) {
+      return { label: "MANDRESY • Double 6 out", tone: "bg-sky-500/20 text-sky-200 border-sky-500/40", raw: r };
+    }
     if (s.includes("tonga")) return { label: "MANDRESY • Target tratra", tone: "bg-green-500/20 text-green-300 border-green-500/40", raw: r };
     if (s.includes("bloqué") || s.includes("bloque") || s.includes("blocage")) return { label: "Tour: Blocage", tone: "bg-red-500/20 text-red-300 border-red-500/40", raw: r };
     if (s.includes("double 6") || s.includes("6/6") || s.includes("paire de six") || s.includes("nandeha irery")) {

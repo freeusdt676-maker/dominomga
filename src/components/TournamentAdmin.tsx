@@ -14,14 +14,18 @@ function fmtMG(iso?: string | null) {
   return `${days[mg.getUTCDay()]} ${String(mg.getUTCDate()).padStart(2,"0")}/${String(mg.getUTCMonth()+1).padStart(2,"0")} ${String(mg.getUTCHours()).padStart(2,"0")}:${String(mg.getUTCMinutes()).padStart(2,"0")}`;
 }
 
+type GameType = "domino" | "ludo" | "petanque";
+const GT_LABEL: Record<GameType, string> = { domino: "🁫 DOMINO", ludo: "🎲 LUDO", petanque: "🎯 PÉTANQUE" };
+
 export default function TournamentAdmin() {
+  const [gameType, setGameType] = useState<GameType>("domino");
   const [data, setData] = useState<any>(null);
   const [cancelReg, setCancelReg] = useState<any | null>(null);
   const [cancelAllOpen, setCancelAllOpen] = useState(false);
   const [pin, setPin] = useState("");
 
   const load = async () => {
-    const { data: d } = await supabase.rpc("tournament_get_current" as any);
+    const { data: d } = await supabase.rpc("tournament_get_current" as any, { _game_type: gameType });
     setData(d);
   };
 
@@ -33,7 +37,7 @@ export default function TournamentAdmin() {
       .on("postgres_changes", { event: "*", schema: "public", table: "tournament_matches" }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, []);
+  }, [gameType]);
 
   const handleCancelReg = async () => {
     if (!cancelReg) return;
@@ -45,7 +49,7 @@ export default function TournamentAdmin() {
   };
 
   const handleCancelAll = async () => {
-    const { data: r, error } = await supabase.rpc("tournament_admin_cancel" as any, { _pin: pin });
+    const { data: r, error } = await supabase.rpc("tournament_admin_cancel" as any, { _game_type: gameType, _pin: pin });
     if (error) { toast.error(error.message); return; }
     toast.success(`Voafoana — ${(r as any)?.refunded ?? 0} mpilalao naverin'ny vola`);
     setCancelAllOpen(false); setPin("");
@@ -60,10 +64,27 @@ export default function TournamentAdmin() {
 
   return (
     <div className="space-y-3">
+      <div className="luxe-card p-1.5 grid grid-cols-3 gap-1">
+        {(Object.keys(GT_LABEL) as GameType[]).map((gt) => {
+          const active = gameType === gt;
+          return (
+            <button
+              key={gt}
+              onClick={() => { if (gt !== gameType) { setGameType(gt); setData(null); } }}
+              className={`rounded-md py-2 px-1 text-[11px] font-bold transition ${
+                active ? "bg-[hsl(var(--gold-1)/0.18)] gold-luxe-text shadow-inner" : "text-muted-foreground"
+              }`}
+            >
+              {GT_LABEL[gt]}
+            </button>
+          );
+        })}
+      </div>
+
       <div className="luxe-card p-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[10px] tracking-widest text-[hsl(var(--gold-1))] uppercase">Tournoi du Semaine</p>
+            <p className="text-[10px] tracking-widest text-[hsl(var(--gold-1))] uppercase">Tournoi {gameType}</p>
             <p className="font-serif-luxe text-lg gold-luxe-text mt-1">
               {t.status === "registration" && "📝 Inscription mandeha"}
               {t.status === "running" && "🎮 Lalao mandeha"}

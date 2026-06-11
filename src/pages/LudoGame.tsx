@@ -665,9 +665,6 @@ export default function LudoGame() {
             <span className="text-[10px] font-bold text-yellow-50 truncate drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">
               {uid ? (names[uid] ?? "...") : "miandry"}
             </span>
-            {isTurn && (
-              <span className="text-[10px] font-bold text-yellow-300 drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">⏱{remainingSec}s</span>
-            )}
           </div>
           {/* Personal dice — only ACTIVE seat shows the big 3D dice with arrow */}
           {isTurn && (

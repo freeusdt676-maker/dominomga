@@ -375,6 +375,10 @@ export default function Game() {
       const rotIds = pc === 3 ? [ids[0], ids[2], ids[1]] : ids;
       const hands = pc === 3 ? [h1, h2, h3] : [h1, h2];
       const nextId = rotIds[(nextRound - 1) % rotIds.length];
+      // DATINANDRO check on re-deal — instant win.
+      if (await tryDatinandroWin(game, hands, boneyard, { round_number: nextRound })) {
+        return;
+      }
       const updateNext: any = {
         round_number: nextRound,
         player1_hand: hands[0],

@@ -368,8 +368,10 @@ export default function Tournament() {
                   <p className="font-serif-luxe text-2xl gold-luxe-text">5 000 Ar</p>
                 </div>
 
-                <Button onClick={() => { setStep("pin"); setOpenReg(true); handleConfirmForm(); }}
-                  className="w-full btn-luxe text-base py-3">
+                <Button onClick={() => {
+                  if (!fNom.trim() || !fTel.trim() || !fId.trim()) { toast.error("Fenoy daholo ny tsipika"); return; }
+                  setStep("pin"); setOpenReg(true);
+                }} className="w-full btn-luxe text-base py-3">
                   CONFIRMER
                 </Button>
                 <p className="text-[10px] text-muted-foreground text-center">

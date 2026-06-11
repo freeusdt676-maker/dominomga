@@ -51,6 +51,7 @@ export function DominoTile({
   onPointerUp,
   onPointerLeave,
   onContextMenu,
+  onDoubleClick,
   selected = false,
   disabled = false,
   allowPointerWhenDisabled = false,
@@ -68,6 +69,7 @@ export function DominoTile({
   onPointerUp?: React.PointerEventHandler<HTMLButtonElement>;
   onPointerLeave?: React.PointerEventHandler<HTMLButtonElement>;
   onContextMenu?: React.MouseEventHandler<HTMLButtonElement>;
+  onDoubleClick?: React.MouseEventHandler<HTMLButtonElement>;
   selected?: boolean;
   disabled?: boolean;
   allowPointerWhenDisabled?: boolean;
@@ -95,6 +97,7 @@ export function DominoTile({
       onPointerUp={onPointerUp}
       onPointerLeave={onPointerLeave}
       onContextMenu={onContextMenu}
+      onDoubleClick={onDoubleClick}
       disabled={domDisabled}
       aria-disabled={visuallyDisabled}
       className={`relative ${fluid ? "w-full" : "shrink-0"} transition ${

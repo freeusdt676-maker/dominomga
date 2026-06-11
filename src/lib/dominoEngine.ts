@@ -41,13 +41,12 @@ function countDoubles(hand: Tile[]): number {
 }
 
 // Lalàna:
-//  - 4 double atànana ihany no mahatonga ny redeal (averina ny fizarana).
+//  - 3 double ihany no azo ekena amin'ny vato 7. Raha 4 na mihoatra → averina ny fizarana.
 //  - TSY MISY instant win amin'ny double atànana.
-// Noho izany, manaiky deal isika rehefa tsy misy mpilalao manana double = 4.
-const REDEAL_DOUBLES = 4;
+const REDEAL_DOUBLES = 4; // 4+ doubles in a 7-tile hand triggers redeal
 
 function dealNeedsRedeal(hands: Tile[][]): boolean {
-  return hands.some((h) => countDoubles(h) === REDEAL_DOUBLES);
+  return hands.some((h) => countDoubles(h) >= REDEAL_DOUBLES);
 }
 
 function shuffleDeckWithSeed(seed?: string): Tile[] {

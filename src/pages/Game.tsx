@@ -85,6 +85,9 @@ export default function Game() {
   const [profilePhotos, setProfilePhotos] = useState<Record<string, string | null>>({});
   const [selected, setSelected] = useState<number | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  // Famadihana an-tànana: ny pilalao afaka mamadika ny vato ao am-pelatànany
+  // araka izay tiany (rotation 180°), nefa tsy miova ny valeur azo ametraka.
+  const [flippedHand, setFlippedHand] = useState<Record<number, boolean>>({});
   const [ticketBanner, setTicketBanner] = useState<string | null>(null);
   const [roundBanner, setRoundBanner] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
@@ -1468,11 +1471,14 @@ export default function Game() {
             <div className="grid grid-cols-7 gap-1 py-2 px-1 w-full">
               {myHand.map((t, i) => {
                 const placeable = canPlace(board, t) !== null;
+                const isFlipped = !!flippedHand[i];
+                const showA = isFlipped ? t[1] : t[0];
+                const showB = isFlipped ? t[0] : t[1];
                 return (
                   <DominoTile
                     key={i}
-                    a={t[0]}
-                    b={t[1]}
+                    a={showA}
+                    b={showB}
                     size={handTileSize}
                     fluid
                     onPointerDown={(e) => handleHandPointerDown(i, e)}
@@ -1480,7 +1486,13 @@ export default function Game() {
                     onPointerEnter={() => handleHandPointerEnter(i)}
                     onPointerUp={() => void handleHandPointerUp(i)}
                     onPointerLeave={handleHandPointerLeave}
-                    onContextMenu={(e) => e.preventDefault()}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setFlippedHand((prev) => ({ ...prev, [i]: !prev[i] }));
+                    }}
+                    onDoubleClick={() => {
+                      setFlippedHand((prev) => ({ ...prev, [i]: !prev[i] }));
+                    }}
                     onClick={() => {
                       if (suppressClickRef.current) {
                         suppressClickRef.current = false;

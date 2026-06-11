@@ -11,9 +11,9 @@
 
 @layer base {
   :root {
-    /* Clean Minimal — paper + ink */
-    --background: 0 0% 98%;
-    --foreground: 0 0% 7%;
+    /* Clean Minimal — green felt background + ink */
+    --background: 142 35% 22%;
+    --foreground: 0 0% 98%;
 
     --card: 0 0% 100%;
     --card-foreground: 0 0% 7%;
@@ -25,11 +25,11 @@
     --primary-foreground: 0 0% 100%;
     --primary-glow: 142 71% 46%;
 
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 7%;
+    --secondary: 142 30% 28%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 42%;
+    --muted: 142 25% 30%;
+    --muted-foreground: 140 15% 80%;
 
     --accent: 142 71% 36%;
     --accent-foreground: 0 0% 100%;
@@ -40,8 +40,8 @@
     --success: 142 71% 36%;
     --success-foreground: 0 0% 100%;
 
-    --border: 0 0% 90%;
-    --input: 0 0% 94%;
+    --border: 142 25% 35%;
+    --input: 142 25% 30%;
     --ring: 142 71% 36%;
 
     --radius: 0.75rem;
@@ -62,19 +62,19 @@
     --shadow-inset-gold: inset 0 0 0 1px hsl(0 0% 0% / 0.06);
     --hairline: hsl(0 0% 0% / 0.08);
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 0 0% 7%;
+    --sidebar-background: 142 35% 22%;
+    --sidebar-foreground: 0 0% 98%;
     --sidebar-primary: 142 71% 36%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 94%;
-    --sidebar-accent-foreground: 0 0% 7%;
-    --sidebar-border: 0 0% 90%;
+    --sidebar-accent: 142 25% 30%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 142 25% 35%;
     --sidebar-ring: 142 71% 36%;
   }
 
   .dark {
-    --background: 0 0% 98%;
-    --foreground: 0 0% 7%;
+    --background: 142 35% 22%;
+    --foreground: 0 0% 98%;
   }
 }
 

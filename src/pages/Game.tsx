@@ -1487,8 +1487,8 @@ export default function Game() {
                 const showA = isFlipped ? t[1] : t[0];
                 const showB = isFlipped ? t[0] : t[1];
                 return (
+                  <div key={i} data-hand-index={i} style={{ touchAction: "none" }}>
                   <DominoTile
-                    key={i}
                     a={showA}
                     b={showB}
                     size={handTileSize}
@@ -1516,6 +1516,7 @@ export default function Game() {
                     disabled={!isMyTurn || !placeable}
                     allowPointerWhenDisabled
                   />
+                  </div>
                 );
               })}
             </div>

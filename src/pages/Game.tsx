@@ -922,7 +922,7 @@ export default function Game() {
     const startMs = Math.max(new Date(game.turn_started_at).getTime(), turnAnchorRef.current.at);
     const graceSec = game.current_turn === user.id ? 0 : AUTO_OTHER_GRACE_SEC;
     const deadline = startMs + (TURN_TIMEOUT_SEC + graceSec) * 1000;
-    const delay = Math.max(0, deadline - Date.now()) + 250; // 250ms grâce
+    const delay = Math.max(0, deadline - Date.now()) + 50; // mafonja kely
     const t = setTimeout(() => {
       // Bump `now` so the existing elapsed-based effect re-runs and fires
       setNow(Date.now());

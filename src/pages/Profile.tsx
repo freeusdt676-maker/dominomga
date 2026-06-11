@@ -113,9 +113,10 @@ export default function Profile() {
   const parseReason = (r: string | null | undefined): { label: string; tone: string; raw?: string | null } => {
     if (!r) return { label: "Lalao vita", tone: "bg-muted text-foreground" };
     const s = r.toLowerCase();
+    if (s.includes("datinandro")) return { label: "MANDRESY • Datinandro", tone: "bg-amber-400/20 text-amber-200 border-amber-400/50", raw: r };
     if (s.includes("tonga")) return { label: "MANDRESY • Target tratra", tone: "bg-green-500/20 text-green-300 border-green-500/40", raw: r };
     if (s.includes("bloqué") || s.includes("bloque") || s.includes("blocage")) return { label: "Tour: Blocage", tone: "bg-red-500/20 text-red-300 border-red-500/40", raw: r };
-    if (s.includes("double 6") || s.includes("6/6") || s.includes("paire de six") || s.includes("datinandro") || s.includes("mandeha irery") || s.includes("nandeha irery")) {
+    if (s.includes("double 6") || s.includes("6/6") || s.includes("paire de six") || s.includes("mandeha irery") || s.includes("nandeha irery")) {
       return { label: "Historique taloha diso", tone: "bg-amber-500/20 text-amber-300 border-amber-500/40", raw: "Règle taloha diso — tsy ekena intsony io karazana fandresena io." };
     }
     if (s.includes("tour vita") || s.includes("+")) return { label: "Tour vita", tone: "bg-slate-500/20 text-slate-300 border-slate-500/40", raw: r };

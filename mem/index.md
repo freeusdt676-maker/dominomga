@@ -7,7 +7,7 @@ TURN_TIMEOUT_SEC=10 (Ludo), Domino timer=20s, Lobby waiting expiry=2min. Do not 
 Money is immutable: never add UI to delete wallets/admin_wallets. Mutations only via documented RPCs.
 Commission is enforced server-side: round(stake*0.10)*players_count for all 3 games via BEFORE UPDATE triggers.
 Wallet+admin+cash_pool total is conserved — only deposits add, withdrawals remove. NEVER add credit paths.
-Domino win = ONLY target reached (80 or 120). No double-6, no datinandro, no solo, no instant-doubles.
+Domino win = target reached (80/120) OR datinandro (hand pip total at deal = today's day-of-month). Nothing else.
 Toasts: top-center, 7s duration, richColors (Sonner) — configured in src/App.tsx.
 
 ## Memories

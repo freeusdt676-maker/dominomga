@@ -128,6 +128,51 @@ export default function Game() {
     return () => clearTimeout(t);
   }, [optimistic]);
 
+  // DATINANDRO — Raha misy mpilalao izay ny fitambaran'ny isan'ny piesy
+  // azony amin'ny fizarana mitovy amin'ny daty (isan'andro) dia mandresy
+  // avy hatrany ny lalao izy. Hipoitra eo afovoan'ny écran ny anarany ary
+  // ny tanan'ny pilalao rehetra dia ampisehoina mangarahara.
+  const tryDatinandroWin = async (
+    gameRef: any,
+    hands: Tile[][],
+    boneyard: Tile[],
+    extra: Record<string, any> = {},
+  ): Promise<boolean> => {
+    const pc = Number(gameRef?.players_count ?? 2);
+    const ids = pc === 3
+      ? [gameRef.player1_id, gameRef.player2_id, gameRef.player3_id]
+      : [gameRef.player1_id, gameRef.player2_id];
+    const day = new Date().getDate();
+    const idx = hands.findIndex((h) => pipsTotal(h) === day);
+    if (idx < 0) return false;
+    const winnerId = ids[idx] as string;
+    const winnerName = profileNames[winnerId] ?? "Mpilalao";
+    const mode = (gameRef.game_mode ?? "d120") as GameMode;
+    const target = getDominoTarget(mode);
+    const reason = `MANDRESY NY LALAO — DATINANDRO ${day} • ${winnerName} tonga datinandro`;
+    const REVEAL_MS = 6000;
+    const revealUntil = new Date(Date.now() + REVEAL_MS).toISOString();
+    const payload: any = {
+      ...extra,
+      player1_hand: hands[0],
+      player2_hand: hands[1],
+      boneyard,
+      board_state: [],
+      current_turn: null,
+      turn_started_at: null,
+      passes: 0,
+      last_reason: reason,
+      reveal_until: revealUntil,
+    };
+    if (pc === 3) payload.player3_hand = hands[2];
+    payload[`score_p${idx + 1}`] = target;
+    await supabase.from("games").update(payload).eq("id", gameRef.id);
+    setTimeout(async () => {
+      await supabase.rpc("settle_game", { _game_id: gameRef.id, _winner: winnerId });
+    }, REVEAL_MS);
+    return true;
+  };
+
   const initializeGameHands = async (currentGame: any) => {
     const pc = Number(currentGame?.players_count ?? 2);
     if (!currentGame?.id || !currentGame.player1_id || !currentGame.player2_id) return;
@@ -162,6 +207,10 @@ export default function Game() {
       const openerIdxInit = ids.indexOf(rotIds[(round1 - 1) % rotIds.length]);
       const opener = { ...chooseOpening(hands, mode), playerIndex: openerIdxInit, forced: false };
       const openerId = ids[openerIdxInit];
+      // DATINANDRO check on initial deal — instant win.
+      if (await tryDatinandroWin(currentGame, hands, boneyard)) {
+        return;
+      }
       let board: Placed[] = [];
       let nextId = openerId;
       if (opener.forced) {
@@ -326,6 +375,10 @@ export default function Game() {
       const rotIds = pc === 3 ? [ids[0], ids[2], ids[1]] : ids;
       const hands = pc === 3 ? [h1, h2, h3] : [h1, h2];
       const nextId = rotIds[(nextRound - 1) % rotIds.length];
+      // DATINANDRO check on re-deal — instant win.
+      if (await tryDatinandroWin(game, hands, boneyard, { round_number: nextRound })) {
+        return;
+      }
       const updateNext: any = {
         round_number: nextRound,
         player1_hand: hands[0],
@@ -379,6 +432,10 @@ export default function Game() {
       const nextId = rotIds[(nextRound - 1) % rotIds.length];
       setRoundBanner(`Mitovy vato — tour vaovao`);
       setTimeout(() => setRoundBanner(null), 3500);
+      // DATINANDRO check on tied re-deal — instant win.
+      if (await tryDatinandroWin(game, hands, boneyard, { round_number: nextRound })) {
+        return;
+      }
       const updateNext: any = {
         round_number: nextRound,
         player1_hand: hands[0],
@@ -937,6 +994,24 @@ export default function Game() {
           🏁 {roundBanner}
         </div>
       )}
+      {(() => {
+        const r: string = (game as any)?.last_reason ?? "";
+        const ru = (game as any)?.reveal_until ? new Date((game as any).reveal_until).getTime() : 0;
+        const active = r.includes("DATINANDRO") && ru > Date.now();
+        if (!active) return null;
+        return (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in">
+            <div className="mx-4 max-w-md rounded-2xl border-4 border-[#ffe27a] bg-[linear-gradient(180deg,#0d3b22,#0a2818)] p-6 text-center shadow-2xl">
+              <div className="text-5xl mb-2">🎯</div>
+              <div className="text-2xl font-extrabold text-[#ffe27a] tracking-wide mb-2">
+                DATINANDRO!
+              </div>
+              <div className="text-base text-white font-semibold">{r.replace(/^MANDRESY NY LALAO — /, "")}</div>
+              <div className="mt-3 text-xs text-white/70 italic">Mangarahara ny tanan'ny pilalao rehetra</div>
+            </div>
+          </div>
+        );
+      })()}
       {/* Header style "Rolland | Tour | Opponent" */}
       <header className="relative px-3 py-2 grid grid-cols-3 items-center gap-2 border-b-2 border-[#d4a52c]/60 bg-[linear-gradient(180deg,#0d3b22_0%,#0a2818_100%)] shadow-[inset_0_-2px_0_rgba(212,165,44,0.25)]">
         <div className="flex items-center gap-2 min-w-0">

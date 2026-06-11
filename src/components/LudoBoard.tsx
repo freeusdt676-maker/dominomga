@@ -224,7 +224,6 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
               onClick={() => movable && onPawnClick?.(p.idx)}
               style={{
                 cursor: movable ? "pointer" : "default",
-                transformBox: "fill-box",
               }}
             >
               <defs>

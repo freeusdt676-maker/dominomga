@@ -28,11 +28,11 @@ export function areDominoOpponentScoresZero(
 }
 
 export function isDominoSoloWin(
-  points: number,
+  score: number,
   mode?: string | null,
   opponentScores: Array<number | string | null | undefined> = [],
 ): boolean {
-  return Number(points ?? 0) >= getDominoSoloThreshold(mode)
+  return Number(score ?? 0) >= getDominoSoloThreshold(mode)
     && areDominoOpponentScoresZero(opponentScores);
 }
 

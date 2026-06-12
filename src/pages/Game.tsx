@@ -378,8 +378,6 @@ export default function Game() {
       score_p2: newScoreP2,
       reveal_until: revealUntil,
       last_reason: reason,
-      winner_id: instantWin ? winnerId : null,
-      status: instantWin ? "finished" : game.status,
       // Vonoy ny tour mandritra ny reveal mba tsy hisy fihetsika afaka atao
       // alohan'ny hidiran'ny tour manaraka.
       current_turn: null,

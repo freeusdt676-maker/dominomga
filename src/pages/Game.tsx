@@ -914,7 +914,10 @@ export default function Game() {
       const liveBoard: Placed[] = (fresh.board_state as Placed[]) ?? [];
       const turnId = fresh.current_turn as string;
       const turnKey = getHandKey(fresh, turnId) as "player1_hand" | "player2_hand" | "player3_hand" | null;
-      if (!turnKey) return;
+      if (!turnKey) {
+        autoActedRef.current = null;
+        return;
+      }
       const turnHand: Tile[] = ((fresh[turnKey] as Tile[]) ?? []) as Tile[];
       const oppId = nextTurnId(fresh, turnId);
       const pc = Number(fresh.players_count ?? 2);
@@ -990,6 +993,9 @@ export default function Game() {
         current_turn: oppId,
         turn_started_at: new Date().toISOString(),
         passes,
+      }, {
+        expectedCurrentTurn: turnId,
+        expectedTurnStartedAt: fresh.turn_started_at,
       });
     })().catch(() => {
       autoActedRef.current = null;

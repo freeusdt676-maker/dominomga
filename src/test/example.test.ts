@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { getDominoRoundReason, getDominoTarget, isDominoGameWin } from "@/lib/dominoRules";
+import {
+  getDominoRoundReason,
+  getDominoSoloThreshold,
+  getDominoTarget,
+  isDominoDoubleSixOut,
+  isDominoGameWin,
+  isDominoSoloWin,
+} from "@/lib/dominoRules";
 
 describe("domino rules lock", () => {
   it("D80 sy D120 ihany no target marina", () => {
@@ -19,6 +26,21 @@ describe("domino rules lock", () => {
     expect(isDominoGameWin(80, "d80")).toBe(true);
     expect(isDominoGameWin(120, "d120")).toBe(true);
     expect(isDominoGameWin(121, "d120")).toBe(true);
+  });
+
+  it("mandeha irery raha tratra ny seuil ary mbola 0 ny adversaire", () => {
+    expect(getDominoSoloThreshold("d80")).toBe(40);
+    expect(getDominoSoloThreshold("d120")).toBe(60);
+    expect(isDominoSoloWin(40, "d80", [0])).toBe(true);
+    expect(isDominoSoloWin(60, "d120", [0, 0])).toBe(true);
+    expect(isDominoSoloWin(39, "d80", [0])).toBe(false);
+    expect(isDominoSoloWin(60, "d120", [0, 1])).toBe(false);
+  });
+
+  it("double 6 out dia [6|6] farany sady nahazo isa", () => {
+    expect(isDominoDoubleSixOut([6, 6], 21)).toBe(true);
+    expect(isDominoDoubleSixOut([6, 6], 0)).toBe(false);
+    expect(isDominoDoubleSixOut([6, 5], 21)).toBe(false);
   });
 
   it("reason dia tsy maintsy target ihany no MANDRESY NY LALAO", () => {

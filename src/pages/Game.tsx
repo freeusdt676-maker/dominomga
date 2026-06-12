@@ -34,7 +34,14 @@ import {
 } from "@/lib/dominoEngine";
 import { toast } from "sonner";
 import { sfx } from "@/lib/sfx";
-import { getDominoRoundReason, getDominoTarget, isDominoGameWin } from "@/lib/dominoRules";
+import {
+  getDominoRoundReason,
+  getDominoSoloThreshold,
+  getDominoTarget,
+  isDominoDoubleSixOut,
+  isDominoGameWin,
+  isDominoSoloWin,
+} from "@/lib/dominoRules";
 
 type GameState = {
   player1_hand: Tile[];
@@ -319,24 +326,14 @@ export default function Game() {
       winnerId === game.player1_id ? newScoreP1 : winnerId === game.player2_id ? newScoreP2 : newScoreP3;
 
     const targetReached = isDominoGameWin(wScore, mode);
-    // MANDEHA IRERY — Raha mahazo isa ≥ 60 (D120) na ≥ 40 (D80) amin'ny
-    // tour iray monja ny mpilalao iray, ARY ny mpanohitra rehetra dia 0 isa
-    // hatrany (mbola tsy nahazo na inona na inona), dia mandresy avy hatrany.
-    // Raha efa nahazo isa ny mpanohitra (na iray monja aza), dia TSY mandeha
-    // irery intsony — tour fotsiny no vita.
-    const soloThreshold = mode === "d80" ? 40 : 60;
-    const opponentsZero =
-      (winnerId === game.player1_id ? true : Number(game.score_p1 ?? 0) === 0) &&
-      (winnerId === game.player2_id ? true : Number(game.score_p2 ?? 0) === 0) &&
-      (pc !== 3 || winnerId === game.player3_id ? true : Number(game.score_p3 ?? 0) === 0);
-    const soloWin = points >= soloThreshold && opponentsZero;
-    // DOUBLE 6 OUT — Raha ny [6,6] no piesy farany napetraky ny mpilalao
-    // (izay vao lany ny vato rehetra eny an-tanany), dia mandresy avy hatrany
-    // ny lalao. Tsy mihatra raha mametraka double-6 fotsiny fa mbola misy
-    // vato sisa eny an-tanany. `points > 0` eto = nahalany ny vato (raha tsy
-    // izany dia 0 no alefa amin'ny finishRound).
-    const doubleSixOut =
-      !!lastTile && lastTile[0] === 6 && lastTile[1] === 6 && points > 0;
+    const soloThreshold = getDominoSoloThreshold(mode);
+    const opponentScores = [
+      winnerId === game.player1_id ? null : game.score_p1,
+      winnerId === game.player2_id ? null : game.score_p2,
+      pc === 3 && winnerId !== game.player3_id ? game.score_p3 : null,
+    ].filter((score) => score !== null);
+    const soloWin = isDominoSoloWin(points, mode, opponentScores);
+    const doubleSixOut = isDominoDoubleSixOut(lastTile, points);
     const instantWin = targetReached || soloWin || doubleSixOut;
 
     // Build a human-readable "porofo" of how this round was won, for the replay banner.
@@ -869,6 +866,8 @@ export default function Game() {
   const passTurn = async () => {
     if (!isMyTurn || !game || !user) return;
     if (myHand.length === 0 || hasMove(myHand, board)) return;
+    const expectedCurrentTurn = game.current_turn ?? null;
+    const expectedTurnStartedAt = game.turn_started_at ?? null;
     const oppId = nextTurnId(game, user.id);
     const pc = Number(game.players_count ?? 2);
     const passes = (game.passes ?? 0) + 1;
@@ -876,11 +875,18 @@ export default function Game() {
       await finishBlocked();
       return;
     }
-    await updateGameState({
+    const { error } = await updateGameState({
       current_turn: oppId,
       turn_started_at: new Date().toISOString(),
       passes,
+    }, {
+      expectedCurrentTurn,
+      expectedTurnStartedAt,
     });
+    if (error) {
+      toast.error("Tsy voaray ilay pass, andramo indray");
+      return;
+    }
     toast("TSY MANANA — mandalo any amin'ny manaraka");
   };
 
@@ -908,7 +914,10 @@ export default function Game() {
       const liveBoard: Placed[] = (fresh.board_state as Placed[]) ?? [];
       const turnId = fresh.current_turn as string;
       const turnKey = getHandKey(fresh, turnId) as "player1_hand" | "player2_hand" | "player3_hand" | null;
-      if (!turnKey) return;
+      if (!turnKey) {
+        autoActedRef.current = null;
+        return;
+      }
       const turnHand: Tile[] = ((fresh[turnKey] as Tile[]) ?? []) as Tile[];
       const oppId = nextTurnId(fresh, turnId);
       const pc = Number(fresh.players_count ?? 2);
@@ -984,6 +993,9 @@ export default function Game() {
         current_turn: oppId,
         turn_started_at: new Date().toISOString(),
         passes,
+      }, {
+        expectedCurrentTurn: turnId,
+        expectedTurnStartedAt: fresh.turn_started_at,
       });
     })().catch(() => {
       autoActedRef.current = null;

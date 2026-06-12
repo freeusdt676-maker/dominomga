@@ -332,7 +332,7 @@ export default function Game() {
       winnerId === game.player2_id ? null : game.score_p2,
       pc === 3 && winnerId !== game.player3_id ? game.score_p3 : null,
     ].filter((score) => score !== null);
-    const soloWin = isDominoSoloWin(points, mode, opponentScores);
+    const soloWin = isDominoSoloWin(wScore, mode, opponentScores);
     const doubleSixOut = isDominoDoubleSixOut(lastTile, points);
     const instantWin = targetReached || soloWin || doubleSixOut;
 
@@ -378,6 +378,8 @@ export default function Game() {
       score_p2: newScoreP2,
       reveal_until: revealUntil,
       last_reason: reason,
+      winner_id: instantWin ? winnerId : null,
+      status: instantWin ? "finished" : game.status,
       // Vonoy ny tour mandritra ny reveal mba tsy hisy fihetsika afaka atao
       // alohan'ny hidiran'ny tour manaraka.
       current_turn: null,
@@ -396,9 +398,7 @@ export default function Game() {
 
     setTimeout(async () => {
       if (instantWin) {
-        // Tsy misy bokotra "Continuer" intsony: tonga dia mamarana ny lalao raha tratra ny target,
-          // raha tratra ny target ihany. Ny écran fandresena dia mamerina
-        // automatique any amin'ny lobby aorian'ny 5s.
+        // Aorian'ny reveal fohy dia avela hanidy sy handoa vola ny backend.
         await supabase.rpc("settle_game", { _game_id: game.id, _winner: winnerId });
         return;
       }

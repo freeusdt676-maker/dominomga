@@ -353,7 +353,7 @@ export default function Game() {
     const reason = doubleSixOut && !targetReached && !soloWin
       ? `MANDRESY NY LALAO — DOUBLE 6 • ${winnerName} namarana ny tour tamin'ny [6|6]`
       : soloWin && !targetReached
-      ? `MANDRESY NY LALAO — MANDEHA IRERY • ${winnerName} nahazo +${points} amin'ny tour iray (${soloThreshold}+)`
+      ? `MANDRESY NY LALAO — MANDEHA IRERY • ${winnerName} tonga ${wScore} (${soloThreshold}+)`
       : getDominoRoundReason({
           winnerName,
           mode,

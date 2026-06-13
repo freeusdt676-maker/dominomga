@@ -1369,6 +1369,7 @@ export type Database = {
         Returns: undefined
       }
       tournament_notify_phase: { Args: never; Returns: Json }
+      tournament_player_locked: { Args: { _uid: string }; Returns: boolean }
       tournament_register: {
         Args: {
           _game_type: string

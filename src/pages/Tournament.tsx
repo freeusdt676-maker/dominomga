@@ -197,6 +197,20 @@ export default function Tournament() {
       </header>
 
       <div className="px-4 pt-4 pb-24 max-w-lg mx-auto">
+        {tournament?.status === "running" && (
+          <div className="mb-4 rounded-xl overflow-hidden border-2 border-red-500/60 bg-gradient-to-r from-red-600/30 via-red-500/20 to-red-600/30 shadow-[0_0_24px_rgba(239,68,68,0.45)] animate-pulse">
+            <div className="flex items-center justify-center gap-2 py-2.5 px-3">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+              </span>
+              <p className="font-serif-luxe text-sm sm:text-base tracking-[0.18em] uppercase text-red-50 drop-shadow">
+                🏆 Tornoi du Semaine — <span className="text-yellow-200">EN DIRECT</span>
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Game type selector */}
         <div className="luxe-card p-1.5 mb-4 grid grid-cols-3 gap-1">
           {(Object.keys(GAME_META) as GameType[]).map((gt) => {

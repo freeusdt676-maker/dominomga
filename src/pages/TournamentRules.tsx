@@ -4,7 +4,7 @@ import { ArrowLeft, BookOpen } from "lucide-react";
 
 const SECTIONS = [
   { t: "1. INSCRIPTION", b: [
-    "Misokatra Alatsinainy 00:00 → mikatona Sabotsy 13:45 (ora MG)",
+    "Misokatra Alatsinainy 00:00 → mikatona Alahady 13:45 (ora MG)",
     "Mise: 5 000 Ar (alaina amin'ny wallet rehefa CONFIRMER + PIN)",
     "Mila manana 5 000 Ar ao amin'ny solde",
     "Mila manana code PIN voamboatra",
@@ -12,12 +12,12 @@ const SECTIONS = [
     "ID kara-panondro mitovy = tsy azo soratana indroa (anti-duplicate)",
     "Tsy afaka misoratra raha mbola misy match tornoi tsy vita ianao",
   ]},
-  { t: "2. FANDAMINANA ORA (Sabotsy)", b: [
+  { t: "2. FANDAMINANA ORA (Alahady)", b: [
     "14:00 — Quart de finale (4 lalao)",
     "14:40 — Demi-finale (2 lalao)",
     "15:20 — Petite finale (faharoa)",
     "16:00 — Finale",
-    "Alahady 00:00 — manomboka indray ny inscription manaraka",
+    "Alatsinainy 00:00 — manomboka indray ny inscription manaraka",
   ]},
   { t: "3. LALAO", b: [
     "Mafofona AUTOMATIQUE ao anaty table du jeu rehefa tonga ny ora",
@@ -39,7 +39,7 @@ const SECTIONS = [
     "Total: 40 000 Ar = 8 × 5 000 Ar (invariant matematika)",
   ]},
   { t: "6. AUTO-CANCEL", b: [
-    "Raha latsaky ny 8 mpilalao amin'ny 13:45 → foanana ho azy",
+    "Raha latsaky ny 8 mpilalao amin'ny Alahady 13:45 → foanana ho azy",
     "Vola averina amin'ny wallet rehetra (automatique)",
     "ADM koa afaka manafoana raha misy antony manokana",
   ]},

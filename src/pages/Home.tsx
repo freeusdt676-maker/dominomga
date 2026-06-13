@@ -235,6 +235,11 @@ export default function Home() {
         </div>
       </header>
 
+      {/* Tournoi banner — eny ambony indrindra */}
+      <div className="relative z-10 px-4 pt-2 max-w-lg mx-auto">
+        <TournamentCountdown />
+      </div>
+
       <div className="relative z-10 px-4 pt-5 pb-32 space-y-5 max-w-lg mx-auto">
         {incoming.length > 0 && (
           <div className="luxe-card p-4 ring-1 ring-[hsl(var(--gold-1)/0.5)] animate-pulse">
@@ -282,8 +287,6 @@ export default function Home() {
         <div className="crest-divider px-2">
           <span className="text-[10px] tracking-[0.4em] uppercase">— Salles —</span>
         </div>
-
-        <TournamentCountdown />
 
         {/* Game rooms */}
         <div className="space-y-3">

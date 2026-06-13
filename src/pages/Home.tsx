@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import LiveSpectatorButton from "@/components/LiveSpectatorButton";
+import TournamentCountdown from "@/components/TournamentCountdown";
 
 const ABANDONED_GAME_KEY = "domino_abandoned_game_id";
 
@@ -281,6 +282,8 @@ export default function Home() {
         <div className="crest-divider px-2">
           <span className="text-[10px] tracking-[0.4em] uppercase">— Salles —</span>
         </div>
+
+        <TournamentCountdown />
 
         {/* Game rooms */}
         <div className="space-y-3">

@@ -119,6 +119,17 @@ export default function ForgotPasswordDialog({ open, onClose }: { open: boolean;
 
   const phoneOk = /^0(34|38)\d{7}$/.test(phone.replace(/\s/g, ""));
 
+  const norm = (s: string) =>
+    s.trim().toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z]/g, "");
+  const REQUIRED = ["domino", "ludo", "petanque"];
+  const gamesOk = (() => {
+    const set = new Set([game1, game2, game3].map(norm).filter(Boolean));
+    if (set.size !== 3) return false;
+    return REQUIRED.every((g) => set.has(g));
+  })();
+
   return (
     <div className="fixed inset-0 z-[80] bg-black/80 flex items-center justify-center p-4" onClick={closeAll}>
       <div className="card-felt rounded-2xl p-6 w-full max-w-md relative" onClick={(e) => e.stopPropagation()}>
@@ -181,7 +192,7 @@ export default function ForgotPasswordDialog({ open, onClose }: { open: boolean;
             <Input value={game2} onChange={(e) => setGame2(e.target.value)} placeholder="2." />
             <Input value={game3} onChange={(e) => setGame3(e.target.value)} placeholder="3." />
             <Button className="w-full btn-gold"
-              disabled={loading || !game1.trim() || !game2.trim() || !game3.trim()}
+              disabled={loading || !gamesOk}
               onClick={submit}>{loading ? "Andraso..." : "Alefa"}</Button>
           </div>
         )}

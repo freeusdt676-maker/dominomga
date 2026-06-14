@@ -542,10 +542,16 @@ export type Database = {
       password_reset_requests: {
         Row: {
           admin_note: string | null
+          answers: Json | null
           created_at: string
+          expires_at: string | null
           id: string
           message: string | null
+          phone: string | null
           processed_at: string | null
+          reveal_password: string | null
+          reveal_pin: string | null
+          revealed_at: string | null
           selfie_url: string | null
           status: string
           temp_password: string | null
@@ -553,10 +559,16 @@ export type Database = {
         }
         Insert: {
           admin_note?: string | null
+          answers?: Json | null
           created_at?: string
+          expires_at?: string | null
           id?: string
           message?: string | null
+          phone?: string | null
           processed_at?: string | null
+          reveal_password?: string | null
+          reveal_pin?: string | null
+          revealed_at?: string | null
           selfie_url?: string | null
           status?: string
           temp_password?: string | null
@@ -564,10 +576,16 @@ export type Database = {
         }
         Update: {
           admin_note?: string | null
+          answers?: Json | null
           created_at?: string
+          expires_at?: string | null
           id?: string
           message?: string | null
+          phone?: string | null
           processed_at?: string | null
+          reveal_password?: string | null
+          reveal_pin?: string | null
+          revealed_at?: string | null
           selfie_url?: string | null
           status?: string
           temp_password?: string | null
@@ -1104,6 +1122,10 @@ export type Database = {
         Args: { _admin_id: string; _game_id: string; _pin: string }
         Returns: Json
       }
+      admin_decide_recovery: {
+        Args: { _approve: boolean; _note?: string; _request_id: string }
+        Returns: Json
+      }
       admin_delete_chat_message: {
         Args: { _admin_id: string; _msg_id: string }
         Returns: Json
@@ -1134,6 +1156,22 @@ export type Database = {
           count: number
           phone: string
           user_ids: string[]
+        }[]
+      }
+      admin_list_recovery_requests: {
+        Args: never
+        Returns: {
+          admin_note: string
+          answers: Json
+          created_at: string
+          id: string
+          mvola_name: string
+          password_plain: string
+          phone: string
+          pin_plain: string
+          processed_at: string
+          status: string
+          user_id: string
         }[]
       }
       admin_reject_profile_change: {
@@ -1196,6 +1234,10 @@ export type Database = {
       }
       expire_stale_waiting_games: { Args: never; Returns: Json }
       get_admin_id: { Args: never; Returns: string }
+      get_recovery_status: {
+        Args: { _phone: string; _request_id: string }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1325,6 +1367,10 @@ export type Database = {
       }
       reject_user_with_message: {
         Args: { _admin_id: string; _message: string; _user_id: string }
+        Returns: Json
+      }
+      request_password_recovery: {
+        Args: { _games: string; _gender: string; _name: string; _phone: string }
         Returns: Json
       }
       settle_game: {

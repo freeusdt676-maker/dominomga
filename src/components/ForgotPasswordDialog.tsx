@@ -177,15 +177,18 @@ export default function ForgotPasswordDialog({ open, onClose }: { open: boolean;
         {step === "games" && (
           <div className="space-y-3">
             <p className="text-sm">Inona avy ireo lalao 3 lehibe ao amin'ny Domino MGA?</p>
-            <Input value={games} onChange={(e) => setGames(e.target.value)} placeholder="ohatra: Domino, Ludo, Pétanque" />
-            <Button className="w-full btn-gold" disabled={loading || games.trim().length < 5}
+            <Input value={game1} onChange={(e) => setGame1(e.target.value)} placeholder="1." />
+            <Input value={game2} onChange={(e) => setGame2(e.target.value)} placeholder="2." />
+            <Input value={game3} onChange={(e) => setGame3(e.target.value)} placeholder="3." />
+            <Button className="w-full btn-gold"
+              disabled={loading || !game1.trim() || !game2.trim() || !game3.trim()}
               onClick={submit}>{loading ? "Andraso..." : "Alefa"}</Button>
           </div>
         )}
 
         {step === "pending" && (
           <div className="text-center py-6">
-            <div className="text-red-500 font-bold text-sm bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+            <div className="text-green-500 font-extrabold text-lg bg-green-500/10 border border-green-500/40 rounded-lg p-4">
               EFA VOARAY NY FANGATAHANAO · MAHANDRASA KELY AZAFADY
             </div>
             <div className="mt-3 text-xs text-muted-foreground">Aza akatona ity fenêtre ity.</div>

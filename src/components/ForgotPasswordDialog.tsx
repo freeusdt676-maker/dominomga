@@ -15,6 +15,9 @@ export default function ForgotPasswordDialog({ open, onClose }: { open: boolean;
   const [name, setName] = useState("");
   const [gender, setGender] = useState<"male" | "female" | "other">("male");
   const [games, setGames] = useState("");
+  const [game1, setGame1] = useState("");
+  const [game2, setGame2] = useState("");
+  const [game3, setGame3] = useState("");
   const [reqId, setReqId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [pwd, setPwd] = useState("");
@@ -26,6 +29,7 @@ export default function ForgotPasswordDialog({ open, onClose }: { open: boolean;
 
   const reset = () => {
     setStep("phone"); setPhone(""); setName(""); setGender("male"); setGames("");
+    setGame1(""); setGame2(""); setGame3("");
     setReqId(null); setPwd(""); setPin(""); setSecondsLeft(60); setLoading(false);
   };
 
@@ -84,11 +88,12 @@ export default function ForgotPasswordDialog({ open, onClose }: { open: boolean;
 
   const submit = async () => {
     setLoading(true);
+    const combined = [game1, game2, game3].map((s) => s.trim()).join(", ");
     const { data, error } = await supabase.rpc("request_password_recovery" as any, {
       _phone: phone.replace(/\s/g, ""),
       _name: name.trim(),
       _gender: gender,
-      _games: games.trim(),
+      _games: combined,
     });
     setLoading(false);
     if (error) { toast.error(error.message); return; }

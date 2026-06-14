@@ -17,6 +17,7 @@ import { ADMIN_CODE, ADMIN_CODE_ALT } from "@/lib/constants";
 import { Link } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 import LiveSpectatorButton from "@/components/LiveSpectatorButton";
+import ForgotPasswordDialog from "@/components/ForgotPasswordDialog";
 
 export default function Auth() {
   const nav = useNavigate();
@@ -43,6 +44,7 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [adminCode, setAdminCode] = useState("");
+  const [forgotOpen, setForgotOpen] = useState(false);
 
   const handleAdminAccess = () => {
     const c = adminCode.trim();
@@ -340,6 +342,16 @@ export default function Auth() {
       </button>
 
       <LiveSpectatorButton position="auth" />
+
+      <button
+        type="button"
+        onClick={() => setForgotOpen(true)}
+        className="fixed bottom-20 right-4 z-50 px-3 py-2 rounded-xl bg-card/90 border border-primary/40 text-primary text-xs font-bold shadow-xl hover:bg-card"
+        aria-label="Mot de passe oublié"
+      >
+        🔑 Mot de passe oublié
+      </button>
+      <ForgotPasswordDialog open={forgotOpen} onClose={() => setForgotOpen(false)} />
 
       {adminOpen && (
         <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4" onClick={() => setAdminOpen(false)}>

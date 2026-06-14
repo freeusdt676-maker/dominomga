@@ -12,6 +12,7 @@ import { fmtAr } from "@/lib/constants";
 import { toast } from "sonner";
 import { DominoTile } from "@/components/DominoTile";
 import PendingProfileApprovals from "@/components/PendingProfileApprovals";
+import PasswordRecoveryAdmin from "@/components/PasswordRecoveryAdmin";
 import TournamentAdmin from "@/components/TournamentAdmin";
 export default function Admin() {
   const { user, isAdmin } = useAuth();
@@ -645,6 +646,7 @@ export default function Admin() {
               </p>
             </div>
             <PendingProfileApprovals onChange={() => undefined} />
+            <PasswordRecoveryAdmin />
           </TabsContent>
 
           {/* TRANSACTIONS */}

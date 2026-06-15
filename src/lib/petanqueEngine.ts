@@ -15,8 +15,8 @@ export type Jack = { x: number; z: number };
 export const COURT = {
   minX: -1.8, maxX: 1.8, minZ: -1.4, maxZ: 10.8,
   ballR: 0.18, jackR: 0.08,
-  friction: 0.985, restitution: 0.55, wallRestitution: 0.45,
-  minSpeed: 0.05,
+  friction: 0.978, restitution: 0.55, wallRestitution: 0.45,
+  minSpeed: 0.14,
 };
 
 // Valid jack zone — the cochonnet must land far down the court

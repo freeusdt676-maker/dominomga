@@ -1370,7 +1370,12 @@ export type Database = {
         Returns: Json
       }
       request_password_recovery: {
-        Args: { _games: string; _gender: string; _name: string; _phone: string }
+        Args: {
+          _games?: string
+          _gender: string
+          _name: string
+          _phone: string
+        }
         Returns: Json
       }
       settle_game: {

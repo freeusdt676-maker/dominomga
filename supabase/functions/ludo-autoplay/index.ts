@@ -84,18 +84,10 @@ function rollBalancedDice(pawns: Pawn[], seat: number): number {
     opponentsProgress += pawns.filter((p) => p.seat === s && p.pos > 0).length;
   }
   const trailing = leaderFinished - finishedCount;
-  const weights = [1, 1, 1, 1, 1, 1.35];
-  if (allInBase) {
-    if (opponentsProgress >= 4) weights[5] = 6;
-    else if (opponentsProgress >= 2) weights[5] = 4;
-    else if (opponentsProgress >= 1) weights[5] = 3;
-    else weights[5] = 2;
-  } else if (outCount === 0) {
-    weights[5] = 2;
-  }
-  if (trailing >= 3) weights[5] = Math.max(weights[5], 2.6);
-  else if (trailing >= 2) weights[5] = Math.max(weights[5], 2.0);
-  else if (trailing === 1) weights[5] = Math.max(weights[5], 1.7);
+  // ~60% sixes baseline (mitovy amin'ny client ludoEngine).
+  const weights = [1, 1, 1, 1, 1, 7.5];
+  if (allInBase && opponentsProgress >= 2) weights[5] = Math.max(weights[5], 10);
+  if (trailing >= 2) weights[5] = Math.max(weights[5], 9);
   const totalWeight = weights.reduce((s, v) => s + v, 0);
   let pick = Math.random() * totalWeight;
   for (let face = 1; face <= 6; face += 1) {

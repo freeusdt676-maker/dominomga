@@ -85,22 +85,13 @@ export function rollBalancedDice(pawns: Pawn[], seat: number): number {
   }
   const trailing = leaderFinished - finishedCount;
 
-  // Baseline: 6 mety mipoitra fa tsy maharitra (atonony — tsy be loatra).
-  const weights = [1, 1, 1, 1, 1, 1.35];
+  // Baseline: ~60% chance ny 6 (5 + 7.5 = 12.5 → 7.5/12.5 = 60%).
+  // Mifandanja amin'ny lalao moderne — mampifanaraka ny rythm Ludo Master.
+  const weights = [1, 1, 1, 1, 1, 7.5];
 
-  if (allInBase) {
-    // Tena STUCK. Atonony ihany ny rescue — tsy be loatra ny 6.
-    if (opponentsProgress >= 4) weights[5] = 6;
-    else if (opponentsProgress >= 2) weights[5] = 4;
-    else if (opponentsProgress >= 1) weights[5] = 3;
-    else weights[5] = 2;
-  } else if (outCount === 0) {
-    weights[5] = 2;
-  }
-
-  if (trailing >= 3) weights[5] = Math.max(weights[5], 2.6);
-  else if (trailing >= 2) weights[5] = Math.max(weights[5], 2.0);
-  else if (trailing === 1) weights[5] = Math.max(weights[5], 1.7);
+  // Rescue/catch-up boost — manampy ny chance ny 6 raha trailing.
+  if (allInBase && opponentsProgress >= 2) weights[5] = Math.max(weights[5], 10);
+  if (trailing >= 2) weights[5] = Math.max(weights[5], 9);
 
   const totalWeight = weights.reduce((sum, value) => sum + value, 0);
   let pick = Math.random() * totalWeight;

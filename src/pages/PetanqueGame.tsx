@@ -693,7 +693,7 @@ export default function PetanqueGame() {
       }
       setSimBalls([...sim.balls]);
       if (sim.jack) setSimJack({ ...sim.jack });
-      if (moving && now - start < 8000) {
+      if (moving && now - start < 5000) {
         requestAnimationFrame(loop);
       } else {
         // Simulation finished: now (and only now) remove balls that came to

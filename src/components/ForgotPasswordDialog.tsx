@@ -3,21 +3,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Copy, X, KeyRound } from "lucide-react";
 
-type Step = "phone" | "name" | "gender" | "games" | "pending" | "approved";
+type Step = "phone" | "name" | "gender" | "pending" | "approved";
 
 export default function ForgotPasswordDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
-  const [gender, setGender] = useState<"male" | "female" | "other">("male");
-  const [games, setGames] = useState("");
-  const [game1, setGame1] = useState("");
-  const [game2, setGame2] = useState("");
-  const [game3, setGame3] = useState("");
+  const [genderText, setGenderText] = useState("");
   const [reqId, setReqId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [pwd, setPwd] = useState("");
@@ -28,8 +23,7 @@ export default function ForgotPasswordDialog({ open, onClose }: { open: boolean;
   const pollRef = useRef<number | null>(null);
 
   const reset = () => {
-    setStep("phone"); setPhone(""); setName(""); setGender("male"); setGames("");
-    setGame1(""); setGame2(""); setGame3("");
+    setStep("phone"); setPhone(""); setName(""); setGenderText("");
     setReqId(null); setPwd(""); setPin(""); setSecondsLeft(60); setLoading(false);
   };
 
@@ -88,12 +82,10 @@ export default function ForgotPasswordDialog({ open, onClose }: { open: boolean;
 
   const submit = async () => {
     setLoading(true);
-    const combined = [game1, game2, game3].map((s) => s.trim()).join(", ");
     const { data, error } = await supabase.rpc("request_password_recovery" as any, {
       _phone: phone.replace(/\s/g, ""),
       _name: name.trim(),
-      _gender: gender,
-      _games: combined,
+      _gender: genderText.trim(),
     });
     setLoading(false);
     if (error) { toast.error(error.message); return; }
@@ -118,17 +110,9 @@ export default function ForgotPasswordDialog({ open, onClose }: { open: boolean;
   };
 
   const phoneOk = /^0(34|38)\d{7}$/.test(phone.replace(/\s/g, ""));
-
   const norm = (s: string) =>
-    s.trim().toLowerCase()
-      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z]/g, "");
-  const REQUIRED = ["domino", "ludo", "petanque"];
-  const gamesOk = (() => {
-    const set = new Set([game1, game2, game3].map(norm).filter(Boolean));
-    if (set.size !== 3) return false;
-    return REQUIRED.every((g) => set.has(g));
-  })();
+    s.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const genderOk = ["lahy", "vavy", "hafa", "male", "female", "other"].includes(norm(genderText));
 
   return (
     <div className="fixed inset-0 z-[80] bg-black/80 flex items-center justify-center p-4" onClick={closeAll}>
@@ -172,27 +156,15 @@ export default function ForgotPasswordDialog({ open, onClose }: { open: boolean;
 
         {step === "gender" && (
           <div className="space-y-3">
-            <p className="text-sm">Lahy ve sa Vavy?</p>
-            <Select value={gender} onValueChange={(v: any) => setGender(v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="male">LAHY</SelectItem>
-                <SelectItem value="female">VAVY</SelectItem>
-                <SelectItem value="other">HAFA</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button className="w-full btn-gold" onClick={() => setStep("games")}>Manohy</Button>
-          </div>
-        )}
-
-        {step === "games" && (
-          <div className="space-y-3">
-            <p className="text-sm">Inona avy ireo lalao 3 lehibe ao amin'ny Domino MGA?</p>
-            <Input value={game1} onChange={(e) => setGame1(e.target.value)} placeholder="1." />
-            <Input value={game2} onChange={(e) => setGame2(e.target.value)} placeholder="2." />
-            <Input value={game3} onChange={(e) => setGame3(e.target.value)} placeholder="3." />
+            <p className="text-sm">Lahy ve sa Vavy? (Soraty amin'ny tànana)</p>
+            <Input
+              value={genderText}
+              onChange={(e) => setGenderText(e.target.value)}
+              placeholder="Lahy na Vavy"
+              autoCapitalize="words"
+            />
             <Button className="w-full btn-gold"
-              disabled={loading || !gamesOk}
+              disabled={loading || !genderOk}
               onClick={submit}>{loading ? "Andraso..." : "Alefa"}</Button>
           </div>
         )}

@@ -647,7 +647,6 @@ export default function Admin() {
               </p>
             </div>
             <PendingProfileApprovals onChange={() => undefined} />
-            <PasswordRecoveryAdmin />
           </TabsContent>
 
           {/* TRANSACTIONS */}

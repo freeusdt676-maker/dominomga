@@ -14,7 +14,7 @@ import { DominoTile } from "@/components/DominoTile";
 import PendingProfileApprovals from "@/components/PendingProfileApprovals";
 import PasswordRecoveryAdmin from "@/components/PasswordRecoveryAdmin";
 import TournamentAdmin from "@/components/TournamentAdmin";
-import { useAdminNotifications, requestAdminNotificationPermission } from "@/hooks/useAdminNotifications";
+import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 export default function Admin() {
   const { user, isAdmin } = useAuth();
   const nav = useNavigate();

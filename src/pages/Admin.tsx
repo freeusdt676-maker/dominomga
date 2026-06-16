@@ -7,18 +7,30 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Check, X, Megaphone, Wallet as WalletIcon, UserCheck, Eye, EyeOff, MessageSquare, ArrowDownToLine, ArrowUpFromLine, History, Search, Unlock, Trash2, RotateCcw, ShieldAlert, Share2 } from "lucide-react";
+import { ArrowLeft, Check, X, Megaphone, Wallet as WalletIcon, UserCheck, Eye, EyeOff, MessageSquare, ArrowDownToLine, ArrowUpFromLine, History, Search, Unlock, Trash2, RotateCcw, ShieldAlert, Share2, Bell, BellOff } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 import { toast } from "sonner";
 import { DominoTile } from "@/components/DominoTile";
 import PendingProfileApprovals from "@/components/PendingProfileApprovals";
 import PasswordRecoveryAdmin from "@/components/PasswordRecoveryAdmin";
 import TournamentAdmin from "@/components/TournamentAdmin";
+import { useAdminNotifications, requestAdminNotificationPermission } from "@/hooks/useAdminNotifications";
 export default function Admin() {
   const { user, isAdmin } = useAuth();
   const nav = useNavigate();
   const codeOk = typeof window !== "undefined" && sessionStorage.getItem("admin_code_ok") === "1";
   const allowed = isAdmin || codeOk;
+  const [notifPerm, setNotifPerm] = useState<NotificationPermission>(
+    typeof window !== "undefined" && "Notification" in window ? Notification.permission : "default",
+  );
+  useAdminNotifications(allowed);
+  useEffect(() => {
+    if (!allowed) return;
+    const i = setInterval(() => {
+      if (typeof window !== "undefined" && "Notification" in window) setNotifPerm(Notification.permission);
+    }, 1500);
+    return () => clearInterval(i);
+  }, [allowed]);
   const [pending, setPending] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [userSearch, setUserSearch] = useState("");
@@ -477,6 +489,31 @@ export default function Admin() {
       <header className="p-4 flex items-center gap-3 border-b border-primary/20">
         <Button variant="ghost" size="icon" onClick={() => nav("/")}><ArrowLeft /></Button>
         <h1 className="font-display text-xl font-bold gold-text flex-1">ADMINISTRATIF</h1>
+        <Button
+          size="sm"
+          variant={notifPerm === "granted" ? "default" : "outline"}
+          onClick={async () => {
+            if (!("Notification" in window)) {
+              toast.error("Tsy mahazaka notification ity navigateur ity");
+              return;
+            }
+            if (Notification.permission === "denied") {
+              toast.error("Voasakana — sokafy any amin'ny paramètre ny finday");
+              return;
+            }
+            const p = await Notification.requestPermission();
+            setNotifPerm(p);
+            if (p === "granted") {
+              toast.success("Notification voarindra ✓");
+              try { new Notification("ADMINISTRATIF DOMINO MGA", { body: "Notification voarindra tsara", icon: "/icon-192.png" }); } catch {}
+            }
+          }}
+          className="gap-1"
+          title="Notifications"
+        >
+          {notifPerm === "granted" ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+          {notifPerm === "granted" ? "ON" : "OFF"}
+        </Button>
         <Button size="sm" variant="outline" onClick={() => nav("/admin/security")} className="gap-1">
           <ShieldAlert className="w-4 h-4" /> Sécurité
         </Button>

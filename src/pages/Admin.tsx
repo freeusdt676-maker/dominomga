@@ -578,6 +578,7 @@ export default function Admin() {
             <TabsTrigger value="history" className="shrink-0 whitespace-nowrap px-3">Historique</TabsTrigger>
             <TabsTrigger value="commissions" className="shrink-0 whitespace-nowrap px-3">Commission</TabsTrigger>
             <TabsTrigger value="tournoi" className="shrink-0 whitespace-nowrap px-3">🏆 Tournoi</TabsTrigger>
+            <TabsTrigger value="gestionnaire" className="shrink-0 whitespace-nowrap px-3">🔐 Gestionnaire</TabsTrigger>
           </TabsList>
 
           {/* MPILALAO */}

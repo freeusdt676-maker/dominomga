@@ -1289,31 +1289,18 @@ export type Database = {
         Returns: Json
       }
       petanque_start_deduct: { Args: { _game_id: string }; Returns: Json }
-      petanque_update_state:
-        | {
-            Args: {
-              _current_turn?: string
-              _game_id: string
-              _round_number?: number
-              _score_p1?: number
-              _score_p2?: number
-              _state?: Json
-              _turn_started_at?: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              _current_turn?: string
-              _game_id: string
-              _round_number?: number
-              _score_p1?: number
-              _score_p2?: number
-              _state?: Json
-              _turn_started_at?: string
-            }
-            Returns: Json
-          }
+      petanque_update_state: {
+        Args: {
+          _current_turn?: string
+          _game_id: string
+          _round_number?: number
+          _score_p1?: number
+          _score_p2?: number
+          _state?: Json
+          _turn_started_at?: string
+        }
+        Returns: Json
+      }
       player_update_game_state:
         | {
             Args: {

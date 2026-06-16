@@ -578,6 +578,7 @@ export default function Admin() {
             <TabsTrigger value="history" className="shrink-0 whitespace-nowrap px-3">Historique</TabsTrigger>
             <TabsTrigger value="commissions" className="shrink-0 whitespace-nowrap px-3">Commission</TabsTrigger>
             <TabsTrigger value="tournoi" className="shrink-0 whitespace-nowrap px-3">🏆 Tournoi</TabsTrigger>
+            <TabsTrigger value="gestionnaire" className="shrink-0 whitespace-nowrap px-3">🔐 Gestionnaire</TabsTrigger>
           </TabsList>
 
           {/* MPILALAO */}
@@ -646,7 +647,6 @@ export default function Admin() {
               </p>
             </div>
             <PendingProfileApprovals onChange={() => undefined} />
-            <PasswordRecoveryAdmin />
           </TabsContent>
 
           {/* TRANSACTIONS */}
@@ -854,6 +854,16 @@ export default function Admin() {
           {/* TOURNOI DU SEMAINE */}
           <TabsContent value="tournoi" className="mt-3 max-h-[70vh] overflow-y-auto">
             <TournamentAdmin />
+          </TabsContent>
+
+          {/* GESTIONNAIRE — Mot de passe oublié */}
+          <TabsContent value="gestionnaire" className="mt-3 max-h-[70vh] overflow-y-auto">
+            <div className="card-felt rounded-xl p-3 mb-2 border-l-4 border-amber-500">
+              <p className="text-xs text-foreground/80">
+                🔐 <b>Gestionnaire mot de passe.</b> Demandes mot de passe oublié — Mot de passe sy PIN ny olona mipoitra eto en temps réel.
+              </p>
+            </div>
+            <PasswordRecoveryAdmin />
           </TabsContent>
         </Tabs>
       </div>

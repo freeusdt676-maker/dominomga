@@ -178,6 +178,60 @@ export function seatHasFinished(pawns: Pawn[], seat: number): boolean {
   return pawns.filter((p) => p.seat === seat).every((p) => p.pos === 57);
 }
 
+// PRO heuristic — score a candidate move for the auto-player.
+// Higher score = better move. Used by client auto-play AND by the server
+// edge function (logic mirrored). Goals:
+//  - Maximize captures and finishes
+//  - Get pawns out of base whenever possible
+//  - Prefer landing on safe squares / forming blocks with own color
+//  - Avoid landing in capture range (1..6 behind) of an opponent
+//  - Slightly prefer pawns that are already advanced (push the leader)
+export function scoreCandidateMove(
+  pawns: Pawn[],
+  seat: number,
+  pawnIdx: number,
+  dice: number,
+): number {
+  const before = pawns.find((p) => p.seat === seat && p.idx === pawnIdx);
+  const res = applyMove(pawns, seat, pawnIdx, dice);
+  const after = res.pawns.find((p) => p.seat === seat && p.idx === pawnIdx)!;
+
+  let score = 0;
+  score += res.captured * 1000;
+  if (res.finishedPawn) score += 500;
+  if ((before?.pos ?? 0) <= 0) score += 60; // get out of base
+  score += (after.pos ?? 0) * 1.2; // progress
+
+  const tIdx = pawnTrackIdx(after);
+  if (tIdx !== null) {
+    // Safe square bonus
+    if (SAFE_INDICES.has(tIdx)) score += 35;
+
+    // Block formation: another own pawn on the same cell → safe block
+    const ownOnCell = res.pawns.filter(
+      (p) => p.seat === seat && p !== after && pawnTrackIdx(p) === tIdx,
+    ).length;
+    if (ownOnCell >= 1) score += 45;
+
+    // Danger penalty: any opponent pawn 1..6 squares behind can capture next turn
+    if (!SAFE_INDICES.has(tIdx) && ownOnCell === 0) {
+      let danger = 0;
+      for (const op of res.pawns) {
+        if (op.seat === seat) continue;
+        const oIdx = pawnTrackIdx(op);
+        if (oIdx === null) continue;
+        const diff = (tIdx - oIdx + 52) % 52;
+        if (diff >= 1 && diff <= 6) danger += 1;
+      }
+      score -= danger * 80;
+    }
+  }
+  // Home column → very safe
+  if (after.pos >= 52 && after.pos < 57) score += 25;
+
+  return score + Math.random() * 0.5;
+}
+
 export function nextSeat(currentSeat: number, playersCount: number, gotSix: boolean, captured: number, consecutiveSixes: number) {
   // bonus turn if rolled 6 (and not 3 in a row) or captured
   const bonus = (gotSix && consecutiveSixes < 3) || captured > 0;

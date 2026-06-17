@@ -8,7 +8,7 @@ import LudoBoard from "@/components/LudoBoard";
 import LudoDice3D from "@/components/LudoDice3D";
 import {
   activeSeats, applyMove, legalMoves, rollBalancedDice, seatHasFinished,
-  SEAT_COLOR, SEAT_NAME, nextSeatFromList, pawnXY, type Pawn,
+  SEAT_COLOR, SEAT_NAME, nextSeatFromList, pawnXY, scoreCandidateMove, type Pawn,
 } from "@/lib/ludoEngine";
 import { fmtAr } from "@/lib/constants";
 import { sfx } from "@/lib/sfx";
@@ -522,15 +522,8 @@ export default function LudoGame() {
       if (!moves.length) return null;
       const ranked = moves
         .map((pawnIdx) => {
-          const before = (state.pawns ?? []).find((p) => p.seat === state.current_turn_seat && p.idx === pawnIdx);
           const res = applyMove(state.pawns ?? [], state.current_turn_seat, pawnIdx, dice);
-          const after = res.pawns.find((p) => p.seat === state.current_turn_seat && p.idx === pawnIdx);
-          const score =
-            (res.captured * 1000) +
-            (res.finishedPawn ? 500 : 0) +
-            ((before?.pos ?? 0) <= 0 ? 40 : 0) +
-            (after?.pos ?? 0) +
-            Math.random();
+          const score = scoreCandidateMove(state.pawns ?? [], state.current_turn_seat, pawnIdx, dice);
           return { pawnIdx, res, score };
         })
         .sort((a, b) => b.score - a.score);

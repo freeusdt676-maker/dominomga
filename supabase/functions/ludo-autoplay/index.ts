@@ -105,12 +105,31 @@ function pickAutoMove(pawns: Pawn[], seat: number, dice: number) {
       const before = pawns.find((p) => p.seat === seat && p.idx === pawnIdx);
       const res = applyMove(pawns, seat, pawnIdx, dice);
       const after = res.pawns.find((p) => p.seat === seat && p.idx === pawnIdx);
-      const score =
-        res.captured * 1000 +
-        (res.finishedPawn ? 500 : 0) +
-        ((before?.pos ?? 0) <= 0 ? 40 : 0) +
-        (after?.pos ?? 0) +
-        Math.random();
+      let score = res.captured * 1000;
+      if (res.finishedPawn) score += 500;
+      if ((before?.pos ?? 0) <= 0) score += 60;
+      score += (after?.pos ?? 0) * 1.2;
+      const tIdx = after ? pawnTrackIdx(after) : null;
+      if (tIdx !== null && after) {
+        if (SAFE_INDICES.has(tIdx)) score += 35;
+        const ownOnCell = res.pawns.filter(
+          (p) => p.seat === seat && p !== after && pawnTrackIdx(p) === tIdx,
+        ).length;
+        if (ownOnCell >= 1) score += 45;
+        if (!SAFE_INDICES.has(tIdx) && ownOnCell === 0) {
+          let danger = 0;
+          for (const op of res.pawns) {
+            if (op.seat === seat) continue;
+            const oIdx = pawnTrackIdx(op);
+            if (oIdx === null) continue;
+            const diff = (tIdx - oIdx + 52) % 52;
+            if (diff >= 1 && diff <= 6) danger += 1;
+          }
+          score -= danger * 80;
+        }
+      }
+      if (after && after.pos >= 52 && after.pos < 57) score += 25;
+      score += Math.random() * 0.5;
       return { pawnIdx, res, score };
     })
     .sort((a, b) => b.score - a.score);

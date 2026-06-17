@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Check, X, Megaphone, Wallet as WalletIcon, UserCheck, Eye, EyeOff, MessageSquare, ArrowDownToLine, ArrowUpFromLine, History, Search, Unlock, Trash2, RotateCcw, ShieldAlert, Share2, Bell, BellOff } from "lucide-react";
+import { ArrowLeft, Check, X, Megaphone, Wallet as WalletIcon, UserCheck, Eye, EyeOff, MessageSquare, ArrowDownToLine, ArrowUpFromLine, History, Search, Unlock, Trash2, RotateCcw, ShieldAlert, Share2, Bell, BellOff, Wifi } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 import { toast } from "sonner";
 import { DominoTile } from "@/components/DominoTile";
@@ -15,6 +15,8 @@ import PendingProfileApprovals from "@/components/PendingProfileApprovals";
 import PasswordRecoveryAdmin from "@/components/PasswordRecoveryAdmin";
 import TournamentAdmin from "@/components/TournamentAdmin";
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
+import OnlineUsersDialog from "@/components/OnlineUsersDialog";
+import CircleNavButton from "@/components/CircleNavButton";
 export default function Admin() {
   const { user, isAdmin } = useAuth();
   const nav = useNavigate();
@@ -67,6 +69,7 @@ export default function Admin() {
   const [unblockAllOpen, setUnblockAllOpen] = useState(false);
   const [unblockAllPin, setUnblockAllPin] = useState("");
   const [pendingProfileCount, setPendingProfileCount] = useState(0);
+  const [onlineOpen, setOnlineOpen] = useState(false);
   const adminId = user?.id ?? resolvedAdminId;
   const normalizeTicket = (value: string) => value.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
   const detectedCancelGame = history.find((item) => normalizeTicket(item.ticket_number ?? "") === normalizeTicket(cancelTicketInput));

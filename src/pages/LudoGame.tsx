@@ -8,7 +8,7 @@ import LudoBoard from "@/components/LudoBoard";
 import LudoDice3D from "@/components/LudoDice3D";
 import {
   activeSeats, applyMove, legalMoves, rollBalancedDice, seatHasFinished,
-  SEAT_COLOR, SEAT_NAME, nextSeatFromList, pawnXY, type Pawn,
+  SEAT_COLOR, SEAT_NAME, nextSeatFromList, pawnXY, scoreCandidateMove, type Pawn,
 } from "@/lib/ludoEngine";
 import { fmtAr } from "@/lib/constants";
 import { sfx } from "@/lib/sfx";

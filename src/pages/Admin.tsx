@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Check, X, Megaphone, Wallet as WalletIcon, UserCheck, Eye, EyeOff, MessageSquare, ArrowDownToLine, ArrowUpFromLine, History, Search, Unlock, Trash2, RotateCcw, ShieldAlert, Share2, Bell, BellOff } from "lucide-react";
+import { ArrowLeft, Check, X, Megaphone, Wallet as WalletIcon, UserCheck, Eye, EyeOff, MessageSquare, ArrowDownToLine, ArrowUpFromLine, History, Search, Unlock, Trash2, RotateCcw, ShieldAlert, Share2, Bell, BellOff, Wifi } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 import { toast } from "sonner";
 import { DominoTile } from "@/components/DominoTile";
@@ -15,6 +15,8 @@ import PendingProfileApprovals from "@/components/PendingProfileApprovals";
 import PasswordRecoveryAdmin from "@/components/PasswordRecoveryAdmin";
 import TournamentAdmin from "@/components/TournamentAdmin";
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
+import OnlineUsersDialog from "@/components/OnlineUsersDialog";
+import CircleNavButton from "@/components/CircleNavButton";
 export default function Admin() {
   const { user, isAdmin } = useAuth();
   const nav = useNavigate();
@@ -67,6 +69,7 @@ export default function Admin() {
   const [unblockAllOpen, setUnblockAllOpen] = useState(false);
   const [unblockAllPin, setUnblockAllPin] = useState("");
   const [pendingProfileCount, setPendingProfileCount] = useState(0);
+  const [onlineOpen, setOnlineOpen] = useState(false);
   const adminId = user?.id ?? resolvedAdminId;
   const normalizeTicket = (value: string) => value.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
   const detectedCancelGame = history.find((item) => normalizeTicket(item.ticket_number ?? "") === normalizeTicket(cancelTicketInput));
@@ -489,35 +492,57 @@ export default function Admin() {
       <header className="p-4 flex items-center gap-3 border-b border-primary/20">
         <Button variant="ghost" size="icon" onClick={() => nav("/")}><ArrowLeft /></Button>
         <h1 className="font-display text-xl font-bold gold-text flex-1">ADMINISTRATIF</h1>
-        <Button
-          size="sm"
-          variant={notifPerm === "granted" ? "default" : "outline"}
-          onClick={async () => {
-            if (!("Notification" in window)) {
-              toast.error("Tsy mahazaka notification ity navigateur ity");
-              return;
-            }
-            if (Notification.permission === "denied") {
-              toast.error("Voasakana — sokafy any amin'ny paramètre ny finday");
-              return;
-            }
-            const p = await Notification.requestPermission();
-            setNotifPerm(p);
-            if (p === "granted") {
-              toast.success("Notification voarindra ✓");
-              try { new Notification("ADMINISTRATIF DOMINO MGA", { body: "Notification voarindra tsara", icon: "/icon-192.png" }); } catch {}
-            }
-          }}
-          className="gap-1"
-          title="Notifications"
-        >
-          {notifPerm === "granted" ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
-          {notifPerm === "granted" ? "ON" : "OFF"}
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => nav("/admin/security")} className="gap-1">
-          <ShieldAlert className="w-4 h-4" /> Sécurité
-        </Button>
       </header>
+      <div className="px-4 pt-4 max-w-2xl mx-auto">
+        <div className="flex items-start justify-around gap-2 flex-wrap">
+          <CircleNavButton
+            icon={<Wifi />}
+            label="En ligne"
+            variant="success"
+            onClick={() => setOnlineOpen(true)}
+          />
+          <CircleNavButton
+            icon={notifPerm === "granted" ? <Bell /> : <BellOff />}
+            label={notifPerm === "granted" ? "Notif ON" : "Notif OFF"}
+            variant={notifPerm === "granted" ? "primary" : "default"}
+            onClick={async () => {
+              if (!("Notification" in window)) {
+                toast.error("Tsy mahazaka notification ity navigateur ity");
+                return;
+              }
+              if (Notification.permission === "denied") {
+                toast.error("Voasakana — sokafy any amin'ny paramètre ny finday");
+                return;
+              }
+              const p = await Notification.requestPermission();
+              setNotifPerm(p);
+              if (p === "granted") {
+                toast.success("Notification voarindra ✓");
+                try { new Notification("ADMINISTRATIF DOMINO MGA", { body: "Notification voarindra tsara", icon: "/icon-192.png" }); } catch {}
+              }
+            }}
+          />
+          <CircleNavButton
+            icon={<ShieldAlert />}
+            label="Sécurité"
+            variant="danger"
+            onClick={() => nav("/admin/security")}
+          />
+          <CircleNavButton
+            icon={<UserCheck />}
+            label="Profils"
+            variant="info"
+            badge={pendingProfileCount}
+          />
+          <CircleNavButton
+            icon={<WalletIcon />}
+            label="Transactions"
+            variant="warning"
+            badge={txCount}
+          />
+        </div>
+      </div>
+      <OnlineUsersDialog open={onlineOpen} onOpenChange={setOnlineOpen} />
       <div className="p-4 max-w-2xl mx-auto">
         <div className="card-felt rounded-2xl p-4 mb-4 flex items-center justify-between">
           <div>

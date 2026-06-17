@@ -7,7 +7,8 @@ import { fmtAr, ADMIN_CODE, ADMIN_CODE_ALT } from "@/lib/constants";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Wallet, Users, Trophy, MessageCircle, LogOut, Shield, MessagesSquare, User as UserIcon, Download, Eye, EyeOff, FileEdit, RotateCcw, BookOpen } from "lucide-react";
+import { Wallet, Users, Trophy, MessageCircle, LogOut, Shield, MessagesSquare, User as UserIcon, Download, Eye, EyeOff, FileEdit, RotateCcw, BookOpen, ArrowDownToLine } from "lucide-react";
+import CircleNavButton from "@/components/CircleNavButton";
 import logo from "@/assets/logo.png";
 import logoDomino from "@/assets/logo-domino.png";
 import logoLudo from "@/assets/logo-ludo.png";
@@ -404,19 +405,48 @@ export default function Home() {
           <span className="text-[10px] tracking-[0.4em] uppercase">— Conciergerie —</span>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
-          <Link to="/lobby" className="stat-tile text-center">
-            <Users className="w-5 h-5 mx-auto mb-1.5 text-[hsl(var(--gold-1))]" />
-            <p className="text-[11px] font-sans-pro tracking-wide">En ligne</p>
-          </Link>
-          <Link to="/discussions" className="stat-tile text-center">
-            <MessagesSquare className="w-5 h-5 mx-auto mb-1.5 text-[hsl(var(--gold-1))]" />
-            <p className="text-[11px] font-sans-pro tracking-wide">Discussions</p>
-          </Link>
-          <Link to="/admin-chat" className="stat-tile text-center">
-            <MessageCircle className="w-5 h-5 mx-auto mb-1.5 text-[hsl(var(--gold-1))]" />
-            <p className="text-[11px] font-sans-pro tracking-wide">Chat Admin</p>
-          </Link>
+        <div className="luxe-card p-4">
+          <div className="flex items-start justify-around gap-2 flex-wrap">
+            <CircleNavButton
+              icon={<Wallet />}
+              label="MVola"
+              variant="primary"
+              onClick={() => nav("/wallet")}
+            />
+            <CircleNavButton
+              icon={<ArrowDownToLine />}
+              label="Transactions"
+              variant="warning"
+              onClick={() => nav("/wallet")}
+            />
+            <CircleNavButton
+              icon={<MessagesSquare />}
+              label="Discussions"
+              variant="info"
+              onClick={() => nav("/discussions")}
+            />
+            <CircleNavButton
+              icon={<MessageCircle />}
+              label="Chat Admin"
+              variant="success"
+              onClick={() => nav("/admin-chat")}
+            />
+            <CircleNavButton
+              icon={<UserIcon />}
+              label="Profil"
+              variant="default"
+              onClick={() => nav("/profile")}
+            />
+            {isAdmin && (
+              <CircleNavButton
+                icon={<Shield />}
+                label="Admin"
+                variant="danger"
+                badge={pendingProfilesCount}
+                onClick={() => nav("/admin")}
+              />
+            )}
+          </div>
         </div>
 
         <Link to="/profile" className="block luxe-card p-4 group">

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { useGlobalPresence } from "@/hooks/useGlobalPresence";
 
 type AuthCtx = {
   user: User | null;
@@ -60,6 +61,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = async () => { await supabase.auth.signOut(); };
+
+  // Track presence globally — only while the app is open & visible.
+  useGlobalPresence(user);
 
   return <Ctx.Provider value={{ user, session, loading, isAdmin, signOut }}>{children}</Ctx.Provider>;
 }

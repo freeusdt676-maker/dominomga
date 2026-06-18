@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Wifi, Phone } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { subscribeOnlineMembers, type PresenceMember } from "@/hooks/useGlobalPresence";
 
-type Member = { user_id: string; name: string; phone: string };
+type Member = PresenceMember;
 
 export default function OnlineUsersDialog({
   open,
@@ -18,34 +18,11 @@ export default function OnlineUsersDialog({
 
   useEffect(() => {
     if (!open) return;
-    // Subscribe as observer (no track) — un user_id mitokana ho an'ny admin
-    const observerKey = `admin-observer-${Math.random().toString(36).slice(2, 10)}`;
-    const channel = supabase.channel("app-online-users", {
-      config: { presence: { key: observerKey } },
-    });
-    const sync = () => {
-      const state = channel.presenceState() as Record<
-        string,
-        Array<{ name?: string; phone?: string }>
-      >;
-      const list: Member[] = Object.entries(state)
-        .filter(([uid]) => uid !== observerKey)
-        .map(([uid, metas]) => ({
-          user_id: uid,
-          name: (metas?.[0]?.name as string) || "Mpilalao",
-          phone: (metas?.[0]?.phone as string) || "",
-        }));
-      list.sort((a, b) => a.name.localeCompare(b.name));
-      setMembers(list);
-    };
-    channel
-      .on("presence", { event: "sync" }, sync)
-      .on("presence", { event: "join" }, sync)
-      .on("presence", { event: "leave" }, sync)
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    // Read directly from the global presence store (the admin's own channel
+    // is the single source of truth — opening a 2nd channel to the same topic
+    // from the same client would not subscribe).
+    const unsub = subscribeOnlineMembers(setMembers);
+    return () => { unsub(); };
   }, [open]);
 
   const filtered = members.filter((m) => {

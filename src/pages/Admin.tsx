@@ -494,7 +494,7 @@ export default function Admin() {
         <h1 className="font-display text-xl font-bold gold-text flex-1">ADMINISTRATIF</h1>
       </header>
       <div className="px-4 pt-4 max-w-2xl mx-auto">
-        <div className="flex items-start justify-around gap-2 flex-wrap">
+        <div className="grid grid-cols-3 gap-2">
           <CircleNavButton
             icon={<Wifi />}
             label="En ligne"

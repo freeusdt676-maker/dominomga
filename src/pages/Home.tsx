@@ -405,8 +405,8 @@ export default function Home() {
           <span className="text-[10px] tracking-[0.4em] uppercase">— Conciergerie —</span>
         </div>
 
-        <div className="luxe-card p-4">
-          <div className="flex items-start justify-around gap-2 flex-wrap">
+        <div className="luxe-card p-3">
+          <div className="grid grid-cols-3 gap-2">
             <CircleNavButton
               icon={<Wallet />}
               label="MVola"

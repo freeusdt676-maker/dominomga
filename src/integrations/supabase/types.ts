@@ -773,6 +773,42 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          is_admin: boolean
+          last_seen_at: string
+          p256dh: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          is_admin?: boolean
+          last_seen_at?: string
+          p256dh: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          is_admin?: boolean
+          last_seen_at?: string
+          p256dh?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       rate_limits: {
         Row: {
           action: string
@@ -1120,6 +1156,10 @@ export type Database = {
       }
       admin_cancel_petanque_game: {
         Args: { _admin_id: string; _game_id: string; _pin: string }
+        Returns: Json
+      }
+      admin_clear_user_history: {
+        Args: { _admin_pin: string; _user_id: string }
         Returns: Json
       }
       admin_decide_recovery: {

@@ -183,6 +183,7 @@ export default function PetanqueLobby() {
 
       <div className="p-4 max-w-lg mx-auto space-y-4">
         <LobbyPresence kind="petanque" accent="text-emerald-300" />
+        <OnlineUsersList accent="text-emerald-300" />
         {activeGame && (
           <button
             onClick={() => nav(`/petanque/${activeGame.id}`)}

@@ -8,6 +8,7 @@ import { ArrowLeft, Loader2, Coins, X, Clock, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useThemeClass } from "@/hooks/use-theme-class";
 import LobbyPresence from "@/components/LobbyPresence";
+import OnlineUsersList from "@/components/OnlineUsersList";
 
 const PETANQUE_STAKES = [1000, 2000, 3000, 5000, 10000];
 
@@ -182,6 +183,7 @@ export default function PetanqueLobby() {
 
       <div className="p-4 max-w-lg mx-auto space-y-4">
         <LobbyPresence kind="petanque" accent="text-emerald-300" />
+        <OnlineUsersList accent="text-emerald-300" />
         {activeGame && (
           <button
             onClick={() => nav(`/petanque/${activeGame.id}`)}

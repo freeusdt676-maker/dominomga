@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { sfx } from "@/lib/sfx";
 import { useThemeClass } from "@/hooks/use-theme-class";
 import LobbyPresence from "@/components/LobbyPresence";
+import OnlineUsersList from "@/components/OnlineUsersList";
 
 type WaitingGame = {
   id: string; player1_id: string; stake: number; created_at: string;
@@ -191,6 +192,7 @@ export default function LudoLobby() {
 
       <div className="p-4 max-w-lg mx-auto space-y-4">
         <LobbyPresence kind="ludo" accent="text-yellow-300" />
+        <OnlineUsersList accent="text-yellow-300" />
         {activeGame && (
           <button
             onClick={() => nav(`/ludo/${activeGame.id}`)}

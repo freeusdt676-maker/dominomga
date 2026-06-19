@@ -8,6 +8,7 @@ import { ArrowLeft, Loader2, Coins, X, Clock, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useThemeClass } from "@/hooks/use-theme-class";
 import LobbyPresence from "@/components/LobbyPresence";
+import OnlineUsersList from "@/components/OnlineUsersList";
 
 const PETANQUE_STAKES = [1000, 2000, 3000, 5000, 10000];
 

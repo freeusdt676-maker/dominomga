@@ -7,7 +7,6 @@ import { STAKE_LEVELS, fmtAr } from "@/lib/constants";
 import { ArrowLeft, Loader2, Coins, Users, X, Play } from "lucide-react";
 import { toast } from "sonner";
 import { useThemeClass } from "@/hooks/use-theme-class";
-import LobbyPresence from "@/components/LobbyPresence";
 import OnlineUsersList from "@/components/OnlineUsersList";
 
 type WaitingGame = {
@@ -208,7 +207,6 @@ export default function Lobby() {
       </header>
 
       <div className="p-4 max-w-lg mx-auto space-y-4">
-        <LobbyPresence kind="domino" accent="text-primary" />
         <OnlineUsersList accent="text-primary" />
         {activeGame && (
           <button

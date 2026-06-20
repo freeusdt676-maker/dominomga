@@ -1319,6 +1319,17 @@ export type Database = {
         }
         Returns: Json
       }
+      notify_push: {
+        Args: {
+          _audience: string
+          _body: string
+          _tag?: string
+          _title: string
+          _url?: string
+          _user_id: string
+        }
+        Returns: undefined
+      }
       petanque_cancel_waiting: { Args: { _game_id: string }; Returns: Json }
       petanque_join_and_start: {
         Args: { _game_id: string; _user: string }

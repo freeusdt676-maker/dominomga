@@ -1213,6 +1213,26 @@ export default function Admin() {
               <Button variant="outline" className="w-full mt-2 border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => { setResetTarget(selectedUser); setResetPin(""); }}>
                 <RotateCcw className="w-4 h-4 mr-1" />Réinitialiser solde (PIN)
               </Button>
+              <Button
+                variant="outline"
+                className="w-full mt-2 border-destructive/60 text-destructive hover:bg-destructive/10"
+                onClick={async () => {
+                  const pin = window.prompt("PIN admin (2583) hamafa historique an'i " + (selectedUser.mvola_name || "") + " ?\n\n• Lalao vita/canceled\n• Hafatra rehetra (chat + lobby)\n• Transactions efa vita (pending sy solde wallet TSY kitihina)");
+                  if (!pin) return;
+                  const { data, error } = await supabase.rpc("admin_clear_user_history", {
+                    _user_id: selectedUser.user_id,
+                    _admin_pin: pin,
+                  });
+                  if (error) { toast.error(error.message); return; }
+                  const r: any = data ?? {};
+                  toast.success(
+                    `Voafafa: ${r.games ?? 0} domino, ${r.ludo ?? 0} ludo, ${r.petanque ?? 0} pétanque, ${r.chat_messages ?? 0} hafatra, ${r.transactions ?? 0} transactions`,
+                    { duration: 6000 }
+                  );
+                }}
+              >
+                <Trash2 className="w-4 h-4 mr-1" />Mamafa historique (lalao + hafatra + tx)
+              </Button>
             </div>
           )}
         </DialogContent>

@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useGlobalPresence } from "@/hooks/useGlobalPresence";
+import { ensurePushSubscription, unsubscribePush } from "@/lib/pushNotifications";
 
 type AuthCtx = {
   user: User | null;
@@ -27,10 +28,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // defer DB call
         setTimeout(async () => {
           const { data } = await supabase.from("user_roles").select("role").eq("user_id", s.user.id).eq("role", "admin").maybeSingle();
-          setIsAdmin(!!data);
+          const admin = !!data;
+          setIsAdmin(admin);
+          ensurePushSubscription({ isAdmin: admin });
         }, 0);
       } else {
         setIsAdmin(false);
+        unsubscribePush();
       }
     });
     supabase.auth.getSession().then(({ data }) => {
@@ -38,7 +42,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(data.session?.user ?? null);
       setLoading(false);
       if (data.session?.user) {
-        supabase.from("user_roles").select("role").eq("user_id", data.session.user.id).eq("role", "admin").maybeSingle().then(({ data: r }) => setIsAdmin(!!r));
+        supabase.from("user_roles").select("role").eq("user_id", data.session.user.id).eq("role", "admin").maybeSingle().then(({ data: r }) => {
+          const admin = !!r;
+          setIsAdmin(admin);
+          ensurePushSubscription({ isAdmin: admin });
+        });
       }
     });
 

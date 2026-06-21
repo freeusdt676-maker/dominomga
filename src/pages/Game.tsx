@@ -1021,6 +1021,33 @@ export default function Game() {
     return () => clearTimeout(t);
   }, [game?.turn_started_at, game?.current_turn, game?.status, isRevealing, game?.id, user?.id]);
 
+  // SAFETY NET — Raha tafita ny target ny mpilalao iray nefa mihantona
+  // ny lalao (current_turn=null, reveal_until lasa) noho ny mpilalao
+  // niala mialoha, ny mpilalao rehetra mbola mijery ny écran dia
+  // miantso settle_game (idempotent eo amin'ny backend).
+  useEffect(() => {
+    if (!game || !user) return;
+    if (game.status !== "in_progress") return;
+    if (game.current_turn) return;
+    if (!game.reveal_until) return;
+    if (new Date(game.reveal_until).getTime() > now) return;
+    const mode = (game.game_mode ?? "d120") as GameMode;
+    const pc = Number(game.players_count ?? 2);
+    const candidates: Array<{ id: string | null; score: number }> = [
+      { id: game.player1_id, score: Number(game.score_p1 ?? 0) },
+      { id: game.player2_id, score: Number(game.score_p2 ?? 0) },
+      ...(pc === 3 ? [{ id: game.player3_id, score: Number(game.score_p3 ?? 0) }] : []),
+    ];
+    const winner = candidates
+      .filter((c) => c.id && isDominoGameWin(c.score, mode))
+      .sort((a, b) => b.score - a.score)[0];
+    if (!winner?.id) return;
+    const key = `safety-${game.id}-${winner.id}`;
+    if (roundEndLockRef.current === key) return;
+    roundEndLockRef.current = key;
+    supabase.rpc("settle_game", { _game_id: game.id, _winner: winner.id });
+  }, [game?.id, game?.status, game?.current_turn, game?.reveal_until, game?.score_p1, game?.score_p2, game?.score_p3, game?.game_mode, game?.players_count, now, user?.id]);
+
   useEffect(() => {
     if (selected === null) return;
     if (!isMyTurn || !myHand[selected]) {
@@ -1190,7 +1217,7 @@ export default function Game() {
           <div className="font-display text-lg font-extrabold gold-text leading-none">
             {game.round_number ?? 1}
           </div>
-          {game.status === "in_progress" && (
+          {game.status === "in_progress" && game.current_turn && turnStart > 0 && (
             <div className={`mt-0.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${remaining <= 5 ? "bg-destructive/30 text-white animate-pulse" : "bg-black/30 text-[#ffe27a]"}`}>
               <Clock className="w-3 h-3" /> {remaining}s
             </div>

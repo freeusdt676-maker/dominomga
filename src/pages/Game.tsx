@@ -1217,7 +1217,7 @@ export default function Game() {
           <div className="font-display text-lg font-extrabold gold-text leading-none">
             {game.round_number ?? 1}
           </div>
-          {game.status === "in_progress" && (
+          {game.status === "in_progress" && game.current_turn && turnStart > 0 && (
             <div className={`mt-0.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${remaining <= 5 ? "bg-destructive/30 text-white animate-pulse" : "bg-black/30 text-[#ffe27a]"}`}>
               <Clock className="w-3 h-3" /> {remaining}s
             </div>

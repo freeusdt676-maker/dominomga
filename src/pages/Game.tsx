@@ -1411,10 +1411,28 @@ export default function Game() {
                       <span className="text-muted-foreground"> ({o.count})</span>
                     </span>
                   </div>
-                  <div className="flex justify-center gap-0.5 overflow-x-auto max-w-full">
+                  {isRevealing && o.hand.length > 0 && (
+                    <div className="text-[10px] font-extrabold text-[#ffe27a] uppercase tracking-wider">
+                      Vato sisa
+                    </div>
+                  )}
+                  <div
+                    className={`flex justify-center flex-wrap gap-1 max-w-full ${
+                      isRevealing
+                        ? "p-2 rounded-lg bg-black/60 border-2 border-[#ffe27a] shadow-[0_0_18px_-2px_rgba(255,226,122,0.7)]"
+                        : ""
+                    }`}
+                  >
                     {isRevealing
                       ? o.hand.map((t, i) => (
-                          <DominoTile key={i} a={t[0]} b={t[1]} size="xs" horizontal={t[0] !== t[1]} />
+                          <DominoTile
+                            key={i}
+                            a={t[0]}
+                            b={t[1]}
+                            size={isMobile ? "sm" : "md"}
+                            horizontal={t[0] !== t[1]}
+                            variant="white"
+                          />
                         ))
                       : Array.from({ length: o.count }).map((_, i) => (
                           <DominoBack key={i} size="xs" />

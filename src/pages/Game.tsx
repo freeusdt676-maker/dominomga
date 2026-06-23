@@ -664,6 +664,15 @@ export default function Game() {
   const isMyTurn = game?.current_turn === user?.id && game?.status === "in_progress";
   const revealUntilMs = game?.reveal_until ? new Date(game.reveal_until).getTime() : 0;
   const isRevealing = revealUntilMs > now;
+  // Hita ny vato sisa: mandritra ny reveal_until ARY mandritra ny "résumé"
+  // persistent (tour vita / lalao vita), mba ho mazava tsara ho an'ny mpilalao
+  // ny vato sisa nataon'ny mpifaninana — fa tsy manjavona aorian'ny 6s.
+  const showOppHands = isRevealing || (
+    game?.status === "in_progress" &&
+    !game?.current_turn &&
+    !!(game as any)?.last_reason &&
+    !((game as any)?.last_reason as string).includes("DATINANDRO")
+  );
 
   // Faharetan'ny Tour
   const turnStart = game?.turn_started_at ? new Date(game.turn_started_at).getTime() : 0;

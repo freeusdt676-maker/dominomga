@@ -1153,31 +1153,39 @@ export default function Game() {
         // tanteraka ny lalao (DominoResultOverlay no miandraikitra).
         const r: string = (game as any)?.last_reason ?? "";
         const ru = (game as any)?.reveal_until ? new Date((game as any).reveal_until).getTime() : 0;
-        const active =
-          ru > now &&
-          !!r &&
-          !r.includes("DATINANDRO") &&
-          game?.status === "in_progress";
+        // Hiseho mandritra ny reveal ARY mijanona hatrany aorian'ny reveal
+        // (résumé) raha mbola in_progress ny lalao sy mbola tsy nanomboka ny
+        // tour manaraka (tsy misy current_turn).
+        const persistent = !!r && !r.includes("DATINANDRO") && game?.status === "in_progress" && !game?.current_turn;
+        const active = persistent;
         if (!active) return null;
         const isGameWin = r.startsWith("MANDRESY NY LALAO");
+        const revealing = ru > now;
         const sec = Math.max(1, Math.ceil((ru - now) / 1000));
         const pc = Number(game.players_count ?? 2);
         return (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in p-4">
-            <div className="w-full max-w-md rounded-2xl border-4 border-[#ffe27a] bg-[linear-gradient(180deg,#0d3b22,#0a2818)] p-6 text-center shadow-2xl">
-              <div className="text-5xl mb-2">{isGameWin ? "🏆" : "🏁"}</div>
-              <div className="text-xl font-extrabold text-[#ffe27a] tracking-wide mb-2">
+          // Karatra tsy manakana — tsy misy backdrop-blur mba ho MAZAVA TSARA
+          // ny vato sisa eny ambony. Mipetraka eo ambany afovoan'ny écran.
+          <div className="fixed inset-x-0 bottom-3 z-[60] flex justify-center px-3 pointer-events-none animate-in fade-in slide-in-from-bottom">
+            <div className="w-full max-w-md rounded-2xl border-4 border-[#ffe27a] bg-[linear-gradient(180deg,#0d3b22,#0a2818)] p-4 text-center shadow-2xl pointer-events-auto">
+              <div className="text-3xl mb-1">{isGameWin ? "🏆" : "🏁"}</div>
+              <div className="text-base font-extrabold text-[#ffe27a] tracking-wide mb-1">
                 {isGameWin ? "LALAO VITA" : "TOUR VITA"}
               </div>
-              <div className="text-sm text-white font-semibold mb-3">{r}</div>
-              <div className="text-base text-white font-bold mb-3">
+              <div className="text-xs text-white font-semibold mb-2 leading-snug">{r}</div>
+              <div className="text-sm text-white font-bold mb-1">
                 {pc === 3
                   ? `${Number(game.score_p1 ?? 0)} — ${Number(game.score_p2 ?? 0)} — ${Number(game.score_p3 ?? 0)}`
                   : `${Number(game.score_p1 ?? 0)} — ${Number(game.score_p2 ?? 0)}`}
               </div>
-              {!isGameWin && (
-                <div className="text-xs text-[#ffe27a]/90 italic">
+              {!isGameWin && revealing && (
+                <div className="text-[11px] text-[#ffe27a]/90 italic">
                   Tour vaovao manomboka amin'ny {sec}s… vato vaovao ho zaraina
+                </div>
+              )}
+              {!isGameWin && !revealing && (
+                <div className="text-[11px] text-[#ffe27a]/70 italic">
+                  Résumé — miandry ny tour manaraka…
                 </div>
               )}
             </div>

@@ -3,9 +3,9 @@ import { Link, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Radio, Hash, Loader2 } from "lucide-react";
 import { SnakeBoard } from "@/components/SnakeBoard";
-import { DominoBack } from "@/components/DominoTile";
+import { DominoBack, DominoTile } from "@/components/DominoTile";
 import SpectatorWinner from "@/components/SpectatorWinner";
-import type { Placed } from "@/lib/dominoEngine";
+import type { Placed, Tile } from "@/lib/dominoEngine";
 
 type Snap = {
   id: string;
@@ -29,20 +29,32 @@ type Snap = {
   players_count: number;
   round: number;
   last_reason: string | null;
+  reveal_until?: string | null;
+  p1_hand?: Tile[] | null;
+  p2_hand?: Tile[] | null;
+  p3_hand?: Tile[] | null;
 };
 
-function HiddenHand({ name, count, active }: { name: string; count: number; active: boolean }) {
+function HiddenHand({ name, count, active, hand }: { name: string; count: number; active: boolean; hand?: Tile[] | null }) {
+  const reveal = Array.isArray(hand) && hand.length > 0;
   return (
     <div
       className={`flex flex-col items-center gap-1 p-2 rounded-xl border-2 ${
-        active ? "border-primary shadow-[0_0_14px_rgba(212,175,55,0.4)]" : "border-primary/20"
+        reveal ? "border-[#ffe27a] shadow-[0_0_18px_rgba(255,226,122,0.6)]" : active ? "border-primary shadow-[0_0_14px_rgba(212,175,55,0.4)]" : "border-primary/20"
       } bg-card/30 min-w-[100px]`}
     >
       <div className="text-[11px] font-bold truncate max-w-[110px] gold-text">{name}</div>
-      <div className="flex gap-0.5">
-        {Array.from({ length: Math.min(count, 7) }).map((_, i) => (
-          <DominoBack key={i} size="xs" horizontal={false} />
-        ))}
+      {reveal && (
+        <div className="text-[9px] font-extrabold text-[#ffe27a] uppercase tracking-wider">Vato sisa</div>
+      )}
+      <div className="flex flex-wrap justify-center gap-1">
+        {reveal
+          ? hand!.map((t, i) => (
+              <DominoTile key={i} a={t[0]} b={t[1]} size="sm" horizontal={t[0] !== t[1]} variant="white" />
+            ))
+          : Array.from({ length: Math.min(count, 7) }).map((_, i) => (
+              <DominoBack key={i} size="xs" horizontal={false} />
+            ))}
       </div>
       <div className="text-[10px] text-muted-foreground">({count})</div>
     </div>
@@ -140,11 +152,11 @@ export default function SpectateDomino() {
           {/* Hidden hands */}
           <div className="flex justify-center gap-3 flex-wrap">
             {[
-              { name: s.p1_name ?? "P1", id: s.p1_id, count: s.p1_count },
-              { name: s.p2_name ?? "P2", id: s.p2_id, count: s.p2_count },
-              ...(s.players_count === 3 ? [{ name: s.p3_name ?? "P3", id: s.p3_id, count: s.p3_count }] : []),
+              { name: s.p1_name ?? "P1", id: s.p1_id, count: s.p1_count, hand: s.p1_hand },
+              { name: s.p2_name ?? "P2", id: s.p2_id, count: s.p2_count, hand: s.p2_hand },
+              ...(s.players_count === 3 ? [{ name: s.p3_name ?? "P3", id: s.p3_id, count: s.p3_count, hand: s.p3_hand }] : []),
             ].map((p, i) => (
-              <HiddenHand key={i} name={p.name} count={p.count} active={!!p.id && s.current_turn === p.id} />
+              <HiddenHand key={i} name={p.name} count={p.count} active={!!p.id && s.current_turn === p.id} hand={p.hand as Tile[] | null | undefined} />
             ))}
           </div>
 

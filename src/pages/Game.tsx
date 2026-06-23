@@ -886,6 +886,7 @@ export default function Game() {
       current_turn: oppId,
       turn_started_at: new Date().toISOString(),
       passes,
+      last_reason: `TSY MANANA — ${myName ?? "Mpilalao"} nandalo`,
     }, {
       expectedCurrentTurn,
       expectedTurnStartedAt,

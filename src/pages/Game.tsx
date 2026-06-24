@@ -65,10 +65,9 @@ function getPlayerIds(g: any): string[] {
     : [g.player1_id, g.player2_id].filter(Boolean);
 }
 function nextTurnId(g: any, currentId: string): string {
-  // Fihodinana mifanohitra amin'ny famataranandro (counter-clockwise).
-  // 2P: P1 ↔ P2 (tsy miova). 3P: P1 → P3 → P2 → P1.
-  const baseIds = getPlayerIds(g);
-  const ids = baseIds.length === 3 ? [baseIds[0], baseIds[2], baseIds[1]] : baseIds;
+  // Fihodinana mihodina mankany ankavanana (clockwise) hatrany.
+  // 2P: P1 ↔ P2. 3P: P1 → P2 → P3 → P1.
+  const ids = getPlayerIds(g);
   const i = ids.indexOf(currentId);
   return ids[(i + 1) % ids.length] ?? ids[0];
 }
@@ -1173,30 +1172,24 @@ export default function Game() {
         const sec = Math.max(1, Math.ceil((ru - now) / 1000));
         const pc = Number(game.players_count ?? 2);
         return (
-          // Karatra tsy manakana — tsy misy backdrop-blur mba ho MAZAVA TSARA
-          // ny vato sisa eny ambony. Mipetraka eo ambany afovoan'ny écran.
-          <div className="fixed inset-x-0 bottom-3 z-[60] flex justify-center px-3 pointer-events-none animate-in fade-in slide-in-from-bottom">
-            <div className="w-full max-w-md rounded-2xl border-4 border-[#ffe27a] bg-[linear-gradient(180deg,#0d3b22,#0a2818)] p-4 text-center shadow-2xl pointer-events-auto">
-              <div className="text-3xl mb-1">{isGameWin ? "🏆" : "🏁"}</div>
-              <div className="text-base font-extrabold text-[#ffe27a] tracking-wide mb-1">
-                {isGameWin ? "LALAO VITA" : "TOUR VITA"}
+          // Banderole kely eo ambony — tsy manakana ny vato an-tànana.
+          <div className="fixed inset-x-0 top-12 z-[60] flex justify-center px-3 pointer-events-none animate-in fade-in slide-in-from-top">
+            <div className="w-auto max-w-[92%] rounded-lg border-2 border-[#ffe27a] bg-[linear-gradient(180deg,#0d3b22,#0a2818)] px-3 py-1.5 text-center shadow-lg pointer-events-auto">
+              <div className="flex items-center gap-2 justify-center flex-wrap">
+                <span className="text-base leading-none">{isGameWin ? "🏆" : "🏁"}</span>
+                <span className="text-[11px] font-extrabold text-[#ffe27a] tracking-wide">
+                  {isGameWin ? "LALAO VITA" : "TOUR VITA"}
+                </span>
+                <span className="text-[11px] text-white font-semibold leading-tight">{r}</span>
+                <span className="text-[11px] text-white font-bold">
+                  {pc === 3
+                    ? `${Number(game.score_p1 ?? 0)}—${Number(game.score_p2 ?? 0)}—${Number(game.score_p3 ?? 0)}`
+                    : `${Number(game.score_p1 ?? 0)}—${Number(game.score_p2 ?? 0)}`}
+                </span>
+                {!isGameWin && revealing && (
+                  <span className="text-[10px] text-[#ffe27a]/90 italic">• {sec}s</span>
+                )}
               </div>
-              <div className="text-xs text-white font-semibold mb-2 leading-snug">{r}</div>
-              <div className="text-sm text-white font-bold mb-1">
-                {pc === 3
-                  ? `${Number(game.score_p1 ?? 0)} — ${Number(game.score_p2 ?? 0)} — ${Number(game.score_p3 ?? 0)}`
-                  : `${Number(game.score_p1 ?? 0)} — ${Number(game.score_p2 ?? 0)}`}
-              </div>
-              {!isGameWin && revealing && (
-                <div className="text-[11px] text-[#ffe27a]/90 italic">
-                  Tour vaovao manomboka amin'ny {sec}s… vato vaovao ho zaraina
-                </div>
-              )}
-              {!isGameWin && !revealing && (
-                <div className="text-[11px] text-[#ffe27a]/70 italic">
-                  Résumé — miandry ny tour manaraka…
-                </div>
-              )}
             </div>
           </div>
         );

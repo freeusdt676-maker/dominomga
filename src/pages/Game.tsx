@@ -1548,19 +1548,33 @@ export default function Game() {
                 {isMyTurn ? `▶ ${myName} — andiany!` : `${myName} (${myHand.length})`}
               </span>
               {isMyTurn && (
-                <button
-                  type="button"
-                  onClick={() => { if (noMove) void passTurn(); }}
-                  disabled={!noMove}
-                  className={`px-3 py-1.5 rounded-md text-[11px] font-extrabold uppercase tracking-wider border-2 transition active:scale-95 ${
-                    noMove
-                      ? "bg-destructive text-destructive-foreground border-destructive shadow-[0_0_12px_rgba(239,68,68,0.6)] animate-pulse"
-                      : "bg-black/30 text-muted-foreground border-muted-foreground/30 opacity-50 cursor-not-allowed"
-                  }`}
-                  title={noMove ? "Tsindrio mba handalo any amin'ny adversaire" : "Mbola manana vato azo apetraka ianao"}
-                >
-                  {noMove ? "⏭ Pass" : "Pass"}
-                </button>
+                <div className="flex flex-col items-stretch gap-1">
+                  <button
+                    type="button"
+                    onClick={() => { if (noMove) void passTurn(); }}
+                    disabled={!noMove}
+                    className={`px-3 py-1.5 rounded-md text-[11px] font-extrabold uppercase tracking-wider border-2 transition active:scale-95 ${
+                      noMove
+                        ? "bg-destructive text-destructive-foreground border-destructive shadow-[0_0_12px_rgba(239,68,68,0.6)] animate-pulse"
+                        : "bg-black/30 text-muted-foreground border-muted-foreground/30 opacity-50 cursor-not-allowed"
+                    }`}
+                    title={noMove ? "Tsindrio mba handalo any amin'ny adversaire" : "Mbola manana vato azo apetraka ianao"}
+                  >
+                    {noMove ? "⏭ Pass" : "Pass"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBotActive((v) => !v)}
+                    className={`px-2 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider border-2 transition active:scale-95 ${
+                      botActive
+                        ? "bg-emerald-500 text-black border-emerald-300 shadow-[0_0_14px_rgba(16,185,129,0.85)] animate-pulse"
+                        : "bg-black/40 text-muted-foreground border-muted-foreground/40"
+                    }`}
+                    title="Raha activé: mandeha ho azy ny tour-nao tsy miandry 20s"
+                  >
+                    {botActive ? "🤖 Bot Active" : "Bot"}
+                  </button>
+                </div>
               )}
             </div>
             <div className="grid grid-cols-7 gap-1 py-2 px-1 w-full">

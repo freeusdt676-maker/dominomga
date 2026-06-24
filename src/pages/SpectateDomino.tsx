@@ -50,7 +50,7 @@ function HiddenHand({ name, count, active, hand }: { name: string; count: number
       <div className="flex flex-wrap justify-center gap-1">
         {reveal
           ? hand!.map((t, i) => (
-              <DominoTile key={i} a={t[0]} b={t[1]} size="sm" horizontal={t[0] !== t[1]} variant="white" />
+              <DominoTile key={i} a={t[0]} b={t[1]} size="sm" horizontal={false} variant="white" />
             ))
           : Array.from({ length: Math.min(count, 7) }).map((_, i) => (
               <DominoBack key={i} size="xs" horizontal={false} />

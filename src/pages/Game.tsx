@@ -913,8 +913,11 @@ export default function Game() {
     if (isRevealing) return;
     // Aloha ny 20s: TSY MISY auto mihitsy — miandry ny kitika.
     // Ny client an'ny tompon'ny tour no manao auto aloha; ny hafa miandry 2s grâce.
-    const graceSec = game.current_turn === user.id ? 0 : AUTO_OTHER_GRACE_SEC;
-    if (elapsed < TURN_TIMEOUT_SEC + graceSec) return;
+    const isMyTurnHere = game.current_turn === user.id;
+    const botFastPath = botActive && isMyTurnHere;
+    const graceSec = isMyTurnHere ? 0 : AUTO_OTHER_GRACE_SEC;
+    // Raha activé ny Bot eo amin'ny compte-ko ARY ahy ilay tour: tsy miandry 20s.
+    if (!botFastPath && elapsed < TURN_TIMEOUT_SEC + graceSec) return;
     const key = `${game.id}-${game.turn_started_at}-${game.current_turn}`;
     if (autoActedRef.current === key) return;
     autoActedRef.current = key;
@@ -1015,7 +1018,7 @@ export default function Game() {
       autoActedRef.current = null;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [elapsed, game?.turn_started_at, game?.status, game?.current_turn]);
+  }, [elapsed, game?.turn_started_at, game?.status, game?.current_turn, botActive, user?.id]);
 
   // Tena AZO ANTOKA fa hipoaka rehefa tapitra ny 20s — mametraka setTimeout
   // mifototra mivantana amin'i `turn_started_at`. Mandeha na dia "throttled"

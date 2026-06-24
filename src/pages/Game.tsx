@@ -101,8 +101,14 @@ export default function Game() {
   const [confirmAbandon, setConfirmAbandon] = useState(false);
   const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null);
   const autoActedRef = useRef<string | null>(null);
-  // Bot local — local-only toggle per (user, game). Tsy mihatra amin'ny adversaire.
-  const [botActive, setBotActive] = useState<boolean>(false);
+  // Bot local — local-only toggle per user (raketina ao amin'ny localStorage).
+  // Tsy mihatra mihitsy amin'ny compte adversaire.
+  const [botActive, setBotActive] = useState<boolean>(() => {
+    try { return localStorage.getItem("domino_bot_active") === "1"; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("domino_bot_active", botActive ? "1" : "0"); } catch {}
+  }, [botActive]);
   // Fantsona local: rehefa miova ny tour dia raketina ny ora LOCAL — izany no
   // miaro amin'ny "clock skew" (ora server ≠ ora telefaona) izay nahatonga ny
   // auto-play handeha mialoha ny 20s.

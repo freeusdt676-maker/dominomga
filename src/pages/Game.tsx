@@ -1432,7 +1432,7 @@ export default function Game() {
                             a={t[0]}
                             b={t[1]}
                             size={isMobile ? "sm" : "md"}
-                            horizontal={t[0] !== t[1]}
+                            horizontal={false}
                             variant="white"
                           />
                         ))

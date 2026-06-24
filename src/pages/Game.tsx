@@ -101,6 +101,14 @@ export default function Game() {
   const [confirmAbandon, setConfirmAbandon] = useState(false);
   const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null);
   const autoActedRef = useRef<string | null>(null);
+  // Bot local — local-only toggle per user (raketina ao amin'ny localStorage).
+  // Tsy mihatra mihitsy amin'ny compte adversaire.
+  const [botActive, setBotActive] = useState<boolean>(() => {
+    try { return localStorage.getItem("domino_bot_active") === "1"; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("domino_bot_active", botActive ? "1" : "0"); } catch {}
+  }, [botActive]);
   // Fantsona local: rehefa miova ny tour dia raketina ny ora LOCAL — izany no
   // miaro amin'ny "clock skew" (ora server ≠ ora telefaona) izay nahatonga ny
   // auto-play handeha mialoha ny 20s.
@@ -905,8 +913,11 @@ export default function Game() {
     if (isRevealing) return;
     // Aloha ny 20s: TSY MISY auto mihitsy — miandry ny kitika.
     // Ny client an'ny tompon'ny tour no manao auto aloha; ny hafa miandry 2s grâce.
-    const graceSec = game.current_turn === user.id ? 0 : AUTO_OTHER_GRACE_SEC;
-    if (elapsed < TURN_TIMEOUT_SEC + graceSec) return;
+    const isMyTurnHere = game.current_turn === user.id;
+    const botFastPath = botActive && isMyTurnHere;
+    const graceSec = isMyTurnHere ? 0 : AUTO_OTHER_GRACE_SEC;
+    // Raha activé ny Bot eo amin'ny compte-ko ARY ahy ilay tour: tsy miandry 20s.
+    if (!botFastPath && elapsed < TURN_TIMEOUT_SEC + graceSec) return;
     const key = `${game.id}-${game.turn_started_at}-${game.current_turn}`;
     if (autoActedRef.current === key) return;
     autoActedRef.current = key;
@@ -1007,7 +1018,7 @@ export default function Game() {
       autoActedRef.current = null;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [elapsed, game?.turn_started_at, game?.status, game?.current_turn]);
+  }, [elapsed, game?.turn_started_at, game?.status, game?.current_turn, botActive, user?.id]);
 
   // Tena AZO ANTOKA fa hipoaka rehefa tapitra ny 20s — mametraka setTimeout
   // mifototra mivantana amin'i `turn_started_at`. Mandeha na dia "throttled"
@@ -1537,19 +1548,33 @@ export default function Game() {
                 {isMyTurn ? `▶ ${myName} — andiany!` : `${myName} (${myHand.length})`}
               </span>
               {isMyTurn && (
-                <button
-                  type="button"
-                  onClick={() => { if (noMove) void passTurn(); }}
-                  disabled={!noMove}
-                  className={`px-3 py-1.5 rounded-md text-[11px] font-extrabold uppercase tracking-wider border-2 transition active:scale-95 ${
-                    noMove
-                      ? "bg-destructive text-destructive-foreground border-destructive shadow-[0_0_12px_rgba(239,68,68,0.6)] animate-pulse"
-                      : "bg-black/30 text-muted-foreground border-muted-foreground/30 opacity-50 cursor-not-allowed"
-                  }`}
-                  title={noMove ? "Tsindrio mba handalo any amin'ny adversaire" : "Mbola manana vato azo apetraka ianao"}
-                >
-                  {noMove ? "⏭ Pass" : "Pass"}
-                </button>
+                <div className="flex flex-col items-stretch gap-1">
+                  <button
+                    type="button"
+                    onClick={() => { if (noMove) void passTurn(); }}
+                    disabled={!noMove}
+                    className={`px-3 py-1.5 rounded-md text-[11px] font-extrabold uppercase tracking-wider border-2 transition active:scale-95 ${
+                      noMove
+                        ? "bg-destructive text-destructive-foreground border-destructive shadow-[0_0_12px_rgba(239,68,68,0.6)] animate-pulse"
+                        : "bg-black/30 text-muted-foreground border-muted-foreground/30 opacity-50 cursor-not-allowed"
+                    }`}
+                    title={noMove ? "Tsindrio mba handalo any amin'ny adversaire" : "Mbola manana vato azo apetraka ianao"}
+                  >
+                    {noMove ? "⏭ Pass" : "Pass"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBotActive((v) => !v)}
+                    className={`px-2 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider border-2 transition active:scale-95 ${
+                      botActive
+                        ? "bg-emerald-500 text-black border-emerald-300 shadow-[0_0_14px_rgba(16,185,129,0.85)] animate-pulse"
+                        : "bg-black/40 text-muted-foreground border-muted-foreground/40"
+                    }`}
+                    title="Raha activé: mandeha ho azy ny tour-nao tsy miandry 20s"
+                  >
+                    {botActive ? "🤖 Bot Active" : "Bot"}
+                  </button>
+                </div>
               )}
             </div>
             <div className="grid grid-cols-7 gap-1 py-2 px-1 w-full">

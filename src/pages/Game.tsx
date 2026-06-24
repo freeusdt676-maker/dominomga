@@ -65,10 +65,9 @@ function getPlayerIds(g: any): string[] {
     : [g.player1_id, g.player2_id].filter(Boolean);
 }
 function nextTurnId(g: any, currentId: string): string {
-  // Fihodinana mifanohitra amin'ny famataranandro (counter-clockwise).
-  // 2P: P1 ↔ P2 (tsy miova). 3P: P1 → P3 → P2 → P1.
-  const baseIds = getPlayerIds(g);
-  const ids = baseIds.length === 3 ? [baseIds[0], baseIds[2], baseIds[1]] : baseIds;
+  // Fihodinana mihodina mankany ankavanana (clockwise) hatrany.
+  // 2P: P1 ↔ P2. 3P: P1 → P2 → P3 → P1.
+  const ids = getPlayerIds(g);
   const i = ids.indexOf(currentId);
   return ids[(i + 1) % ids.length] ?? ids[0];
 }

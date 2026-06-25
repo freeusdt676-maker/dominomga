@@ -669,6 +669,17 @@ export default function Game() {
 
   const board: Placed[] = (game?.board_state as Placed[]) ?? [];
   const isMyTurn = game?.current_turn === user?.id && game?.status === "in_progress";
+  // Feon'ny vato rehefa mipetraka eo amin'ny latabatra (na iza na iza nametraka)
+  const lastBoardLenRef = useRef<number>(0);
+  useEffect(() => {
+    const len = board.length;
+    const prev = lastBoardLenRef.current;
+    if (len > prev && prev >= 0) {
+      try { sfx.clack(Math.min(1, 0.6 + (len - prev) * 0.2)); } catch {}
+    }
+    lastBoardLenRef.current = len;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [board.length, game?.id]);
   const revealUntilMs = game?.reveal_until ? new Date(game.reveal_until).getTime() : 0;
   const isRevealing = revealUntilMs > now;
   // Hita ny vato sisa: mandritra ny reveal_until ARY mandritra ny "résumé"

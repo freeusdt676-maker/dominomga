@@ -1138,6 +1138,19 @@ export default function Game() {
 
   return (
     <div className="min-h-screen green-felt flex flex-col">
+      {/* Permanent Bot toggle — bottom-left, always visible */}
+      <button
+        type="button"
+        onClick={() => setBotActive((v) => !v)}
+        className={`fixed bottom-20 left-3 z-50 px-3 py-2 rounded-lg text-[12px] font-extrabold uppercase tracking-wider border-2 transition active:scale-95 ${
+          botActive
+            ? "bg-emerald-500 text-black border-emerald-300 shadow-[0_0_14px_rgba(16,185,129,0.85)]"
+            : "bg-black/60 text-muted-foreground border-muted-foreground/50 backdrop-blur"
+        }`}
+        title="Raha activé: mandeha ho azy ny tour-nao tsy miandry 20s"
+      >
+        {botActive ? "🤖 Bot Active" : "🤖 Bot"}
+      </button>
       {ticketBanner && (
         <div className="fixed inset-x-0 top-0 z-50 bg-success text-success-foreground py-3 px-4 text-center font-bold shadow-lg animate-in slide-in-from-top">
           🎫 TICKET Nº{ticketBanner} ACCEPTÉ

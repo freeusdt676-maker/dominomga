@@ -1142,7 +1142,7 @@ export default function Game() {
       <button
         type="button"
         onClick={() => setBotActive((v) => !v)}
-        className={`fixed bottom-20 left-3 z-50 px-3 py-2 rounded-lg text-[12px] font-extrabold uppercase tracking-wider border-2 transition active:scale-95 ${
+        className={`fixed bottom-52 left-3 z-50 px-3 py-2 rounded-lg text-[12px] font-extrabold uppercase tracking-wider border-2 transition active:scale-95 ${
           botActive
             ? "bg-emerald-500 text-black border-emerald-300 shadow-[0_0_14px_rgba(16,185,129,0.85)]"
             : "bg-black/60 text-muted-foreground border-muted-foreground/50 backdrop-blur"

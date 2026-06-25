@@ -572,6 +572,48 @@ export default function Game() {
     return () => clearInterval(t);
   }, []);
 
+  // Background tick worker — mampandeha ny timer na dia minimize/tab hafa aza
+  // mba hahafahan'ny bot miasa tsara rehefa active.
+  useEffect(() => {
+    if (!game || game.status !== "in_progress") return;
+    const workerCode = `
+      let id = setInterval(() => self.postMessage("tick"), 1000);
+      self.onmessage = (e) => { if (e.data === "stop") { clearInterval(id); self.postMessage("stopped"); } };
+    `;
+    const blob = new Blob([workerCode], { type: "application/javascript" });
+    const worker = new Worker(URL.createObjectURL(blob));
+    worker.onmessage = (e) => { if (e.data === "tick") setNow(Date.now()); };
+    return () => {
+      worker.postMessage("stop");
+      setTimeout(() => worker.terminate(), 100);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.status, game?.id]);
+
+  // Wake Lock — tsy avela matory ny ecran rehefa active ny bot, ka ny JS
+  // timer mbola mandeha tsara na dia tsy mihetsika ny finday aza.
+  useEffect(() => {
+    if (!game || game.status !== "in_progress") return;
+    if (!botActive) return;
+    let lock: any = null;
+    const acquire = async () => {
+      try {
+        if ("wakeLock" in navigator && !lock) {
+          lock = await (navigator as any).wakeLock.request("screen");
+        }
+      } catch {}
+    };
+    acquire();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible" && !lock) acquire();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      if (lock?.release) lock.release().catch(() => {});
+    };
+  }, [botActive, game?.status, game?.id]);
+
   useEffect(() => {
     const syncNow = () => setNow(Date.now());
     document.addEventListener("visibilitychange", syncNow);

@@ -713,7 +713,6 @@ export default function Game() {
     const newBoard = place(board, tile, chosenSide);
     const newHand = myHand.filter((_, i) => i !== idx);
     sfx.move();
-    try { sfx.clack(1); } catch {}
     const oppId = nextTurnId(game, user.id);
     const handKey = getHandKey(game, user.id) as "player1_hand" | "player2_hand" | "player3_hand";
     const remainingOthers: Tile[] = opponents.flatMap((o) => o.hand);

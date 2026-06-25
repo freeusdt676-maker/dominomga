@@ -419,8 +419,8 @@ export default function Game() {
       // Tour 2+: tsy misy double terena, ny topon'ny tour no mametraka izay tiany.
       // Mihodina automatique makany ANKAVIA isaky ny tour.
       const ids = pc === 3 ? [game.player1_id, game.player2_id, game.player3_id] : [game.player1_id, game.player2_id];
-      // Rotation counter-clockwise (3P: P1 → P3 → P2).
-      const rotIds = pc === 3 ? [ids[0], ids[2], ids[1]] : ids;
+      // Rotation clockwise foana (3P: P1 → P2 → P3).
+      const rotIds = ids;
       const hands = pc === 3 ? [h1, h2, h3] : [h1, h2];
       const nextId = rotIds[(nextRound - 1) % rotIds.length];
       // DATINANDRO check on re-deal — instant win.
@@ -474,8 +474,8 @@ export default function Game() {
         : [game.player1_id, game.player2_id];
       // LOCKED: tsy misy "instant win" — target ihany ny fandresena.
       const ids = idsTied;
-      // Rotation counter-clockwise (3P: P1 → P3 → P2).
-      const rotIds = pc === 3 ? [ids[0], ids[2], ids[1]] : ids;
+      // Rotation clockwise foana (3P: P1 → P2 → P3).
+      const rotIds = ids;
       const hands = pc === 3 ? [h1, h2, h3] : [h1, h2];
       const nextId = rotIds[(nextRound - 1) % rotIds.length];
       setRoundBanner(`Mitovy vato — tour vaovao`);
@@ -1142,7 +1142,7 @@ export default function Game() {
       <button
         type="button"
         onClick={() => setBotActive((v) => !v)}
-        className={`fixed bottom-20 left-3 z-50 px-3 py-2 rounded-lg text-[12px] font-extrabold uppercase tracking-wider border-2 transition active:scale-95 ${
+        className={`fixed bottom-52 left-3 z-50 px-3 py-2 rounded-lg text-[12px] font-extrabold uppercase tracking-wider border-2 transition active:scale-95 ${
           botActive
             ? "bg-emerald-500 text-black border-emerald-300 shadow-[0_0_14px_rgba(16,185,129,0.85)]"
             : "bg-black/60 text-muted-foreground border-muted-foreground/50 backdrop-blur"

@@ -343,25 +343,39 @@ export default function Game() {
     if (roundEndLockRef.current === key) return;
     roundEndLockRef.current = key;
 
-    const pc = Number(game.players_count ?? 2);
+    // Vakio ny score MARINA avy any amin'ny serveur alohan'ny hanampiana
+    // teboka, mba tsy hisy "score tsy mitombo" raha sendra mbola lany
+    // ny state optimistic na tara ny realtime.
+    let liveGame: any = game;
+    try {
+      const { data: fresh } = await supabase
+        .from("games")
+        .select("id, round_number, score_p1, score_p2, score_p3, player1_id, player2_id, player3_id, players_count, game_mode")
+        .eq("id", game.id)
+        .single();
+      if (fresh) liveGame = { ...game, ...fresh };
+    } catch {}
+
+    const pc = Number(liveGame.players_count ?? 2);
     // LOCKED: Tsy misy intsony datinandro/double-6 ho fandresena. Ny target
     // ihany (D80 → 80, D120 → 120) no mandresy ny lalao.
     void lastTile; // tahirizina ho an'ny historique fotsiny
-    const addTo = (uid: string, base: number) => Number(base ?? 0) + (winnerId === uid ? points : 0);
-    const newScoreP1 = addTo(game.player1_id, game.score_p1);
-    const newScoreP2 = addTo(game.player2_id, game.score_p2);
-    const newScoreP3 = pc === 3 ? addTo(game.player3_id, game.score_p3) : 0;
-    const mode = (game.game_mode ?? "d120") as GameMode;
+    const safePoints = Math.max(0, Number(points) || 0);
+    const addTo = (uid: string, base: number) => Number(base ?? 0) + (winnerId === uid ? safePoints : 0);
+    const newScoreP1 = addTo(liveGame.player1_id, liveGame.score_p1);
+    const newScoreP2 = addTo(liveGame.player2_id, liveGame.score_p2);
+    const newScoreP3 = pc === 3 ? addTo(liveGame.player3_id, liveGame.score_p3) : 0;
+    const mode = (liveGame.game_mode ?? "d120") as GameMode;
     const target = getDominoTarget(mode);
     const wScore =
-      winnerId === game.player1_id ? newScoreP1 : winnerId === game.player2_id ? newScoreP2 : newScoreP3;
+      winnerId === liveGame.player1_id ? newScoreP1 : winnerId === liveGame.player2_id ? newScoreP2 : newScoreP3;
 
     const targetReached = isDominoGameWin(wScore, mode);
     const soloThreshold = getDominoSoloThreshold(mode);
     const opponentScores = [
-      winnerId === game.player1_id ? null : game.score_p1,
-      winnerId === game.player2_id ? null : game.score_p2,
-      pc === 3 && winnerId !== game.player3_id ? game.score_p3 : null,
+      winnerId === liveGame.player1_id ? null : liveGame.score_p1,
+      winnerId === liveGame.player2_id ? null : liveGame.score_p2,
+      pc === 3 && winnerId !== liveGame.player3_id ? liveGame.score_p3 : null,
     ].filter((score) => score !== null);
     const soloWin = isDominoSoloWin(wScore, mode, opponentScores);
     const doubleSixOut = isDominoDoubleSixOut(lastTile, points);

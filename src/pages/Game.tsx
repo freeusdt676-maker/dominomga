@@ -251,10 +251,7 @@ export default function Game() {
       const openerIdxInit = ids.indexOf(rotIds[(round1 - 1) % rotIds.length]);
       const opener = { ...chooseOpening(hands, mode), playerIndex: openerIdxInit, forced: false };
       const openerId = ids[openerIdxInit];
-      // DATINANDRO check on initial deal — instant win.
-      if (await tryDatinandroWin(currentGame, hands, boneyard)) {
-        return;
-      }
+      // DATINANDRO nesorina — tsy fandresena intsony.
       let board: Placed[] = [];
       let nextId = openerId;
       if (opener.forced) {
@@ -450,10 +447,7 @@ export default function Game() {
       const rotIds = ids;
       const hands = pc === 3 ? [h1, h2, h3] : [h1, h2];
       const nextId = rotIds[(nextRound - 1) % rotIds.length];
-      // DATINANDRO check on re-deal — instant win.
-      if (await tryDatinandroWin(game, hands, boneyard, { round_number: nextRound })) {
-        return;
-      }
+      // DATINANDRO nesorina — tsy fandresena intsony.
       const updateNext: any = {
         round_number: nextRound,
         player1_hand: hands[0],
@@ -507,10 +501,7 @@ export default function Game() {
       const nextId = rotIds[(nextRound - 1) % rotIds.length];
       setRoundBanner(`Mitovy vato — tour vaovao`);
       setTimeout(() => setRoundBanner(null), 3500);
-      // DATINANDRO check on tied re-deal — instant win.
-      if (await tryDatinandroWin(game, hands, boneyard, { round_number: nextRound })) {
-        return;
-      }
+      // DATINANDRO nesorina — tsy fandresena intsony.
       const updateNext: any = {
         round_number: nextRound,
         player1_hand: hands[0],

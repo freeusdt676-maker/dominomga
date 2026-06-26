@@ -79,6 +79,74 @@ function getHandKey(g: any, uid: string): "player1_hand" | "player2_hand" | "pla
   return null;
 }
 
+// ============================================================
+// Bot intelligent — fisafidianana ny vato sy ny lafiny tsara indrindra.
+// Heuristic mifototra amin'ny:
+//  - fametrahana farany (fandresena) = priorité ambony indrindra
+//  - fametraha "double" tsy te ho tavela (indrindra ny lehibe)
+//  - fanalefahana ny pip total atànana (mihena raha bloqué)
+//  - fitazonana fifanarahana amin'ny tendrony manaraka (mba tsy ho voafatotra)
+//  - fanasaziana raha hamoaka tendrony tsy hain'ny tànana hozaraina intsony
+// ============================================================
+function chooseBestBotMove(
+  hand: Tile[],
+  board: Placed[],
+): { index: number; side: "left" | "right" } | null {
+  type Cand = { index: number; side: "left" | "right"; score: number };
+  const cands: Cand[] = [];
+  // Mitanisa ny isan'ny vato manana ny pip iray ao an-tànana (afa-tsy ity vato apetraka ity)
+  const countSuit = (h: Tile[], v: number) =>
+    h.reduce((n, [a, b]) => n + ((a === v ? 1 : 0) + (b === v ? 1 : 0)), 0);
+
+  for (let i = 0; i < hand.length; i++) {
+    const tile = hand[i];
+    const can = canPlace(board, tile);
+    if (can === null) continue;
+    const sides: ("left" | "right")[] =
+      can === "either" ? ["left", "right"] : [can];
+    for (const side of sides) {
+      const nb = place(board, tile, side);
+      const e = ends(nb);
+      const remaining = hand.filter((_, k) => k !== i);
+      const pipsRem = pipsTotal(remaining);
+      const [a, b] = tile;
+      const isDouble = a === b;
+      let score = 0;
+
+      // 1) Vato farany = mandresy: tena ambony indrindra.
+      if (remaining.length === 0) score += 100000;
+
+      // 2) Manala pip atànana (raha bloqué dia kely ny score).
+      score += (a + b) * 3;
+      score -= pipsRem * 0.5;
+
+      // 3) Mialà ny double lehibe aloha.
+      if (isDouble) score += 8 + a * 2;
+
+      // 4) Tazomy ny fahafahana mametraka aoriana: ny tendrony vaovao
+      //    tokony mbola hifanaraka amin'ny vato ao an-tànana.
+      if (e) {
+        const leftMatches = countSuit(remaining, e.left);
+        const rightMatches = countSuit(remaining, e.right);
+        score += leftMatches * 4 + rightMatches * 4;
+        // Sazio raha samy mitovy ny tendrony roa nefa tsy manana ilay isa intsony.
+        if (e.left === e.right && leftMatches === 0) score -= 12;
+      }
+
+      // 5) Tendrony lehibe (5,6) mora bloqué ny hafa — mihatsara raha mbola manana isika.
+      if (e) {
+        if (e.left >= 5 && countSuit(remaining, e.left) > 0) score += 2;
+        if (e.right >= 5 && countSuit(remaining, e.right) > 0) score += 2;
+      }
+
+      cands.push({ index: i, side, score });
+    }
+  }
+  if (cands.length === 0) return null;
+  cands.sort((x, y) => y.score - x.score);
+  return { index: cands[0].index, side: cands[0].side };
+}
+
 export default function Game() {
   useThemeClass("domino");
   const { id } = useParams();
@@ -983,11 +1051,10 @@ export default function Game() {
       const oppId = nextTurnId(fresh, turnId);
       const pc = Number(fresh.players_count ?? 2);
 
-      const playableIdx = turnHand.findIndex((t) => canPlace(liveBoard, t) !== null);
-      if (playableIdx >= 0) {
+      const best = chooseBestBotMove(turnHand, liveBoard);
+      if (best) {
+        const { index: playableIdx, side: chosenSide } = best;
         const tile = turnHand[playableIdx];
-        const can = canPlace(liveBoard, tile);
-        const chosenSide: "left" | "right" = can === "left" ? "left" : can === "right" ? "right" : "right";
         const newBoard = place(liveBoard, tile, chosenSide);
         const newHand = turnHand.filter((_, i) => i !== playableIdx);
         if (newHand.length === 0) {

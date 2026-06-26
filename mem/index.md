@@ -8,7 +8,7 @@ Ludo + Pétanque server autoplay (pg_cron every 5s → edge functions ludo-autop
 Money is immutable: never add UI to delete wallets/admin_wallets. Mutations only via documented RPCs.
 Commission is enforced server-side: round(stake*0.10)*players_count for all 3 games via BEFORE UPDATE triggers.
 Wallet+admin+cash_pool total is conserved — only deposits add, withdrawals remove. NEVER add credit paths.
-Domino win = target reached (80/120) OR datinandro (hand pip total at deal = day-of-month) OR mandeha irery (single-round points ≥ 40 D80 / ≥ 60 D120) OR double-6 out (ending the round by playing [6|6] as the last tile in hand).
+Domino win = target reached (80/120) OR mandeha irery (single-round points ≥ 40 D80 / ≥ 60 D120) OR double-6 out (ending the round by playing [6|6] as the last tile). DATINANDRO REMOVED — do not reintroduce.
 Toasts: top-center, 7s duration, richColors (Sonner) — configured in src/App.tsx.
 
 ## Memories

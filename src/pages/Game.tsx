@@ -213,50 +213,9 @@ export default function Game() {
     return () => clearTimeout(t);
   }, [optimistic]);
 
-  // DATINANDRO — Raha misy mpilalao izay ny fitambaran'ny isan'ny piesy
-  // azony amin'ny fizarana mitovy amin'ny daty (isan'andro) dia mandresy
-  // avy hatrany ny lalao izy. Hipoitra eo afovoan'ny écran ny anarany ary
-  // ny tanan'ny pilalao rehetra dia ampisehoina mangarahara.
-  const tryDatinandroWin = async (
-    gameRef: any,
-    hands: Tile[][],
-    boneyard: Tile[],
-    extra: Record<string, any> = {},
-  ): Promise<boolean> => {
-    const pc = Number(gameRef?.players_count ?? 2);
-    const ids = pc === 3
-      ? [gameRef.player1_id, gameRef.player2_id, gameRef.player3_id]
-      : [gameRef.player1_id, gameRef.player2_id];
-    const day = new Date().getDate();
-    const idx = hands.findIndex((h) => pipsTotal(h) === day);
-    if (idx < 0) return false;
-    const winnerId = ids[idx] as string;
-    const winnerName = profileNames[winnerId] ?? "Mpilalao";
-    const mode = (gameRef.game_mode ?? "d120") as GameMode;
-    const target = getDominoTarget(mode);
-    const reason = `MANDRESY NY LALAO — DATINANDRO ${day} • ${winnerName} tonga datinandro`;
-    const REVEAL_MS = 6000;
-    const revealUntil = new Date(Date.now() + REVEAL_MS).toISOString();
-    const payload: any = {
-      ...extra,
-      player1_hand: hands[0],
-      player2_hand: hands[1],
-      boneyard,
-      board_state: [],
-      current_turn: null,
-      turn_started_at: null,
-      passes: 0,
-      last_reason: reason,
-      reveal_until: revealUntil,
-    };
-    if (pc === 3) payload.player3_hand = hands[2];
-    payload[`score_p${idx + 1}`] = target;
-    await supabase.from("games").update(payload).eq("id", gameRef.id);
-    setTimeout(async () => {
-      await supabase.rpc("settle_game", { _game_id: gameRef.id, _winner: winnerId });
-    }, REVEAL_MS);
-    return true;
-  };
+  // DATINANDRO — NESORINA tanteraka. Tsy fandresena intsony ny "datinandro".
+  // Ny target (D80=80, D120=120) sy SOLO sy DOUBLE 6 ihany no mahatonga
+  // fandresena. (Voasoratra eto mba tsy hiverina ho azy ny code.)
 
   const initializeGameHands = async (currentGame: any) => {
     const pc = Number(currentGame?.players_count ?? 2);
@@ -292,10 +251,7 @@ export default function Game() {
       const openerIdxInit = ids.indexOf(rotIds[(round1 - 1) % rotIds.length]);
       const opener = { ...chooseOpening(hands, mode), playerIndex: openerIdxInit, forced: false };
       const openerId = ids[openerIdxInit];
-      // DATINANDRO check on initial deal — instant win.
-      if (await tryDatinandroWin(currentGame, hands, boneyard)) {
-        return;
-      }
+      // DATINANDRO nesorina — tsy fandresena intsony.
       let board: Placed[] = [];
       let nextId = openerId;
       if (opener.forced) {
@@ -387,25 +343,39 @@ export default function Game() {
     if (roundEndLockRef.current === key) return;
     roundEndLockRef.current = key;
 
-    const pc = Number(game.players_count ?? 2);
+    // Vakio ny score MARINA avy any amin'ny serveur alohan'ny hanampiana
+    // teboka, mba tsy hisy "score tsy mitombo" raha sendra mbola lany
+    // ny state optimistic na tara ny realtime.
+    let liveGame: any = game;
+    try {
+      const { data: fresh } = await supabase
+        .from("games")
+        .select("id, round_number, score_p1, score_p2, score_p3, player1_id, player2_id, player3_id, players_count, game_mode")
+        .eq("id", game.id)
+        .single();
+      if (fresh) liveGame = { ...game, ...fresh };
+    } catch {}
+
+    const pc = Number(liveGame.players_count ?? 2);
     // LOCKED: Tsy misy intsony datinandro/double-6 ho fandresena. Ny target
     // ihany (D80 → 80, D120 → 120) no mandresy ny lalao.
     void lastTile; // tahirizina ho an'ny historique fotsiny
-    const addTo = (uid: string, base: number) => Number(base ?? 0) + (winnerId === uid ? points : 0);
-    const newScoreP1 = addTo(game.player1_id, game.score_p1);
-    const newScoreP2 = addTo(game.player2_id, game.score_p2);
-    const newScoreP3 = pc === 3 ? addTo(game.player3_id, game.score_p3) : 0;
-    const mode = (game.game_mode ?? "d120") as GameMode;
+    const safePoints = Math.max(0, Number(points) || 0);
+    const addTo = (uid: string, base: number) => Number(base ?? 0) + (winnerId === uid ? safePoints : 0);
+    const newScoreP1 = addTo(liveGame.player1_id, liveGame.score_p1);
+    const newScoreP2 = addTo(liveGame.player2_id, liveGame.score_p2);
+    const newScoreP3 = pc === 3 ? addTo(liveGame.player3_id, liveGame.score_p3) : 0;
+    const mode = (liveGame.game_mode ?? "d120") as GameMode;
     const target = getDominoTarget(mode);
     const wScore =
-      winnerId === game.player1_id ? newScoreP1 : winnerId === game.player2_id ? newScoreP2 : newScoreP3;
+      winnerId === liveGame.player1_id ? newScoreP1 : winnerId === liveGame.player2_id ? newScoreP2 : newScoreP3;
 
     const targetReached = isDominoGameWin(wScore, mode);
     const soloThreshold = getDominoSoloThreshold(mode);
     const opponentScores = [
-      winnerId === game.player1_id ? null : game.score_p1,
-      winnerId === game.player2_id ? null : game.score_p2,
-      pc === 3 && winnerId !== game.player3_id ? game.score_p3 : null,
+      winnerId === liveGame.player1_id ? null : liveGame.score_p1,
+      winnerId === liveGame.player2_id ? null : liveGame.score_p2,
+      pc === 3 && winnerId !== liveGame.player3_id ? liveGame.score_p3 : null,
     ].filter((score) => score !== null);
     const soloWin = isDominoSoloWin(wScore, mode, opponentScores);
     const doubleSixOut = isDominoDoubleSixOut(lastTile, points);
@@ -491,10 +461,7 @@ export default function Game() {
       const rotIds = ids;
       const hands = pc === 3 ? [h1, h2, h3] : [h1, h2];
       const nextId = rotIds[(nextRound - 1) % rotIds.length];
-      // DATINANDRO check on re-deal — instant win.
-      if (await tryDatinandroWin(game, hands, boneyard, { round_number: nextRound })) {
-        return;
-      }
+      // DATINANDRO nesorina — tsy fandresena intsony.
       const updateNext: any = {
         round_number: nextRound,
         player1_hand: hands[0],
@@ -548,10 +515,7 @@ export default function Game() {
       const nextId = rotIds[(nextRound - 1) % rotIds.length];
       setRoundBanner(`Mitovy vato — tour vaovao`);
       setTimeout(() => setRoundBanner(null), 3500);
-      // DATINANDRO check on tied re-deal — instant win.
-      if (await tryDatinandroWin(game, hands, boneyard, { round_number: nextRound })) {
-        return;
-      }
+      // DATINANDRO nesorina — tsy fandresena intsony.
       const updateNext: any = {
         round_number: nextRound,
         player1_hand: hands[0],
@@ -787,8 +751,7 @@ export default function Game() {
   const showOppHands = isRevealing || (
     game?.status === "in_progress" &&
     !game?.current_turn &&
-    !!(game as any)?.last_reason &&
-    !((game as any)?.last_reason as string).includes("DATINANDRO")
+    !!(game as any)?.last_reason
   );
 
   // Faharetan'ny Tour
@@ -1294,33 +1257,13 @@ export default function Game() {
         </div>
       )}
       {(() => {
-        const r: string = (game as any)?.last_reason ?? "";
-        const ru = (game as any)?.reveal_until ? new Date((game as any).reveal_until).getTime() : 0;
-        const active = r.includes("DATINANDRO") && ru > Date.now();
-        if (!active) return null;
-        return (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in">
-            <div className="mx-4 max-w-md rounded-2xl border-4 border-[#ffe27a] bg-[linear-gradient(180deg,#0d3b22,#0a2818)] p-6 text-center shadow-2xl">
-              <div className="text-5xl mb-2">🎯</div>
-              <div className="text-2xl font-extrabold text-[#ffe27a] tracking-wide mb-2">
-                DATINANDRO!
-              </div>
-              <div className="text-base text-white font-semibold">{r.replace(/^MANDRESY NY LALAO — /, "")}</div>
-              <div className="mt-3 text-xs text-white/70 italic">Mangarahara ny tanan'ny pilalao rehetra</div>
-            </div>
-          </div>
-        );
-      })()}
-      {(() => {
         // Overlay mazava ho an'ny tetezamita "tour vita → tour vaovao".
-        // Tsy hiseho raha datinandro (efa misy overlay manokana) na raha vita
-        // tanteraka ny lalao (DominoResultOverlay no miandraikitra).
         const r: string = (game as any)?.last_reason ?? "";
         const ru = (game as any)?.reveal_until ? new Date((game as any).reveal_until).getTime() : 0;
         // Hiseho mandritra ny reveal ARY mijanona hatrany aorian'ny reveal
         // (résumé) raha mbola in_progress ny lalao sy mbola tsy nanomboka ny
         // tour manaraka (tsy misy current_turn).
-        const persistent = !!r && !r.includes("DATINANDRO") && game?.status === "in_progress" && !game?.current_turn;
+        const persistent = !!r && game?.status === "in_progress" && !game?.current_turn;
         const active = persistent;
         if (!active) return null;
         const isGameWin = r.startsWith("MANDRESY NY LALAO");

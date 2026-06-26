@@ -755,7 +755,9 @@ export default function Game() {
     const newBoard = place(board, tile, chosenSide);
     const newHand = myHand.filter((_, i) => i !== idx);
     sfx.move();
-    const oppId = nextTurnId(game, user.id);
+    // Mihodina FOANA avy amin'ny current_turn marina (clockwise) — tsy
+    // miankina amin'ny user.id (mba tsy hisy "skip" raha misy stale state).
+    const oppId = nextTurnId(game, game.current_turn ?? user.id);
     const handKey = getHandKey(game, user.id) as "player1_hand" | "player2_hand" | "player3_hand";
     const remainingOthers: Tile[] = opponents.flatMap((o) => o.hand);
     setOptimistic({
@@ -924,7 +926,7 @@ export default function Game() {
     if (myHand.length === 0 || hasMove(myHand, board)) return;
     const expectedCurrentTurn = game.current_turn ?? null;
     const expectedTurnStartedAt = game.turn_started_at ?? null;
-    const oppId = nextTurnId(game, user.id);
+    const oppId = nextTurnId(game, game.current_turn ?? user.id);
     const pc = Number(game.players_count ?? 2);
     const passes = (game.passes ?? 0) + 1;
     if (passes >= pc) {
@@ -1119,6 +1121,27 @@ export default function Game() {
       setSelected(null);
     }
   }, [selected, isMyTurn, myHand, board]);
+
+  // Auto-pass HAINGANA: raha tonga ny tour-ko nefa TSY MISY vato azoko apetraka
+  // mihitsy, tsy miandry ny 20s — mandalo automatique aorian'ny 1.2s mba
+  // tsy hisy "dingana" ny adversaire manaraka. Manaja foana ny rotation
+  // clockwise (P1→P2→P3).
+  useEffect(() => {
+    if (!game || !user) return;
+    if (game.status !== "in_progress") return;
+    if (isRevealing) return;
+    if (game.current_turn !== user.id) return;
+    if (myHand.length === 0) return;
+    if (hasMove(myHand, board)) return;
+    const key = `noMove-${game.id}-${game.turn_started_at}-${user.id}`;
+    if (autoActedRef.current === key) return;
+    const t = setTimeout(() => {
+      autoActedRef.current = key;
+      passTurn().catch(() => { autoActedRef.current = null; });
+    }, 1200);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.id, game?.current_turn, game?.turn_started_at, game?.status, isRevealing, myHand, board, user?.id]);
 
   if (!game) return <div className="min-h-screen felt-bg flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 

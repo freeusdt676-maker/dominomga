@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Radio, Hash, Loader2 } from "lucide-react";
 import { SnakeBoard } from "@/components/SnakeBoard";
-import { DominoBack, DominoTile } from "@/components/DominoTile";
+import { DominoBack } from "@/components/DominoTile";
 import SpectatorWinner from "@/components/SpectatorWinner";
 import type { Placed, Tile } from "@/lib/dominoEngine";
 
@@ -35,28 +35,22 @@ type Snap = {
   p3_hand?: Tile[] | null;
 };
 
-function HiddenHand({ name, count, active, hand }: { name: string; count: number; active: boolean; hand?: Tile[] | null }) {
-  const reveal = Array.isArray(hand) && hand.length > 0;
+function HiddenHand({ name, count, active }: { name: string; count: number; active: boolean; hand?: Tile[] | null }) {
+  // Tsy aseho intsony ny vato sisa — atao kely ny back-tile mba ho malalaka
+  // tsara ny latabatra ho an'ny mpijery.
   return (
     <div
-      className={`flex flex-col items-center gap-1 p-2 rounded-xl border-2 ${
-        reveal ? "border-[#ffe27a] shadow-[0_0_18px_rgba(255,226,122,0.6)]" : active ? "border-primary shadow-[0_0_14px_rgba(212,175,55,0.4)]" : "border-primary/20"
-      } bg-card/30 min-w-[100px]`}
+      className={`flex flex-col items-center gap-0.5 p-1.5 rounded-lg border ${
+        active ? "border-primary shadow-[0_0_10px_rgba(212,175,55,0.35)]" : "border-primary/20"
+      } bg-card/30 min-w-[72px]`}
     >
-      <div className="text-[11px] font-bold truncate max-w-[110px] gold-text">{name}</div>
-      {reveal && (
-        <div className="text-[9px] font-extrabold text-[#ffe27a] uppercase tracking-wider">Vato sisa</div>
-      )}
-      <div className="flex flex-wrap justify-center gap-1">
-        {reveal
-          ? hand!.map((t, i) => (
-              <DominoTile key={i} a={t[0]} b={t[1]} size="sm" horizontal={false} variant="white" />
-            ))
-          : Array.from({ length: Math.min(count, 7) }).map((_, i) => (
-              <DominoBack key={i} size="xs" horizontal={false} />
-            ))}
+      <div className="text-[10px] font-bold truncate max-w-[90px] gold-text">{name}</div>
+      <div className="flex flex-wrap justify-center gap-0.5">
+        {Array.from({ length: Math.min(count, 7) }).map((_, i) => (
+          <DominoBack key={i} size="xs" horizontal={false} />
+        ))}
       </div>
-      <div className="text-[10px] text-muted-foreground">({count})</div>
+      <div className="text-[9px] text-muted-foreground">({count})</div>
     </div>
   );
 }

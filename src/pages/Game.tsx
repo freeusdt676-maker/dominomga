@@ -1122,6 +1122,27 @@ export default function Game() {
     }
   }, [selected, isMyTurn, myHand, board]);
 
+  // Auto-pass HAINGANA: raha tonga ny tour-ko nefa TSY MISY vato azoko apetraka
+  // mihitsy, tsy miandry ny 20s — mandalo automatique aorian'ny 1.2s mba
+  // tsy hisy "dingana" ny adversaire manaraka. Manaja foana ny rotation
+  // clockwise (P1→P2→P3).
+  useEffect(() => {
+    if (!game || !user) return;
+    if (game.status !== "in_progress") return;
+    if (isRevealing) return;
+    if (game.current_turn !== user.id) return;
+    if (myHand.length === 0) return;
+    if (hasMove(myHand, board)) return;
+    const key = `noMove-${game.id}-${game.turn_started_at}-${user.id}`;
+    if (autoActedRef.current === key) return;
+    const t = setTimeout(() => {
+      autoActedRef.current = key;
+      passTurn().catch(() => { autoActedRef.current = null; });
+    }, 1200);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.id, game?.current_turn, game?.turn_started_at, game?.status, isRevealing, myHand, board, user?.id]);
+
   if (!game) return <div className="min-h-screen felt-bg flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
   const e = ends(board);

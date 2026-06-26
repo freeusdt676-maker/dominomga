@@ -926,7 +926,7 @@ export default function Game() {
     if (myHand.length === 0 || hasMove(myHand, board)) return;
     const expectedCurrentTurn = game.current_turn ?? null;
     const expectedTurnStartedAt = game.turn_started_at ?? null;
-    const oppId = nextTurnId(game, user.id);
+    const oppId = nextTurnId(game, game.current_turn ?? user.id);
     const pc = Number(game.players_count ?? 2);
     const passes = (game.passes ?? 0) + 1;
     if (passes >= pc) {

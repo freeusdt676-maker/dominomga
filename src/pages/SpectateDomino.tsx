@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Radio, Hash, Loader2 } from "lucide-react";
 import { SnakeBoard } from "@/components/SnakeBoard";
-import { DominoBack, DominoTile } from "@/components/DominoTile";
+import { DominoBack } from "@/components/DominoTile";
 import SpectatorWinner from "@/components/SpectatorWinner";
 import type { Placed, Tile } from "@/lib/dominoEngine";
 

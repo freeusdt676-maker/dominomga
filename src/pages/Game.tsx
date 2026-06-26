@@ -737,8 +737,7 @@ export default function Game() {
   const showOppHands = isRevealing || (
     game?.status === "in_progress" &&
     !game?.current_turn &&
-    !!(game as any)?.last_reason &&
-    !((game as any)?.last_reason as string).includes("DATINANDRO")
+    !!(game as any)?.last_reason
   );
 
   // Faharetan'ny Tour
@@ -1244,33 +1243,13 @@ export default function Game() {
         </div>
       )}
       {(() => {
-        const r: string = (game as any)?.last_reason ?? "";
-        const ru = (game as any)?.reveal_until ? new Date((game as any).reveal_until).getTime() : 0;
-        const active = r.includes("DATINANDRO") && ru > Date.now();
-        if (!active) return null;
-        return (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in">
-            <div className="mx-4 max-w-md rounded-2xl border-4 border-[#ffe27a] bg-[linear-gradient(180deg,#0d3b22,#0a2818)] p-6 text-center shadow-2xl">
-              <div className="text-5xl mb-2">🎯</div>
-              <div className="text-2xl font-extrabold text-[#ffe27a] tracking-wide mb-2">
-                DATINANDRO!
-              </div>
-              <div className="text-base text-white font-semibold">{r.replace(/^MANDRESY NY LALAO — /, "")}</div>
-              <div className="mt-3 text-xs text-white/70 italic">Mangarahara ny tanan'ny pilalao rehetra</div>
-            </div>
-          </div>
-        );
-      })()}
-      {(() => {
         // Overlay mazava ho an'ny tetezamita "tour vita → tour vaovao".
-        // Tsy hiseho raha datinandro (efa misy overlay manokana) na raha vita
-        // tanteraka ny lalao (DominoResultOverlay no miandraikitra).
         const r: string = (game as any)?.last_reason ?? "";
         const ru = (game as any)?.reveal_until ? new Date((game as any).reveal_until).getTime() : 0;
         // Hiseho mandritra ny reveal ARY mijanona hatrany aorian'ny reveal
         // (résumé) raha mbola in_progress ny lalao sy mbola tsy nanomboka ny
         // tour manaraka (tsy misy current_turn).
-        const persistent = !!r && !r.includes("DATINANDRO") && game?.status === "in_progress" && !game?.current_turn;
+        const persistent = !!r && game?.status === "in_progress" && !game?.current_turn;
         const active = persistent;
         if (!active) return null;
         const isGameWin = r.startsWith("MANDRESY NY LALAO");

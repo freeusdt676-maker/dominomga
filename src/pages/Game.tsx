@@ -983,11 +983,10 @@ export default function Game() {
       const oppId = nextTurnId(fresh, turnId);
       const pc = Number(fresh.players_count ?? 2);
 
-      const playableIdx = turnHand.findIndex((t) => canPlace(liveBoard, t) !== null);
-      if (playableIdx >= 0) {
+      const best = chooseBestBotMove(turnHand, liveBoard);
+      if (best) {
+        const { index: playableIdx, side: chosenSide } = best;
         const tile = turnHand[playableIdx];
-        const can = canPlace(liveBoard, tile);
-        const chosenSide: "left" | "right" = can === "left" ? "left" : can === "right" ? "right" : "right";
         const newBoard = place(liveBoard, tile, chosenSide);
         const newHand = turnHand.filter((_, i) => i !== playableIdx);
         if (newHand.length === 0) {

@@ -213,50 +213,9 @@ export default function Game() {
     return () => clearTimeout(t);
   }, [optimistic]);
 
-  // DATINANDRO — Raha misy mpilalao izay ny fitambaran'ny isan'ny piesy
-  // azony amin'ny fizarana mitovy amin'ny daty (isan'andro) dia mandresy
-  // avy hatrany ny lalao izy. Hipoitra eo afovoan'ny écran ny anarany ary
-  // ny tanan'ny pilalao rehetra dia ampisehoina mangarahara.
-  const tryDatinandroWin = async (
-    gameRef: any,
-    hands: Tile[][],
-    boneyard: Tile[],
-    extra: Record<string, any> = {},
-  ): Promise<boolean> => {
-    const pc = Number(gameRef?.players_count ?? 2);
-    const ids = pc === 3
-      ? [gameRef.player1_id, gameRef.player2_id, gameRef.player3_id]
-      : [gameRef.player1_id, gameRef.player2_id];
-    const day = new Date().getDate();
-    const idx = hands.findIndex((h) => pipsTotal(h) === day);
-    if (idx < 0) return false;
-    const winnerId = ids[idx] as string;
-    const winnerName = profileNames[winnerId] ?? "Mpilalao";
-    const mode = (gameRef.game_mode ?? "d120") as GameMode;
-    const target = getDominoTarget(mode);
-    const reason = `MANDRESY NY LALAO — DATINANDRO ${day} • ${winnerName} tonga datinandro`;
-    const REVEAL_MS = 6000;
-    const revealUntil = new Date(Date.now() + REVEAL_MS).toISOString();
-    const payload: any = {
-      ...extra,
-      player1_hand: hands[0],
-      player2_hand: hands[1],
-      boneyard,
-      board_state: [],
-      current_turn: null,
-      turn_started_at: null,
-      passes: 0,
-      last_reason: reason,
-      reveal_until: revealUntil,
-    };
-    if (pc === 3) payload.player3_hand = hands[2];
-    payload[`score_p${idx + 1}`] = target;
-    await supabase.from("games").update(payload).eq("id", gameRef.id);
-    setTimeout(async () => {
-      await supabase.rpc("settle_game", { _game_id: gameRef.id, _winner: winnerId });
-    }, REVEAL_MS);
-    return true;
-  };
+  // DATINANDRO — NESORINA tanteraka. Tsy fandresena intsony ny "datinandro".
+  // Ny target (D80=80, D120=120) sy SOLO sy DOUBLE 6 ihany no mahatonga
+  // fandresena. (Voasoratra eto mba tsy hiverina ho azy ny code.)
 
   const initializeGameHands = async (currentGame: any) => {
     const pc = Number(currentGame?.players_count ?? 2);

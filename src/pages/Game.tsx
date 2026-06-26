@@ -755,7 +755,9 @@ export default function Game() {
     const newBoard = place(board, tile, chosenSide);
     const newHand = myHand.filter((_, i) => i !== idx);
     sfx.move();
-    const oppId = nextTurnId(game, user.id);
+    // Mihodina FOANA avy amin'ny current_turn marina (clockwise) — tsy
+    // miankina amin'ny user.id (mba tsy hisy "skip" raha misy stale state).
+    const oppId = nextTurnId(game, game.current_turn ?? user.id);
     const handKey = getHandKey(game, user.id) as "player1_hand" | "player2_hand" | "player3_hand";
     const remainingOthers: Tile[] = opponents.flatMap((o) => o.hand);
     setOptimistic({

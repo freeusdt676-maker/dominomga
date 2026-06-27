@@ -246,8 +246,10 @@ export default function Game() {
       // lehibe indrindra intsony — io no mahatonga ny "mifanatrika" mateti-piverina.
       const ids = getPlayerIds(currentGame);
       const round1 = Number(currentGame.round_number ?? 1);
-      // Rotation manomboka isaky ny round: mifanohitra amin'ny famataranandro (3P: P1 → P3 → P2).
-      const rotIds = ids.length === 3 ? [ids[0], ids[2], ids[1]] : ids;
+      // Rotation TSOTRA isaky ny tour: tour 1 → P1, tour 2 → P2, tour 3 → P3,
+      // dia miverina amin'ny P1. Mitovy aminizay nataony ao amin'ny finishRound
+      // sy finishBlocked mba tsy hisy mpilalao iray foana no lohavato.
+      const rotIds = ids;
       const openerIdxInit = ids.indexOf(rotIds[(round1 - 1) % rotIds.length]);
       const opener = { ...chooseOpening(hands, mode), playerIndex: openerIdxInit, forced: false };
       const openerId = ids[openerIdxInit];

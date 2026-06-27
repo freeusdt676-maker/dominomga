@@ -213,6 +213,33 @@ export default function Game() {
     return () => clearTimeout(t);
   }, [optimistic]);
 
+  // ────────────────────────────────────────────────────────────────────
+  // Detection automatique ny "pass" — mba tsy hiseho ho "voadingana" ny
+  // pilalao iray rehefa tsy nanana vato afaka napetraka. Isaky ny miova ny
+  // current_turn ary mitombo ny `passes`, dia mipoitra toast hoe
+  // "X nandalo" mba ho hita mazava fa nandeha tokoa ny tour-ny.
+  // ────────────────────────────────────────────────────────────────────
+  const prevTurnRef = useRef<{ turn: string | null; passes: number; round: number } | null>(null);
+  useEffect(() => {
+    if (!game) return;
+    const curTurn: string | null = game.current_turn ?? null;
+    const curPasses = Number(game.passes ?? 0);
+    const curRound = Number(game.round_number ?? 1);
+    const prev = prevTurnRef.current;
+    if (
+      prev
+      && prev.turn
+      && prev.round === curRound
+      && curTurn
+      && curTurn !== prev.turn
+      && curPasses > prev.passes
+    ) {
+      const name = profileNames[prev.turn] ?? "Mpilalao";
+      toast(`${name} nandalo — tsy nahita vato`);
+    }
+    prevTurnRef.current = { turn: curTurn, passes: curPasses, round: curRound };
+  }, [game?.current_turn, game?.passes, game?.round_number, profileNames]);
+
   // DATINANDRO — NESORINA tanteraka. Tsy fandresena intsony ny "datinandro".
   // Ny target (D80=80, D120=120) sy SOLO sy DOUBLE 6 ihany no mahatonga
   // fandresena. (Voasoratra eto mba tsy hiverina ho azy ny code.)

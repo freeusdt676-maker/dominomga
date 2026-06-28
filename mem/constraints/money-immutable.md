@@ -3,7 +3,7 @@ name: Money immutable
 description: Wallet balances and admin_wallets must never be deletable; only adjustable via documented RPCs
 type: constraint
 ---
-Never add a button or UI control that deletes rows from `wallets` or `admin_wallets`. Money mutations only via existing RPCs: `start_game_deduct`, `settle_game`, `ludo_settle`, `petanque_settle`, `admin_approve_tx`, `admin_reject_tx`, `admin_reset_user_balance` (PIN 2583), `admin_reset_commission` (PIN 2583), and refund flows inside `admin_cancel_*_game`.
+Never add a button or UI control that deletes rows from `wallets` or `admin_wallets`. Money mutations only via existing RPCs: `start_game_deduct`, `settle_game`, `ludo_settle`, `petanque_settle`, `admin_approve_tx`, `admin_reject_tx`, `admin_adjust_player_wallet` (Réclamation admin dépôt/retrait, PIN 2583, creates approved transaction trace), `admin_reset_user_balance` (PIN 2583), `admin_reset_commission` (PIN 2583), and refund flows inside `admin_cancel_*_game`.
 
 `admin_delete_transaction` only deletes `pending` transactions.
 

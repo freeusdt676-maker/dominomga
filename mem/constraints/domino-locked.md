@@ -46,3 +46,14 @@ Running out of tiles, blocage and "mitovy vato" only end the ROUND and may add p
 History label `last_reason` MUST be prefixed `MANDRESY NY LALAO — …`. Target wins use `… tonga {target}`; datinandro wins use `… DATINANDRO {day} • {name} tonga datinandro`; mandeha irery uses `… MANDEHA IRERY • {name} nahazo +{points} amin'ny tour iray ({threshold}+)`; double-6 out uses `… DOUBLE 6 • {name} namarana ny tour tamin'ny [6|6]`. Profile.tsx `parseReason` order: datinandro → mandeha irery → double-6 out → tonga.
 
 **Why:** The user repeatedly demanded that ONLY the target wins ("ny akoatrizay tsimisy"). Any re-introduction of bonus win conditions is a regression. If a future task asks for a new win category, push back and ask for explicit confirmation that this lock is being intentionally lifted.
+
+## Anti-skip invariant (2026-06-28)
+Never advance/pass a Domino turn while the current player has at least one legal tile for the board ends. This applies to:
+- manual pass
+- 20s client autoplay
+- background watchdog / cron autoplay
+- any future admin or repair scripts
+
+The backend must be the final guard: pass-only updates must raise/block when `domino_hand_has_move(current_player_hand, board_state)` is true. If a player is offline but has a legal tile, autoplay should place a legal tile, not skip them.
+
+**Why:** The user repeatedly saw 3P matches where one player with playable tiles was skipped while only the other two played.

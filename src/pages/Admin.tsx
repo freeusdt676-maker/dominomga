@@ -68,6 +68,12 @@ export default function Admin() {
   const [blockAllPin, setBlockAllPin] = useState("");
   const [unblockAllOpen, setUnblockAllOpen] = useState(false);
   const [unblockAllPin, setUnblockAllPin] = useState("");
+  const [claimOpen, setClaimOpen] = useState(false);
+  const [claimUserId, setClaimUserId] = useState("");
+  const [claimMode, setClaimMode] = useState<"deposit" | "withdrawal">("deposit");
+  const [claimAmount, setClaimAmount] = useState("");
+  const [claimPin, setClaimPin] = useState("");
+  const [claimNote, setClaimNote] = useState("Réclamation administratif");
   const [pendingProfileCount, setPendingProfileCount] = useState(0);
   const [onlineOpen, setOnlineOpen] = useState(false);
   const adminId = user?.id ?? resolvedAdminId;
@@ -431,6 +437,40 @@ export default function Admin() {
     load();
   };
 
+  const submitClaimAdjustment = async () => {
+    if (!adminId) return toast.error("Mbola tsy vita ny fanamarinana admin");
+    if (!claimUserId) return toast.error("Safidio ny mpilalao");
+    const amount = Number(claimAmount.replace(/\s/g, ""));
+    if (!Number.isFinite(amount) || amount <= 0) return toast.error("Ampidiro vola marina");
+    const target = users.find((u) => u.user_id === claimUserId);
+    const { data, error } = await supabase.rpc("admin_adjust_player_wallet" as any, {
+      _user_id: claimUserId,
+      _admin_id: adminId,
+      _type: claimMode,
+      _amount: amount,
+      _pin: claimPin,
+      _note: claimNote.trim() || "Réclamation administratif",
+    });
+    if (error) {
+      const msg = error.message.includes("pin_diso") ? "Code administratif diso"
+        : error.message.includes("insufficient_balance") ? "Solde tsy ampy amin'io compte io"
+        : error.message.includes("invalid_amount") ? "Vola tsy marina"
+        : error.message;
+      return toast.error(msg);
+    }
+    const result: any = data ?? {};
+    toast.success(
+      `${claimMode === "deposit" ? "Dépôt" : "Retrait"} ${fmtAr(amount)} vita ho an'i ${target?.mvola_name ?? "mpilalao"} · Solde vaovao ${fmtAr(result.new_balance ?? 0)}`,
+      { duration: 6000 },
+    );
+    setClaimOpen(false);
+    setClaimUserId("");
+    setClaimAmount("");
+    setClaimPin("");
+    setClaimNote("Réclamation administratif");
+    await load();
+  };
+
   const filteredHistory = history.filter((h) => {
     if (!historySearch.trim()) return true;
     const q = historySearch.trim().toLowerCase();
@@ -540,6 +580,18 @@ export default function Admin() {
             variant="warning"
             badge={txCount}
           />
+          <CircleNavButton
+            icon={<Megaphone />}
+            label="Réclamation"
+            variant="primary"
+            onClick={() => {
+              setClaimOpen(true);
+              setClaimPin("");
+              setClaimAmount("");
+              setClaimMode("deposit");
+              setClaimNote("Réclamation administratif");
+            }}
+          />
         </div>
       </div>
       <OnlineUsersDialog open={onlineOpen} onOpenChange={setOnlineOpen} />
@@ -635,6 +687,7 @@ export default function Admin() {
                 <span className="absolute -top-1 -right-1 bg-destructive rounded-full w-2.5 h-2.5" />
               )}
             </TabsTrigger>
+            <TabsTrigger value="claim" className="shrink-0 whitespace-nowrap px-3">Réclamation</TabsTrigger>
             <TabsTrigger value="reset" className="shrink-0 whitespace-nowrap px-3">Reset</TabsTrigger>
             <TabsTrigger value="broadcast" className="shrink-0 whitespace-nowrap px-3">Annonce</TabsTrigger>
             <TabsTrigger value="history" className="shrink-0 whitespace-nowrap px-3">Historique</TabsTrigger>
@@ -699,6 +752,20 @@ export default function Admin() {
                 </p>
               </button>
             ))}
+          </TabsContent>
+
+          <TabsContent value="claim" className="space-y-3 mt-3">
+            <div className="card-felt rounded-xl p-3 border-l-4 border-primary">
+              <p className="text-xs text-foreground/80">📌 <b>Réclamation.</b> Dépôt na retrait administratif mivantana amin'ny compte mpilalao.</p>
+            </div>
+            <div className="card-felt rounded-xl p-4 space-y-3">
+              <Button className="btn-gold w-full" onClick={() => setClaimOpen(true)}>
+                Ouvrir Réclamation
+              </Button>
+              <p className="text-[11px] text-muted-foreground text-center">
+                Ny opération rehetra dia voarakitra ao amin'ny historique transactions.
+              </p>
+            </div>
           </TabsContent>
 
           {/* PROFILS — pending profile change requests */}
@@ -1072,6 +1139,96 @@ export default function Admin() {
             <DialogFooter>
               <Button variant="outline" onClick={() => setCancelOpen(false)}>Annuler</Button>
               <Button variant="destructive" disabled={!detectedCancelGame} onClick={cancelGameByTicket}>OK voafafa avy hatrany</Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={claimOpen} onOpenChange={(o) => { if (!o) setClaimOpen(false); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Réclamation — dépôt / retrait</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">
+              Safidio ny compte, dia ataovy Dépôt raha hampitombo solde na Retrait raha hampihena solde.
+            </p>
+            <select
+              value={claimUserId}
+              onChange={(e) => setClaimUserId(e.target.value)}
+              className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="">Safidio ny mpilalao...</option>
+              {users.map((u) => (
+                <option key={u.user_id} value={u.user_id}>
+                  {u.player_number != null ? `#${String(u.player_number).padStart(4, "0")} · ` : ""}{u.mvola_name} · {u.phone} · {fmtAr(u._balance ?? 0)}
+                </option>
+              ))}
+            </select>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant={claimMode === "deposit" ? "default" : "outline"}
+                onClick={() => setClaimMode("deposit")}
+              >
+                <ArrowDownToLine className="w-4 h-4 mr-1" />Dépôt
+              </Button>
+              <Button
+                type="button"
+                variant={claimMode === "withdrawal" ? "destructive" : "outline"}
+                onClick={() => setClaimMode("withdrawal")}
+              >
+                <ArrowUpFromLine className="w-4 h-4 mr-1" />Retrait
+              </Button>
+            </div>
+            <Input
+              type="number"
+              inputMode="numeric"
+              min="1"
+              value={claimAmount}
+              onChange={(e) => setClaimAmount(e.target.value)}
+              placeholder="Montant Ar"
+            />
+            <Textarea
+              value={claimNote}
+              onChange={(e) => setClaimNote(e.target.value)}
+              rows={3}
+              placeholder="Antony / fanamarihana"
+            />
+            <Input
+              type="password"
+              inputMode="numeric"
+              maxLength={6}
+              value={claimPin}
+              onChange={(e) => setClaimPin(e.target.value)}
+              placeholder="Codé ADMINISTRATIF"
+            />
+            {claimUserId && (
+              <div className="rounded-lg border border-primary/20 bg-card/40 p-3 text-xs">
+                {(() => {
+                  const u = users.find((x) => x.user_id === claimUserId);
+                  const amount = Number(claimAmount || 0);
+                  const before = Number(u?._balance ?? 0);
+                  const after = claimMode === "deposit" ? before + amount : before - amount;
+                  return (
+                    <>
+                      <p><b>Compte:</b> {u?.mvola_name ?? "—"}</p>
+                      <p><b>Solde avant:</b> {fmtAr(before)}</p>
+                      <p><b>Solde après:</b> <span className={after < 0 ? "text-destructive" : "gold-text"}>{fmtAr(after)}</span></p>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setClaimOpen(false)}>Annuler</Button>
+              <Button
+                className={claimMode === "deposit" ? "btn-gold" : ""}
+                variant={claimMode === "withdrawal" ? "destructive" : "default"}
+                onClick={submitClaimAdjustment}
+              >
+                Confirmer
+              </Button>
             </DialogFooter>
           </div>
         </DialogContent>

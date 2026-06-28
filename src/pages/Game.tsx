@@ -1104,12 +1104,18 @@ export default function Game() {
       }
         return;
       }
+      if (hasMove(turnHand, liveBoard)) {
+        // Protection anti-skip: raha mbola misy vato azo apetraka, tsy azo
+        // ampandalovina mihitsy ilay mpilalao. Ny backend koa manamarina an'io.
+        autoActedRef.current = null;
+        return;
+      }
       const passes = (fresh.passes ?? 0) + 1;
       if (passes >= pc) {
         await finishBlocked();
         return;
       }
-      await updateGameState({
+      const { error: passError } = await updateGameState({
         current_turn: oppId,
         turn_started_at: new Date().toISOString(),
         passes,
@@ -1117,6 +1123,7 @@ export default function Game() {
         expectedCurrentTurn: turnId,
         expectedTurnStartedAt: fresh.turn_started_at,
       });
+      if (passError) autoActedRef.current = null;
     })().catch(() => {
       autoActedRef.current = null;
     });
@@ -1266,14 +1273,14 @@ export default function Game() {
       <button
         type="button"
         onClick={() => setBotActive((v) => !v)}
-        className={`fixed bottom-52 left-3 z-50 px-3 py-2 rounded-lg text-[12px] font-extrabold uppercase tracking-wider border-2 transition active:scale-95 ${
+        className={`fixed bottom-36 left-2 z-50 px-2 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-normal border transition active:scale-95 ${
           botActive
-            ? "bg-emerald-500 text-black border-emerald-300 shadow-[0_0_14px_rgba(16,185,129,0.85)]"
-            : "bg-black/60 text-muted-foreground border-muted-foreground/50 backdrop-blur"
+            ? "bg-emerald-500 text-black border-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.75)]"
+            : "bg-black/55 text-muted-foreground border-muted-foreground/40 backdrop-blur"
         }`}
         title="Raha activé: mandeha ho azy ny tour-nao tsy miandry 20s"
       >
-        {botActive ? "🤖 Bot Active" : "🤖 Bot"}
+        {botActive ? "🤖 ON" : "🤖 Bot"}
       </button>
       {ticketBanner && (
         <div className="fixed inset-x-0 top-0 z-50 bg-success text-success-foreground py-3 px-4 text-center font-bold shadow-lg animate-in slide-in-from-top">

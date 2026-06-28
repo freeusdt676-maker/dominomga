@@ -9,6 +9,7 @@ Money is immutable: never add UI to delete wallets/admin_wallets. Mutations only
 Commission is enforced server-side: round(stake*0.10)*players_count for all 3 games via BEFORE UPDATE triggers.
 Wallet+admin+cash_pool total is conserved — only deposits add, withdrawals remove. NEVER add credit paths.
 Domino win = target reached (80/120) OR mandeha irery (single-round points ≥ 40 D80 / ≥ 60 D120) OR double-6 out (ending the round by playing [6|6] as the last tile). DATINANDRO REMOVED — do not reintroduce.
+Domino anti-skip LOCKED: backend/client watchdog must never pass a player who has any legal tile for the current board.
 Toasts: top-center, 7s duration, richColors (Sonner) — configured in src/App.tsx.
 
 ## Memories

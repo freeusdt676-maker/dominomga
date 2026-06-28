@@ -1125,6 +1125,17 @@ export type Database = {
         Args: { _challenge_id: string }
         Returns: Json
       }
+      admin_adjust_player_wallet: {
+        Args: {
+          _admin_id: string
+          _amount: number
+          _note?: string
+          _pin: string
+          _type: Database["public"]["Enums"]["transaction_type"]
+          _user_id: string
+        }
+        Returns: Json
+      }
       admin_approve_profile_change: { Args: { _req_id: string }; Returns: Json }
       admin_approve_tx: {
         Args: { _admin_id: string; _tx_id: string }
@@ -1270,6 +1281,14 @@ export type Database = {
       check_login_lockout: { Args: { _phone: string }; Returns: Json }
       check_rate_limit: {
         Args: { _action: string; _max: number; _window_seconds: number }
+        Returns: boolean
+      }
+      domino_hand_has_move: {
+        Args: { _board: Json; _hand: Json }
+        Returns: boolean
+      }
+      domino_tile_can_place: {
+        Args: { _board: Json; _tile: Json }
         Returns: boolean
       }
       expire_stale_waiting_games: { Args: never; Returns: Json }

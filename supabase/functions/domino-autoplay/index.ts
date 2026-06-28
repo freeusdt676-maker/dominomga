@@ -1,7 +1,7 @@
 // Server-side Domino watchdog: prevents permanent hangs.
-// Every 2s (via pg_cron), advances the turn of any in_progress Domino game
-// whose 20s timer has been expired for at least 10s (i.e. >30s since
-// turn_started_at) — guaranteeing rotation even if every player went offline.
+// Every 2s (via pg_cron), advances ONLY the turn of a player who truly has
+// no legal tile after the timer expires. If the player has a playable tile,
+// the watchdog refuses to skip them.
 // Rotates clockwise (P1→P2→P3→P1). Idempotent: only fires when
 // turn_started_at hasn't changed since detection.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -27,6 +27,37 @@ function nextTurnId(g: any, current: string): string {
   return ids[(i + 1) % ids.length];
 }
 
+type Tile = [number, number];
+type Placed = { tile: Tile; flipped?: boolean };
+
+function ends(board: Placed[]): { left: number; right: number } | null {
+  if (!board.length) return null;
+  const first = board[0];
+  const last = board[board.length - 1];
+  return {
+    left: first.flipped ? first.tile[1] : first.tile[0],
+    right: last.flipped ? last.tile[0] : last.tile[1],
+  };
+}
+
+function canPlace(board: Placed[], tile: Tile): boolean {
+  const e = ends(board);
+  if (!e) return true;
+  const [a, b] = tile;
+  return a === e.left || b === e.left || a === e.right || b === e.right;
+}
+
+function handHasMove(hand: Tile[], board: Placed[]): boolean {
+  return hand.some((tile) => canPlace(board, tile));
+}
+
+function getHand(g: any, playerId: string): Tile[] {
+  if (playerId === g.player1_id) return (g.player1_hand ?? []) as Tile[];
+  if (playerId === g.player2_id) return (g.player2_hand ?? []) as Tile[];
+  if (playerId === g.player3_id) return (g.player3_hand ?? []) as Tile[];
+  return [];
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -38,7 +69,7 @@ Deno.serve(async (req) => {
   const cutoff = new Date(Date.now() - HANG_THRESHOLD_MS).toISOString();
   const { data: games, error } = await supabase
     .from("games")
-    .select("id, players_count, player1_id, player2_id, player3_id, current_turn, turn_started_at, status, passes")
+    .select("id, players_count, player1_id, player2_id, player3_id, current_turn, turn_started_at, status, passes, board_state, player1_hand, player2_hand, player3_hand")
     .eq("status", "in_progress")
     .not("current_turn", "is", null)
     .not("turn_started_at", "is", null)
@@ -53,8 +84,15 @@ Deno.serve(async (req) => {
   }
 
   let advanced = 0;
+  let protectedTurns = 0;
   for (const g of games ?? []) {
     if (!g.current_turn) continue;
+    const board = ((g as any).board_state ?? []) as Placed[];
+    const hand = getHand(g, g.current_turn as string);
+    if (handHasMove(hand, board)) {
+      protectedTurns += 1;
+      continue;
+    }
     const nextId = nextTurnId(g, g.current_turn as string);
     if (!nextId || nextId === g.current_turn) continue;
     const { error: upErr, count } = await supabase
@@ -70,7 +108,7 @@ Deno.serve(async (req) => {
     if (!upErr && (count ?? 0) > 0) advanced += 1;
   }
 
-  return new Response(JSON.stringify({ scanned: games?.length ?? 0, advanced }), {
+  return new Response(JSON.stringify({ scanned: games?.length ?? 0, advanced, protectedTurns }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });

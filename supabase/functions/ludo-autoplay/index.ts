@@ -71,30 +71,9 @@ function seatHasFinished(pawns: Pawn[], seat: number): boolean {
 }
 
 function rollBalancedDice(pawns: Pawn[], seat: number): number {
-  const seatPawns = pawns.filter((p) => p.seat === seat);
-  const outCount = seatPawns.filter((p) => p.pos > 0 && p.pos < 57).length;
-  const finishedCount = seatPawns.filter((p) => p.pos === 57).length;
-  const allInBase = seatPawns.length > 0 && seatPawns.every((p) => p.pos <= 0);
-  const otherSeats = Array.from(new Set(pawns.filter((p) => p.seat !== seat).map((p) => p.seat)));
-  let leaderFinished = 0;
-  let opponentsProgress = 0;
-  for (const s of otherSeats) {
-    const f = pawns.filter((p) => p.seat === s && p.pos === 57).length;
-    if (f > leaderFinished) leaderFinished = f;
-    opponentsProgress += pawns.filter((p) => p.seat === s && p.pos > 0).length;
-  }
-  const trailing = leaderFinished - finishedCount;
-  // ~20% sixes baseline (mitovy amin'ny client ludoEngine).
-  const weights = [1, 1, 1, 1, 1, 1.25];
-  if (allInBase && opponentsProgress >= 2) weights[5] = Math.max(weights[5], 2.5);
-  if (trailing >= 2) weights[5] = Math.max(weights[5], 2.0);
-  const totalWeight = weights.reduce((s, v) => s + v, 0);
-  let pick = Math.random() * totalWeight;
-  for (let face = 1; face <= 6; face += 1) {
-    pick -= weights[face - 1];
-    if (pick <= 0) return face;
-  }
-  return 6;
+  // FAIR uniform dice — mirror client ludoEngine.rollBalancedDice.
+  void pawns; void seat;
+  return 1 + Math.floor(Math.random() * 6);
 }
 
 function pickAutoMove(pawns: Pawn[], seat: number, dice: number) {

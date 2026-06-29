@@ -642,8 +642,19 @@ export default function PetanqueGame() {
     const { thrower, angle: a, force: f, jackPhase, baseBalls, baseJack, ballId, commit } = opts;
     setThrowing(true);
     const rad = (a * Math.PI) / 180;
-    // Jack: assez de hery mba ho tonga any amin'ny 75% ny terrain
-    const speed = jackPhase ? (3 + (f / 100) * 7.5) : (4 + (f / 100) * 11);
+    // Hery mifanaraka amin'ny pull: arakaraka ny halaviran'ny tariny no
+    // ialavan'ny baolina. Pull max (100%) = baolina mandeha mihoatra ny
+    // halavan'ny terrain (~12m). Scaling exponentielle kely mba haharanitra
+    // ny famindra hery.
+    const t = Math.max(0, Math.min(1, f / 100));
+    const ballSpeedMax = 26;   // m/s — manakatra ny faran'ny terrain mora
+    const ballSpeedMin = 5;
+    const jackSpeedMax = 11;
+    const jackSpeedMin = 3;
+    const curve = Math.pow(t, 1.25); // courbe linéaire ~ exposant léger
+    const speed = jackPhase
+      ? jackSpeedMin + curve * (jackSpeedMax - jackSpeedMin)
+      : ballSpeedMin + curve * (ballSpeedMax - ballSpeedMin);
     const vx = Math.sin(rad) * speed;
     const vz = Math.cos(rad) * speed;
     let balls: Ball[];

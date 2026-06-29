@@ -62,44 +62,10 @@ export function rollDice(): number {
 }
 
 export function rollBalancedDice(pawns: Pawn[], seat: number): number {
-  // PRO fairness policy (tena mifandanja):
-  // - Baseline: 6 mipoitra matetika ho an'ny tsirairay (fun).
-  // - Raha mbola ato anaty trano daholo ny pion ny pilalao IRAY nefa efa
-  //   nivoaka na efa tafiditra ny an'ny hafa → quasi-tsy maintsy 6 (tsy ho
-  //   tavela mihitsy ilay adverse).
-  // - Trailing-catchup: arakaraka ny halaviran-dàlana ny mpitarika no
-  //   itombon'ny chance hahazo 6.
-  const seatPawns = pawns.filter((p) => p.seat === seat);
-  const outCount = seatPawns.filter((p) => p.pos > 0 && p.pos < 57).length;
-  const finishedCount = seatPawns.filter((p) => p.pos === 57).length;
-  const allInBase = seatPawns.length > 0 && seatPawns.every((p) => p.pos <= 0);
-
-  // Progress totals across opponents (out + finished pawns).
-  const otherSeats = Array.from(new Set(pawns.filter((p) => p.seat !== seat).map((p) => p.seat)));
-  let leaderFinished = 0;
-  let opponentsProgress = 0; // pawns that have left base (anywhere)
-  for (const s of otherSeats) {
-    const f = pawns.filter((p) => p.seat === s && p.pos === 57).length;
-    if (f > leaderFinished) leaderFinished = f;
-    opponentsProgress += pawns.filter((p) => p.seat === s && p.pos > 0).length;
-  }
-  const trailing = leaderFinished - finishedCount;
-
-  // Baseline: ~20% chance ny 6 (5 + 1.25 = 6.25 → 1.25/6.25 = 20%).
-  // Mifandanja amin'ny lalao classique — manakaiky ny probabilité réelle.
-  const weights = [1, 1, 1, 1, 1, 1.25];
-
-  // Rescue/catch-up boost — manampy kely ny chance ny 6 raha trailing.
-  if (allInBase && opponentsProgress >= 2) weights[5] = Math.max(weights[5], 2.5);
-  if (trailing >= 2) weights[5] = Math.max(weights[5], 2.0);
-
-  const totalWeight = weights.reduce((sum, value) => sum + value, 0);
-  let pick = Math.random() * totalWeight;
-  for (let face = 1; face <= 6; face += 1) {
-    pick -= weights[face - 1];
-    if (pick <= 0) return face;
-  }
-  return 6;
+  // FAIR uniform dice — 1/6 probabilité tsirairay (1..6), tsy misy bias na
+  // catch-up. Ny pilalao rehetra dia mahazo chance mitovy hahazo 6 (~16.7%).
+  void pawns; void seat;
+  return 1 + Math.floor(Math.random() * 6);
  }
 
 // Get absolute track index for a pawn on track, or null if base/home/finished

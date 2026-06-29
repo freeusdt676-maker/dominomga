@@ -26,6 +26,24 @@ export const sfx = {
   click: () => tone(660, 0.06, "square", 0.12),
   dice:  () => { tone(440, 0.05, "square", 0.15); tone(620, 0.05, "square", 0.13, 0.06); tone(880, 0.08, "square", 0.12, 0.12); },
   move:  () => tone(520, 0.08, "triangle", 0.16),
+  step:  () => {
+    // Short tick — pawn hopping cell to cell (classic ludo "toc")
+    const a = ac(); if (!a) return;
+    const t0 = a.currentTime;
+    const dur = 0.05;
+    const buf = a.createBuffer(1, Math.floor(a.sampleRate * dur), a.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) {
+      const t = i / a.sampleRate;
+      d[i] = (Math.random() * 2 - 1) * Math.exp(-t * 90);
+    }
+    const src = a.createBufferSource(); src.buffer = buf;
+    const bp = a.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 1400; bp.Q.value = 2.5;
+    const g = a.createGain(); g.gain.value = 0.18;
+    src.connect(bp).connect(g).connect(a.destination);
+    src.start(t0);
+    tone(820, 0.045, "triangle", 0.12);
+  },
   capture: () => { tone(300, 0.1, "sawtooth", 0.2); tone(180, 0.18, "sawtooth", 0.18, 0.08); },
   win: () => { tone(523, 0.12, "triangle", 0.2); tone(659, 0.12, "triangle", 0.2, 0.12); tone(784, 0.18, "triangle", 0.22, 0.24); tone(1046, 0.25, "triangle", 0.22, 0.4); },
   notify: () => { tone(880, 0.1, "sine", 0.18); tone(1175, 0.14, "sine", 0.18, 0.1); },

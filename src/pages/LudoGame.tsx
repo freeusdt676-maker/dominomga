@@ -383,7 +383,6 @@ export default function LudoGame() {
     const res = applyMove(state.pawns ?? [], state.current_turn_seat, pawnIdx, dice);
     setActing(true);
     armSafetyRelease();
-    sfx.move();
 
     try {
       // ===== Step-by-step walking animation (cell by cell) =====
@@ -393,11 +392,13 @@ export default function LudoGame() {
         // Exit base — single hop to start cell
         me.pos = 1;
         setG((cur) => (cur ? { ...cur, pawns: startPawns.map((p) => ({ ...p })) } : cur));
+        sfx.step();
         await new Promise((r) => setTimeout(r, STEP_ANIMATION_MS * 2));
       } else {
         for (let step = 0; step < dice; step++) {
           me.pos = Math.min(57, me.pos + 1);
           setG((cur) => (cur ? { ...cur, pawns: startPawns.map((p) => ({ ...p })) } : cur));
+          sfx.step();
           await new Promise((r) => setTimeout(r, STEP_ANIMATION_MS));
           if (me.pos === 57) break;
         }

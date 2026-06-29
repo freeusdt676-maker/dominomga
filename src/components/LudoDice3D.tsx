@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 
 type Props = {
   face: number; // 1..6
@@ -18,7 +18,26 @@ const PIPS: Record<number, Array<[number, number]>> = {
 };
 
 function LudoDice3DBase({ face, size = 64, idle = false, rolling = false }: Props) {
-  const pips = PIPS[Math.max(1, Math.min(6, face))] ?? PIPS[1];
+  // While rolling, cycle through random faces every 70ms so the user sees
+  // the numbers tumbling inside the cube (like a real dice in a cup).
+  const [tumble, setTumble] = useState<number>(face);
+  useEffect(() => {
+    if (!rolling) { setTumble(face); return; }
+    let i = 0;
+    const id = window.setInterval(() => {
+      i += 1;
+      // pseudo-random face, avoid repeating the previous one
+      setTumble((prev) => {
+        let n = 1 + Math.floor(Math.random() * 6);
+        if (n === prev) n = (n % 6) + 1;
+        return n;
+      });
+      if (i > 20) window.clearInterval(id);
+    }, 70);
+    return () => window.clearInterval(id);
+  }, [rolling, face]);
+  const shown = rolling ? tumble : face;
+  const pips = PIPS[Math.max(1, Math.min(6, shown))] ?? PIPS[1];
   const s = size;
   return (
     <svg

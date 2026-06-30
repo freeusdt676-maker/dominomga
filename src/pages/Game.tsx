@@ -1003,7 +1003,7 @@ export default function Game() {
       expectedTurnStartedAt,
     });
     if (error) {
-      toast.error("Tsy voaray ilay pass, andramo indray");
+      toast.error("Tsy voaray ilay pass, andramo indray", { duration: 3000 });
       return;
     }
     toast("TSY MANANA — mandalo any amin'ny manaraka");

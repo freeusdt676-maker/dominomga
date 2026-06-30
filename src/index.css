@@ -380,7 +380,6 @@ html.theme-petanque {
 
   .domino-scene-bg {
     background-color: #2a1808;
-    background-image: url("/src/assets/domino-scene.jpg");
     background-size: cover;
     background-position: center top;
     background-repeat: no-repeat;

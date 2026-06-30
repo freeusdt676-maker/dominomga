@@ -360,11 +360,8 @@ html.theme-petanque {
     background:
       linear-gradient(180deg, hsl(28 44% 22%) 0%, hsl(24 48% 13%) 100%);
     border: 14px solid transparent;
-    /* Malagasy flag frame: white vertical on the left, red top + green bottom on the right */
-    border-image: linear-gradient(90deg,
-        #ffffff 0%, #ffffff 33%,
-        #fc3d32 33%, #fc3d32 66%,
-        #007e3a 66%, #007e3a 100%) 1;
+    /* Malagasy flag pattern repeated: white | red(top) / green(bottom) */
+    border-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='90' height='90' viewBox='0 0 90 90'><rect x='0' y='0' width='30' height='90' fill='%23ffffff'/><rect x='30' y='0' width='60' height='45' fill='%23fc3d32'/><rect x='30' y='45' width='60' height='45' fill='%23007e3a'/><rect x='0' y='0' width='90' height='90' fill='none' stroke='%23d4af37' stroke-width='2'/></svg>") 30 round;
     background-clip: padding-box;
     box-shadow:
       inset 0 0 0 2px hsl(45 85% 62% / 0.9),

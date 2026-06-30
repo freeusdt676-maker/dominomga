@@ -38,16 +38,16 @@ export function RadioPlayer() {
     <button
       type="button"
       onClick={toggle}
-      className="absolute left-1/2 -translate-x-1/2 bottom-1 z-30 flex items-center gap-1.5 px-2 py-1 rounded-full border border-[#d4af37]/70 bg-gradient-to-b from-[#1a0f08]/85 to-[#0b1a10]/85 shadow-[0_3px_10px_rgba(0,0,0,0.45)] backdrop-blur"
+      className="absolute left-1/2 -translate-x-1/2 -bottom-2 z-30 flex items-center gap-1 px-1.5 py-0.5 rounded-full border border-[#d4af37]/60 bg-gradient-to-b from-[#1a0f08]/80 to-[#0b1a10]/80 shadow-[0_2px_6px_rgba(0,0,0,0.4)] backdrop-blur"
       title={playing ? "Ajanono ny hira" : "Henoy ny hira"}
       aria-label={TRACK_TITLE}
     >
       {playing ? (
-        <Pause className="w-3.5 h-3.5 text-[#ffe27a]" />
+        <Pause className="w-2.5 h-2.5 text-[#ffe27a]" />
       ) : (
-        <Music2 className="w-3.5 h-3.5 text-[#ffe27a]" />
+        <Music2 className="w-2.5 h-2.5 text-[#ffe27a]" />
       )}
-      <span className={`text-[10px] font-extrabold tracking-normal text-[#ffe27a] ${playing ? "animate-pulse" : ""}`}>
+      <span className={`text-[8px] font-bold tracking-tight text-[#ffe27a] ${playing ? "animate-pulse" : ""}`}>
         {TRACK_TITLE}
       </span>
     </button>

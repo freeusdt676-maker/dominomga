@@ -1269,7 +1269,10 @@ export default function Game() {
   const firstBoardB = firstBoardTile ? (firstBoardTile.flipped ? firstBoardTile.tile[0] : firstBoardTile.tile[1]) : null;
 
   return (
-    <div className="min-h-screen green-felt flex flex-col">
+    <div
+      className="min-h-screen domino-scene-bg flex flex-col"
+      style={{ backgroundImage: `url(${dominoSceneBg})` }}
+    >
       {/* Permanent Bot toggle — bottom-left, always visible */}
       <button
         type="button"

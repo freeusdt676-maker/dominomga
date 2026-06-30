@@ -28,6 +28,7 @@ import { useThemeClass } from "@/hooks/use-theme-class";
 import { RadioPlayer } from "@/components/RadioPlayer";
 import { GameChat } from "@/components/GameChat";
 import LudoVoiceChat from "@/components/LudoVoiceChat";
+import dominoSceneBg from "@/assets/domino-scene.jpg";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Tile, Placed, deal, deal3, ends, canPlace, place, pipsTotal, hasMove, chooseOpening,
@@ -841,7 +842,7 @@ export default function Game() {
       });
       if (error) {
         setOptimistic(null);
-        toast.error("Tsy voaray ilay placement, andramo indray");
+        toast.error("Tsy voaray ilay placement, andramo indray", { duration: 3000 });
         return;
       }
       await supabase.from("game_moves").insert({
@@ -866,7 +867,7 @@ export default function Game() {
     });
     if (error) {
       setOptimistic(null);
-      toast.error("Nisy fifanenjanana tamin'ny tour, andramo indray");
+      toast.error("Nisy fifanenjanana tamin'ny tour, andramo indray", { duration: 3000 });
       return;
     }
     await supabase.from("game_moves").insert({
@@ -1002,7 +1003,7 @@ export default function Game() {
       expectedTurnStartedAt,
     });
     if (error) {
-      toast.error("Tsy voaray ilay pass, andramo indray");
+      toast.error("Tsy voaray ilay pass, andramo indray", { duration: 3000 });
       return;
     }
     toast("TSY MANANA — mandalo any amin'ny manaraka");
@@ -1268,7 +1269,10 @@ export default function Game() {
   const firstBoardB = firstBoardTile ? (firstBoardTile.flipped ? firstBoardTile.tile[0] : firstBoardTile.tile[1]) : null;
 
   return (
-    <div className="min-h-screen green-felt flex flex-col">
+    <div
+      className="min-h-screen domino-scene-bg flex flex-col"
+      style={{ backgroundImage: `url(${dominoSceneBg})` }}
+    >
       {/* Permanent Bot toggle — bottom-left, always visible */}
       <button
         type="button"

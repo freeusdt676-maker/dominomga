@@ -6,6 +6,7 @@ import { SnakeBoard } from "@/components/SnakeBoard";
 import { DominoBack } from "@/components/DominoTile";
 import SpectatorWinner from "@/components/SpectatorWinner";
 import type { Placed, Tile } from "@/lib/dominoEngine";
+import dominoSceneBg from "@/assets/domino-scene.jpg";
 
 type Snap = {
   id: string;
@@ -90,7 +91,7 @@ export default function SpectateDomino() {
   }
 
   return (
-    <div className="min-h-screen felt-bg flex flex-col">
+    <div className="min-h-screen domino-scene-bg flex flex-col" style={{ backgroundImage: `url(${dominoSceneBg})` }}>
       <header className="flex items-center justify-between p-3 border-b border-primary/20">
         <Link to="/" className="flex items-center gap-2 text-sm text-foreground">
           <ArrowLeft className="w-5 h-5" /> <span className="text-base font-bold">Hiverina</span>

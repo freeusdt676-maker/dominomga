@@ -842,7 +842,7 @@ export default function Game() {
       });
       if (error) {
         setOptimistic(null);
-        toast.error("Tsy voaray ilay placement, andramo indray");
+        toast.error("Tsy voaray ilay placement, andramo indray", { duration: 3000 });
         return;
       }
       await supabase.from("game_moves").insert({
@@ -867,7 +867,7 @@ export default function Game() {
     });
     if (error) {
       setOptimistic(null);
-      toast.error("Nisy fifanenjanana tamin'ny tour, andramo indray");
+      toast.error("Nisy fifanenjanana tamin'ny tour, andramo indray", { duration: 3000 });
       return;
     }
     await supabase.from("game_moves").insert({

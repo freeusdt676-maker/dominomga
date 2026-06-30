@@ -6,6 +6,7 @@ import { SnakeBoard } from "@/components/SnakeBoard";
 import { DominoBack } from "@/components/DominoTile";
 import SpectatorWinner from "@/components/SpectatorWinner";
 import type { Placed, Tile } from "@/lib/dominoEngine";
+import dominoSceneBg from "@/assets/domino-scene.jpg";
 
 type Snap = {
   id: string;

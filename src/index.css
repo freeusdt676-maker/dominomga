@@ -358,25 +358,46 @@ html.theme-petanque {
   }
   .felt-board {
     background:
-      linear-gradient(180deg, #6b3e1f 0%, #4a2712 55%, #2f1808 100%);
+      linear-gradient(90deg, rgba(32,14,4,0.75), transparent 12%, transparent 88%, rgba(32,14,4,0.75)),
+      repeating-linear-gradient(90deg, rgba(255,214,130,0.10) 0 2px, transparent 2px 28px),
+      linear-gradient(180deg, #9b642e 0%, #6f3d18 43%, #3b1b07 100%);
     border: 18px solid transparent;
-    /* Wooden plank frame with subtle grain */
-    border-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'><defs><linearGradient id='w' x1='0' y1='0' x2='0' y2='1'><stop offset='0%25' stop-color='%238a5a2b'/><stop offset='40%25' stop-color='%235a3416'/><stop offset='100%25' stop-color='%23311806'/></linearGradient></defs><rect width='120' height='120' fill='url(%23w)'/><path d='M0 20 H120 M0 55 H120 M0 95 H120' stroke='%23210f04' stroke-width='1' opacity='0.55'/><path d='M0 30 H120 M0 70 H120' stroke='%23a8743a' stroke-width='0.6' opacity='0.35'/></svg>") 40 round;
+    border-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'><defs><linearGradient id='w' x1='0' y1='0' x2='0' y2='1'><stop offset='0%25' stop-color='%23b87936'/><stop offset='35%25' stop-color='%23714119'/><stop offset='100%25' stop-color='%232b1204'/></linearGradient></defs><rect width='120' height='120' fill='url(%23w)'/><path d='M0 17 H120 M0 47 H120 M0 83 H120' stroke='%231b0902' stroke-width='2' opacity='0.58'/><path d='M18 0 V120 M55 0 V120 M92 0 V120' stroke='%23c48945' stroke-width='1' opacity='0.33'/><path d='M0 29 C22 24 44 34 68 28 S101 22 120 30 M0 72 C25 78 42 66 66 74 S98 82 120 70' stroke='%23f0b765' stroke-width='1.1' fill='none' opacity='0.32'/></svg>") 40 round;
     background-clip: padding-box;
     box-shadow:
-      inset 0 0 0 2px rgba(20,10,2,0.85),
-      inset 0 2px 0 rgba(255,220,160,0.18),
-      inset 0 0 40px rgba(0,0,0,0.55),
-      0 22px 40px rgba(0,0,0,0.7),
-      0 0 0 2px rgba(20,10,2,0.6);
-    border-radius: 1rem;
+      inset 0 0 0 3px rgba(22,9,2,0.92),
+      inset 0 6px 0 rgba(255,220,150,0.24),
+      inset 0 -14px 20px rgba(18,6,1,0.56),
+      0 18px 0 #321506,
+      0 30px 36px rgba(0,0,0,0.72),
+      0 0 0 2px rgba(20,10,2,0.62);
+    border-radius: 1.1rem 1.1rem 0.75rem 0.75rem;
     padding: 10px;
     position: relative;
+    transform: perspective(900px) rotateX(1.2deg);
+    transform-origin: center top;
+    isolation: isolate;
   }
   .felt-board::before,
   .felt-board::after {
-    content: none;
+    content: "";
+    position: absolute;
+    bottom: -86px;
+    width: clamp(22px, 6vw, 40px);
+    height: 92px;
+    border-radius: 7px 7px 13px 13px;
+    background:
+      linear-gradient(90deg, rgba(255,210,130,0.16), transparent 38%, rgba(0,0,0,0.36)),
+      repeating-linear-gradient(0deg, transparent 0 13px, rgba(20,7,2,0.28) 13px 15px),
+      linear-gradient(180deg, #734018 0%, #4b240b 62%, #241004 100%);
+    box-shadow:
+      inset 2px 0 0 rgba(255,218,150,0.16),
+      inset -4px 0 0 rgba(0,0,0,0.26),
+      0 12px 14px rgba(0,0,0,0.58);
+    z-index: -1;
   }
+  .felt-board::before { left: clamp(12px, 5vw, 48px); transform: skewX(-4deg); }
+  .felt-board::after { right: clamp(12px, 5vw, 48px); transform: skewX(4deg); }
 
   .domino-scene-bg {
     background-color: #2a1808;
@@ -387,11 +408,12 @@ html.theme-petanque {
   }
   .domino-arena {
     background:
-      radial-gradient(circle at 50% 40%, hsl(148 52% 32%) 0%, hsl(150 56% 20%) 40%, hsl(154 48% 12%) 72%, hsl(156 40% 7%) 100%);
+      radial-gradient(circle at 50% 42%, hsl(146 58% 34%) 0%, hsl(150 58% 21%) 42%, hsl(154 50% 12%) 74%, hsl(156 44% 7%) 100%);
     box-shadow:
       inset 0 2px 0 hsl(var(--primary) / 0.22),
       inset 0 -22px 40px hsl(0 0% 0% / 0.34),
       inset 0 0 0 1px hsl(0 0% 100% / 0.06);
+    z-index: 0;
   }
   .domino-arena::before {
     content: "";
@@ -424,6 +446,73 @@ html.theme-petanque {
     box-shadow:
       0 18px 34px hsl(0 0% 0% / 0.38),
       inset 0 1px 0 hsl(0 0% 100% / 0.12);
+  }
+  .domino-table-zone {
+    padding-bottom: clamp(44px, 8vh, 78px);
+  }
+  .domino-hand-dock {
+    position: relative;
+    z-index: 4;
+    background: linear-gradient(180deg, rgba(16,36,24,0.18), rgba(14,24,18,0.54));
+  }
+  .domino-hand-mat {
+    border: 2px solid #d4a52c;
+    border-radius: 14px;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(41,170,82,0.42), transparent 52%),
+      linear-gradient(180deg, rgba(15,82,42,0.94), rgba(3,48,25,0.96));
+    box-shadow:
+      inset 0 1px 0 rgba(255,226,122,0.28),
+      inset 0 -18px 30px rgba(0,0,0,0.24),
+      0 8px 18px rgba(0,0,0,0.42);
+  }
+  .domino-hand-mat.is-turn {
+    border-color: #ffe27a;
+    box-shadow:
+      inset 0 1px 0 rgba(255,245,180,0.38),
+      0 0 18px rgba(255,226,122,0.42),
+      0 8px 18px rgba(0,0,0,0.42);
+  }
+  .domino-hand-mat--opponent {
+    min-height: 94px;
+    padding: 8px;
+    width: 100%;
+  }
+  .domino-hand-mat--self {
+    padding: 10px;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  @media (max-width: 560px) {
+    .felt-board {
+      border-width: 14px;
+      padding: 8px;
+      box-shadow:
+        inset 0 0 0 3px rgba(22,9,2,0.92),
+        inset 0 5px 0 rgba(255,220,150,0.22),
+        inset 0 -12px 18px rgba(18,6,1,0.54),
+        0 14px 0 #321506,
+        0 24px 30px rgba(0,0,0,0.68),
+        0 0 0 2px rgba(20,10,2,0.62);
+    }
+    .felt-board::before,
+    .felt-board::after {
+      bottom: -72px;
+      height: 78px;
+    }
+    .domino-table-zone {
+      min-height: 382px;
+      padding-top: 10px;
+      padding-bottom: 64px;
+    }
+    .domino-hand-mat--opponent {
+      min-height: 84px;
+      padding: 6px;
+    }
+    .domino-hand-mat--self {
+      padding: 8px;
+    }
   }
   .fab-circle {
     width: 52px; height: 52px;

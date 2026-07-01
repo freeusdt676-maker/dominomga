@@ -1403,7 +1403,7 @@ export default function Game() {
 
       {/* Tableau ny score — mazava sy ngeza */}
       {game.status === "in_progress" && (
-        <div className="px-3 py-3 bg-[linear-gradient(180deg,#0a2818_0%,#072013_100%)] border-b-2 border-[#d4a52c]/60 shadow-[inset_0_-2px_0_rgba(212,165,44,0.25)]">
+          <div className="px-3 py-2 bg-[linear-gradient(180deg,#0a2818_0%,#072013_100%)] border-b-2 border-[#d4a52c]/60 shadow-[inset_0_-2px_0_rgba(212,165,44,0.25)]">
           <div className="max-w-md mx-auto">
             <div className="text-center text-[11px] uppercase tracking-[0.3em] text-[#ffe27a] mb-2 font-extrabold drop-shadow">
               SCORE {targetPts ? `(Tanjona ${targetPts})` : ""}
@@ -1418,11 +1418,11 @@ export default function Game() {
                 return (
                   <div
                     key={pid}
-                    className={`rounded-xl px-3 py-2.5 border-2 ${isTurn ? "border-[#ffe27a] bg-[linear-gradient(180deg,rgba(212,165,44,0.25),rgba(0,0,0,0.45))] shadow-[0_0_18px_rgba(255,226,122,0.45)]" : "border-[#d4a52c]/40 bg-[linear-gradient(180deg,rgba(0,0,0,0.55),rgba(0,0,0,0.35))]"}`}
+                    className={`rounded-xl px-2 py-1.5 border-2 ${isTurn ? "border-[#ffe27a] bg-[linear-gradient(180deg,rgba(212,165,44,0.25),rgba(0,0,0,0.45))] shadow-[0_0_18px_rgba(255,226,122,0.45)]" : "border-[#d4a52c]/40 bg-[linear-gradient(180deg,rgba(0,0,0,0.55),rgba(0,0,0,0.35))]"}`}
                   >
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="text-xs font-extrabold text-white/95 truncate uppercase tracking-wide">{name}</span>
-                      <span className="text-4xl font-black gold-text leading-none tabular-nums drop-shadow-[0_2px_6px_rgba(212,165,44,0.6)]">{sc}</span>
+                      <span className="text-3xl font-black gold-text leading-none tabular-nums drop-shadow-[0_2px_6px_rgba(212,165,44,0.6)]">{sc}</span>
                     </div>
                     {targetPts && (
                       <div className="mt-1.5 h-2 bg-black/60 rounded-full overflow-hidden border border-[#d4a52c]/30">
@@ -1522,7 +1522,7 @@ export default function Game() {
       {game.status === "in_progress" && (
         <>
           {/* Tanan'ny adversaire — split-screen raha 2 na 3 mpilalao adversaire */}
-          <div className={`p-2 ${opponents.length >= 2 ? "grid grid-cols-2 gap-2" : "flex flex-col"}`}>
+          <div className={`px-2 pt-2 pb-1 ${opponents.length >= 2 ? "grid grid-cols-2 gap-2" : "flex flex-col items-center"}`}>
             {opponents.map((o) => {
               const isTurn = game.current_turn === o.id;
               const initial = (o.name?.[0] ?? "?").toUpperCase();
@@ -1530,8 +1530,8 @@ export default function Game() {
               return (
                 <div
                   key={o.id}
-                  className={`flex flex-col items-center gap-1 rounded-xl p-2 border ${
-                    isTurn ? "border-primary bg-primary/10 shadow-[0_0_16px_-4px_hsl(var(--primary)/.5)]" : "border-primary/15 bg-card/30"
+                  className={`domino-hand-mat domino-hand-mat--opponent flex flex-col items-center gap-1 ${
+                    isTurn ? "is-turn" : ""
                   }`}
                 >
                   <div className="flex items-center gap-2">
@@ -1585,7 +1585,7 @@ export default function Game() {
           </div>
 
           {/* Latabatra — felt poker, snake path mihodina amin'ny sisiny */}
-          <div className="relative flex-1 px-1 sm:px-3 py-3 min-h-[340px]">
+          <div className="domino-table-zone relative flex-1 px-1 sm:px-3 py-3 min-h-[340px]">
             {/* Floating side action buttons */}
             <RadioPlayer />
             {id && <GameChat gameId={id} names={profileNames} />}
@@ -1595,7 +1595,7 @@ export default function Game() {
               </div>
             )}
 
-            <div className="felt-board relative w-full h-full min-h-[320px] mx-auto overflow-hidden">
+            <div className="felt-board relative w-full h-full min-h-[320px] mx-auto overflow-visible">
               <div className="domino-arena absolute inset-[10px] rounded-[1rem]" aria-hidden="true" />
               {board.length === 0 ? (
                 <div className="absolute inset-0 flex items-center justify-center px-4">
@@ -1670,7 +1670,8 @@ export default function Game() {
           {/* Tap-to-play: tsy misy bokotra fanamafisana intsony */}
 
           {/* Tanako — lehibe sy mazava, mifanesy */}
-          <div className="border-t-2 border-primary/30 bg-card/30 p-3">
+          <div className="domino-hand-dock px-2 pb-3 pt-1">
+            <div className="domino-hand-mat domino-hand-mat--self">
             <div className="flex items-center justify-between mb-2 px-1 gap-2">
               <span className={`text-xs font-bold ${isMyTurn ? "gold-text" : "text-muted-foreground"}`}>
                 {isMyTurn ? `▶ ${myName} — andiany!` : `${myName} (${myHand.length})`}
@@ -1693,7 +1694,7 @@ export default function Game() {
                 </div>
               )}
             </div>
-            <div className="grid grid-cols-7 gap-1 py-2 px-1 w-full">
+            <div className="grid grid-cols-7 gap-1 py-1 px-1 w-full">
               {myHand.map((t, i) => {
                 const placeable = canPlace(board, t) !== null;
                 const isFlipped = !!flippedHand[i];
@@ -1732,6 +1733,7 @@ export default function Game() {
                   </div>
                 );
               })}
+            </div>
             </div>
           </div>
         </>

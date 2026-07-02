@@ -66,11 +66,11 @@ function getPlayerIds(g: any): string[] {
     : [g.player1_id, g.player2_id].filter(Boolean);
 }
 function nextTurnId(g: any, currentId: string): string {
-  // Fihodinana mihodina mankany ankavanana (clockwise) hatrany.
-  // 2P: P1 ↔ P2. 3P: P1 → P2 → P3 → P1.
+  // Fihodinana mihodina mankany ANKAVIA (counter-clockwise) hatrany.
+  // 2P: P1 ↔ P2. 3P: P1 → P3 → P2 → P1.
   const ids = getPlayerIds(g);
   const i = ids.indexOf(currentId);
-  return ids[(i + 1) % ids.length] ?? ids[0];
+  return ids[(i - 1 + ids.length) % ids.length] ?? ids[0];
 }
 function getHandKey(g: any, uid: string): "player1_hand" | "player2_hand" | "player3_hand" | null {
   if (!g) return null;
@@ -291,7 +291,7 @@ export default function Game() {
         );
         hands[opener.playerIndex] = openerHand;
         board = [{ tile: opener.tile, flipped: false }];
-        nextId = ids[(opener.playerIndex + 1) % ids.length];
+        nextId = ids[(opener.playerIndex - 1 + ids.length) % ids.length];
       }
       // If not forced (hand mode or no qualifying double), opener keeps full hand
       // and plays any tile of their choice on an empty board.
@@ -309,7 +309,7 @@ export default function Game() {
       }
       const _ = openerId;
     } catch (error: any) {
-      toast.error(error?.message ?? "Tsy tafapetraka ny vaton'ny lalao");
+      toast.error(error?.message ?? "Tsy tafapetraka ny vaton'ny lalao", { duration: 1000 });
     } finally {
       initLockRef.current = false;
     }
@@ -805,10 +805,10 @@ export default function Game() {
     if (!isMyTurn || !game || !user) return;
     const tile = myHand[idx];
     const possible = canPlace(board, tile);
-    if (!possible) return toast.error("Tsy mety apetraka");
+    if (!possible) return toast.error("Tsy mety apetraka", { duration: 1000 });
     let chosenSide: "left" | "right" = side ?? (possible === "either" ? "right" : possible);
     if (possible !== "either" && side && side !== possible) {
-      return toast.error("Tsy mifanaraka amin'io tendro io");
+      return toast.error("Tsy mifanaraka amin'io tendro io", { duration: 1000 });
     }
     const expectedCurrentTurn = game.current_turn ?? null;
     const expectedTurnStartedAt = game.turn_started_at ?? null;
@@ -842,7 +842,7 @@ export default function Game() {
       });
       if (error) {
         setOptimistic(null);
-        toast.error("Tsy voaray ilay placement, andramo indray", { duration: 3000 });
+        toast.error("Tsy voaray ilay placement, andramo indray", { duration: 1000 });
         return;
       }
       await supabase.from("game_moves").insert({
@@ -867,7 +867,7 @@ export default function Game() {
     });
     if (error) {
       setOptimistic(null);
-      toast.error("Nisy fifanenjanana tamin'ny tour, andramo indray", { duration: 3000 });
+      toast.error("Nisy fifanenjanana tamin'ny tour, andramo indray", { duration: 1000 });
       return;
     }
     await supabase.from("game_moves").insert({
@@ -1003,7 +1003,7 @@ export default function Game() {
       expectedTurnStartedAt,
     });
     if (error) {
-      toast.error("Tsy voaray ilay pass, andramo indray", { duration: 3000 });
+      toast.error("Tsy voaray ilay pass, andramo indray", { duration: 1000 });
       return;
     }
     toast("TSY MANANA — mandalo any amin'ny manaraka");

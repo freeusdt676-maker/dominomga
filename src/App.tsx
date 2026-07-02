@@ -28,10 +28,12 @@ import TournamentHistory from "./pages/TournamentHistory";
 import TournamentLeaderboard from "./pages/TournamentLeaderboard";
 import { AuthProvider } from "./contexts/AuthContext";
 import BlockedOverlay from "./components/BlockedOverlay";
+import AppErrorBoundary from "./components/AppErrorBoundary";
 
 const queryClient = new QueryClient();
 
 const App = () => (
+  <AppErrorBoundary>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -68,6 +70,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
+  </AppErrorBoundary>
 );
 
 export default App;

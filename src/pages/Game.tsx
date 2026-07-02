@@ -66,11 +66,11 @@ function getPlayerIds(g: any): string[] {
     : [g.player1_id, g.player2_id].filter(Boolean);
 }
 function nextTurnId(g: any, currentId: string): string {
-  // Fihodinana mihodina mankany ankavanana (clockwise) hatrany.
-  // 2P: P1 ↔ P2. 3P: P1 → P2 → P3 → P1.
+  // Fihodinana mihodina mankany ANKAVIA (counter-clockwise) hatrany.
+  // 2P: P1 ↔ P2. 3P: P1 → P3 → P2 → P1.
   const ids = getPlayerIds(g);
   const i = ids.indexOf(currentId);
-  return ids[(i + 1) % ids.length] ?? ids[0];
+  return ids[(i - 1 + ids.length) % ids.length] ?? ids[0];
 }
 function getHandKey(g: any, uid: string): "player1_hand" | "player2_hand" | "player3_hand" | null {
   if (!g) return null;
@@ -291,7 +291,7 @@ export default function Game() {
         );
         hands[opener.playerIndex] = openerHand;
         board = [{ tile: opener.tile, flipped: false }];
-        nextId = ids[(opener.playerIndex + 1) % ids.length];
+        nextId = ids[(opener.playerIndex - 1 + ids.length) % ids.length];
       }
       // If not forced (hand mode or no qualifying double), opener keeps full hand
       // and plays any tile of their choice on an empty board.

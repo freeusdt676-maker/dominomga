@@ -842,7 +842,7 @@ export default function Game() {
       });
       if (error) {
         setOptimistic(null);
-        toast.error("Tsy voaray ilay placement, andramo indray", { duration: 3000 });
+        toast.error("Tsy voaray ilay placement, andramo indray", { duration: 1000 });
         return;
       }
       await supabase.from("game_moves").insert({
@@ -867,7 +867,7 @@ export default function Game() {
     });
     if (error) {
       setOptimistic(null);
-      toast.error("Nisy fifanenjanana tamin'ny tour, andramo indray", { duration: 3000 });
+      toast.error("Nisy fifanenjanana tamin'ny tour, andramo indray", { duration: 1000 });
       return;
     }
     await supabase.from("game_moves").insert({
@@ -1003,7 +1003,7 @@ export default function Game() {
       expectedTurnStartedAt,
     });
     if (error) {
-      toast.error("Tsy voaray ilay pass, andramo indray", { duration: 3000 });
+      toast.error("Tsy voaray ilay pass, andramo indray", { duration: 1000 });
       return;
     }
     toast("TSY MANANA — mandalo any amin'ny manaraka");

@@ -1151,7 +1151,7 @@ export default function Admin() {
           </DialogHeader>
           <div className="space-y-3 text-sm">
             <p className="text-muted-foreground">
-              Safidio ny compte, dia ataovy Dépôt raha hampitombo solde na Retrait raha hampihena solde.
+              Safidio ny compte, dia soraty ny montant miaraka amin'ny <b>+</b> (dépôt) na <b>-</b> (retrait). Ohatra: <code>+5000</code> na <code>-5000</code>.
             </p>
             <select
               value={claimUserId}
@@ -1165,29 +1165,19 @@ export default function Admin() {
                 </option>
               ))}
             </select>
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                type="button"
-                variant={claimMode === "deposit" ? "default" : "outline"}
-                onClick={() => setClaimMode("deposit")}
-              >
-                <ArrowDownToLine className="w-4 h-4 mr-1" />Dépôt
-              </Button>
-              <Button
-                type="button"
-                variant={claimMode === "withdrawal" ? "destructive" : "outline"}
-                onClick={() => setClaimMode("withdrawal")}
-              >
-                <ArrowUpFromLine className="w-4 h-4 mr-1" />Retrait
-              </Button>
-            </div>
             <Input
-              type="number"
-              inputMode="numeric"
-              min="1"
+              type="text"
+              inputMode="text"
               value={claimAmount}
               onChange={(e) => setClaimAmount(e.target.value)}
-              placeholder="Montant Ar"
+              placeholder="+5000 na -5000"
+              className={
+                claimAmount.trim().startsWith("-")
+                  ? "border-destructive text-destructive font-bold"
+                  : claimAmount.trim().startsWith("+")
+                  ? "border-green-500 text-green-600 font-bold"
+                  : ""
+              }
             />
             <Textarea
               value={claimNote}
@@ -1207,13 +1197,17 @@ export default function Admin() {
               <div className="rounded-lg border border-primary/20 bg-card/40 p-3 text-xs">
                 {(() => {
                   const u = users.find((x) => x.user_id === claimUserId);
-                  const amount = Number(claimAmount || 0);
+                  const raw = claimAmount.replace(/\s/g, "");
+                  const signed = Number(raw);
+                  const amount = Math.abs(signed || 0);
+                  const isWithdraw = raw.startsWith("-");
                   const before = Number(u?._balance ?? 0);
-                  const after = claimMode === "deposit" ? before + amount : before - amount;
+                  const after = isWithdraw ? before - amount : before + amount;
                   return (
                     <>
                       <p><b>Compte:</b> {u?.mvola_name ?? "—"}</p>
                       <p><b>Solde avant:</b> {fmtAr(before)}</p>
+                      <p><b>Opération:</b> <span className={isWithdraw ? "text-destructive font-bold" : "text-green-600 font-bold"}>{isWithdraw ? `− ${fmtAr(amount)} (Retrait)` : `+ ${fmtAr(amount)} (Dépôt)`}</span></p>
                       <p><b>Solde après:</b> <span className={after < 0 ? "text-destructive" : "gold-text"}>{fmtAr(after)}</span></p>
                     </>
                   );
@@ -1223,8 +1217,8 @@ export default function Admin() {
             <DialogFooter>
               <Button variant="outline" onClick={() => setClaimOpen(false)}>Annuler</Button>
               <Button
-                className={claimMode === "deposit" ? "btn-gold" : ""}
-                variant={claimMode === "withdrawal" ? "destructive" : "default"}
+                className={!claimAmount.trim().startsWith("-") ? "btn-gold" : ""}
+                variant={claimAmount.trim().startsWith("-") ? "destructive" : "default"}
                 onClick={submitClaimAdjustment}
               >
                 Confirmer

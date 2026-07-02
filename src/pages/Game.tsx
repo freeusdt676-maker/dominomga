@@ -805,10 +805,10 @@ export default function Game() {
     if (!isMyTurn || !game || !user) return;
     const tile = myHand[idx];
     const possible = canPlace(board, tile);
-    if (!possible) return toast.error("Tsy mety apetraka");
+    if (!possible) return toast.error("Tsy mety apetraka", { duration: 1000 });
     let chosenSide: "left" | "right" = side ?? (possible === "either" ? "right" : possible);
     if (possible !== "either" && side && side !== possible) {
-      return toast.error("Tsy mifanaraka amin'io tendro io");
+      return toast.error("Tsy mifanaraka amin'io tendro io", { duration: 1000 });
     }
     const expectedCurrentTurn = game.current_turn ?? null;
     const expectedTurnStartedAt = game.turn_started_at ?? null;

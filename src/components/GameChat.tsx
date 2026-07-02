@@ -138,11 +138,10 @@ export function GameChat({
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setOpen(false)}>
-          <div
-            className="w-full sm:max-w-md h-[75vh] sm:h-[65vh] bg-gradient-to-b from-[#0d3b22] to-[#0a2818] border-2 border-[#d4a52c]/60 rounded-t-3xl sm:rounded-3xl flex flex-col shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div
+          className="fixed z-50 bottom-2 right-2 left-2 sm:left-auto sm:right-4 sm:bottom-4 sm:w-[360px] h-[46vh] max-h-[420px] bg-gradient-to-b from-[#0d3b22]/95 to-[#0a2818]/95 border-2 border-[#d4a52c]/60 rounded-2xl flex flex-col shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-200 backdrop-blur-md pointer-events-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
             <div className="flex items-center justify-between px-4 py-3 border-b border-[#d4a52c]/40 bg-[#0a2818]/60 backdrop-blur">
               <div className="flex items-center gap-2">
                 <div className="w-9 h-9 rounded-full bg-[#d4a52c] text-[#0a2818] flex items-center justify-center font-black shadow-lg">
@@ -235,7 +234,6 @@ export function GameChat({
                 <Send className="w-4 h-4" />
               </button>
             </form>
-          </div>
         </div>
       )}
     </>

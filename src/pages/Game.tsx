@@ -309,7 +309,7 @@ export default function Game() {
       }
       const _ = openerId;
     } catch (error: any) {
-      toast.error(error?.message ?? "Tsy tafapetraka ny vaton'ny lalao");
+      toast.error(error?.message ?? "Tsy tafapetraka ny vaton'ny lalao", { duration: 1000 });
     } finally {
       initLockRef.current = false;
     }

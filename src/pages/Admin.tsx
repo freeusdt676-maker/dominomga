@@ -440,13 +440,17 @@ export default function Admin() {
   const submitClaimAdjustment = async () => {
     if (!adminId) return toast.error("Mbola tsy vita ny fanamarinana admin");
     if (!claimUserId) return toast.error("Safidio ny mpilalao");
-    const amount = Number(claimAmount.replace(/\s/g, ""));
+    const raw = claimAmount.replace(/\s/g, "");
+    if (!raw || !/^[+-]?\d+$/.test(raw)) return toast.error("Ampidiro montant miaraka amin'ny + na - (oh: +5000 na -5000)");
+    const signed = Number(raw);
+    const amount = Math.abs(signed);
     if (!Number.isFinite(amount) || amount <= 0) return toast.error("Ampidiro vola marina");
+    const mode: "deposit" | "withdrawal" = raw.startsWith("-") ? "withdrawal" : "deposit";
     const target = users.find((u) => u.user_id === claimUserId);
     const { data, error } = await supabase.rpc("admin_adjust_player_wallet" as any, {
       _user_id: claimUserId,
       _admin_id: adminId,
-      _type: claimMode,
+      _type: mode,
       _amount: amount,
       _pin: claimPin,
       _note: claimNote.trim() || "Réclamation administratif",
@@ -460,7 +464,7 @@ export default function Admin() {
     }
     const result: any = data ?? {};
     toast.success(
-      `${claimMode === "deposit" ? "Dépôt" : "Retrait"} ${fmtAr(amount)} vita ho an'i ${target?.mvola_name ?? "mpilalao"} · Solde vaovao ${fmtAr(result.new_balance ?? 0)}`,
+      `${mode === "deposit" ? "Dépôt +" : "Retrait −"}${fmtAr(amount)} vita ho an'i ${target?.mvola_name ?? "mpilalao"} · Solde vaovao ${fmtAr(result.new_balance ?? 0)}`,
       { duration: 6000 },
     );
     setClaimOpen(false);

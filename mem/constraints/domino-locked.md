@@ -24,7 +24,7 @@ Frozen parameters (do not change without explicit prompt):
 ## Explicit revisions (2026-05-29)
 - Removed "Maty atànana" mode (`hand`) from Lobby + Game. Only `d120` and `d80` remain selectable; legacy `hand` rows fall back to 120-target behaviour.
 - Removed "maty atànana" as an instant-win reason in `finishRound`. Blocked endgame still resolves by lowest pipsTotal via `finishBlocked` (no mode renaming).
-- Turn rotation is **clockwise** (3P: P1 → P2 → P3 → P1). Opener rotates round-robin per round (round N opener = ids[(N-1) % count]). Applied to `nextTurnId`, `initializeGameHands`, `finishRound` next-round, and `finishBlocked` tie re-deal.
+- Turn rotation is **counter-clockwise / mankany ANKAVIA** (3P: P1 → P3 → P2 → P1). Explicitly requested by user on 2026-07-02. Opener rotates round-robin per round (round N opener = ids[(N-1) % count]) — direction unchanged.
 
 ## Domino WIN conditions (LOCKED — 2026-06-03, FINAL)
 Four conditions make a player WIN THE GAME (settle_game):

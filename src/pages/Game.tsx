@@ -19,9 +19,8 @@ import { fmtAr } from "@/lib/constants";
 // Domino: tour mandritra 20 segondra. Aloha ny 20s dia ny mpilalao IHANY no
 // manindry, rehefa tapitra ny 20s vao mandeha automatique (auto-play).
 const TURN_TIMEOUT_SEC = 20;
-// Grace ho an'ny mpijery (tsy tompon'ny tour): miandry 2s fanampiny mba ny
-// client an'ilay mpilalao no manao auto aloha — tsy misy fifanenjanana.
-const AUTO_OTHER_GRACE_SEC = 0.6;
+// Anti-skip 3P: ny client an'ilay tompon'ny tour ihany no mahazo manao auto.
+// Raha offline izy, ny backend watchdog no mandray andraikitra fa tsy client an'ny hafa.
 import { DominoTile, DominoBack } from "@/components/DominoTile";
 import { SnakeBoard } from "@/components/SnakeBoard";
 import { useThemeClass } from "@/hooks/use-theme-class";
@@ -71,6 +70,11 @@ function nextTurnId(g: any, currentId: string): string {
   const ids = getPlayerIds(g);
   const i = ids.indexOf(currentId);
   return ids[(i - 1 + ids.length) % ids.length] ?? ids[0];
+}
+function roundOpenerId(g: any, roundNumber: number): string {
+  const ids = getPlayerIds(g);
+  // Lohavato mifandimby tanteraka isaky ny tour/round: R1=P1, R2=P2, R3=P3, R4=P1...
+  return ids[(Math.max(1, roundNumber) - 1) % ids.length] ?? ids[0];
 }
 function getHandKey(g: any, uid: string): "player1_hand" | "player2_hand" | "player3_hand" | null {
   if (!g) return null;
@@ -277,10 +281,9 @@ export default function Game() {
       // Rotation TSOTRA isaky ny tour: tour 1 → P1, tour 2 → P2, tour 3 → P3,
       // dia miverina amin'ny P1. Mitovy aminizay nataony ao amin'ny finishRound
       // sy finishBlocked mba tsy hisy mpilalao iray foana no lohavato.
-      const rotIds = ids;
-      const openerIdxInit = ids.indexOf(rotIds[(round1 - 1) % rotIds.length]);
+      const openerId = roundOpenerId(currentGame, round1);
+      const openerIdxInit = Math.max(0, ids.indexOf(openerId));
       const opener = { ...chooseOpening(hands, mode), playerIndex: openerIdxInit, forced: false };
-      const openerId = ids[openerIdxInit];
       // DATINANDRO nesorina — tsy fandresena intsony.
       let board: Placed[] = [];
       let nextId = openerId;
@@ -487,10 +490,8 @@ export default function Game() {
       // Tour 2+: tsy misy double terena, ny topon'ny tour no mametraka izay tiany.
       // Mihodina automatique makany ANKAVIA isaky ny tour.
       const ids = pc === 3 ? [game.player1_id, game.player2_id, game.player3_id] : [game.player1_id, game.player2_id];
-      // Rotation clockwise foana (3P: P1 → P2 → P3).
-      const rotIds = ids;
       const hands = pc === 3 ? [h1, h2, h3] : [h1, h2];
-      const nextId = rotIds[(nextRound - 1) % rotIds.length];
+      const nextId = roundOpenerId(game, nextRound);
       // DATINANDRO nesorina — tsy fandresena intsony.
       const updateNext: any = {
         round_number: nextRound,
@@ -539,10 +540,8 @@ export default function Game() {
         : [game.player1_id, game.player2_id];
       // LOCKED: tsy misy "instant win" — target ihany ny fandresena.
       const ids = idsTied;
-      // Rotation clockwise foana (3P: P1 → P2 → P3).
-      const rotIds = ids;
       const hands = pc === 3 ? [h1, h2, h3] : [h1, h2];
-      const nextId = rotIds[(nextRound - 1) % rotIds.length];
+      const nextId = roundOpenerId(game, nextRound);
       setRoundBanner(`Mitovy vato — tour vaovao`);
       setTimeout(() => setRoundBanner(null), 3500);
       // DATINANDRO nesorina — tsy fandresena intsony.
@@ -816,7 +815,7 @@ export default function Game() {
     const newBoard = place(board, tile, chosenSide);
     const newHand = myHand.filter((_, i) => i !== idx);
     sfx.move();
-    // Mihodina FOANA avy amin'ny current_turn marina (clockwise) — tsy
+    // Mihodina FOANA avy amin'ny current_turn marina mankany ANKAVIA — tsy
     // miankina amin'ny user.id (mba tsy hisy "skip" raha misy stale state).
     const oppId = nextTurnId(game, game.current_turn ?? user.id);
     const handKey = getHandKey(game, user.id) as "player1_hand" | "player2_hand" | "player3_hand";
@@ -1017,12 +1016,13 @@ export default function Game() {
     if (!game.turn_started_at) return;
     if (isRevealing) return;
     // Aloha ny 20s: TSY MISY auto mihitsy — miandry ny kitika.
-    // Ny client an'ny tompon'ny tour no manao auto aloha; ny hafa miandry 2s grâce.
+    // Anti-skip: ny client an'ny tompon'ny tour IHANY no manao auto. Raha mivoaka izy,
+    // ny backend watchdog no milalao/passa légal aorian'ny deadline.
     const isMyTurnHere = game.current_turn === user.id;
-    const botFastPath = botActive && isMyTurnHere;
-    const graceSec = isMyTurnHere ? 0 : AUTO_OTHER_GRACE_SEC;
+    if (!isMyTurnHere) return;
+    const botFastPath = botActive;
     // Raha activé ny Bot eo amin'ny compte-ko ARY ahy ilay tour: tsy miandry 20s.
-    if (!botFastPath && elapsed < TURN_TIMEOUT_SEC + graceSec) return;
+    if (!botFastPath && elapsed < TURN_TIMEOUT_SEC) return;
     const key = `${game.id}-${game.turn_started_at}-${game.current_turn}`;
     if (autoActedRef.current === key) return;
     autoActedRef.current = key;
@@ -1139,10 +1139,10 @@ export default function Game() {
     if (game.status !== "in_progress") return;
     if (!game.current_turn || !game.turn_started_at) return;
     if (isRevealing) return;
+    if (game.current_turn !== user.id) return;
     // Mifototra amin'ny fantsona LOCAL (tsy ny ora server) mba tsy hipoaka mialoha.
     const startMs = Math.max(new Date(game.turn_started_at).getTime(), turnAnchorRef.current.at);
-    const graceSec = game.current_turn === user.id ? 0 : AUTO_OTHER_GRACE_SEC;
-    const deadline = startMs + (TURN_TIMEOUT_SEC + graceSec) * 1000;
+    const deadline = startMs + TURN_TIMEOUT_SEC * 1000;
     const delay = Math.max(0, deadline - Date.now()) + 50; // mafonja kely
     const t = setTimeout(() => {
       // Bump `now` so the existing elapsed-based effect re-runs and fires
@@ -1191,8 +1191,8 @@ export default function Game() {
 
   // Auto-pass HAINGANA: raha tonga ny tour-ko nefa TSY MISY vato azoko apetraka
   // mihitsy, tsy miandry ny 20s — mandalo automatique aorian'ny 1.2s mba
-  // tsy hisy "dingana" ny adversaire manaraka. Manaja foana ny rotation
-  // clockwise (P1→P2→P3).
+    // tsy hisy "dingana" ny adversaire manaraka. Manaja foana ny rotation
+    // mankany ANKAVIA (3P: P1→P3→P2).
   useEffect(() => {
     if (!game || !user) return;
     if (game.status !== "in_progress") return;

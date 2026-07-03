@@ -57,3 +57,12 @@ Never advance/pass a Domino turn while the current player has at least one legal
 The backend must be the final guard: pass-only updates must raise/block when `domino_hand_has_move(current_player_hand, board_state)` is true. If a player is offline but has a legal tile, autoplay should place a legal tile, not skip them.
 
 **Why:** The user repeatedly saw 3P matches where one player with playable tiles was skipped while only the other two played.
+
+## 3P turn ownership invariant (2026-07-03)
+For Domino 3P, the turn order is permanently **counter-clockwise / makany ANKAVIA**: P1 → P3 → P2 → P1. Round openers still rotate fairly by round number: Round 1=P1, Round 2=P2, Round 3=P3, then repeat.
+
+Only the client logged in as `current_turn` may perform local timeout/bot auto-action. Other players' clients must never auto-play or auto-pass on behalf of that player; if that player leaves/offline, the backend watchdog is the only fallback.
+
+The database must reject any update that advances `current_turn` to anything other than `domino_next_turn_id(old_game, old.current_turn)`, and must reject pass-only turn advances while the old current player has a legal move.
+
+**Why:** Customers reported 3P games where A and B kept playing while C was skipped. Cross-client auto-action can race against stale views and make the skip look permanent.

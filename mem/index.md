@@ -10,6 +10,7 @@ Commission is enforced server-side: round(stake*0.10)*players_count for all 3 ga
 Wallet+admin+cash_pool total is conserved — only deposits add, withdrawals remove. NEVER add credit paths.
 Domino win = target reached (80/120) OR mandeha irery (single-round points ≥ 40 D80 / ≥ 60 D120) OR double-6 out (ending the round by playing [6|6] as the last tile). DATINANDRO REMOVED — do not reintroduce.
 Domino anti-skip LOCKED: backend/client watchdog must never pass a player who has any legal tile for the current board.
+Domino 3P rotation LOCKED: counter-clockwise P1→P3→P2→P1; only current player's client or backend watchdog may auto-act.
 Toasts: top-center, 7s duration, richColors (Sonner) — configured in src/App.tsx.
 
 ## Memories

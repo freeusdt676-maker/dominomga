@@ -1283,9 +1283,24 @@ export type Database = {
         Args: { _action: string; _max: number; _window_seconds: number }
         Returns: boolean
       }
+      domino_current_turn_hand: {
+        Args: { _g: Database["public"]["Tables"]["games"]["Row"] }
+        Returns: Json
+      }
       domino_hand_has_move: {
         Args: { _board: Json; _hand: Json }
         Returns: boolean
+      }
+      domino_next_turn_id: {
+        Args: {
+          _current: string
+          _g: Database["public"]["Tables"]["games"]["Row"]
+        }
+        Returns: string
+      }
+      domino_player_ids: {
+        Args: { _g: Database["public"]["Tables"]["games"]["Row"] }
+        Returns: string[]
       }
       domino_tile_can_place: {
         Args: { _board: Json; _tile: Json }

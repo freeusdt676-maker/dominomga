@@ -1031,7 +1031,12 @@ export default function Game() {
       const { data: fresh, error } = await supabase.from("games").select("*").eq("id", game.id).single();
       if (error || !fresh) throw error ?? new Error("game_refresh_failed");
       if (fresh.status !== "in_progress") return;
-      if (!fresh.current_turn || fresh.turn_started_at !== game.turn_started_at) return;
+      const freshStartedAt = fresh.turn_started_at ? new Date(fresh.turn_started_at).getTime() : 0;
+      const expectedStartedAt = game.turn_started_at ? new Date(game.turn_started_at).getTime() : 0;
+      if (!fresh.current_turn || freshStartedAt !== expectedStartedAt) {
+        autoActedRef.current = null;
+        return;
+      }
 
       const liveBoard: Placed[] = (fresh.board_state as Placed[]) ?? [];
       const turnId = fresh.current_turn as string;

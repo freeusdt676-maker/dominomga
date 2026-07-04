@@ -22,8 +22,8 @@ function nextTurnId(g: any, current: string): string {
   const ids = getPlayerIds(g);
   const i = ids.indexOf(current);
   if (i < 0) return ids[0];
-  // Fihodinana COUNTER-CLOCKWISE (mankany ANKAVIA). 3P: P1 → P3 → P2 → P1.
-  return ids[(i - 1 + ids.length) % ids.length];
+  // Fihodinana CONTRAIRE MONTRE / mankany ANKAVIA. 3P: P1 → P2 → P3 → P1.
+  return ids[(i + 1) % ids.length];
 }
 
 type Tile = [number, number];

@@ -24,7 +24,7 @@ Frozen parameters (do not change without explicit prompt):
 ## Explicit revisions (2026-05-29)
 - Removed "Maty atànana" mode (`hand`) from Lobby + Game. Only `d120` and `d80` remain selectable; legacy `hand` rows fall back to 120-target behaviour.
 - Removed "maty atànana" as an instant-win reason in `finishRound`. Blocked endgame still resolves by lowest pipsTotal via `finishBlocked` (no mode renaming).
-- Turn rotation is **counter-clockwise / mankany ANKAVIA** (3P: P1 → P3 → P2 → P1). Explicitly requested by user on 2026-07-02. Opener rotates round-robin per round (round N opener = ids[(N-1) % count]) — direction unchanged.
+- Turn rotation is **contraire montre / mankany ANKAVIA** as understood from the live table order (3P: P1 → P2 → P3 → P1). Explicitly corrected by user on 2026-07-04. Opener rotates round-robin per round (round N opener = ids[(N-1) % count]) — direction unchanged.
 
 ## Domino WIN conditions (LOCKED — 2026-06-03, FINAL)
 Four conditions make a player WIN THE GAME (settle_game):
@@ -59,7 +59,7 @@ The backend must be the final guard: pass-only updates must raise/block when `do
 **Why:** The user repeatedly saw 3P matches where one player with playable tiles was skipped while only the other two played.
 
 ## 3P turn ownership invariant (2026-07-03)
-For Domino 3P, the turn order is permanently **counter-clockwise / makany ANKAVIA**: P1 → P3 → P2 → P1. Round openers still rotate fairly by round number: Round 1=P1, Round 2=P2, Round 3=P3, then repeat.
+For Domino 3P, the turn order is permanently **contraire montre / makany ANKAVIA** in the live table order: P1 → P2 → P3 → P1. Round openers still rotate fairly by round number: Round 1=P1, Round 2=P2, Round 3=P3, then repeat.
 
 Only the client logged in as `current_turn` may perform local timeout/bot auto-action. Other players' clients must never auto-play or auto-pass on behalf of that player; if that player leaves/offline, the backend watchdog is the only fallback.
 

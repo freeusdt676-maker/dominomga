@@ -65,11 +65,11 @@ function getPlayerIds(g: any): string[] {
     : [g.player1_id, g.player2_id].filter(Boolean);
 }
 function nextTurnId(g: any, currentId: string): string {
-  // Fihodinana mihodina mankany ANKAVIA (counter-clockwise) hatrany.
-  // 2P: P1 ↔ P2. 3P: P1 → P3 → P2 → P1.
+  // Fihodinana mihodina mankany ANKAVIA (contraire montre) hatrany.
+  // 2P: P1 ↔ P2. 3P: P1 → P2 → P3 → P1.
   const ids = getPlayerIds(g);
   const i = ids.indexOf(currentId);
-  return ids[(i - 1 + ids.length) % ids.length] ?? ids[0];
+  return ids[(i + 1) % ids.length] ?? ids[0];
 }
 function roundOpenerId(g: any, roundNumber: number): string {
   const ids = getPlayerIds(g);
@@ -1192,7 +1192,7 @@ export default function Game() {
   // Auto-pass HAINGANA: raha tonga ny tour-ko nefa TSY MISY vato azoko apetraka
   // mihitsy, tsy miandry ny 20s — mandalo automatique aorian'ny 1.2s mba
     // tsy hisy "dingana" ny adversaire manaraka. Manaja foana ny rotation
-    // mankany ANKAVIA (3P: P1→P3→P2).
+        // mankany ANKAVIA (3P: P1→P2→P3).
   useEffect(() => {
     if (!game || !user) return;
     if (game.status !== "in_progress") return;

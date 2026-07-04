@@ -294,7 +294,7 @@ export default function Game() {
         );
         hands[opener.playerIndex] = openerHand;
         board = [{ tile: opener.tile, flipped: false }];
-        nextId = ids[(opener.playerIndex - 1 + ids.length) % ids.length];
+        nextId = nextTurnId(currentGame, openerId);
       }
       // If not forced (hand mode or no qualifying double), opener keeps full hand
       // and plays any tile of their choice on an empty board.

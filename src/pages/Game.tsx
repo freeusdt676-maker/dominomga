@@ -225,6 +225,7 @@ export default function Game() {
   const [confirmAbandon, setConfirmAbandon] = useState(false);
   const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null);
   const autoActedRef = useRef<string | null>(null);
+  const warnedRef = useRef<string | null>(null);
   // Bot local — local-only toggle per user (raketina ao amin'ny localStorage).
   // Tsy mihatra mihitsy amin'ny compte adversaire.
   const [botActive, setBotActive] = useState<boolean>(() => {

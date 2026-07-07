@@ -140,10 +140,34 @@ function pipsTotal(hand: Tile[]): number {
   return hand.reduce((s, [a, b]) => s + a + b, 0);
 }
 
-function chooseBestBotMove(hand: Tile[], board: Placed[]): { index: number; side: "left" | "right" } | null {
+function countSuit(h: Tile[], v: number) {
+  return h.reduce((n, [a, b]) => n + (a === v ? 1 : 0) + (b === v ? 1 : 0), 0);
+}
+function tileKey(a: number, b: number) { return `${Math.min(a, b)}-${Math.max(a, b)}`; }
+function computeUnseenTiles(hand: Tile[], board: Placed[]): Tile[] {
+  const seen = new Set<string>();
+  for (const p of board) seen.add(tileKey(p.tile[0], p.tile[1]));
+  for (const t of hand) seen.add(tileKey(t[0], t[1]));
+  const arr: Tile[] = [];
+  for (let a = 0; a <= 6; a += 1) for (let b = a; b <= 6; b += 1) {
+    if (!seen.has(tileKey(a, b))) arr.push([a, b]);
+  }
+  return arr;
+}
+// GRAND-MAÎTRE Domino bot — fair info (hand + board + opponent sizes only).
+function chooseBestBotMove(
+  hand: Tile[],
+  board: Placed[],
+  opts: { opponentSizes?: number[] } = {},
+): { index: number; side: "left" | "right" } | null {
   type Cand = { index: number; side: "left" | "right"; score: number };
   const cands: Cand[] = [];
-  const countSuit = (h: Tile[], v: number) => h.reduce((n, [a, b]) => n + (a === v ? 1 : 0) + (b === v ? 1 : 0), 0);
+  const unseen = computeUnseenTiles(hand, board);
+  const unseenSuit = (v: number) => countSuit(unseen, v);
+  const oppSizes = opts.opponentSizes ?? [];
+  const oppMin = oppSizes.length ? Math.min(...oppSizes) : 7;
+  const endgameOpp = oppMin <= 3;
+  const criticalOpp = oppMin <= 2;
   for (let i = 0; i < hand.length; i += 1) {
     const tile = hand[i];
     const can = canPlaceSide(board, tile);
@@ -152,23 +176,51 @@ function chooseBestBotMove(hand: Tile[], board: Placed[]): { index: number; side
     for (const side of sides) {
       const nb = place(board, tile, side);
       const remaining = hand.filter((_, k) => k !== i);
-      const e = ends(nb);
+      const pipsRem = pipsTotal(remaining);
       const [a, b] = tile;
+      const isDouble = a === b;
       let score = 0;
-      if (remaining.length === 0) score += 100000;
-      score += (a + b) * 3;
-      score -= pipsTotal(remaining) * 0.5;
-      if (a === b) score += 8 + a * 2;
+      if (remaining.length === 0) {
+        score += 1_000_000;
+        if (a === 6 && b === 6) score += 500;
+        cands.push({ index: i, side, score });
+        continue;
+      }
+      const dumpWeight = criticalOpp ? 8 : endgameOpp ? 5 : 3;
+      score += (a + b) * dumpWeight;
+      score -= pipsRem * 0.35;
+      if (isDouble) {
+        const suitAfter = countSuit(remaining, a);
+        if (suitAfter <= 1) score += 12 + a * 1.5;
+        else score -= 3 + a * 0.5;
+      }
+      const e = ends(nb);
       if (e) {
-        const leftMatches = countSuit(remaining, e.left);
-        const rightMatches = countSuit(remaining, e.right);
-        score += leftMatches * 4 + rightMatches * 4;
-        if (e.left === e.right && leftMatches === 0) score -= 12;
+        const myLeft = countSuit(remaining, e.left);
+        const myRight = countSuit(remaining, e.right);
+        const uL = unseenSuit(e.left);
+        const uR = unseenSuit(e.right);
+        score += myLeft * 5 + myRight * 5;
+        const blockL = Math.max(0, 8 - uL);
+        const blockR = Math.max(0, 8 - uR);
+        const blockMul = criticalOpp ? 3.5 : endgameOpp ? 2 : 1;
+        score += (blockL + blockR) * blockMul;
+        if (e.left === e.right) {
+          if (myLeft >= 2) score += 25 + myLeft * 4;
+          else if (myLeft === 1) score += 8;
+          else score -= 25;
+        }
+        if (myLeft === 0 && e.left !== e.right) score -= 5;
+        if (myRight === 0 && e.left !== e.right) score -= 5;
+        if (endgameOpp) {
+          if (uL <= 2) score += 15;
+          if (uR <= 2) score += 15;
+        }
       }
       cands.push({ index: i, side, score });
     }
   }
-  cands.sort((a, b) => b.score - a.score);
+  cands.sort((x, y) => y.score - x.score);
   return cands[0] ?? null;
 }
 
@@ -361,7 +413,10 @@ Deno.serve(async (req) => {
     const board = ((g as any).board_state ?? []) as Placed[];
     const hand = getHand(g, g.current_turn as string);
     const handKey = getHandKey(g, g.current_turn as string);
-    const best = chooseBestBotMove(hand, board);
+    const oppSizes = getPlayerIds(g)
+      .filter((id) => id !== g.current_turn)
+      .map((id) => getHand(g, id).length);
+    const best = chooseBestBotMove(hand, board, { opponentSizes: oppSizes });
     if (best && handKey) {
       const tile = hand[best.index];
       const newBoard = place(board, tile, best.side);

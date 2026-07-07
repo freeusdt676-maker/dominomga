@@ -85,23 +85,43 @@ function getHandKey(g: any, uid: string): "player1_hand" | "player2_hand" | "pla
 }
 
 // ============================================================
-// Bot intelligent — fisafidianana ny vato sy ny lafiny tsara indrindra.
-// Heuristic mifototra amin'ny:
-//  - fametrahana farany (fandresena) = priorité ambony indrindra
-//  - fametraha "double" tsy te ho tavela (indrindra ny lehibe)
-//  - fanalefahana ny pip total atànana (mihena raha bloqué)
-//  - fitazonana fifanarahana amin'ny tendrony manaraka (mba tsy ho voafatotra)
-//  - fanasaziana raha hamoaka tendrony tsy hain'ny tànana hozaraina intsony
+// Bot GRAND-MAÎTRE — mahay lavitra noho ny olombelona.
+// Fandinihana:
+//  - Fandresena (vato farany, mandeha irery, double 6 out) = ambony indrindra
+//  - "Unseen tiles" (vato tsy hita) → probabilité manana suit ny mpanohitra
+//  - Blocking: mifidy tendrony izay saro-tadiavina ho an'ny mpanohitra
+//  - Endgame: raha kely ny an-tànana ny mpanohitra, avantana ny fanakanana
+//  - Control: mitazona suit hifehezany, fadio ny manokatra suit tsy anananao
+//  - Dump: mesorina ny pips lehibe indrindra alohan'ny blocage
+//  - Doubles: alefaso raha tsy mifehy ilay suit; tazomy raha mifehy
 // ============================================================
+function tileKey(a: number, b: number) { return `${Math.min(a, b)}-${Math.max(a, b)}`; }
+function computeUnseenTiles(hand: Tile[], board: Placed[]): Tile[] {
+  const seen = new Set<string>();
+  for (const p of board) seen.add(tileKey(p.tile[0], p.tile[1]));
+  for (const t of hand) seen.add(tileKey(t[0], t[1]));
+  const arr: Tile[] = [];
+  for (let a = 0; a <= 6; a += 1) for (let b = a; b <= 6; b += 1) {
+    if (!seen.has(tileKey(a, b))) arr.push([a, b]);
+  }
+  return arr;
+}
+function countSuit(h: Tile[], v: number) {
+  return h.reduce((n, [a, b]) => n + (a === v ? 1 : 0) + (b === v ? 1 : 0), 0);
+}
 function chooseBestBotMove(
   hand: Tile[],
   board: Placed[],
+  opts: { opponentSizes?: number[]; boneyardSize?: number } = {},
 ): { index: number; side: "left" | "right" } | null {
   type Cand = { index: number; side: "left" | "right"; score: number };
   const cands: Cand[] = [];
-  // Mitanisa ny isan'ny vato manana ny pip iray ao an-tànana (afa-tsy ity vato apetraka ity)
-  const countSuit = (h: Tile[], v: number) =>
-    h.reduce((n, [a, b]) => n + ((a === v ? 1 : 0) + (b === v ? 1 : 0)), 0);
+  const unseen = computeUnseenTiles(hand, board);
+  const unseenSuit = (v: number) => countSuit(unseen, v);
+  const oppSizes = opts.opponentSizes ?? [];
+  const oppMin = oppSizes.length ? Math.min(...oppSizes) : 7;
+  const endgameOpp = oppMin <= 3;
+  const criticalOpp = oppMin <= 2;
 
   for (let i = 0; i < hand.length; i++) {
     const tile = hand[i];
@@ -118,30 +138,61 @@ function chooseBestBotMove(
       const isDouble = a === b;
       let score = 0;
 
-      // 1) Vato farany = mandresy: tena ambony indrindra.
-      if (remaining.length === 0) score += 100000;
-
-      // 2) Manala pip atànana (raha bloqué dia kely ny score).
-      score += (a + b) * 3;
-      score -= pipsRem * 0.5;
-
-      // 3) Mialà ny double lehibe aloha.
-      if (isDouble) score += 8 + a * 2;
-
-      // 4) Tazomy ny fahafahana mametraka aoriana: ny tendrony vaovao
-      //    tokony mbola hifanaraka amin'ny vato ao an-tànana.
-      if (e) {
-        const leftMatches = countSuit(remaining, e.left);
-        const rightMatches = countSuit(remaining, e.right);
-        score += leftMatches * 4 + rightMatches * 4;
-        // Sazio raha samy mitovy ny tendrony roa nefa tsy manana ilay isa intsony.
-        if (e.left === e.right && leftMatches === 0) score -= 12;
+      // 1) Fandresena = ambony indrindra (mamarana ny tour, mety mandresy ny lalao)
+      if (remaining.length === 0) {
+        score += 1_000_000;
+        // Double 6 out bonus
+        if (a === 6 && b === 6) score += 500;
+        cands.push({ index: i, side, score });
+        continue;
       }
 
-      // 5) Tendrony lehibe (5,6) mora bloqué ny hafa — mihatsara raha mbola manana isika.
+      // 2) Dump pips — lanjaina ambony amin'ny endgame (fandrao blocage)
+      const dumpWeight = criticalOpp ? 8 : endgameOpp ? 5 : 3;
+      score += (a + b) * dumpWeight;
+      // Mihena raha be ny sisa an-tanana (mety ho bloqué)
+      score -= pipsRem * 0.35;
+
+      // 3) Doubles: alefaso raha tsy mifehy ilay suit, tazomy raha mifehy
+      if (isDouble) {
+        const suitAfter = countSuit(remaining, a);
+        if (suitAfter <= 1) score += 12 + a * 1.5; // dump — mora bloqué
+        else score -= 3 + a * 0.5; // hold — mifehy ilay suit
+      }
+
       if (e) {
-        if (e.left >= 5 && countSuit(remaining, e.left) > 0) score += 2;
-        if (e.right >= 5 && countSuit(remaining, e.right) > 0) score += 2;
+        const myLeft = countSuit(remaining, e.left);
+        const myRight = countSuit(remaining, e.right);
+        const uL = unseenSuit(e.left);
+        const uR = unseenSuit(e.right);
+
+        // 4) Control — mitazona hifanaraka amin'ny tendrony vaovao
+        score += myLeft * 5 + myRight * 5;
+
+        // 5) Blocking — tendrony sarotra ho an'ny mpanohitra (unseen kely)
+        // 8 = isan'ny vato manana ilay suit iray ao anaty jeu (7 mifanaraka + double)
+        const blockL = Math.max(0, 8 - uL);
+        const blockR = Math.max(0, 8 - uR);
+        const blockMul = criticalOpp ? 3.5 : endgameOpp ? 2 : 1;
+        score += (blockL + blockR) * blockMul;
+
+        // 6) Domination — tendrony roa mitovy suit + isika mifehy
+        if (e.left === e.right) {
+          if (myLeft >= 2) score += 25 + myLeft * 4;
+          else if (myLeft === 1) score += 8;
+          else score -= 25; // manome fahafahana ho an'ny mpanohitra
+        }
+
+        // 7) Fadio ny manokatra suit tsy anananao intsony
+        if (myLeft === 0 && e.left !== e.right) score -= 5;
+        if (myRight === 0 && e.left !== e.right) score -= 5;
+
+        // 8) Raha efa hifarana ny mpanohitra ary probable fa tsy hanana ilay suit
+        //    (unseen kely) → tena tsara ny manakana
+        if (endgameOpp) {
+          if (uL <= 2) score += 15;
+          if (uR <= 2) score += 15;
+        }
       }
 
       cands.push({ index: i, side, score });
@@ -1049,7 +1100,14 @@ export default function Game() {
       const oppId = nextTurnId(fresh, turnId);
       const pc = Number(fresh.players_count ?? 2);
 
-      const best = chooseBestBotMove(turnHand, liveBoard);
+      const oppSizes = getPlayerIds(fresh)
+        .filter((id) => id !== turnId)
+        .map((id) => {
+          const k = getHandKey(fresh, id);
+          return k ? ((fresh[k] as Tile[]) ?? []).length : 7;
+        });
+      const boneyardSize = ((fresh.boneyard as Tile[]) ?? []).length;
+      const best = chooseBestBotMove(turnHand, liveBoard, { opponentSizes: oppSizes, boneyardSize });
       if (best) {
         const { index: playableIdx, side: chosenSide } = best;
         const tile = turnHand[playableIdx];

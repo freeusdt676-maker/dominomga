@@ -1100,7 +1100,14 @@ export default function Game() {
       const oppId = nextTurnId(fresh, turnId);
       const pc = Number(fresh.players_count ?? 2);
 
-      const best = chooseBestBotMove(turnHand, liveBoard);
+      const oppSizes = getPlayerIds(fresh)
+        .filter((id) => id !== turnId)
+        .map((id) => {
+          const k = getHandKey(fresh, id);
+          return k ? ((fresh[k] as Tile[]) ?? []).length : 7;
+        });
+      const boneyardSize = ((fresh.boneyard as Tile[]) ?? []).length;
+      const best = chooseBestBotMove(turnHand, liveBoard, { opponentSizes: oppSizes, boneyardSize });
       if (best) {
         const { index: playableIdx, side: chosenSide } = best;
         const tile = turnHand[playableIdx];

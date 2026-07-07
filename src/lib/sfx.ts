@@ -24,6 +24,8 @@ function tone(freq: number, dur = 0.12, type: OscillatorType = "sine", vol = 0.1
 
 export const sfx = {
   click: () => tone(660, 0.06, "square", 0.12),
+  alert: () => { tone(1200, 0.12, "square", 0.22); tone(1200, 0.12, "square", 0.22, 0.18); tone(1600, 0.18, "square", 0.22, 0.36); },
+  pop: () => { tone(880, 0.06, "triangle", 0.18); tone(1320, 0.1, "triangle", 0.18, 0.05); },
   dice:  () => { tone(440, 0.05, "square", 0.15); tone(620, 0.05, "square", 0.13, 0.06); tone(880, 0.08, "square", 0.12, 0.12); },
   move:  () => tone(520, 0.08, "triangle", 0.16),
   step:  () => {

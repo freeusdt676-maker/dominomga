@@ -852,6 +852,17 @@ export default function Game() {
   const elapsed = Math.min(serverElapsed, localElapsed);
   const remaining = turnStart > 0 ? Math.max(0, TURN_TIMEOUT_SEC - elapsed) : TURN_TIMEOUT_SEC;
 
+  // 5s no sisa → mameno feo fampitandremana indray mandeha isaky ny tour
+  useEffect(() => {
+    if (!game || game.status !== "in_progress" || !game.current_turn) return;
+    if (remaining !== 5) return;
+    const key = `${game.id}-${game.turn_started_at}-${game.current_turn}`;
+    if (warnedRef.current === key) return;
+    warnedRef.current = key;
+    try { sfx.alert(); } catch {}
+    try { (navigator as any).vibrate?.([80, 60, 80]); } catch {}
+  }, [remaining, game?.id, game?.turn_started_at, game?.current_turn, game?.status]);
+
   const tryPlay = async (idx: number, side?: "left" | "right") => {
     if (!isMyTurn || !game || !user) return;
     const tile = myHand[idx];

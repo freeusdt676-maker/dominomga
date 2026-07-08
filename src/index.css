@@ -357,19 +357,50 @@ html.theme-petanque {
     opacity: 0.55;
   }
   .felt-board {
-    background: transparent;
-    border: none;
-    padding: 6px;
+    background:
+      linear-gradient(90deg, rgba(32,14,4,0.75), transparent 12%, transparent 88%, rgba(32,14,4,0.75)),
+      repeating-linear-gradient(90deg, rgba(255,214,130,0.10) 0 2px, transparent 2px 28px),
+      linear-gradient(180deg, #9b642e 0%, #6f3d18 43%, #3b1b07 100%);
+    border: 18px solid transparent;
+    border-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'><defs><linearGradient id='w' x1='0' y1='0' x2='0' y2='1'><stop offset='0%25' stop-color='%23b87936'/><stop offset='35%25' stop-color='%23714119'/><stop offset='100%25' stop-color='%232b1204'/></linearGradient></defs><rect width='120' height='120' fill='url(%23w)'/><path d='M0 17 H120 M0 47 H120 M0 83 H120' stroke='%231b0902' stroke-width='2' opacity='0.58'/><path d='M18 0 V120 M55 0 V120 M92 0 V120' stroke='%23c48945' stroke-width='1' opacity='0.33'/><path d='M0 29 C22 24 44 34 68 28 S101 22 120 30 M0 72 C25 78 42 66 66 74 S98 82 120 70' stroke='%23f0b765' stroke-width='1.1' fill='none' opacity='0.32'/></svg>") 40 round;
+    background-clip: padding-box;
+    box-shadow:
+      inset 0 0 0 3px rgba(22,9,2,0.92),
+      inset 0 6px 0 rgba(255,220,150,0.24),
+      inset 0 -14px 20px rgba(18,6,1,0.56),
+      0 18px 0 #321506,
+      0 30px 36px rgba(0,0,0,0.72),
+      0 0 0 2px rgba(20,10,2,0.62);
+    border-radius: 1.1rem 1.1rem 0.75rem 0.75rem;
+    padding: 10px;
     position: relative;
+    transform: perspective(900px) rotateX(1.2deg);
+    transform-origin: center top;
     isolation: isolate;
   }
   .felt-board::before,
   .felt-board::after {
-    content: none;
+    content: "";
+    position: absolute;
+    bottom: -86px;
+    width: clamp(22px, 6vw, 40px);
+    height: 92px;
+    border-radius: 7px 7px 13px 13px;
+    background:
+      linear-gradient(90deg, rgba(255,210,130,0.16), transparent 38%, rgba(0,0,0,0.36)),
+      repeating-linear-gradient(0deg, transparent 0 13px, rgba(20,7,2,0.28) 13px 15px),
+      linear-gradient(180deg, #734018 0%, #4b240b 62%, #241004 100%);
+    box-shadow:
+      inset 2px 0 0 rgba(255,218,150,0.16),
+      inset -4px 0 0 rgba(0,0,0,0.26),
+      0 12px 14px rgba(0,0,0,0.58);
+    z-index: -1;
   }
+  .felt-board::before { left: clamp(12px, 5vw, 48px); transform: skewX(-4deg); }
+  .felt-board::after { right: clamp(12px, 5vw, 48px); transform: skewX(4deg); }
 
   .domino-scene-bg {
-    background-color: #1a0e05;
+    background-color: #2a1808;
     background-size: cover;
     background-position: center top;
     background-repeat: no-repeat;
@@ -455,7 +486,20 @@ html.theme-petanque {
 
   @media (max-width: 560px) {
     .felt-board {
-      padding: 4px;
+      border-width: 14px;
+      padding: 8px;
+      box-shadow:
+        inset 0 0 0 3px rgba(22,9,2,0.92),
+        inset 0 5px 0 rgba(255,220,150,0.22),
+        inset 0 -12px 18px rgba(18,6,1,0.54),
+        0 14px 0 #321506,
+        0 24px 30px rgba(0,0,0,0.68),
+        0 0 0 2px rgba(20,10,2,0.62);
+    }
+    .felt-board::before,
+    .felt-board::after {
+      bottom: -72px;
+      height: 78px;
     }
     .domino-table-zone {
       min-height: 382px;

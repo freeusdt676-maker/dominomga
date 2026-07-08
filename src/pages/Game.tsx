@@ -1346,7 +1346,7 @@ export default function Game() {
   return (
     <div
       className="min-h-screen domino-scene-bg flex flex-col"
-      style={{ backgroundImage: `url(${dominoSceneBg})` }}
+      style={{ backgroundImage: `url(${dominoSceneBg.url})` }}
     >
       {/* Permanent Bot toggle — bottom-left, always visible */}
       <button

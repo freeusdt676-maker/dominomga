@@ -285,14 +285,16 @@ export function GameChat({
       </button>
 
       {open && (
+        (() => { const kbOpen = kbOffset > 40; return (
         <div
           className="fixed z-50 right-2 left-2 sm:left-auto sm:right-4 sm:w-[360px] bg-gradient-to-b from-[#0d3b22]/95 to-[#0a2818]/95 border-2 border-[#d4a52c]/60 rounded-2xl flex flex-col shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-200 backdrop-blur-md pointer-events-auto"
           style={{
             bottom: `calc(env(safe-area-inset-bottom, 0px) + ${kbOffset + 8}px)`,
-            height: kbOffset > 40 ? "min(38vh, 300px)" : "min(46vh, 420px)",
+            height: kbOpen ? "auto" : "min(46vh, 420px)",
           }}
           onClick={(e) => e.stopPropagation()}
         >
+            {!kbOpen && (
             <div className="flex items-center justify-between px-4 py-3 border-b border-[#d4a52c]/40 bg-[#0a2818]/60 backdrop-blur">
               <div className="flex items-center gap-2">
                 <div className="w-9 h-9 rounded-full bg-[#d4a52c] text-[#0a2818] flex items-center justify-center font-black shadow-lg">
@@ -307,7 +309,9 @@ export function GameChat({
                 <X className="w-5 h-5" />
               </button>
             </div>
+            )}
 
+            {!kbOpen && (
             <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-2 bg-[radial-gradient(circle_at_top,rgba(212,165,44,0.08),transparent_60%)]">
               {msgs.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-full text-center px-6">
@@ -355,6 +359,7 @@ export function GameChat({
                 );
               })}
             </div>
+            )}
 
             {showEmojis && (
               <div className="px-3 py-2 border-t border-[#d4a52c]/40 bg-[#0a2818]/80 grid grid-cols-5 gap-1.5">

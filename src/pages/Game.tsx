@@ -27,7 +27,7 @@ import { useThemeClass } from "@/hooks/use-theme-class";
 import { RadioPlayer } from "@/components/RadioPlayer";
 import { GameChat } from "@/components/GameChat";
 import LudoVoiceChat from "@/components/LudoVoiceChat";
-import dominoSceneBg from "@/assets/domino-scene.jpg";
+import dominoSceneBg from "@/assets/domino-table-scene.png.asset.json";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Tile, Placed, deal, deal3, ends, canPlace, place, pipsTotal, hasMove, chooseOpening,

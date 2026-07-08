@@ -423,7 +423,7 @@ export function GameChat({
               </button>
             </form>
         </div>
-      ); })()}
+      ); })())}
     </>
   );
 }

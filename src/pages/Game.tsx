@@ -859,8 +859,8 @@ export default function Game() {
     const key = `${game.id}-${game.turn_started_at}-${game.current_turn}`;
     if (warnedRef.current === key) return;
     warnedRef.current = key;
-    try { sfx.alert(); } catch {}
-    try { (navigator as any).vibrate?.([80, 60, 80]); } catch {}
+    // Tsy misy feo intsony — vibration matanjaka ihany
+    try { (navigator as any).vibrate?.([180, 80, 180, 80, 240]); } catch {}
   }, [remaining, game?.id, game?.turn_started_at, game?.current_turn, game?.status]);
 
   const tryPlay = async (idx: number, side?: "left" | "right") => {

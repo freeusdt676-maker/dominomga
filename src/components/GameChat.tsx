@@ -126,7 +126,26 @@ export function GameChat({
   const [floaters, setFloaters] = useState<Floater[]>([]);
   const [bursts, setBursts] = useState<EmojiBurst[]>([]);
   const [showEmojis, setShowEmojis] = useState(false);
+  const [kbOffset, setKbOffset] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Mihaino ny clavier (mobile) — mba tsy hisy hafenina ny input sy ny soratra
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const vv = (window as any).visualViewport as VisualViewport | undefined;
+    if (!vv) return;
+    const update = () => {
+      const offset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      setKbOffset(offset);
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, []);
 
   useEffect(() => {
     if (!gameId) return;
@@ -267,7 +286,11 @@ export function GameChat({
 
       {open && (
         <div
-          className="fixed z-50 bottom-2 right-2 left-2 sm:left-auto sm:right-4 sm:bottom-4 sm:w-[360px] h-[46vh] max-h-[420px] bg-gradient-to-b from-[#0d3b22]/95 to-[#0a2818]/95 border-2 border-[#d4a52c]/60 rounded-2xl flex flex-col shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-200 backdrop-blur-md pointer-events-auto"
+          className="fixed z-50 right-2 left-2 sm:left-auto sm:right-4 sm:w-[360px] bg-gradient-to-b from-[#0d3b22]/95 to-[#0a2818]/95 border-2 border-[#d4a52c]/60 rounded-2xl flex flex-col shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-200 backdrop-blur-md pointer-events-auto"
+          style={{
+            bottom: `calc(env(safe-area-inset-bottom, 0px) + ${kbOffset + 8}px)`,
+            height: kbOffset > 40 ? "min(38vh, 300px)" : "min(46vh, 420px)",
+          }}
           onClick={(e) => e.stopPropagation()}
         >
             <div className="flex items-center justify-between px-4 py-3 border-b border-[#d4a52c]/40 bg-[#0a2818]/60 backdrop-blur">

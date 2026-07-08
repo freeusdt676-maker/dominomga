@@ -377,6 +377,7 @@ export function GameChat({
               </div>
             )}
 
+            {!kbOpen && (
             <div className="px-3 py-2 border-t border-[#d4a52c]/40 flex gap-1.5 overflow-x-auto scrollbar-hide">
               {QUICKS.map((q) => (
                 <button
@@ -389,6 +390,7 @@ export function GameChat({
                 </button>
               ))}
             </div>
+            )}
 
             <form
               onSubmit={(e) => {
@@ -421,7 +423,7 @@ export function GameChat({
               </button>
             </form>
         </div>
-      )}
+      ); })()}
     </>
   );
 }

@@ -364,7 +364,7 @@ export default function Game() {
       }
       const _ = openerId;
     } catch (error: any) {
-      toast.error(error?.message ?? "Tsy tafapetraka ny vaton'ny lalao", { duration: 1000 });
+      toast.error(error?.message ?? "Tsy tafapetraka ny vaton'ny lalao", { duration: 500 });
     } finally {
       initLockRef.current = false;
     }
@@ -867,10 +867,10 @@ export default function Game() {
     if (!isMyTurn || !game || !user) return;
     const tile = myHand[idx];
     const possible = canPlace(board, tile);
-    if (!possible) return toast.error("Tsy mety apetraka", { duration: 1000 });
+    if (!possible) return toast.error("Tsy mety apetraka", { duration: 500 });
     let chosenSide: "left" | "right" = side ?? (possible === "either" ? "right" : possible);
     if (possible !== "either" && side && side !== possible) {
-      return toast.error("Tsy mifanaraka amin'io tendro io", { duration: 1000 });
+      return toast.error("Tsy mifanaraka amin'io tendro io", { duration: 500 });
     }
     const expectedCurrentTurn = game.current_turn ?? null;
     const expectedTurnStartedAt = game.turn_started_at ?? null;
@@ -904,7 +904,7 @@ export default function Game() {
       });
       if (error) {
         setOptimistic(null);
-        toast.error("Tsy voaray ilay placement, andramo indray", { duration: 1000 });
+        toast.error("Tsy voaray ilay placement, andramo indray", { duration: 500 });
         return;
       }
       await supabase.from("game_moves").insert({
@@ -929,7 +929,7 @@ export default function Game() {
     });
     if (error) {
       setOptimistic(null);
-      toast.error("Nisy fifanenjanana tamin'ny tour, andramo indray", { duration: 1000 });
+      toast.error("Nisy fifanenjanana tamin'ny tour, andramo indray", { duration: 500 });
       return;
     }
     await supabase.from("game_moves").insert({
@@ -1065,7 +1065,7 @@ export default function Game() {
       expectedTurnStartedAt,
     });
     if (error) {
-      toast.error("Tsy voaray ilay pass, andramo indray", { duration: 1000 });
+      toast.error("Tsy voaray ilay pass, andramo indray", { duration: 500 });
       return;
     }
     toast("TSY MANANA — mandalo any amin'ny manaraka");

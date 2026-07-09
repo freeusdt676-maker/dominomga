@@ -57,6 +57,8 @@ export function DominoTile({
   allowPointerWhenDisabled = false,
   fluid = false,
   variant = "ivory",
+  pipColor,
+  glow,
 }: {
   a: number;
   b: number;
@@ -75,6 +77,8 @@ export function DominoTile({
   allowPointerWhenDisabled?: boolean;
   fluid?: boolean;
   variant?: "ivory" | "white";
+  pipColor?: "red" | "black";
+  glow?: "green" | "red" | null;
 }) {
   const { w, h } = SIZES[size];
   const tileW = horizontal ? h : w;
@@ -107,7 +111,12 @@ export function DominoTile({
         width: fluid ? "100%" : tileW,
         height: fluid ? "auto" : tileH,
         aspectRatio: fluid ? (horizontal ? "2 / 1" : "1 / 2") : undefined,
-        filter: "drop-shadow(0 4px 6px rgba(0,0,0,.55)) drop-shadow(0 1px 0 rgba(255,255,255,.15))",
+        filter:
+          glow === "green"
+            ? "drop-shadow(0 0 10px rgba(34,197,94,0.95)) drop-shadow(0 0 22px rgba(34,197,94,0.75)) drop-shadow(0 4px 6px rgba(0,0,0,.55))"
+            : glow === "red"
+            ? "drop-shadow(0 0 10px rgba(244,63,94,0.95)) drop-shadow(0 0 22px rgba(244,63,94,0.75)) drop-shadow(0 4px 6px rgba(0,0,0,.55))"
+            : "drop-shadow(0 4px 6px rgba(0,0,0,.55)) drop-shadow(0 1px 0 rgba(255,255,255,.15))",
       }}
     >
       <svg
@@ -149,9 +158,19 @@ export function DominoTile({
             )}
           </linearGradient>
           <radialGradient id={`pip-${uid}`} cx="0.35" cy="0.35" r="0.7">
-            <stop offset="0%" stopColor="#3a3a3a" />
-            <stop offset="60%" stopColor="#0d0d0d" />
-            <stop offset="100%" stopColor="#000" />
+            {pipColor === "red" ? (
+              <>
+                <stop offset="0%" stopColor="#ff6b6b" />
+                <stop offset="55%" stopColor="#ef1e1e" />
+                <stop offset="100%" stopColor="#8b0000" />
+              </>
+            ) : (
+              <>
+                <stop offset="0%" stopColor="#3a3a3a" />
+                <stop offset="60%" stopColor="#0d0d0d" />
+                <stop offset="100%" stopColor="#000" />
+              </>
+            )}
           </radialGradient>
         </defs>
         <rect x="0.5" y="0.5" width={tileW - 1} height={tileH - 1} rx={Math.min(tileW, tileH) * 0.08} fill={`url(#face-${uid})`} stroke={variant === "white" ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.55)"} strokeWidth="1" />

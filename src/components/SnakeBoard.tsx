@@ -163,15 +163,15 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
           const placed = board[i];
           const tileKey = placed ? `${placed.tile[0]}-${placed.tile[1]}` : `i-${i}`;
           const isNew = !seenRef.current.has(tileKey);
-          const ringColor = isHead
-            ? "0 0 0 3px rgba(34,197,94,0.95), 0 0 14px 4px rgba(34,197,94,0.55)"
-            : isTail
-            ? "0 0 0 3px rgba(244,63,94,0.95), 0 0 14px 4px rgba(244,63,94,0.55)"
+          // Both open ends of the chain are "heads" where a tile may be placed.
+          const isEnd = isHead || isTail;
+          const ringColor = isEnd
+            ? "0 0 0 3px rgba(34,197,94,1), 0 0 18px 6px rgba(34,197,94,0.85), 0 0 34px 10px rgba(34,197,94,0.55)"
             : undefined;
           return (
             <div
               key={tileKey}
-              className={`absolute ${isNew ? "animate-scale-in" : ""}`}
+              className={`absolute ${isNew ? "animate-scale-in" : ""} ${isEnd ? "domino-head-glow" : ""}`}
               style={{
                 left: it.x * scale + offsetX,
                 top: it.y * scale + offsetY,
@@ -190,6 +190,8 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
                 horizontal={it.horizontal}
                 variant="white"
                 fluid
+                pipColor="red"
+                glow={isEnd ? "green" : null}
               />
             </div>
           );

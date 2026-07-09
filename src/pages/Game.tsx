@@ -1672,6 +1672,10 @@ export default function Game() {
 
             <div className="felt-board relative w-full h-full min-h-[320px] mx-auto overflow-visible">
               <div className="domino-arena absolute inset-[10px] rounded-[1rem]" aria-hidden="true" />
+              <span className="table-leg table-leg--fl" aria-hidden="true" />
+              <span className="table-leg table-leg--fr" aria-hidden="true" />
+              <span className="table-leg table-leg--bl" aria-hidden="true" />
+              <span className="table-leg table-leg--br" aria-hidden="true" />
               {board.length === 0 ? (
                 <div className="absolute inset-0 flex items-center justify-center px-4">
                   {game.player2_id ? (

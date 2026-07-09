@@ -3,7 +3,7 @@
 // passes ONLY when no legal tile exists, and advances expired reveal phases.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const HANG_THRESHOLD_MS = 21_000;
+const HANG_THRESHOLD_MS = 16_000;
 const REVEAL_MS = 5_000;
 
 const corsHeaders = {

@@ -1706,6 +1706,8 @@ export default function Game() {
                       size={isMobile ? "xl" : "xl"}
                       horizontal={firstBoardA !== firstBoardB}
                       variant="white"
+                      pipColor="red"
+                      glow="green"
                     />
                   </div>
                 </div>

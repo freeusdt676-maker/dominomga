@@ -516,10 +516,15 @@ html.theme-petanque {
         0 24px 30px rgba(0,0,0,0.68),
         0 0 0 2px rgba(20,10,2,0.62);
     }
-    .felt-board::before,
-    .felt-board::after {
-      bottom: -72px;
-      height: 78px;
+    .table-leg--fl,
+    .table-leg--fr {
+      bottom: -74px;
+      height: 80px;
+    }
+    .table-leg--bl,
+    .table-leg--br {
+      bottom: -60px;
+      height: 66px;
     }
     .domino-table-zone {
       min-height: 382px;

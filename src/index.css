@@ -378,26 +378,46 @@ html.theme-petanque {
     transform-origin: center top;
     isolation: isolate;
   }
-  .felt-board::before,
-  .felt-board::after {
+  .table-leg {
     content: "";
     position: absolute;
-    bottom: -86px;
-    width: clamp(22px, 6vw, 40px);
-    height: 92px;
-    border-radius: 7px 7px 13px 13px;
+    bottom: -92px;
+    width: clamp(24px, 6.2vw, 42px);
+    height: 100px;
+    border-radius: 8px 8px 14px 14px;
     background:
-      linear-gradient(90deg, rgba(255,210,130,0.16), transparent 38%, rgba(0,0,0,0.36)),
-      repeating-linear-gradient(0deg, transparent 0 13px, rgba(20,7,2,0.28) 13px 15px),
-      linear-gradient(180deg, #734018 0%, #4b240b 62%, #241004 100%);
+      linear-gradient(90deg, rgba(255,210,130,0.18), transparent 38%, rgba(0,0,0,0.42)),
+      repeating-linear-gradient(0deg, transparent 0 13px, rgba(20,7,2,0.30) 13px 15px),
+      linear-gradient(180deg, #7a4419 0%, #4b240b 62%, #1e0c03 100%);
     box-shadow:
-      inset 2px 0 0 rgba(255,218,150,0.16),
-      inset -4px 0 0 rgba(0,0,0,0.26),
-      0 12px 14px rgba(0,0,0,0.58);
+      inset 2px 0 0 rgba(255,218,150,0.18),
+      inset -4px 0 0 rgba(0,0,0,0.30),
+      0 14px 16px rgba(0,0,0,0.62);
     z-index: -1;
+    pointer-events: none;
   }
-  .felt-board::before { left: clamp(12px, 5vw, 48px); transform: skewX(-4deg); }
-  .felt-board::after { right: clamp(12px, 5vw, 48px); transform: skewX(4deg); }
+  /* Front legs — larger, slightly splayed */
+  .table-leg--fl { left: clamp(10px, 4vw, 34px); transform: skewX(-5deg); }
+  .table-leg--fr { right: clamp(10px, 4vw, 34px); transform: skewX(5deg); }
+  /* Back legs — perspective: smaller, higher, more centered */
+  .table-leg--bl {
+    left: clamp(38px, 12vw, 90px);
+    bottom: -72px;
+    width: clamp(18px, 4.8vw, 32px);
+    height: 78px;
+    transform: skewX(-2deg) scaleY(0.9);
+    filter: brightness(0.78) saturate(0.9);
+    z-index: -2;
+  }
+  .table-leg--br {
+    right: clamp(38px, 12vw, 90px);
+    bottom: -72px;
+    width: clamp(18px, 4.8vw, 32px);
+    height: 78px;
+    transform: skewX(2deg) scaleY(0.9);
+    filter: brightness(0.78) saturate(0.9);
+    z-index: -2;
+  }
 
   .domino-scene-bg {
     background-color: #2a1808;
@@ -496,10 +516,15 @@ html.theme-petanque {
         0 24px 30px rgba(0,0,0,0.68),
         0 0 0 2px rgba(20,10,2,0.62);
     }
-    .felt-board::before,
-    .felt-board::after {
-      bottom: -72px;
-      height: 78px;
+    .table-leg--fl,
+    .table-leg--fr {
+      bottom: -74px;
+      height: 80px;
+    }
+    .table-leg--bl,
+    .table-leg--br {
+      bottom: -60px;
+      height: 66px;
     }
     .domino-table-zone {
       min-height: 382px;

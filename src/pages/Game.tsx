@@ -18,7 +18,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { fmtAr } from "@/lib/constants";
 // Domino: tour mandritra 20 segondra. Aloha ny 20s dia ny mpilalao IHANY no
 // manindry, rehefa tapitra ny 20s vao mandeha automatique (auto-play).
-const TURN_TIMEOUT_SEC = 20;
+const TURN_TIMEOUT_SEC = 15;
 // Anti-skip 3P: ny client an'ilay tompon'ny tour ihany no mahazo manao auto.
 // Raha offline izy, ny backend watchdog no mandray andraikitra fa tsy client an'ny hafa.
 import { DominoTile, DominoBack } from "@/components/DominoTile";
@@ -1706,6 +1706,8 @@ export default function Game() {
                       size={isMobile ? "xl" : "xl"}
                       horizontal={firstBoardA !== firstBoardB}
                       variant="white"
+                      pipColor="red"
+                      glow="green"
                     />
                   </div>
                 </div>

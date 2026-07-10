@@ -800,7 +800,7 @@ export default function LudoGame() {
           ))}
 
           {/* Board itself — plein écran, with minimal inset for corner profiles */}
-          <div className="absolute inset-0 pt-14 pb-14 px-2 sm:px-4">
+          <div className="absolute inset-0 pt-20 pb-20 px-2 sm:px-4">
             <LudoBoard
               pawns={g.pawns ?? []}
               playersCount={g.players_count}

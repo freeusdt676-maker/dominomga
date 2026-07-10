@@ -133,7 +133,21 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
           <rect x={(b.x + 1) * CELL} y={(b.y + 1) * CELL} width={4 * CELL} height={4 * CELL} fill="#fafafa" stroke="#0b1d5c" />
           {/* 4 pawn slots */}
           {BASE_SPOTS[b.seat].map(([cx, cy], i) => (
-            <circle key={i} cx={cx * CELL} cy={cy * CELL} r={CELL * 0.6} fill={b.color} stroke="#0b1d5c" strokeWidth={1.5} />
+            <g key={i}>
+              {/* Ornate frame around each parked pawn */}
+              <rect
+                x={cx * CELL - CELL * 0.78}
+                y={cy * CELL - CELL * 0.78}
+                width={CELL * 1.56}
+                height={CELL * 1.56}
+                rx={CELL * 0.22}
+                fill="none"
+                stroke="url(#boardFrame)"
+                strokeWidth={2.4}
+                opacity={0.95}
+              />
+              <circle cx={cx * CELL} cy={cy * CELL} r={CELL * 0.72} fill={b.color} stroke="#0b1d5c" strokeWidth={1.5} />
+            </g>
           ))}
           {/* PLAYER label (top base = upside-down like reference) */}
           {(() => {
@@ -188,8 +202,8 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
           } else {
             // Fan in a small circle so pieces don't overlap
             // Tighter ring + scale-down so the whole stack still fits inside one cell
-            const ring = CELL * 0.18;
-            const s = n === 2 ? 0.72 : n === 3 ? 0.6 : 0.52;
+            const ring = CELL * 0.22;
+            const s = n === 2 ? 0.78 : n === 3 ? 0.66 : 0.58;
             idxs.forEach((idx, k) => {
               const ang = (-Math.PI / 2) + (k * 2 * Math.PI) / n;
               offsets[idx] = [Math.cos(ang) * ring, Math.sin(ang) * ring];
@@ -206,8 +220,8 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
           const movable = movableSeat === p.seat && movablePawns?.includes(p.idx);
           const color = SEAT_COLOR[p.seat];
           // Classic Halma-style pion — cone base + ball head (like the reference photo)
-          const W = CELL * 0.82;
-          const H = CELL * 1.35;
+          const W = CELL * 1.05;
+          const H = CELL * 1.7;
           const idBody = `pbody-${i}`;
           const idHead = `phead-${i}`;
           const idBase = `pbase-${i}`;

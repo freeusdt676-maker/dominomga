@@ -39,6 +39,34 @@ function FaceSVG({ value, x, y, w, h, pipFill }: { value: number; x: number; y: 
   );
 }
 
+type PipColor = "red" | "green" | "black";
+
+function PipGradient({ id, color }: { id: string; color: PipColor }) {
+  return (
+    <radialGradient id={id} cx="0.35" cy="0.35" r="0.7">
+      {color === "red" ? (
+        <>
+          <stop offset="0%" stopColor="#ff6b6b" />
+          <stop offset="55%" stopColor="#ef1e1e" />
+          <stop offset="100%" stopColor="#8b0000" />
+        </>
+      ) : color === "green" ? (
+        <>
+          <stop offset="0%" stopColor="#86efac" />
+          <stop offset="55%" stopColor="#22c55e" />
+          <stop offset="100%" stopColor="#065f46" />
+        </>
+      ) : (
+        <>
+          <stop offset="0%" stopColor="#3a3a3a" />
+          <stop offset="60%" stopColor="#0d0d0d" />
+          <stop offset="100%" stopColor="#000" />
+        </>
+      )}
+    </radialGradient>
+  );
+}
+
 export function DominoTile({
   a,
   b,
@@ -58,6 +86,8 @@ export function DominoTile({
   fluid = false,
   variant = "ivory",
   pipColor,
+  pipColorA,
+  pipColorB,
   glow,
 }: {
   a: number;
@@ -77,7 +107,9 @@ export function DominoTile({
   allowPointerWhenDisabled?: boolean;
   fluid?: boolean;
   variant?: "ivory" | "white";
-  pipColor?: "red" | "black";
+  pipColor?: PipColor;
+  pipColorA?: PipColor;
+  pipColorB?: PipColor;
   glow?: "green" | "red" | null;
 }) {
   const { w, h } = SIZES[size];
@@ -90,7 +122,9 @@ export function DominoTile({
   const domDisabled = (visuallyDisabled || !onClick) && !allowPointerWhenDisabled;
   // SVG viewBox dimensions (use tileW × tileH)
   const half = horizontal ? { w: tileW / 2, h: tileH } : { w: tileW, h: tileH / 2 };
-  const uid = `g${a}${b}${size}${horizontal ? "h" : "v"}`;
+  const faceColorA = pipColorA ?? pipColor ?? "black";
+  const faceColorB = pipColorB ?? pipColor ?? "black";
+  const uid = `g${a}${b}${size}${horizontal ? "h" : "v"}${variant}${faceColorA}${faceColorB}`;
   return (
     <button
       type="button"
@@ -157,21 +191,8 @@ export function DominoTile({
               </>
             )}
           </linearGradient>
-          <radialGradient id={`pip-${uid}`} cx="0.35" cy="0.35" r="0.7">
-            {pipColor === "red" ? (
-              <>
-                <stop offset="0%" stopColor="#ff6b6b" />
-                <stop offset="55%" stopColor="#ef1e1e" />
-                <stop offset="100%" stopColor="#8b0000" />
-              </>
-            ) : (
-              <>
-                <stop offset="0%" stopColor="#3a3a3a" />
-                <stop offset="60%" stopColor="#0d0d0d" />
-                <stop offset="100%" stopColor="#000" />
-              </>
-            )}
-          </radialGradient>
+          <PipGradient id={`pip-a-${uid}`} color={faceColorA} />
+          <PipGradient id={`pip-b-${uid}`} color={faceColorB} />
         </defs>
         <rect x="0.5" y="0.5" width={tileW - 1} height={tileH - 1} rx={Math.min(tileW, tileH) * 0.08} fill={`url(#face-${uid})`} stroke={variant === "white" ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.55)"} strokeWidth="1" />
         {/* inner gold inset */}
@@ -182,14 +203,14 @@ export function DominoTile({
         ) : (
           <rect x={4} y={tileH / 2 - 0.6} width={tileW - 8} height={1.2} fill={`url(#spine-${uid})`} />
         )}
-        <FaceSVG value={a} x={0} y={0} w={half.w} h={half.h} pipFill={`url(#pip-${uid})`} />
+        <FaceSVG value={a} x={0} y={0} w={half.w} h={half.h} pipFill={`url(#pip-a-${uid})`} />
         <FaceSVG
           value={b}
           x={horizontal ? tileW / 2 : 0}
           y={horizontal ? 0 : tileH / 2}
           w={half.w}
           h={half.h}
-          pipFill={`url(#pip-${uid})`}
+          pipFill={`url(#pip-b-${uid})`}
         />
       </svg>
     </button>

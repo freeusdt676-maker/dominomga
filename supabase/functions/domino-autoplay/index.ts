@@ -1,9 +1,9 @@
 // Server-side Domino watchdog: prevents permanent hangs.
-// Every 2s (via pg_cron), it plays a legal tile after the 20s deadline,
+// Every 1s (via pg_cron), it plays a legal tile after the 15s deadline,
 // passes ONLY when no legal tile exists, and advances expired reveal phases.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const HANG_THRESHOLD_MS = 16_000;
+const HANG_THRESHOLD_MS = 15_000;
 const REVEAL_MS = 5_000;
 
 const corsHeaders = {

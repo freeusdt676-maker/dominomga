@@ -13,6 +13,7 @@ type Item = {
   displayA: number;
   displayB: number;
   horizontal: boolean;
+  direction: Direction;
 };
 
 type Direction = "right" | "left" | "down";
@@ -125,7 +126,7 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
       else if (direction === "left") cursorX -= advance;
       else cursorY += advance;
 
-      return { x, y, w, h, displayA, displayB, horizontal };
+      return { x, y, w, h, displayA, displayB, horizontal, direction };
     });
 
     return {
@@ -159,19 +160,25 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
       <div className="absolute inset-0">
         {items.map((it, i) => {
           const isHead = i === 0;
-          const isTail = items.length > 1 && i === items.length - 1;
+          const isTail = i === items.length - 1;
           const placed = board[i];
           const tileKey = placed ? `${placed.tile[0]}-${placed.tile[1]}` : `i-${i}`;
           const isNew = !seenRef.current.has(tileKey);
-          // Both open ends of the chain are "heads" where a tile may be placed.
-          const isEnd = isHead || isTail;
-          const ringColor = isEnd
-            ? "0 0 0 3px rgba(34,197,94,1), 0 0 18px 6px rgba(34,197,94,0.85), 0 0 34px 10px rgba(34,197,94,0.55)"
-            : undefined;
+          // Ny vodiny havia ihany no MENA, ny lohany havanana ihany no MAITSO.
+          // Ny vato rehetra eo anelanelany mijanona mainty toy ny teo aloha.
+          const isRedTail = isHead;
+          const isGreenHead = isTail;
+          const redFace: "a" | "b" | null = isRedTail ? (it.direction === "left" ? "b" : "a") : null;
+          const greenFace: "a" | "b" | null = isGreenHead ? (it.direction === "left" ? "a" : "b") : null;
+          const endpointGlow = isRedTail
+            ? "0 0 0 3px rgba(239,30,30,1), 0 0 18px 6px rgba(239,30,30,0.85), 0 0 34px 10px rgba(239,30,30,0.55)"
+            : isGreenHead
+              ? "0 0 0 3px rgba(34,197,94,1), 0 0 18px 6px rgba(34,197,94,0.85), 0 0 34px 10px rgba(34,197,94,0.55)"
+              : undefined;
           return (
             <div
               key={tileKey}
-              className={`absolute ${isNew ? "animate-scale-in" : ""} ${isEnd ? "domino-head-glow" : ""}`}
+              className={`absolute ${isNew ? "animate-scale-in" : ""} ${isRedTail ? "domino-tail-glow" : isGreenHead ? "domino-head-glow" : ""}`}
               style={{
                 left: it.x * scale + offsetX,
                 top: it.y * scale + offsetY,
@@ -179,7 +186,7 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
                 height: it.h * scale,
                 transition: "left 280ms ease, top 280ms ease, width 200ms ease, height 200ms ease",
                 borderRadius: 6,
-                boxShadow: ringColor,
+                boxShadow: endpointGlow,
                 transform: `translate(${-bounds.minX * scale}px, ${-bounds.minY * scale}px)`,
               }}
             >
@@ -190,8 +197,9 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
                 horizontal={it.horizontal}
                 variant="white"
                 fluid
-                pipColor="red"
-                glow={isEnd ? "green" : null}
+                pipColorA={redFace === "a" ? "red" : greenFace === "a" ? "green" : "black"}
+                pipColorB={redFace === "b" ? "red" : greenFace === "b" ? "green" : "black"}
+                glow={isRedTail ? "red" : isGreenHead ? "green" : null}
               />
             </div>
           );

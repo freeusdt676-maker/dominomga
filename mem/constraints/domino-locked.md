@@ -13,9 +13,9 @@ Frozen files (do not edit unless explicitly requested):
 - Domino-related sections of src/index.css (felt board, domino arena, sad/win animations, button active feedback)
 
 Frozen parameters (do not change without explicit prompt):
-- Domino turn timeout: 20s
+- Domino turn timeout: 15s
 - Lobby waiting room expiry: 2 minutes
-- Auto-place behavior at 20s timeout
+- Auto-place behavior at 15s timeout
 
 **Why:** The user confirmed Domino is "tena tsara be" (perfect) and asked for an explicit lock so nothing changes automatically. Any drift breaks the validated UX.
 
@@ -50,7 +50,7 @@ History label `last_reason` MUST be prefixed `MANDRESY NY LALAO — …`. Target
 ## Anti-skip invariant (2026-06-28)
 Never advance/pass a Domino turn while the current player has at least one legal tile for the board ends. This applies to:
 - manual pass
-- 20s client autoplay
+- 15s client autoplay
 - background watchdog / cron autoplay
 - any future admin or repair scripts
 
@@ -66,3 +66,9 @@ Only the client logged in as `current_turn` may perform local timeout/bot auto-a
 The database must reject any update that advances `current_turn` to anything other than `domino_next_turn_id(old_game, old.current_turn)`, and must reject pass-only turn advances while the old current player has a legal move.
 
 **Why:** Customers reported 3P games where A and B kept playing while C was skipped. Cross-client auto-action can race against stale views and make the skip look permanent.
+
+## Board endpoint colors (2026-07-10)
+Do not color every placed domino red. Only the left/vodiny endpoint tile is red, only the right/lohany endpoint tile is green, and all middle tiles keep black pips.
+
+## 15s autoplay/vibration invariant (2026-07-10)
+Domino turn deadline is 15s. At 0s the backend watchdog must auto-play a legal tile or pass if no legal tile exists, even when every player leaves or loses data. The 5s remaining vibration must run only on the device of the current-turn player, never on opponents' devices.

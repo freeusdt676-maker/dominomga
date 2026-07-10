@@ -64,6 +64,7 @@ export default function LudoGame() {
   const [g, setG] = useState<LG | null>(null);
   const [names, setNames] = useState<Record<string, string>>({});
   const [avatars, setAvatars] = useState<Record<string, string | null>>({});
+  const [selfies, setSelfies] = useState<Record<string, string | null>>({});
   const [loadError, setLoadError] = useState<string | null>(null);
   const [rolling, setRolling] = useState(false);
   const [now, setNow] = useState(Date.now());
@@ -127,16 +128,19 @@ export default function LudoGame() {
   const hydrateProfiles = async (game: Partial<LG>) => {
     const ids = [game.player1_id, game.player2_id, game.player3_id, game.player4_id].filter(Boolean) as string[];
     if (!ids.length) return;
-    const { data: ps } = await supabase.from("profiles").select("user_id, mvola_name, avatar_url").in("user_id", ids);
+    const { data: ps } = await supabase.from("profiles").select("user_id, mvola_name, avatar_url, selfie_url").in("user_id", ids);
     if (!ps?.length) return;
     const nextNames: Record<string, string> = {};
     const nextAvatars: Record<string, string | null> = {};
+    const nextSelfies: Record<string, string | null> = {};
     ps.forEach((p: any) => {
       nextNames[p.user_id] = p.mvola_name;
       nextAvatars[p.user_id] = p.avatar_url ?? null;
+      nextSelfies[p.user_id] = p.selfie_url ?? p.avatar_url ?? null;
     });
     setNames((prev) => ({ ...prev, ...nextNames }));
     setAvatars((prev) => ({ ...prev, ...nextAvatars }));
+    setSelfies((prev) => ({ ...prev, ...nextSelfies }));
   };
 
   const applyIncomingGame = (raw: any, forceUnlock = false) => {
@@ -696,26 +700,38 @@ export default function LudoGame() {
     const seatColor = SEAT_COLOR[seat];
     const nameStr = uid ? (names[uid] ?? "...") : "miandry";
     const urgent = isTurn && remainingSec <= 3;
+    const selfieUrl = uid ? selfies[uid] : null;
 
-    // Pion-shape SVG badge (like the reference "pion in a square" tile)
+    // Selfie tile: shows the player's signup selfie inside the seat-colored frame.
+    // Falls back to the pion SVG when the profile has no photo yet.
     const PionBadge = (
       <div
         className={`ludo-tile w-16 h-16 flex items-center justify-center relative ${isTurn ? "ludo-tile-active" : ""}`}
         style={{ background: `linear-gradient(180deg, ${seatColor}cc 0%, ${seatColor}66 100%)` }}
       >
-        <svg viewBox="0 0 40 40" className="w-12 h-12">
-          <defs>
-            <radialGradient id={`pgb-${seat}`} cx="35%" cy="30%" r="70%">
-              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9" />
-              <stop offset="35%" stopColor={seatColor} />
-              <stop offset="100%" stopColor="#000" stopOpacity="0.55" />
-            </radialGradient>
-          </defs>
-          <ellipse cx="20" cy="33" rx="11" ry="3" fill="#000" opacity="0.4" />
-          <path d="M9 33 C8 22, 14 18, 14 14 L26 14 C26 18, 32 22, 31 33 Z"
-                fill={`url(#pgb-${seat})`} stroke="#0b1d5c" strokeWidth="1.4" />
-          <circle cx="20" cy="11" r="6" fill={`url(#pgb-${seat})`} stroke="#0b1d5c" strokeWidth="1.4" />
-        </svg>
+        {selfieUrl ? (
+          <img
+            src={selfieUrl}
+            alt={nameStr}
+            className="w-12 h-12 rounded-full object-cover border-2"
+            style={{ borderColor: seatColor }}
+            loading="lazy"
+          />
+        ) : (
+          <svg viewBox="0 0 40 40" className="w-12 h-12">
+            <defs>
+              <radialGradient id={`pgb-${seat}`} cx="35%" cy="30%" r="70%">
+                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9" />
+                <stop offset="35%" stopColor={seatColor} />
+                <stop offset="100%" stopColor="#000" stopOpacity="0.55" />
+              </radialGradient>
+            </defs>
+            <ellipse cx="20" cy="33" rx="11" ry="3" fill="#000" opacity="0.4" />
+            <path d="M9 33 C8 22, 14 18, 14 14 L26 14 C26 18, 32 22, 31 33 Z"
+                  fill={`url(#pgb-${seat})`} stroke="#0b1d5c" strokeWidth="1.4" />
+            <circle cx="20" cy="11" r="6" fill={`url(#pgb-${seat})`} stroke="#0b1d5c" strokeWidth="1.4" />
+          </svg>
+        )}
         {/* Medal + score above */}
         <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex items-center gap-0.5 bg-black/70 px-1.5 py-0.5 rounded-full border border-yellow-400">
           <span className="text-[10px] font-extrabold text-yellow-200">{scoreOf(seat)}</span>

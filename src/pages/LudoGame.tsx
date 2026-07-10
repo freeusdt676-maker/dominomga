@@ -64,6 +64,7 @@ export default function LudoGame() {
   const [g, setG] = useState<LG | null>(null);
   const [names, setNames] = useState<Record<string, string>>({});
   const [avatars, setAvatars] = useState<Record<string, string | null>>({});
+  const [selfies, setSelfies] = useState<Record<string, string | null>>({});
   const [loadError, setLoadError] = useState<string | null>(null);
   const [rolling, setRolling] = useState(false);
   const [now, setNow] = useState(Date.now());
@@ -127,16 +128,19 @@ export default function LudoGame() {
   const hydrateProfiles = async (game: Partial<LG>) => {
     const ids = [game.player1_id, game.player2_id, game.player3_id, game.player4_id].filter(Boolean) as string[];
     if (!ids.length) return;
-    const { data: ps } = await supabase.from("profiles").select("user_id, mvola_name, avatar_url").in("user_id", ids);
+    const { data: ps } = await supabase.from("profiles").select("user_id, mvola_name, avatar_url, selfie_url").in("user_id", ids);
     if (!ps?.length) return;
     const nextNames: Record<string, string> = {};
     const nextAvatars: Record<string, string | null> = {};
+    const nextSelfies: Record<string, string | null> = {};
     ps.forEach((p: any) => {
       nextNames[p.user_id] = p.mvola_name;
       nextAvatars[p.user_id] = p.avatar_url ?? null;
+      nextSelfies[p.user_id] = p.selfie_url ?? p.avatar_url ?? null;
     });
     setNames((prev) => ({ ...prev, ...nextNames }));
     setAvatars((prev) => ({ ...prev, ...nextAvatars }));
+    setSelfies((prev) => ({ ...prev, ...nextSelfies }));
   };
 
   const applyIncomingGame = (raw: any, forceUnlock = false) => {

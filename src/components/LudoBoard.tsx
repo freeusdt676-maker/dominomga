@@ -220,8 +220,11 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
           const movable = movableSeat === p.seat && movablePawns?.includes(p.idx);
           const color = SEAT_COLOR[p.seat];
           // Classic Halma-style pion — cone base + ball head (like the reference photo)
-          const W = CELL * 1.05;
-          const H = CELL * 1.7;
+          const W = CELL * 0.95;
+          const H = CELL * 1.35;
+          // Vertical shift so the BASE ellipse sits exactly on the cell center
+          // (previously the pawn hung below the cell — see user screenshot).
+          const footOffset = H * 0.44;
           const idBody = `pbody-${i}`;
           const idHead = `phead-${i}`;
           const idBase = `pbase-${i}`;
@@ -233,7 +236,7 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
             <g
               key={stableKey}
               className="pawn-group"
-              transform={`translate(${x} ${y}) scale(${sc})`}
+              transform={`translate(${x} ${y}) scale(${sc}) translate(0 ${-footOffset})`}
               onClick={() => movable && onPawnClick?.(p.idx)}
               style={{
                 cursor: movable ? "pointer" : "default",

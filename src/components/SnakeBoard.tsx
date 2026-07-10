@@ -170,15 +170,10 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
           const isGreenHead = isTail;
           const redFace: "a" | "b" | null = isRedTail ? (it.direction === "left" ? "b" : "a") : null;
           const greenFace: "a" | "b" | null = isGreenHead ? (it.direction === "left" ? "a" : "b") : null;
-          const endpointGlow = isRedTail
-            ? "0 0 0 3px rgba(239,30,30,1), 0 0 18px 6px rgba(239,30,30,0.85), 0 0 34px 10px rgba(239,30,30,0.55)"
-            : isGreenHead
-              ? "0 0 0 3px rgba(34,197,94,1), 0 0 18px 6px rgba(34,197,94,0.85), 0 0 34px 10px rgba(34,197,94,0.55)"
-              : undefined;
           return (
             <div
               key={tileKey}
-              className={`absolute ${isNew ? "animate-scale-in" : ""} ${isRedTail ? "domino-tail-glow" : isGreenHead ? "domino-head-glow" : ""}`}
+              className={`absolute ${isNew ? "animate-scale-in" : ""}`}
               style={{
                 left: it.x * scale + offsetX,
                 top: it.y * scale + offsetY,
@@ -186,7 +181,6 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
                 height: it.h * scale,
                 transition: "left 280ms ease, top 280ms ease, width 200ms ease, height 200ms ease",
                 borderRadius: 6,
-                boxShadow: endpointGlow,
                 transform: `translate(${-bounds.minX * scale}px, ${-bounds.minY * scale}px)`,
               }}
             >
@@ -199,7 +193,7 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
                 fluid
                 pipColorA={redFace === "a" ? "red" : greenFace === "a" ? "green" : "black"}
                 pipColorB={redFace === "b" ? "red" : greenFace === "b" ? "green" : "black"}
-                glow={isRedTail ? "red" : isGreenHead ? "green" : null}
+                glow={null}
               />
             </div>
           );

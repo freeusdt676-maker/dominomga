@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, ChevronDown, RefreshCw } from "lucide-react";
+import { ArrowLeft, Loader2, RefreshCw, Undo2, Trophy, LogOut } from "lucide-react";
 import LudoBoard from "@/components/LudoBoard";
 import LudoDice3D from "@/components/LudoDice3D";
 import {

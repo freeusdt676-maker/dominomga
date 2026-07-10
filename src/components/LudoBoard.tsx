@@ -205,14 +205,13 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
           const y = cy * CELL + oy;
           const movable = movableSeat === p.seat && movablePawns?.includes(p.idx);
           const color = SEAT_COLOR[p.seat];
-          // GPS-pin style pion — teardrop body with a circular hole head + ripple base
+          // Classic Halma-style pion — cone base + ball head (like the reference photo)
           const W = CELL * 0.82;
-          const H = CELL * 1.25;
-          const id = `pgrad-${i}`;
-          const idShine = `pshine-${i}`;
+          const H = CELL * 1.35;
           const idBody = `pbody-${i}`;
           const idHead = `phead-${i}`;
           const idBase = `pbase-${i}`;
+          const idShine = `pshine-${i}`;
           const stableKey = `pawn-${p.seat}-${p.idx}`;
           // Lift the pawn up so the BASE sits on the cell center (cy)
           // body anchor = bottom of the pawn
@@ -227,53 +226,77 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
               }}
             >
               <defs>
-                {/* Pin body — glossy teardrop */}
-                <radialGradient id={idBody} cx="35%" cy="25%" r="85%">
-                  <stop offset="0%"  stopColor="#ffffff" stopOpacity="0.75" />
-                  <stop offset="25%" stopColor={color} />
-                  <stop offset="80%" stopColor={color} />
-                  <stop offset="100%" stopColor="#000" stopOpacity="0.65" />
+                {/* Glossy plastic body (cone) — bright top-left highlight, deep bottom shade */}
+                <linearGradient id={idBody} x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%"   stopColor="#000" stopOpacity="0.55" />
+                  <stop offset="18%"  stopColor={color} />
+                  <stop offset="55%"  stopColor="#ffffff" stopOpacity="0.35" />
+                  <stop offset="60%"  stopColor={color} />
+                  <stop offset="100%" stopColor="#000" stopOpacity="0.6" />
+                </linearGradient>
+                {/* Ball head — 3D sphere */}
+                <radialGradient id={idHead} cx="32%" cy="28%" r="78%">
+                  <stop offset="0%"   stopColor="#ffffff" stopOpacity="0.95" />
+                  <stop offset="18%"  stopColor={color} stopOpacity="0.85" />
+                  <stop offset="70%"  stopColor={color} />
+                  <stop offset="100%" stopColor="#000" stopOpacity="0.7" />
                 </radialGradient>
-                <radialGradient id={id} cx="35%" cy="25%" r="60%">
-                  <stop offset="0%"  stopColor="#ffffff" stopOpacity="1" />
-                  <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+                {/* Base disc */}
+                <radialGradient id={idBase} cx="50%" cy="30%" r="70%">
+                  <stop offset="0%"   stopColor="#ffffff" stopOpacity="0.6" />
+                  <stop offset="45%"  stopColor={color} />
+                  <stop offset="100%" stopColor="#000" stopOpacity="0.75" />
                 </radialGradient>
-                <radialGradient id={idShine} cx="50%" cy="50%" r="50%">
-                  <stop offset="0%"  stopColor="#ffffff" stopOpacity="0.9" />
+                <radialGradient id={idShine} cx="50%" cy="30%" r="55%">
+                  <stop offset="0%"  stopColor="#ffffff" stopOpacity="0.95" />
                   <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
                 </radialGradient>
               </defs>
-              {/* Ground ripple base (concentric arcs, like GPS pin) */}
-              <g opacity={0.9}>
-                <ellipse cx={0} cy={H*0.46} rx={W*0.50} ry={W*0.11} fill="none" stroke={color} strokeWidth={2.2} />
-                <ellipse cx={0} cy={H*0.46} rx={W*0.36} ry={W*0.08} fill="none" stroke={color} strokeWidth={1.8} />
-                <ellipse cx={0} cy={H*0.46} rx={W*0.22} ry={W*0.05} fill="none" stroke={color} strokeWidth={1.5} />
-              </g>
-              {/* Soft shadow under tip */}
-              <ellipse cx={W*0.02} cy={H*0.46} rx={W*0.10} ry={W*0.03} fill="#000" opacity={0.45} />
-              {/* Teardrop pin body: round top + pointed tip at H*0.42 */}
+              {/* Ground shadow ellipse */}
+              <ellipse cx={0} cy={H*0.48} rx={W*0.44} ry={W*0.09} fill="#000" opacity={0.5} />
+              {/* Base disc (wide flat foot) */}
+              <ellipse cx={0} cy={H*0.44} rx={W*0.48} ry={W*0.14} fill={`url(#${idBase})`} stroke="#0f0820" strokeWidth={1.4} />
+              {/* Cone body: wide bottom → narrow neck under the ball head */}
+              {(() => {
+                const bx = W*0.46;          // half-width at base
+                const nx = W*0.18;          // half-width at neck (below ball)
+                const bottomY = H*0.44;
+                const neckY   = -H*0.05;
+                return (
+                  <path
+                    d={`
+                      M ${-bx} ${bottomY}
+                      L ${-nx} ${neckY}
+                      Q 0 ${neckY - H*0.02} ${nx} ${neckY}
+                      L ${bx} ${bottomY}
+                      Q 0 ${bottomY + W*0.14} ${-bx} ${bottomY}
+                      Z
+                    `}
+                    fill={`url(#${idBody})`}
+                    stroke="#0f0820"
+                    strokeWidth={1.6}
+                    strokeLinejoin="round"
+                  />
+                );
+              })()}
+              {/* Vertical highlight streak on the cone (plastic sheen) */}
               <path
-                d={`
-                  M 0 ${H*0.42}
-                  C ${-W*0.10} ${ H*0.18}, ${-W*0.48} ${-H*0.02}, ${-W*0.48} ${-H*0.16}
-                  A ${W*0.48} ${W*0.48} 0 1 1 ${W*0.48} ${-H*0.16}
-                  C ${W*0.48} ${-H*0.02}, ${W*0.10} ${H*0.18}, 0 ${H*0.42}
-                  Z
-                `}
-                fill={`url(#${idBody})`}
-                stroke="#1a0f2e"
-                strokeWidth={1.6}
+                d={`M ${-W*0.20} ${H*0.38} L ${-W*0.08} ${-H*0.04} L ${-W*0.02} ${-H*0.04} L ${-W*0.10} ${H*0.38} Z`}
+                fill="#ffffff"
+                opacity={0.28}
               />
-              {/* Inner circular "hole" (head) */}
-              <circle cx={0} cy={-H*0.18} r={W*0.20} fill="#fafafa" stroke="#1a0f2e" strokeWidth={1.4} />
-              <circle cx={-W*0.06} cy={-H*0.22} r={W*0.06} fill="#ffffff" opacity={0.9} />
-              {/* Glossy highlight on body */}
-              <ellipse cx={-W*0.22} cy={-H*0.05} rx={W*0.07} ry={H*0.14} fill={`url(#${idShine})`} opacity={0.7} />
+              {/* Small neck ring under the ball */}
+              <ellipse cx={0} cy={-H*0.05} rx={W*0.19} ry={W*0.06} fill="#000" opacity={0.35} />
+              {/* Ball head — 3D sphere sitting on the neck */}
+              <circle cx={0} cy={-H*0.22} r={W*0.26} fill={`url(#${idHead})`} stroke="#0f0820" strokeWidth={1.4} />
+              {/* Highlight glare on the ball */}
+              <ellipse cx={-W*0.09} cy={-H*0.29} rx={W*0.10} ry={W*0.07} fill={`url(#${idShine})`} opacity={0.95} />
+              <circle cx={-W*0.12} cy={-H*0.31} r={W*0.03} fill="#ffffff" opacity={0.95} />
               {/* Movable indicator: gold pulse ring at the tip */}
               {movable && (
                 <>
-                  <ellipse cx={0} cy={H*0.46} rx={W*0.54} ry={W*0.13} fill="none" stroke="#ffe27a" strokeWidth={2.5} opacity={0.95} />
-                  <ellipse cx={0} cy={H*0.46} rx={W*0.54} ry={W*0.13} fill="none" stroke="#ffe27a" strokeWidth={2} className="pulse-ring" />
+                  <ellipse cx={0} cy={H*0.48} rx={W*0.56} ry={W*0.15} fill="none" stroke="#ffe27a" strokeWidth={2.5} opacity={0.95} />
+                  <ellipse cx={0} cy={H*0.48} rx={W*0.56} ry={W*0.15} fill="none" stroke="#ffe27a" strokeWidth={2} className="pulse-ring" />
                 </>
               )}
             </g>

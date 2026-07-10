@@ -30,7 +30,28 @@ export function RadioPlayer() {
       a.pause();
       setPlaying(false);
     } else {
-      a.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+      const start = () => {
+        const dur = Number.isFinite(a.duration) && a.duration > 10 ? a.duration : 0;
+        if (dur > 0) {
+          try {
+            a.currentTime = Math.random() * (dur - 5);
+          } catch {
+            // ignore seek errors
+          }
+        }
+        a.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+      };
+      if (a.readyState >= 1 && Number.isFinite(a.duration) && a.duration > 0) {
+        start();
+      } else {
+        const onMeta = () => {
+          a.removeEventListener("loadedmetadata", onMeta);
+          start();
+        };
+        a.addEventListener("loadedmetadata", onMeta);
+        a.preload = "metadata";
+        a.load();
+      }
     }
   };
 

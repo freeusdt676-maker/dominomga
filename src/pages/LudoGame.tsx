@@ -700,10 +700,10 @@ export default function LudoGame() {
     // Pion-shape SVG badge (like the reference "pion in a square" tile)
     const PionBadge = (
       <div
-        className={`ludo-tile w-14 h-14 flex items-center justify-center relative ${isTurn ? "ludo-tile-active" : ""}`}
+        className={`ludo-tile w-16 h-16 flex items-center justify-center relative ${isTurn ? "ludo-tile-active" : ""}`}
         style={{ background: `linear-gradient(180deg, ${seatColor}cc 0%, ${seatColor}66 100%)` }}
       >
-        <svg viewBox="0 0 40 40" className="w-9 h-9">
+        <svg viewBox="0 0 40 40" className="w-12 h-12">
           <defs>
             <radialGradient id={`pgb-${seat}`} cx="35%" cy="30%" r="70%">
               <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9" />
@@ -726,7 +726,7 @@ export default function LudoGame() {
 
     // Dice tile (rounded square, dark)
     const DiceTile = (
-      <div className={`ludo-tile w-14 h-14 relative flex items-center justify-center ${isTurn ? "ludo-tile-active" : ""}`}>
+      <div className={`ludo-tile w-16 h-16 relative flex items-center justify-center ${isTurn ? "ludo-tile-active" : ""}`}>
         {isMe && isTurn && !g.dice_rolled ? (
           <button
             onClick={handleRoll}
@@ -734,10 +734,10 @@ export default function LudoGame() {
             className="w-full h-full flex items-center justify-center active:translate-y-0.5"
             aria-label="Roll dice"
           >
-            <LudoDice3D face={diceFace} size={44} rolling={isAnim} idle={!g.last_dice} />
+            <LudoDice3D face={diceFace} size={56} rolling={isAnim} idle={!g.last_dice} />
           </button>
         ) : (
-          <LudoDice3D face={isTurn ? (g.last_dice ?? 5) : 5} size={44} rolling={isAnim} idle={!isTurn || !g.dice_rolled} />
+          <LudoDice3D face={isTurn ? (g.last_dice ?? 5) : 5} size={56} rolling={isAnim} idle={!isTurn || !g.dice_rolled} />
         )}
         {/* Timer countdown badge */}
         {isTurn && (
@@ -800,7 +800,7 @@ export default function LudoGame() {
           ))}
 
           {/* Board itself — plein écran, with minimal inset for corner profiles */}
-          <div className="absolute inset-0 pt-14 pb-14 px-2 sm:px-4">
+          <div className="absolute inset-0 pt-20 pb-20 px-2 sm:px-4">
             <LudoBoard
               pawns={g.pawns ?? []}
               playersCount={g.players_count}
@@ -861,7 +861,7 @@ export default function LudoGame() {
         <GameChat
           gameId={g.id}
           names={names}
-          triggerClassName="fab-circle fixed bottom-24 right-3 z-30 w-12 h-12"
+          triggerClassName="fab-circle fixed left-1/2 -translate-x-1/2 bottom-[72px] z-30 w-11 h-11"
         />
       )}
 

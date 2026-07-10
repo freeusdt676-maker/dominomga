@@ -817,7 +817,28 @@ export default function LudoGame() {
 
       {/* Status bar */}
       <div className="shrink-0 px-2 py-1.5 ludo-panel border-t border-yellow-500/40">
-        <div className="max-w-lg mx-auto text-center">
+        <div className="max-w-lg mx-auto text-center relative">
+          {/* Bottom action row — Ludo Master style */}
+          <div className="flex items-center justify-between px-2 mb-1">
+            <button
+              onClick={() => nav("/ludo")}
+              className="ludo-tile w-9 h-9 flex items-center justify-center"
+              aria-label="Hiverina"
+            >
+              <Undo2 className="w-4 h-4 text-yellow-200" />
+            </button>
+            <div className="ludo-tile px-3 py-1 flex items-center gap-1">
+              <Trophy className="w-3.5 h-3.5 text-yellow-300" />
+              <span className="text-[10px] font-extrabold text-yellow-100 tracking-wide">CURRENT RANKING</span>
+            </div>
+            <button
+              onClick={() => nav("/")}
+              className="ludo-tile w-9 h-9 flex items-center justify-center"
+              aria-label="Fivoahana"
+            >
+              <LogOut className="w-4 h-4 text-yellow-200" />
+            </button>
+          </div>
           {g.status === "waiting" && (
             <p className="text-yellow-100 text-xs">Miandry mpilalao... ({[g.player1_id, g.player2_id, g.player3_id, g.player4_id].filter(Boolean).length}/{g.players_count})</p>
           )}

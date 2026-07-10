@@ -49,30 +49,30 @@ function LudoDice3DBase({ face, size = 64, idle = false, rolling = false }: Prop
       aria-label={`dice-${face}`}
     >
       <defs>
-        {/* Ludo King style — dark charcoal die with white pips */}
+        {/* Wooden die — cream/beige with black pips (matches reference photo) */}
         <linearGradient id="dieFill" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#4a4a52" />
-          <stop offset="45%" stopColor="#2b2b32" />
-          <stop offset="100%" stopColor="#0d0d12" />
+          <stop offset="0%" stopColor="#fff1c8" />
+          <stop offset="45%" stopColor="#f0d888" />
+          <stop offset="100%" stopColor="#b8892f" />
         </linearGradient>
         <linearGradient id="dieEdge" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#5a5a63" />
-          <stop offset="50%" stopColor="#1a1a20" />
-          <stop offset="100%" stopColor="#000000" />
+          <stop offset="0%" stopColor="#e6c274" />
+          <stop offset="50%" stopColor="#8a5f1a" />
+          <stop offset="100%" stopColor="#4a2f08" />
         </linearGradient>
         <radialGradient id="dieGloss" cx="30%" cy="20%" r="60%">
-          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.35" />
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.55" />
           <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
         </radialGradient>
         <radialGradient id="dieCorner" cx="100%" cy="100%" r="80%">
-          <stop offset="0%" stopColor="#000" stopOpacity="0.55" />
+          <stop offset="0%" stopColor="#000" stopOpacity="0.4" />
           <stop offset="100%" stopColor="#000" stopOpacity="0" />
         </radialGradient>
-        {/* Recessed white pip (Ludo King) */}
-        <radialGradient id="pipGrad" cx="35%" cy="28%" r="80%">
-          <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="60%" stopColor="#f4f4f6" />
-          <stop offset="100%" stopColor="#b8b8bf" />
+        {/* Black pip (wooden die style) */}
+        <radialGradient id="pipGrad" cx="35%" cy="30%" r="80%">
+          <stop offset="0%" stopColor="#3a3a3a" />
+          <stop offset="60%" stopColor="#0a0a0a" />
+          <stop offset="100%" stopColor="#000000" />
         </radialGradient>
         <filter id="dieDrop" x="-30%" y="-30%" width="160%" height="160%">
           <feDropShadow dx="0" dy="3" stdDeviation="2.2" floodOpacity="0.55" />
@@ -81,23 +81,23 @@ function LudoDice3DBase({ face, size = 64, idle = false, rolling = false }: Prop
           <feGaussianBlur stdDeviation="0.6" />
         </filter>
       </defs>
-      {/* Body w/ gold edge */}
+      {/* Body w/ wood edge */}
       <rect x="4" y="4" width="92" height="92" rx="20" ry="20" fill="url(#dieEdge)" filter="url(#dieDrop)" />
-      <rect x="7" y="7" width="86" height="86" rx="17" ry="17" fill="url(#dieFill)" stroke="#000" strokeWidth="1.2" />
+      <rect x="7" y="7" width="86" height="86" rx="17" ry="17" fill="url(#dieFill)" stroke="#5a3a10" strokeWidth="1" />
       {/* Corner shade for 3D depth */}
       <rect x="7" y="7" width="86" height="86" rx="17" ry="17" fill="url(#dieCorner)" />
       {/* Top highlight */}
       <rect x="12" y="11" width="76" height="34" rx="14" ry="14" fill="url(#dieGloss)" />
       {/* Inner bevels */}
-      <rect x="9" y="9" width="82" height="82" rx="15" ry="15" fill="none" stroke="#ffffff" strokeOpacity="0.18" strokeWidth="1.1" />
-      <rect x="9" y="10" width="82" height="82" rx="15" ry="15" fill="none" stroke="#000" strokeOpacity="0.5" strokeWidth="1.1" />
+      <rect x="9" y="9" width="82" height="82" rx="15" ry="15" fill="none" stroke="#ffffff" strokeOpacity="0.35" strokeWidth="1.1" />
+      <rect x="9" y="10" width="82" height="82" rx="15" ry="15" fill="none" stroke="#000" strokeOpacity="0.35" strokeWidth="1.1" />
       {/* Pips */}
       {pips.map(([cx, cy], i) => (
         <g key={i}>
-          {/* Recessed socket */}
-          <circle cx={cx * 100} cy={cy * 100 + 1.6} r="9" fill="#000" opacity="0.55" filter="url(#pipShade)" />
-          <circle cx={cx * 100} cy={cy * 100} r="8.5" fill="url(#pipGrad)" stroke="#3a3a42" strokeWidth="0.4" />
-          <circle cx={cx * 100 - 2.4} cy={cy * 100 - 2.8} r="2.6" fill="#ffffff" opacity="0.95" />
+          {/* Drilled black pip */}
+          <circle cx={cx * 100 + 0.6} cy={cy * 100 + 1.4} r="8.6" fill="#000" opacity="0.4" filter="url(#pipShade)" />
+          <circle cx={cx * 100} cy={cy * 100} r="8.4" fill="url(#pipGrad)" stroke="#000" strokeWidth="0.5" />
+          <circle cx={cx * 100 - 2.2} cy={cy * 100 - 2.6} r="1.8" fill="#ffffff" opacity="0.35" />
         </g>
       ))}
     </svg>

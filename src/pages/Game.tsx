@@ -1086,7 +1086,7 @@ export default function Game() {
     const isMyTurnHere = game.current_turn === user.id;
     if (!isMyTurnHere) return;
     const botFastPath = botActive;
-    // Raha activé ny Bot eo amin'ny compte-ko ARY ahy ilay tour: tsy miandry 20s.
+    // Raha activé ny Bot eo amin'ny compte-ko ARY ahy ilay tour: tsy miandry 15s.
     if (!botFastPath && elapsed < TURN_TIMEOUT_SEC) return;
     const key = `${game.id}-${game.turn_started_at}-${game.current_turn}`;
     if (autoActedRef.current === key) return;
@@ -1282,7 +1282,7 @@ export default function Game() {
   }, [selected, isMyTurn, myHand, board]);
 
   // Auto-pass HAINGANA: raha tonga ny tour-ko nefa TSY MISY vato azoko apetraka
-  // mihitsy, tsy miandry ny 20s — mandalo automatique aorian'ny 1.2s mba
+  // mihitsy, tsy miandry ny 15s — mandalo automatique aorian'ny 1.2s mba
     // tsy hisy "dingana" ny adversaire manaraka. Manaja foana ny rotation
         // mankany ANKAVIA (3P: P1→P2→P3).
   useEffect(() => {
@@ -1374,7 +1374,7 @@ export default function Game() {
             ? "bg-emerald-500 text-black border-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.75)]"
             : "bg-black/55 text-muted-foreground border-muted-foreground/40 backdrop-blur"
         }`}
-        title="Raha activé: mandeha ho azy ny tour-nao tsy miandry 20s"
+        title="Raha activé: mandeha ho azy ny tour-nao tsy miandry 15s"
       >
         {botActive ? "🤖 ON" : "🤖 Bot"}
       </button>

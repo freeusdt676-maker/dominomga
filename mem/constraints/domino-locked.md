@@ -15,7 +15,7 @@ Frozen files (do not edit unless explicitly requested):
 Frozen parameters (do not change without explicit prompt):
 - Domino turn timeout: 15s
 - Lobby waiting room expiry: 2 minutes
-- Auto-place behavior at 20s timeout
+- Auto-place behavior at 15s timeout
 
 **Why:** The user confirmed Domino is "tena tsara be" (perfect) and asked for an explicit lock so nothing changes automatically. Any drift breaks the validated UX.
 
@@ -50,7 +50,7 @@ History label `last_reason` MUST be prefixed `MANDRESY NY LALAO — …`. Target
 ## Anti-skip invariant (2026-06-28)
 Never advance/pass a Domino turn while the current player has at least one legal tile for the board ends. This applies to:
 - manual pass
-- 20s client autoplay
+- 15s client autoplay
 - background watchdog / cron autoplay
 - any future admin or repair scripts
 

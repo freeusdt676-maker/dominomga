@@ -205,9 +205,9 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
           const y = cy * CELL + oy;
           const movable = movableSeat === p.seat && movablePawns?.includes(p.idx);
           const color = SEAT_COLOR[p.seat];
-          // Ludo-King style — taller, slimmer pion (disc base + dome body + ball head)
-          const W = CELL * 0.72;
-          const H = CELL * 1.45;
+          // Ludo Master style — compact glossy pion (wide disc + rounded bell + ball head)
+          const W = CELL * 0.82;
+          const H = CELL * 1.15;
           const id = `pgrad-${i}`;
           const idShine = `pshine-${i}`;
           const idBody = `pbody-${i}`;
@@ -255,34 +255,32 @@ export default function LudoBoard({ pawns, playersCount, movableSeat, movablePaw
                   <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
                 </radialGradient>
               </defs>
-              {/* Floor shadow */}
-              <ellipse cx={W*0.04} cy={H*0.44} rx={W*0.55} ry={W*0.14} fill="#000" opacity={0.55} />
-              {/* Disc base (wide flat foot) */}
-              <ellipse cx={0} cy={H*0.34} rx={W*0.50} ry={W*0.14} fill={`url(#${idBase})`} stroke="#1c1235" strokeWidth={1.4} />
-              <ellipse cx={0} cy={H*0.32} rx={W*0.50} ry={W*0.13} fill="none" stroke="#ffffff" strokeOpacity={0.45} strokeWidth={1} />
-              {/* Dome body — bell silhouette sitting on disc */}
+              {/* Floor shadow — soft oval under the disc */}
+              <ellipse cx={W*0.06} cy={H*0.46} rx={W*0.56} ry={W*0.12} fill="#000" opacity={0.5} />
+              {/* Wide disc base (thick foot) */}
+              <ellipse cx={0} cy={H*0.36} rx={W*0.52} ry={W*0.16} fill={`url(#${idBase})`} stroke="#1a0f2e" strokeWidth={1.6} />
+              <ellipse cx={0} cy={H*0.32} rx={W*0.52} ry={W*0.15} fill="none" stroke="#ffffff" strokeOpacity={0.55} strokeWidth={1} />
+              {/* Rounded bell body — smooth gum-drop silhouette */}
               <path
                 d={`
-                  M ${-W*0.48} ${ H*0.34}
-                  C ${-W*0.52} ${ H*0.10}, ${-W*0.40} ${-H*0.05}, ${-W*0.22} ${-H*0.12}
-                  C ${-W*0.22} ${-H*0.22}, ${-W*0.22} ${-H*0.22}, ${-W*0.18} ${-H*0.25}
-                  L ${ W*0.18} ${-H*0.25}
-                  C ${ W*0.22} ${-H*0.22},  ${ W*0.22} ${-H*0.22},  ${ W*0.22} ${-H*0.12}
-                  C ${ W*0.40} ${-H*0.05},  ${ W*0.52} ${ H*0.10},  ${ W*0.48} ${ H*0.34}
+                  M ${-W*0.50} ${ H*0.36}
+                  C ${-W*0.58} ${ H*0.05}, ${-W*0.42} ${-H*0.18}, ${-W*0.15} ${-H*0.22}
+                  L ${ W*0.15} ${-H*0.22}
+                  C ${ W*0.42} ${-H*0.18},  ${ W*0.58} ${ H*0.05},  ${ W*0.50} ${ H*0.36}
                   Z
                 `}
                 fill={`url(#${idBody})`}
-                stroke="#1c1235"
-                strokeWidth={1.4}
+                stroke="#1a0f2e"
+                strokeWidth={1.6}
               />
-              {/* Neck shadow line where head meets body */}
-              <ellipse cx={0} cy={-H*0.22} rx={W*0.20} ry={H*0.03} fill="#000" opacity={0.35} />
+              {/* Neck ring where head meets body */}
+              <ellipse cx={0} cy={-H*0.20} rx={W*0.18} ry={H*0.028} fill="#000" opacity={0.4} />
               {/* Round head ball */}
-              <circle cx={0} cy={-H*0.38} r={W*0.22} fill={`url(#${idHead})`} stroke="#1c1235" strokeWidth={1.4} />
-              {/* Highlights */}
-              <ellipse cx={-W*0.08} cy={-H*0.43} rx={W*0.10} ry={W*0.07} fill={`url(#${id})`} />
-              <ellipse cx={-W*0.20} cy={ H*0.05} rx={W*0.08} ry={H*0.18} fill={`url(#${idShine})`} opacity={0.7} />
-              <circle cx={-W*0.10} cy={-H*0.45} r={W*0.05} fill="#ffffff" opacity={0.95} />
+              <circle cx={0} cy={-H*0.34} r={W*0.24} fill={`url(#${idHead})`} stroke="#1a0f2e" strokeWidth={1.6} />
+              {/* Glossy highlights */}
+              <ellipse cx={-W*0.09} cy={-H*0.40} rx={W*0.11} ry={W*0.08} fill={`url(#${id})`} />
+              <ellipse cx={-W*0.24} cy={ H*0.02} rx={W*0.08} ry={H*0.20} fill={`url(#${idShine})`} opacity={0.75} />
+              <circle cx={-W*0.11} cy={-H*0.42} r={W*0.055} fill="#ffffff" opacity={0.95} />
               {/* Movable indicator: gold ring + pulse around the base */}
               {movable && (
                 <>

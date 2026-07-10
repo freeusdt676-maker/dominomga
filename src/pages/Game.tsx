@@ -16,8 +16,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { fmtAr } from "@/lib/constants";
-// Domino: tour mandritra 20 segondra. Aloha ny 20s dia ny mpilalao IHANY no
-// manindry, rehefa tapitra ny 20s vao mandeha automatique (auto-play).
+// Domino: tour mandritra 15 segondra. Aloha ny 15s dia ny mpilalao IHANY no
+// manindry, rehefa tapitra ny 15s vao mandeha automatique (auto-play).
 const TURN_TIMEOUT_SEC = 15;
 // Anti-skip 3P: ny client an'ilay tompon'ny tour ihany no mahazo manao auto.
 // Raha offline izy, ny backend watchdog no mandray andraikitra fa tsy client an'ny hafa.
@@ -236,8 +236,9 @@ export default function Game() {
   }, [botActive]);
   // Fantsona local: rehefa miova ny tour dia raketina ny ora LOCAL — izany no
   // miaro amin'ny "clock skew" (ora server ≠ ora telefaona) izay nahatonga ny
-  // auto-play handeha mialoha ny 20s.
+  // auto-play handeha mialoha ny 15s.
   const turnAnchorRef = useRef<{ key: string; at: number }>({ key: "", at: 0 });
+  const watchdogNudgeRef = useRef<string | null>(null);
   const initLockRef = useRef(false);
   const roundEndLockRef = useRef<string | null>(null);
   const revealCommitRef = useRef<string | null>(null);
@@ -847,21 +848,22 @@ export default function Game() {
   const localElapsed = turnStart > 0
     ? Math.max(0, Math.floor((now - turnAnchorRef.current.at) / 1000))
     : 0;
-  // Ny kely indrindra no raisina: tsy maintsy lany 20s HITA teto an-toerana vao
+  // Ny kely indrindra no raisina: tsy maintsy lany 15s HITA teto an-toerana vao
   // mandeha automatique — na inona na inona fahasamihafan'ny ora server.
   const elapsed = Math.min(serverElapsed, localElapsed);
   const remaining = turnStart > 0 ? Math.max(0, TURN_TIMEOUT_SEC - elapsed) : TURN_TIMEOUT_SEC;
 
-  // 5s no sisa → mameno feo fampitandremana indray mandeha isaky ny tour
+  // 5s no sisa → vibration amin'ny findain'ny TOMPO-N-TOUR ihany.
   useEffect(() => {
-    if (!game || game.status !== "in_progress" || !game.current_turn) return;
+    if (!game || !user || game.status !== "in_progress" || !game.current_turn) return;
+    if (game.current_turn !== user.id) return;
     if (remaining !== 5) return;
     const key = `${game.id}-${game.turn_started_at}-${game.current_turn}`;
     if (warnedRef.current === key) return;
     warnedRef.current = key;
     // Tsy misy feo intsony — vibration matanjaka ihany
     try { (navigator as any).vibrate?.([180, 80, 180, 80, 240]); } catch {}
-  }, [remaining, game?.id, game?.turn_started_at, game?.current_turn, game?.status]);
+  }, [remaining, game?.id, game?.turn_started_at, game?.current_turn, game?.status, user?.id]);
 
   const tryPlay = async (idx: number, side?: "left" | "right") => {
     if (!isMyTurn || !game || !user) return;
@@ -1071,14 +1073,14 @@ export default function Game() {
     toast("TSY MANANA — mandalo any amin'ny manaraka");
   };
 
-  // Auto-action / Bot — rehefa lany ny 20s, mandeha ho azy ny lalao
+  // Auto-action / Bot — rehefa lany ny 15s, mandeha ho azy ny lalao
   useEffect(() => {
     if (!game || !user) return;
     if (game.status !== "in_progress") return;
     if (!game.current_turn) return;
     if (!game.turn_started_at) return;
     if (isRevealing) return;
-    // Aloha ny 20s: TSY MISY auto mihitsy — miandry ny kitika.
+    // Aloha ny 15s: TSY MISY auto mihitsy — miandry ny kitika.
     // Anti-skip: ny client an'ny tompon'ny tour IHANY no manao auto. Raha mivoaka izy,
     // ny backend watchdog no milalao/passa légal aorian'ny deadline.
     const isMyTurnHere = game.current_turn === user.id;
@@ -1206,7 +1208,7 @@ export default function Game() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elapsed, game?.turn_started_at, game?.status, game?.current_turn, botActive, user?.id]);
 
-  // Tena AZO ANTOKA fa hipoaka rehefa tapitra ny 20s — mametraka setTimeout
+  // Tena AZO ANTOKA fa hipoaka rehefa tapitra ny 15s — mametraka setTimeout
   // mifototra mivantana amin'i `turn_started_at`. Mandeha na dia "throttled"
   // aza ny setInterval(now) rehefa background ny tab.
   useEffect(() => {
@@ -1225,6 +1227,21 @@ export default function Game() {
     }, delay);
     return () => clearTimeout(t);
   }, [game?.turn_started_at, game?.current_turn, game?.status, isRevealing, game?.id, user?.id]);
+
+  // Nudge backend watchdog rehefa mahita 0s ny client rehetra. Tsy milalao ho
+  // solon'ny adversaire ny client; manaitra fotsiny ilay serveur izay manana
+  // guard anti-skip sy legal-move. Raha maty daholo ny finday, cron 1s no mitohy.
+  useEffect(() => {
+    if (!game || game.status !== "in_progress") return;
+    if (!game.current_turn || !game.turn_started_at) return;
+    if (isRevealing || remaining > 0) return;
+    const key = `${game.id}-${game.turn_started_at}-${game.current_turn}`;
+    if (watchdogNudgeRef.current === key) return;
+    watchdogNudgeRef.current = key;
+    supabase.functions.invoke("domino-autoplay", { body: { game_id: game.id } }).catch(() => {
+      watchdogNudgeRef.current = null;
+    });
+  }, [remaining, game?.id, game?.turn_started_at, game?.current_turn, game?.status, isRevealing]);
 
   // SAFETY NET — Raha tafita ny target ny mpilalao iray nefa mihantona
   // ny lalao (current_turn=null, reveal_until lasa) noho ny mpilalao
@@ -1706,8 +1723,8 @@ export default function Game() {
                       size={isMobile ? "xl" : "xl"}
                       horizontal={firstBoardA !== firstBoardB}
                       variant="white"
-                      pipColor="red"
-                      glow="green"
+                      pipColor="black"
+                      glow={null}
                     />
                   </div>
                 </div>

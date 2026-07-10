@@ -77,7 +77,7 @@ export function DominoTile({
   allowPointerWhenDisabled?: boolean;
   fluid?: boolean;
   variant?: "ivory" | "white";
-  pipColor?: "red" | "black";
+  pipColor?: "red" | "green" | "black";
   glow?: "green" | "red" | null;
 }) {
   const { w, h } = SIZES[size];
@@ -90,7 +90,7 @@ export function DominoTile({
   const domDisabled = (visuallyDisabled || !onClick) && !allowPointerWhenDisabled;
   // SVG viewBox dimensions (use tileW × tileH)
   const half = horizontal ? { w: tileW / 2, h: tileH } : { w: tileW, h: tileH / 2 };
-  const uid = `g${a}${b}${size}${horizontal ? "h" : "v"}`;
+  const uid = `g${a}${b}${size}${horizontal ? "h" : "v"}${variant}${pipColor ?? "black"}`;
   return (
     <button
       type="button"
@@ -163,6 +163,12 @@ export function DominoTile({
                 <stop offset="0%" stopColor="#ff6b6b" />
                 <stop offset="55%" stopColor="#ef1e1e" />
                 <stop offset="100%" stopColor="#8b0000" />
+              </>
+            ) : pipColor === "green" ? (
+              <>
+                <stop offset="0%" stopColor="#86efac" />
+                <stop offset="55%" stopColor="#22c55e" />
+                <stop offset="100%" stopColor="#065f46" />
               </>
             ) : (
               <>

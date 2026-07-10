@@ -13,6 +13,7 @@ type Item = {
   displayA: number;
   displayB: number;
   horizontal: boolean;
+  direction: Direction;
 };
 
 type Direction = "right" | "left" | "down";
@@ -125,7 +126,7 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
       else if (direction === "left") cursorX -= advance;
       else cursorY += advance;
 
-      return { x, y, w, h, displayA, displayB, horizontal };
+      return { x, y, w, h, displayA, displayB, horizontal, direction };
     });
 
     return {
@@ -159,14 +160,16 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
       <div className="absolute inset-0">
         {items.map((it, i) => {
           const isHead = i === 0;
-          const isTail = items.length > 1 && i === items.length - 1;
+          const isTail = i === items.length - 1;
           const placed = board[i];
           const tileKey = placed ? `${placed.tile[0]}-${placed.tile[1]}` : `i-${i}`;
           const isNew = !seenRef.current.has(tileKey);
           // Ny vodiny havia ihany no MENA, ny lohany havanana ihany no MAITSO.
           // Ny vato rehetra eo anelanelany mijanona mainty toy ny teo aloha.
           const isRedTail = isHead;
-          const isGreenHead = items.length > 1 && isTail;
+          const isGreenHead = isTail;
+          const redFace: "a" | "b" | null = isRedTail ? (it.direction === "left" ? "b" : "a") : null;
+          const greenFace: "a" | "b" | null = isGreenHead ? (it.direction === "left" ? "a" : "b") : null;
           const endpointGlow = isRedTail
             ? "0 0 0 3px rgba(239,30,30,1), 0 0 18px 6px rgba(239,30,30,0.85), 0 0 34px 10px rgba(239,30,30,0.55)"
             : isGreenHead
@@ -194,7 +197,8 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
                 horizontal={it.horizontal}
                 variant="white"
                 fluid
-                pipColor={isRedTail ? "red" : isGreenHead ? "green" : "black"}
+                pipColorA={redFace === "a" ? "red" : greenFace === "a" ? "green" : "black"}
+                pipColorB={redFace === "b" ? "red" : greenFace === "b" ? "green" : "black"}
                 glow={isRedTail ? "red" : isGreenHead ? "green" : null}
               />
             </div>

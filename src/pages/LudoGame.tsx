@@ -686,103 +686,88 @@ export default function LudoGame() {
     const isMe = mySeat === seat;
     const diceFace = isTurn && g.last_dice ? g.last_dice : 5;
     const isAnim = rollAnimSeat === seat;
-    const cornerCls =
-      corner === "tl" ? "top-1 left-1 flex-row" :
-      corner === "tr" ? "top-1 right-1 flex-row-reverse" :
-      corner === "bl" ? "bottom-1 left-1 flex-row" :
-                       "bottom-1 right-1 flex-row-reverse";
-    const av = uid ? avatars[uid] : null;
-    const initial = (uid && names[uid] ? names[uid][0] : "?").toUpperCase();
-    return (
-      <div className={`absolute ${cornerCls} z-10 flex items-center gap-1.5`}>
-        {/* Avatar */}
-        <div
-          className={`relative w-11 h-11 rounded-full border-2 flex items-center justify-center overflow-hidden shrink-0 ${isTurn ? "profile-active" : ""}`}
-          style={{ borderColor: SEAT_COLOR[seat], background: SEAT_COLOR[seat] }}
-        >
-          {av ? (
-            <img src={av} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <span className="font-bold text-white text-base">{initial}</span>
-          )}
-          {/* Score badge */}
-          <span className="absolute -bottom-0.5 -right-0.5 bg-yellow-300 text-[9px] font-bold text-purple-900 rounded-full w-4 h-4 flex items-center justify-center border border-purple-900">
-            {scoreOf(seat)}
-          </span>
+    const isRight = corner.endsWith("r");
+    const isBottom = corner.startsWith("b");
+    const posCls =
+      corner === "tl" ? "top-1 left-1" :
+      corner === "tr" ? "top-1 right-1" :
+      corner === "bl" ? "bottom-1 left-1" :
+                       "bottom-1 right-1";
+    const seatColor = SEAT_COLOR[seat];
+    const nameStr = uid ? (names[uid] ?? "...") : "miandry";
+    const urgent = isTurn && remainingSec <= 3;
+
+    // Pion-shape SVG badge (like the reference "pion in a square" tile)
+    const PionBadge = (
+      <div
+        className={`ludo-tile w-14 h-14 flex items-center justify-center relative ${isTurn ? "ludo-tile-active" : ""}`}
+        style={{ background: `linear-gradient(180deg, ${seatColor}cc 0%, ${seatColor}66 100%)` }}
+      >
+        <svg viewBox="0 0 40 40" className="w-9 h-9">
+          <defs>
+            <radialGradient id={`pgb-${seat}`} cx="35%" cy="30%" r="70%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9" />
+              <stop offset="35%" stopColor={seatColor} />
+              <stop offset="100%" stopColor="#000" stopOpacity="0.55" />
+            </radialGradient>
+          </defs>
+          <ellipse cx="20" cy="33" rx="11" ry="3" fill="#000" opacity="0.4" />
+          <path d="M9 33 C8 22, 14 18, 14 14 L26 14 C26 18, 32 22, 31 33 Z"
+                fill={`url(#pgb-${seat})`} stroke="#0b1d5c" strokeWidth="1.4" />
+          <circle cx="20" cy="11" r="6" fill={`url(#pgb-${seat})`} stroke="#0b1d5c" strokeWidth="1.4" />
+        </svg>
+        {/* Medal + score above */}
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex items-center gap-0.5 bg-black/70 px-1.5 py-0.5 rounded-full border border-yellow-400">
+          <span className="text-[10px] font-extrabold text-yellow-200">{scoreOf(seat)}</span>
+          <Trophy className="w-2.5 h-2.5 text-yellow-300" />
         </div>
-        {/* Name + timer + dice */}
-        <div className={`flex flex-col ${corner.endsWith("r") ? "items-end" : "items-start"}`}>
-          <div className="flex items-center gap-1 max-w-[100px]">
-            <span className="text-[10px] font-bold text-yellow-50 truncate drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">
-              {uid ? (names[uid] ?? "...") : "miandry"}
-            </span>
-          </div>
-          {/* Personal dice — only ACTIVE seat shows the big 3D dice with arrow */}
-          {isTurn && (
-            <div className="relative mt-0.5">
-              {!g.dice_rolled && (
-                <ChevronDown
-                  className="dice-arrow-strong absolute -top-4 left-1/2 w-5 h-5 text-yellow-300 drop-shadow-[0_2px_2px_rgba(0,0,0,0.7)]"
-                  strokeWidth={3}
-                />
-              )}
-              {(() => {
-                const RING_SIZE = 72;
-                const R = 32;
-                const C = 2 * Math.PI * R;
-                const pct = Math.max(0, Math.min(1, remainingSec / TURN_LIMIT));
-                const urgent = remainingSec <= 3;
-                const ringColor = urgent ? "#ff3b3b" : "#ffe27a";
-                const ring = (
-                  <svg
-                    width={RING_SIZE}
-                    height={RING_SIZE}
-                    viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
-                    className={`absolute inset-0 pointer-events-none ${urgent ? "animate-pulse" : ""}`}
-                    style={{ transform: "rotate(-90deg)" }}
-                  >
-                    <circle cx={RING_SIZE/2} cy={RING_SIZE/2} r={R} stroke="rgba(0,0,0,0.55)" strokeWidth={4} fill="none" />
-                    <circle
-                      cx={RING_SIZE/2} cy={RING_SIZE/2} r={R}
-                      stroke={ringColor} strokeWidth={4} fill="none" strokeLinecap="round"
-                      strokeDasharray={C}
-                      strokeDashoffset={C * (1 - pct)}
-                      style={{ transition: "stroke-dashoffset 0.4s linear, stroke 0.2s linear" }}
-                    />
-                  </svg>
-                );
-                const sec = (
-                  <span
-                    className={`absolute -bottom-1 left-1/2 -translate-x-1/2 text-[10px] font-extrabold px-1.5 rounded-full ${urgent ? "bg-red-600 text-white" : "bg-yellow-300 text-purple-900"} drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]`}
-                    style={{ lineHeight: "14px", minWidth: 18, textAlign: "center" }}
-                  >
-                    {remainingSec}
-                  </span>
-                );
-                const inner = isMe && !g.dice_rolled ? (
-                  <button
-                    onClick={handleRoll}
-                    disabled={rolling}
-                    className="absolute inset-0 flex items-center justify-center transition active:translate-y-0.5"
-                    aria-label="Roll dice"
-                  >
-                    <LudoDice3D face={diceFace} size={56} rolling={isAnim} idle={!g.last_dice} />
-                  </button>
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <LudoDice3D face={g.last_dice ?? 5} size={56} rolling={isAnim} idle={!g.dice_rolled} />
-                  </div>
-                );
-                return (
-                  <div className="relative" style={{ width: RING_SIZE, height: RING_SIZE }}>
-                    {ring}
-                    {inner}
-                    {sec}
-                  </div>
-                );
-              })()}
-            </div>
-          )}
+      </div>
+    );
+
+    // Dice tile (rounded square, dark)
+    const DiceTile = (
+      <div className={`ludo-tile w-14 h-14 relative flex items-center justify-center ${isTurn ? "ludo-tile-active" : ""}`}>
+        {isMe && isTurn && !g.dice_rolled ? (
+          <button
+            onClick={handleRoll}
+            disabled={rolling}
+            className="w-full h-full flex items-center justify-center active:translate-y-0.5"
+            aria-label="Roll dice"
+          >
+            <LudoDice3D face={diceFace} size={44} rolling={isAnim} idle={!g.last_dice} />
+          </button>
+        ) : (
+          <LudoDice3D face={isTurn ? (g.last_dice ?? 5) : 5} size={44} rolling={isAnim} idle={!isTurn || !g.dice_rolled} />
+        )}
+        {/* Timer countdown badge */}
+        {isTurn && (
+          <span className={`absolute -bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-extrabold px-1.5 rounded-full ${urgent ? "bg-red-600 text-white animate-pulse" : "bg-yellow-300 text-purple-900"} border border-black/40`}>
+            {remainingSec}s
+          </span>
+        )}
+      </div>
+    );
+
+    // Yellow arrow pointing to active dice (like reference)
+    const Arrow = isTurn && !g.dice_rolled ? (
+      <div className="ludo-arrow-yellow flex items-center justify-center" style={{
+        color: "#ffd60a",
+      }}>
+        <svg width="26" height="20" viewBox="0 0 26 20">
+          <path d={isRight ? "M2 10 L18 10 L18 3 L24 10 L18 17 L18 10" : "M24 10 L8 10 L8 3 L2 10 L8 17 L8 10"} fill="#ffd60a" stroke="#000" strokeWidth="1.2" strokeLinejoin="round"/>
+        </svg>
+      </div>
+    ) : null;
+
+    return (
+      <div className={`absolute ${posCls} z-10 flex flex-col ${isRight ? "items-end" : "items-start"} gap-0.5`}>
+        <span className="text-[10px] font-bold text-yellow-50 truncate max-w-[130px] drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)] px-1">
+          {nameStr}
+        </span>
+        <div className={`flex items-center gap-1.5 ${isRight ? "flex-row-reverse" : "flex-row"}`}>
+          {PionBadge}
+          {DiceTile}
+          {Arrow}
         </div>
       </div>
     );

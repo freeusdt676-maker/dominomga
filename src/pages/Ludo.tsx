@@ -492,25 +492,19 @@ export default function LudoPage() {
           ))}
         </div>
 
-        {/* Board with corner dice */}
-        <div className="relative">
-          <Board players={players} activeColor={current.color}
-                 onPickPawn={(color, idx) => {
-                   if (color !== current.color || current.isBot) return;
-                   if (!movable.has(idx)) return;
-                   movePawn(turnIdx, idx, dice);
-                 }}
-                 movable={current.isBot ? new Set() : movable} />
-          {(["red","green","blue","yellow"] as ColorKey[]).map((c) => {
-            const pos: Record<ColorKey,string> = {
-              red: "top-1 left-1",
-              green: "top-1 right-1",
-              blue: "bottom-1 left-1",
-              yellow: "bottom-1 right-1",
-            };
+        {/* Board framed by 4 external dice + name labels */}
+        {(() => {
+          const cornerFor: Record<ColorKey, string> = {
+            red: "justify-self-start",
+            green: "justify-self-end",
+            blue: "justify-self-start",
+            yellow: "justify-self-end",
+          };
+          const DiceCell = ({ c }: { c: ColorKey }) => {
             const isActive = current.color === c;
+            const pl = players.find(p => p.color === c)!;
             return (
-              <div key={c} className={`absolute ${pos[c]} z-10`}>
+              <div className={`flex flex-col items-center gap-1 ${cornerFor[c]}`}>
                 <Dice
                   value={isActive ? dice : 1}
                   rolling={isActive && rolling}
@@ -518,10 +512,35 @@ export default function LudoPage() {
                   onRoll={rollDice}
                   color={c}
                 />
+                <span
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isActive ? "ring-2 ring-white" : ""}`}
+                  style={{ background: HEX[c].base, color: c === "yellow" ? "#111" : "#fff" }}
+                >
+                  {labelOf(c)} {pl.isBot ? "(Bot)" : "(Ianao)"}
+                </span>
               </div>
             );
-          })}
-        </div>
+          };
+          return (
+            <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center">
+              <DiceCell c="red" />
+              <div /> {/* top spacer */}
+              <DiceCell c="green" />
+              <div className="col-span-3">
+                <Board players={players} activeColor={current.color}
+                       onPickPawn={(color, idx) => {
+                         if (color !== current.color || current.isBot) return;
+                         if (!movable.has(idx)) return;
+                         movePawn(turnIdx, idx, dice);
+                       }}
+                       movable={current.isBot ? new Set() : movable} />
+              </div>
+              <DiceCell c="blue" />
+              <div />
+              <DiceCell c="yellow" />
+            </div>
+          );
+        })()}
 
         {/* Bottom status */}
         <div className="rounded-xl bg-black/40 p-3 border border-white/10">

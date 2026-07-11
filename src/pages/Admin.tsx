@@ -76,6 +76,8 @@ export default function Admin() {
   const [claimNote, setClaimNote] = useState("Réclamation administratif");
   const [pendingProfileCount, setPendingProfileCount] = useState(0);
   const [onlineOpen, setOnlineOpen] = useState(false);
+  const [gameBlocks, setGameBlocks] = useState<Record<string, boolean>>({ domino: false, ludo: false, petanque: false });
+  const [gameBlockPin, setGameBlockPin] = useState("");
   const adminId = user?.id ?? resolvedAdminId;
   const normalizeTicket = (value: string) => value.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
   const detectedCancelGame = history.find((item) => normalizeTicket(item.ticket_number ?? "") === normalizeTicket(cancelTicketInput));
@@ -177,6 +179,13 @@ export default function Admin() {
       setTotalPlayerBalance(Number(tot ?? 0));
       const { data: lp } = await supabase.rpc("admin_total_locked_cash_pool" as any, { _admin_id: aid });
       setLockedCashPool(Number(lp ?? 0));
+    }
+
+    const { data: gb } = await supabase.from("game_blocks" as any).select("game_type, blocked");
+    if (gb) {
+      const next = { domino: false, ludo: false, petanque: false } as Record<string, boolean>;
+      (gb as any[]).forEach((g) => { next[g.game_type] = Boolean(g.blocked); });
+      setGameBlocks(next);
     }
 
     // Historique Domino + Ludo
@@ -411,6 +420,24 @@ export default function Admin() {
     setUnblockAllOpen(false); setUnblockAllPin(""); await load();
   };
 
+  const setGameBlock = async (gameType: "domino" | "ludo" | "petanque", blocked: boolean) => {
+    if (!adminId) return toast.error("Mbola tsy vita ny fanamarinana admin");
+    if (!gameBlockPin.trim()) return toast.error("Ampidiro ny code administratif");
+    const { error } = await supabase.rpc("admin_set_game_block" as any, {
+      _admin_id: adminId,
+      _pin: gameBlockPin,
+      _game_type: gameType,
+      _blocked: blocked,
+    });
+    if (error) {
+      const msg = error.message.includes("pin_diso") ? "Code administratif diso" : error.message;
+      return toast.error(msg);
+    }
+    setGameBlocks((prev) => ({ ...prev, [gameType]: blocked }));
+    toast.success(`${gameType.toUpperCase()} ${blocked ? "bloqué" : "débloqué"}`);
+    await load();
+  };
+
   const submitReset = async () => {
     if (!resetTarget || !adminId) return;
     const { error } = await supabase.rpc("admin_reset_user_balance", {
@@ -634,6 +661,40 @@ export default function Admin() {
           >
             🔓 Débloquer tout le compte
           </Button>
+        </div>
+
+        <div className="card-felt rounded-2xl p-3 mb-4 border border-destructive/30 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold text-destructive flex items-center gap-1.5"><ShieldAlert className="w-4 h-4" />Bloqué le jeu</p>
+              <p className="text-[10px] text-muted-foreground">Sakanana vetivety ny création/entrée room raha misy olana. Wallet tsy kitihina.</p>
+            </div>
+            <Input
+              type="password"
+              inputMode="numeric"
+              maxLength={6}
+              value={gameBlockPin}
+              onChange={(e) => setGameBlockPin(e.target.value)}
+              placeholder="Code"
+              className="w-24 h-8 text-xs"
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {(["domino", "ludo", "petanque"] as const).map((g) => {
+              const blocked = !!gameBlocks[g];
+              return (
+                <Button
+                  key={g}
+                  size="sm"
+                  variant={blocked ? "destructive" : "outline"}
+                  className={`text-[11px] font-bold ${!blocked ? "border-green-500/50 text-green-500 hover:bg-green-500/10" : ""}`}
+                  onClick={() => setGameBlock(g, !blocked)}
+                >
+                  {blocked ? "🔒" : "🟢"} {g === "petanque" ? "Pétanque" : g.charAt(0).toUpperCase() + g.slice(1)}
+                </Button>
+              );
+            })}
+          </div>
         </div>
 
         <button

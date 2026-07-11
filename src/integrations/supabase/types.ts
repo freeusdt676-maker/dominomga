@@ -229,6 +229,27 @@ export type Database = {
         }
         Relationships: []
       }
+      game_blocks: {
+        Row: {
+          blocked: boolean
+          game_type: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          blocked?: boolean
+          game_type: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          blocked?: boolean
+          game_type?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       game_moves: {
         Row: {
           created_at: string
@@ -1246,6 +1267,15 @@ export type Database = {
         Args: { _admin_id: string; _content: string }
         Returns: Json
       }
+      admin_set_game_block: {
+        Args: {
+          _admin_id: string
+          _blocked: boolean
+          _game_type: string
+          _pin: string
+        }
+        Returns: Json
+      }
       admin_total_locked_cash_pool: {
         Args: { _admin_id: string }
         Returns: number
@@ -1307,6 +1337,7 @@ export type Database = {
         Returns: boolean
       }
       expire_stale_waiting_games: { Args: never; Returns: Json }
+      game_blocked: { Args: { _game_type: string }; Returns: boolean }
       get_admin_id: { Args: never; Returns: string }
       get_recovery_status: {
         Args: { _phone: string; _request_id: string }

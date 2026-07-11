@@ -716,7 +716,7 @@ export default function LudoPage() {
     pawns?: any; current_turn_seat?: number; last_dice?: number | null; dice_rolled?: boolean;
     consecutive_sixes?: number; turn_started_at?: string;
   }) => {
-    if (!id) return;
+    if (!id) return false;
     const payload: any = { _game_id: id };
     if (patch.pawns !== undefined) payload._pawns = patch.pawns;
     if (patch.current_turn_seat !== undefined) payload._current_turn_seat = patch.current_turn_seat;
@@ -725,7 +725,11 @@ export default function LudoPage() {
     if (patch.consecutive_sixes !== undefined) payload._consecutive_sixes = patch.consecutive_sixes;
     if (patch.turn_started_at !== undefined) payload._turn_started_at = patch.turn_started_at;
     const { error } = await supabase.rpc("ludo_update_state" as any, payload);
-    if (error) toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      return false;
+    }
+    return true;
   };
 
   const rollDice = async () => {
@@ -817,19 +821,94 @@ export default function LudoPage() {
     rpcBusy.current = false;
   };
 
-  // Auto-tap on countdown expiry (my turn only) — fallback if watchdog delayed.
-  useEffect(() => {
-    if (!isMyTurn || !row) return;
-    if (autoTapDone.current === row.turn_started_at) return;
-    if (countdown > 0) return;
-    autoTapDone.current = row.turn_started_at ?? "";
-    if (canRoll) { rollDice(); return; }
-    if (row.dice_rolled && movable.size > 0) {
-      const choice = botChoose(current!, row.last_dice ?? 0, players.filter((p) => p.seat !== current!.seat));
-      if (choice != null) movePawn(choice);
+  const autoPlayExpiredTurn = async () => {
+    if (!row || !current || row.status !== "in_progress" || row.winner_id || rpcBusy.current) return;
+    rpcBusy.current = true;
+    try {
+      let dice = Number(row.last_dice ?? 0);
+      let consecutiveSixes = Number(row.consecutive_sixes ?? 0);
+
+      if (!row.dice_rolled) {
+        dice = 1 + Math.floor(Math.random() * 6);
+        consecutiveSixes = dice === 6 ? consecutiveSixes + 1 : 0;
+        setDiceDisplay(dice);
+
+        if (consecutiveSixes >= 3) {
+          await commit({
+            last_dice: dice,
+            dice_rolled: false,
+            consecutive_sixes: 0,
+            current_turn_seat: nextSeatOf(current.seat),
+            turn_started_at: new Date().toISOString(),
+          });
+          return;
+        }
+
+        const legal = legalMoves(current, dice);
+        if (legal.length === 0) {
+          await commit(dice === 6
+            ? { last_dice: dice, dice_rolled: false, consecutive_sixes: consecutiveSixes, turn_started_at: new Date().toISOString() }
+            : { last_dice: dice, dice_rolled: false, consecutive_sixes: 0, current_turn_seat: nextSeatOf(current.seat), turn_started_at: new Date().toISOString() });
+          return;
+        }
+      }
+
+      const choice = botChoose(current, dice, players.filter((p) => p.seat !== current.seat));
+      if (choice == null) {
+        await commit({
+          dice_rolled: false,
+          consecutive_sixes: 0,
+          current_turn_seat: nextSeatOf(current.seat),
+          turn_started_at: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const next = players.map((p) => ({ ...p, pawns: p.pawns.map((x) => ({ ...x })) }));
+      const me = next.find((p) => p.seat === current.seat)!;
+      const pw = me.pawns[choice];
+      pw.progress = pw.progress === 0 ? 1 : pw.progress + dice;
+
+      let didCapture = false;
+      const didFinish = pw.progress === 57;
+      const oi = outerIndex(me.color, pw.progress);
+      if (oi != null && !SAFE.has(oi)) {
+        next.forEach((op) => {
+          if (op.seat === me.seat) return;
+          op.pawns.forEach((opw) => {
+            if (outerIndex(op.color, opw.progress) === oi) { opw.progress = 0; didCapture = true; }
+          });
+        });
+      }
+
+      const iAmWinner = me.pawns.every((x) => x.progress === 57);
+      const extra = dice === 6 || didCapture || didFinish;
+      await commit({
+        pawns: playersToPawnsJson(next),
+        last_dice: dice,
+        current_turn_seat: extra ? current.seat : nextSeatOf(current.seat),
+        dice_rolled: false,
+        consecutive_sixes: extra ? consecutiveSixes : 0,
+        turn_started_at: new Date().toISOString(),
+      });
+      if (iAmWinner && current.userId) {
+        await supabase.rpc("ludo_settle" as any, { _game_id: id, _winner: current.userId });
+      }
+    } finally {
+      rpcBusy.current = false;
     }
+  };
+
+  // Auto-play on countdown expiry for any active seat — fallback if watchdog delayed.
+  useEffect(() => {
+    if (!row || row.status !== "in_progress" || row.winner_id) return;
+    if (countdown > 0) return;
+    const actionKey = `${row.turn_started_at ?? ""}:${row.current_turn_seat ?? ""}:${row.dice_rolled ? "move" : "roll"}:${row.last_dice ?? 0}`;
+    if (autoTapDone.current === actionKey) return;
+    autoTapDone.current = actionKey;
+    autoPlayExpiredTurn();
     // eslint-disable-next-line
-  }, [countdown, isMyTurn, row?.turn_started_at, row?.dice_rolled, movable]);
+  }, [countdown, row?.turn_started_at, row?.current_turn_seat, row?.dice_rolled, row?.last_dice, row?.status, row?.winner_id]);
 
   const scores = useMemo(() => players.map((p) => ({ color: p.color, done: p.pawns.filter((x) => x.progress === 57).length })), [players]);
   const winner: ColorKey | null = row?.winner_id

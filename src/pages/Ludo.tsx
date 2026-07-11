@@ -818,12 +818,34 @@ export default function LudoPage() {
             const align = (c === "red" || c === "blue") ? "items-start" : "items-end";
             const urgent = isActive && !winner && countdown > 0 && countdown <= 3;
             const iAmThisCell = myColor === c;
+          const uidHere = pl.userId ?? "";
+          const avatarUrl = uidHere ? avatars[uidHere] : null;
+          const phoneNum = uidHere ? phones[uidHere] : null;
             return (
               <div className={`flex flex-col ${align} gap-1 ${cornerFor[c]}`}>
-                <div className="text-[10px] font-bold uppercase tracking-wider leading-tight text-center"
-                     style={{ color: HEX[c].light }}>
-                  {pl.name}
-                  <div className="text-[9px] opacity-80">🏠 {pl.pawns.filter((x) => x.progress === 57).length}/4</div>
+                <div className={`flex ${align === "items-end" ? "flex-row-reverse" : "flex-row"} items-center gap-1.5`}>
+                  <div
+                    className="w-9 h-9 rounded-full overflow-hidden bg-black/40 flex items-center justify-center shrink-0"
+                    style={{ border: `2px solid ${HEX[c].light}`, boxShadow: isActive ? `0 0 8px ${HEX[c].light}` : "none" }}
+                  >
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-sm">👤</span>
+                    )}
+                  </div>
+                  <div className="flex flex-col leading-tight" style={{ color: HEX[c].light }}>
+                    <span className="text-[10px] font-bold uppercase tracking-wide">{pl.name}</span>
+                    <span className="text-[9px] opacity-80">🏠 {pl.pawns.filter((x) => x.progress === 57).length}/4</span>
+                    {phoneNum && !iAmThisCell && (
+                      <a
+                        href={`tel:${phoneNum}`}
+                        className="text-[9px] mt-0.5 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-600/80 text-white w-fit"
+                      >
+                        📞 Antso
+                      </a>
+                    )}
+                  </div>
                 </div>
                 <Dice
                   value={isActive ? diceDisplay : (pl.pawns.length ? (row.last_dice && current?.color === c ? row.last_dice : 1) : 1)}

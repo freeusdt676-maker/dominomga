@@ -76,7 +76,16 @@ function pawnCell(color: ColorKey, progress: number, slotIdx: number): [number, 
   if (progress < 57) {
     return HOME_COL[color][progress - 52];
   }
-  return [7, 7]; // center
+  // Finished — sit inside this color's own triangle within the center square,
+  // so each color has its own "home" instead of stacking on top of one another.
+  const spread = (slotIdx - 1.5) * 0.42;
+  switch (color) {
+    case "red":    return [7 + spread, 6.35];
+    case "green":  return [6.35, 7 + spread];
+    case "yellow": return [7 + spread, 7.65];
+    case "blue":   return [7.65, 7 + spread];
+  }
+  return [7, 7];
 }
 
 function outerIndex(color: ColorKey, progress: number): number | null {
@@ -156,7 +165,10 @@ function Board({ players, activeColor, onPickPawn, movable }: {
   const yard = (row: number, col: number, c: ColorKey) => (
     <g key={`yard-${c}`}>
       <rect x={col*S} y={row*S} width={6*S} height={6*S} fill={HEX[c].base} stroke="#111" strokeWidth={2} />
-      <rect x={col*S+S*0.6} y={row*S+S*0.6} width={4.8*S} height={4.8*S} fill="#fff" stroke="#111" strokeWidth={1.5} rx={6}/>
+      {/* Slightly tinted inner area (color echo) instead of pure white */}
+      <rect x={col*S+S*0.6} y={row*S+S*0.6} width={4.8*S} height={4.8*S}
+            fill={HEX[c].light} opacity={0.55}
+            stroke={HEX[c].dark} strokeWidth={1.5} rx={6}/>
     </g>
   );
 
@@ -198,7 +210,6 @@ function Board({ players, activeColor, onPickPawn, movable }: {
       <polygon points={`${9*S},${6*S} ${9*S},${9*S} ${cx},${cy}`} fill={HEX.yellow.base} stroke="#111"/>
       <polygon points={`${9*S},${9*S} ${6*S},${9*S} ${cx},${cy}`} fill={HEX.blue.base} stroke="#111"/>
       <polygon points={`${6*S},${9*S} ${6*S},${6*S} ${cx},${cy}`} fill={HEX.red.base} stroke="#111"/>
-      <text x={cx} y={cy+6} textAnchor="middle" fontSize={22} fontWeight="900" fill="#fff" style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 3 }}>HOME</text>
     </g>
   );
 
@@ -221,7 +232,7 @@ function Board({ players, activeColor, onPickPawn, movable }: {
   const pawnEls: JSX.Element[] = [];
   groups.forEach((arr, key) => {
     arr.forEach((p, i) => {
-      const SCALE = 1.55;
+      const SCALE = 1.30;
       // tip local y in path = 16 → after scale = 16*SCALE.
       // We want the pointed tip to land exactly at the cell center.
       const offset = arr.length > 1 ? (i - (arr.length - 1) / 2) * 10 : 0;

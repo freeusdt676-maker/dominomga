@@ -340,7 +340,12 @@ export default function Home() {
             </div>
           </Link>
 
-          <Link to="/petanque" className="block luxe-card p-5 group transition hover:border-[hsl(var(--gold-1)/0.5)]">
+          <Link to={activePetanqueId ? `/petanque/${activePetanqueId}` : "/petanque"} className="block luxe-card p-5 group transition hover:border-[hsl(var(--gold-1)/0.5)] relative">
+            {activePetanqueId && (
+              <span className="absolute top-2 right-2 inline-flex items-center gap-1 bg-green-600 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-md animate-pulse">
+                <Play className="w-3 h-3 fill-current" /> Hanohy
+              </span>
+            )}
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-xl flex items-center justify-center bg-gradient-to-br from-[#1a5e3a] to-[#0a2e1c] border border-[hsl(var(--gold-1)/0.3)] overflow-hidden">
                 <img src={logoPetanque} alt="Pétanque" className="w-14 h-14 object-contain" width={56} height={56} loading="lazy" />
@@ -354,7 +359,12 @@ export default function Home() {
             </div>
           </Link>
 
-          <Link to="/ludo" className="block luxe-card p-5 group transition hover:border-[hsl(var(--gold-1)/0.5)]">
+          <Link to={activeLudoId ? `/ludo/${activeLudoId}` : "/ludo"} className="block luxe-card p-5 group transition hover:border-[hsl(var(--gold-1)/0.5)] relative">
+            {activeLudoId && (
+              <span className="absolute top-2 right-2 inline-flex items-center gap-1 bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-md animate-pulse">
+                <Play className="w-3 h-3 fill-current" /> Hanohy
+              </span>
+            )}
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-xl flex items-center justify-center bg-gradient-to-br from-[#1e88e5] to-[#0b3d75] border border-[hsl(var(--gold-1)/0.3)] overflow-hidden">
                 <img src={logoLudo} alt="Ludo" className="w-14 h-14 object-contain" width={56} height={56} loading="lazy" />

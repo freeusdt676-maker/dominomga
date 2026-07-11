@@ -822,7 +822,9 @@ export default function LudoPage() {
   };
 
   const autoPlayExpiredTurn = async () => {
-    if (!row || !current || row.status !== "in_progress" || row.winner_id || rpcBusy.current) return;
+    if (!row || row.status !== "in_progress" || row.winner_id || rpcBusy.current) return;
+    const actingPlayer = players.find((p) => p.seat === row.current_turn_seat);
+    if (!actingPlayer) return;
     rpcBusy.current = true;
     try {
       let dice = Number(row.last_dice ?? 0);
@@ -838,34 +840,34 @@ export default function LudoPage() {
             last_dice: dice,
             dice_rolled: false,
             consecutive_sixes: 0,
-            current_turn_seat: nextSeatOf(current.seat),
+            current_turn_seat: nextSeatOf(actingPlayer.seat),
             turn_started_at: new Date().toISOString(),
           });
           return;
         }
 
-        const legal = legalMoves(current, dice);
+        const legal = legalMoves(actingPlayer, dice);
         if (legal.length === 0) {
           await commit(dice === 6
             ? { last_dice: dice, dice_rolled: false, consecutive_sixes: consecutiveSixes, turn_started_at: new Date().toISOString() }
-            : { last_dice: dice, dice_rolled: false, consecutive_sixes: 0, current_turn_seat: nextSeatOf(current.seat), turn_started_at: new Date().toISOString() });
+            : { last_dice: dice, dice_rolled: false, consecutive_sixes: 0, current_turn_seat: nextSeatOf(actingPlayer.seat), turn_started_at: new Date().toISOString() });
           return;
         }
       }
 
-      const choice = botChoose(current, dice, players.filter((p) => p.seat !== current.seat));
+      const choice = botChoose(actingPlayer, dice, players.filter((p) => p.seat !== actingPlayer.seat));
       if (choice == null) {
         await commit({
           dice_rolled: false,
           consecutive_sixes: 0,
-          current_turn_seat: nextSeatOf(current.seat),
+          current_turn_seat: nextSeatOf(actingPlayer.seat),
           turn_started_at: new Date().toISOString(),
         });
         return;
       }
 
       const next = players.map((p) => ({ ...p, pawns: p.pawns.map((x) => ({ ...x })) }));
-      const me = next.find((p) => p.seat === current.seat)!;
+      const me = next.find((p) => p.seat === actingPlayer.seat)!;
       const pw = me.pawns[choice];
       pw.progress = pw.progress === 0 ? 1 : pw.progress + dice;
 
@@ -886,13 +888,13 @@ export default function LudoPage() {
       await commit({
         pawns: playersToPawnsJson(next),
         last_dice: dice,
-        current_turn_seat: extra ? current.seat : nextSeatOf(current.seat),
+        current_turn_seat: extra ? actingPlayer.seat : nextSeatOf(actingPlayer.seat),
         dice_rolled: false,
         consecutive_sixes: extra ? consecutiveSixes : 0,
         turn_started_at: new Date().toISOString(),
       });
-      if (iAmWinner && current.userId) {
-        await supabase.rpc("ludo_settle" as any, { _game_id: id, _winner: current.userId });
+      if (iAmWinner && actingPlayer.userId) {
+        await supabase.rpc("ludo_settle" as any, { _game_id: id, _winner: actingPlayer.userId });
       }
     } finally {
       rpcBusy.current = false;

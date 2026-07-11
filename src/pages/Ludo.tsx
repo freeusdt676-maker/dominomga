@@ -410,43 +410,65 @@ export default function LudoPage() {
   };
 
   const movePawn = (playerIdx: number, pawnIdx: number, dv: number) => {
-    let didCapture = false;
-    let didFinish = false;
-    setPlayers((prev) => {
-      const next = prev.map((p) => ({ ...p, pawns: p.pawns.map((x) => ({ ...x })) }));
-      const pl = next[playerIdx];
-      const pw = pl.pawns[pawnIdx];
-      pw.progress = pw.progress === 0 ? 1 : pw.progress + dv;
-      if (pw.progress === 57) didFinish = true;
-      // Capture check
-      const oi = outerIndex(pl.color, pw.progress);
-      if (oi != null && !SAFE.has(oi)) {
-        for (let i = 0; i < next.length; i++) {
-          if (i === playerIdx) continue;
-          for (const opw of next[i].pawns) {
-            const ooi = outerIndex(next[i].color, opw.progress);
-            if (ooi === oi) {
-              opw.progress = 0;
-              didCapture = true;
-            }
+    setMovable(new Set());
+    // Determine step sequence (walking 1 cell at a time)
+    setPlayers((prev0) => {
+      const startProg = prev0[playerIdx].pawns[pawnIdx].progress;
+      const first = startProg === 0 ? 1 : startProg + 1;
+      const target = startProg === 0 ? 1 : startProg + dv;
+      const steps: number[] = [];
+      for (let p = first; p <= target; p++) steps.push(p);
+
+      const STEP_MS = 230;
+      let didCapture = false;
+      let didFinish = false;
+
+      steps.forEach((prog, i) => {
+        setTimeout(() => {
+          setPlayers((prev) => {
+            const next = prev.map((p) => ({ ...p, pawns: p.pawns.map((x) => ({ ...x })) }));
+            next[playerIdx].pawns[pawnIdx].progress = prog;
+            return next;
+          });
+          sfx.step();
+
+          // On the final step: resolve capture / finish
+          if (i === steps.length - 1) {
+            setPlayers((prev) => {
+              const next = prev.map((p) => ({ ...p, pawns: p.pawns.map((x) => ({ ...x })) }));
+              const pl = next[playerIdx];
+              const pw = pl.pawns[pawnIdx];
+              if (pw.progress === 57) didFinish = true;
+              const oi = outerIndex(pl.color, pw.progress);
+              if (oi != null && !SAFE.has(oi)) {
+                for (let k = 0; k < next.length; k++) {
+                  if (k === playerIdx) continue;
+                  for (const opw of next[k].pawns) {
+                    const ooi = outerIndex(next[k].color, opw.progress);
+                    if (ooi === oi) { opw.progress = 0; didCapture = true; }
+                  }
+                }
+              }
+              return next;
+            });
+
+            setTimeout(() => {
+              if (didCapture) { sfx.capture(); setMessage(`${labelOf(current.color)}: nahazo fahavalo!`); }
+              if (didFinish) sfx.home();
+              setPlayers((cur) => {
+                const w = cur.find(winnerOf);
+                if (w) { setWinner(w.color); sfx.win(); setMessage(`${labelOf(w.color)} no mpandresy! 🏆`); }
+                return cur;
+              });
+              const extra = dv === 6 || didCapture || didFinish;
+              nextTurn(extra && !winner);
+            }, 120);
           }
-        }
-      }
-      return next;
-    });
-    sfx.step();
-    if (didCapture) { sfx.capture(); setMessage(`${labelOf(current.color)}: nahazo fahavalo!`); }
-    if (didFinish) sfx.home();
-    // Check winner
-    setTimeout(() => {
-      setPlayers((cur) => {
-        const w = cur.find(winnerOf);
-        if (w) { setWinner(w.color); sfx.win(); setMessage(`${labelOf(w.color)} no mpandresy! 🏆`); }
-        return cur;
+        }, i * STEP_MS);
       });
-      const extra = dv === 6 || didCapture || didFinish;
-      nextTurn(extra && !winner);
-    }, 260);
+
+      return prev0; // no immediate mutation; scheduled above
+    });
   };
 
   // Auto-play bots

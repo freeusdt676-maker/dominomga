@@ -177,7 +177,7 @@ export default function Tournament() {
 
   const liveMatches = matches.filter((m) => !m.winner_id && m.game_id && new Date(m.scheduled_at).getTime() <= Date.now());
   const spectateRoute = (id: string) => ({
-    domino: `/spectate/domino/${id}`, ludo: `/spectate/ludo/${id}`, petanque: `/spectate/petanque/${id}`,
+    domino: `/spectate/domino/${id}`, petanque: `/spectate/petanque/${id}`,
   } as const)[gameType];
 
   return (

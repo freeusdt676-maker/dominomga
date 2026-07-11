@@ -758,12 +758,18 @@ export default function LudoPage() {
   // ---- Status message ----
   useEffect(() => {
     if (!row) return;
+    if (row.status === "cancelled") {
+      setMessage("⛔ Nampijanonin'ny Administratif ny lalao — 100% refund voatokana.");
+      toast.info("Lalao voafoana. Volanao naverina 100%.");
+      const t = setTimeout(() => nav("/ludo"), 2500);
+      return () => clearTimeout(t);
+    }
     if (row.status === "waiting") { setMessage(`Miandry mpilalao (${(row.seat_assignment ?? []).length || 0}/${row.players_count})…`); return; }
     if (winner) { setMessage(`${labelOf(winner)} no mpandresy! 🏆`); return; }
     if (!current) return;
     if (isMyTurn) setMessage(canRoll ? "Tour-nao — kitiho ny dés!" : `Safidio ny pion halefa (${row.last_dice ?? "?"}).`);
     else setMessage(`Miandry ${current.name} (${labelOf(current.color)})…`);
-  }, [row, winner, current, isMyTurn, canRoll]);
+  }, [row, winner, current, isMyTurn, canRoll, nav]);
 
   if (!row) {
     return <div className="min-h-screen bg-[#0b1a2e] text-white flex items-center justify-center">Miandry…</div>;

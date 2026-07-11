@@ -234,13 +234,23 @@ function Board({ players, activeColor, onPickPawn, movable }: {
            transform={`translate(${x}, ${y})`}
            onClick={() => active && onPickPawn(p.color, p.pIdx)}
            style={{ cursor: active ? "pointer" : "default" }}>
-          {/* Pawn: base cone + round head, 3D shaded */}
-          <ellipse cx={0} cy={16} rx={12} ry={3.5} fill="rgba(0,0,0,0.35)" />
-          <path d={`M -11 15 Q -13 -4 -5 -10 L 5 -10 Q 13 -4 11 15 Z`}
-                fill={`url(#grad-${p.color})`} stroke={HEX[p.color].dark} strokeWidth={1.5} />
-          <ellipse cx={-3} cy={-4} rx={2.8} ry={9} fill="rgba(255,255,255,0.35)" />
-          <circle cx={0} cy={-16} r={7} fill={`url(#grad-${p.color})`} stroke={HEX[p.color].dark} strokeWidth={1.5}/>
-          <circle cx={-2} cy={-18} r={2} fill="rgba(255,255,255,0.6)" />
+          {/* Pawn: GPS-pin (teardrop with hole) + ripple base */}
+          <ellipse cx={0} cy={17} rx={13} ry={3} fill="none"
+                   stroke={HEX[p.color].base} strokeWidth={1.4} opacity={0.85} />
+          <ellipse cx={0} cy={17} rx={9} ry={2} fill="none"
+                   stroke={HEX[p.color].base} strokeWidth={1.2} opacity={0.7} />
+          <ellipse cx={0} cy={17} rx={5} ry={1.2} fill="none"
+                   stroke={HEX[p.color].base} strokeWidth={1} opacity={0.55} />
+          {/* Teardrop body */}
+          <path d={`M 0 15 C -13 4 -13 -10 0 -18 C 13 -10 13 4 0 15 Z`}
+                fill={`url(#grad-${p.color})`}
+                stroke={HEX[p.color].dark} strokeWidth={1.3} />
+          {/* Hole */}
+          <circle cx={0} cy={-7} r={5} fill="#fff"
+                  stroke={HEX[p.color].dark} strokeWidth={1.2} />
+          {/* Gloss highlight */}
+          <path d={`M -6 -12 Q -9 -4 -6 4`} fill="none"
+                stroke="rgba(255,255,255,0.55)" strokeWidth={1.6} strokeLinecap="round" />
           {active && (
             <circle cx={0} cy={-2} r={18} fill="none" stroke="#fff" strokeWidth={2}
                     strokeDasharray="3 3" opacity={0.9}>
@@ -482,25 +492,19 @@ export default function LudoPage() {
           ))}
         </div>
 
-        {/* Board with corner dice */}
-        <div className="relative">
-          <Board players={players} activeColor={current.color}
-                 onPickPawn={(color, idx) => {
-                   if (color !== current.color || current.isBot) return;
-                   if (!movable.has(idx)) return;
-                   movePawn(turnIdx, idx, dice);
-                 }}
-                 movable={current.isBot ? new Set() : movable} />
-          {(["red","green","blue","yellow"] as ColorKey[]).map((c) => {
-            const pos: Record<ColorKey,string> = {
-              red: "top-1 left-1",
-              green: "top-1 right-1",
-              blue: "bottom-1 left-1",
-              yellow: "bottom-1 right-1",
-            };
+        {/* Board framed by 4 external dice + name labels */}
+        {(() => {
+          const cornerFor: Record<ColorKey, string> = {
+            red: "justify-self-start",
+            green: "justify-self-end",
+            blue: "justify-self-start",
+            yellow: "justify-self-end",
+          };
+          const DiceCell = ({ c }: { c: ColorKey }) => {
             const isActive = current.color === c;
+            const pl = players.find(p => p.color === c)!;
             return (
-              <div key={c} className={`absolute ${pos[c]} z-10`}>
+              <div className={`flex flex-col items-center gap-1 ${cornerFor[c]}`}>
                 <Dice
                   value={isActive ? dice : 1}
                   rolling={isActive && rolling}
@@ -508,10 +512,35 @@ export default function LudoPage() {
                   onRoll={rollDice}
                   color={c}
                 />
+                <span
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isActive ? "ring-2 ring-white" : ""}`}
+                  style={{ background: HEX[c].base, color: c === "yellow" ? "#111" : "#fff" }}
+                >
+                  {labelOf(c)} {pl.isBot ? "(Bot)" : "(Ianao)"}
+                </span>
               </div>
             );
-          })}
-        </div>
+          };
+          return (
+            <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center">
+              <DiceCell c="red" />
+              <div /> {/* top spacer */}
+              <DiceCell c="green" />
+              <div className="col-span-3">
+                <Board players={players} activeColor={current.color}
+                       onPickPawn={(color, idx) => {
+                         if (color !== current.color || current.isBot) return;
+                         if (!movable.has(idx)) return;
+                         movePawn(turnIdx, idx, dice);
+                       }}
+                       movable={current.isBot ? new Set() : movable} />
+              </div>
+              <DiceCell c="blue" />
+              <div />
+              <DiceCell c="yellow" />
+            </div>
+          );
+        })()}
 
         {/* Bottom status */}
         <div className="rounded-xl bg-black/40 p-3 border border-white/10">

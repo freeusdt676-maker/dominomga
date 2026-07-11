@@ -20,9 +20,15 @@ export default function Wallet() {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawPhone, setWithdrawPhone] = useState("");
   const [withdrawName, setWithdrawName] = useState("");
+  const [operator, setOperator] = useState<"mvola" | "airtel">("mvola");
 
-  const ADMIN_PHONE = "0345023006";
-  const ADMIN_NAME = "Jean Rolland";
+  const OPERATORS = {
+    mvola:  { label: "MVola",        phone: "0345023006", name: "Jean Rolland",              color: "from-yellow-400 to-orange-500", tag: "💛" },
+    airtel: { label: "Airtel Money", phone: "0336470412", name: "JeanRolland Ratovoheriniaina", color: "from-red-500 to-red-700",     tag: "❤️" },
+  } as const;
+  const OP = OPERATORS[operator];
+  const ADMIN_PHONE = OP.phone;
+  const ADMIN_NAME = OP.name;
 
   const copy = async (txt: string, label: string) => {
     try {
@@ -45,7 +51,7 @@ export default function Wallet() {
   const submitDeposit = async () => {
     const a = Number(amount);
     if (a < 100) return toast.error("Min 100 Ar");
-    if (!ref.trim()) return toast.error("Référence MVOLA ilaina");
+    if (!ref.trim()) return toast.error(`Référence ${OP.label} ilaina`);
     // Block: at most ONE pending deposit/withdrawal per user.
     const { data: pendings } = await supabase
       .from("transactions")
@@ -57,7 +63,8 @@ export default function Wallet() {
     if (pendings && pendings.length > 0) {
       return toast.error("Mbola misy demande tsy mbola voavaha — andraso mialoha");
     }
-    const { error } = await supabase.from("transactions").insert({ user_id: user!.id, type: "deposit", amount: a, mvola_reference: ref.trim(), status: "pending" });
+    const taggedRef = `[${OP.label.toUpperCase()}] ${ref.trim()}`;
+    const { error } = await supabase.from("transactions").insert({ user_id: user!.id, type: "deposit", amount: a, mvola_reference: taggedRef, status: "pending" });
     if (error) return toast.error(error.message);
     toast.success("Demande alefa amin'ny admin");
     setAmount(""); setRef(""); load();
@@ -73,7 +80,13 @@ export default function Wallet() {
     if (a > balance) return toast.error("Solde tsy ampy");
     const cleanPhone = withdrawPhone.replace(/\s/g, "");
     if (!/^0\d{9}$/.test(cleanPhone)) return toast.error("Numéro téléphone diso (10 chiffres)");
-    if (!withdrawName.trim()) return toast.error("Anarana certifié MVOLA ilaina");
+    // Operator prefix check
+    const prefix = cleanPhone.slice(0, 3);
+    if (operator === "mvola" && !["034", "038"].includes(prefix))
+      return toast.error("Numéro MVola tokony 034/038 XXXXXXX");
+    if (operator === "airtel" && !["033", "035"].includes(prefix))
+      return toast.error("Numéro Airtel tokony 033/035 XXXXXXX");
+    if (!withdrawName.trim()) return toast.error(`Anarana certifié ${OP.label} ilaina`);
     if (!/^\d{4,6}$/.test(pin)) return toast.error("PIN diso");
     // Block: at most ONE pending deposit/withdrawal per user.
     const { data: pendings } = await supabase
@@ -99,7 +112,7 @@ export default function Wallet() {
       type: "withdrawal",
       amount: a,
       mvola_phone: cleanPhone,
-      mvola_reference: withdrawName.trim(),
+      mvola_reference: `[${OP.label.toUpperCase()}] ${withdrawName.trim()}`,
       status: "pending",
     });
     if (error) return toast.error("Erreur: " + error.message);
@@ -112,14 +125,32 @@ export default function Wallet() {
     <div className="min-h-screen felt-bg">
       <header className="p-4 flex items-center gap-3 border-b border-primary/20">
         <Button variant="ghost" size="icon" onClick={() => nav("/")}><ArrowLeft /></Button>
-        <h1 className="font-display text-xl font-bold gold-text">MVOLA</h1>
+        <h1 className="font-display text-xl font-bold gold-text">Wallet</h1>
       </header>
 
       <div className="p-4 max-w-lg mx-auto space-y-4">
+        {/* Operator selector */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => setOperator("mvola")}
+            className={`rounded-2xl p-3 border-2 font-bold text-sm transition ${operator === "mvola" ? "border-yellow-400 bg-gradient-to-br from-yellow-400/20 to-orange-500/20 shadow-lg" : "border-border/40 bg-card/40 opacity-60"}`}
+          >
+            <div className="text-2xl mb-1">💛</div>
+            MVola
+          </button>
+          <button
+            onClick={() => setOperator("airtel")}
+            className={`rounded-2xl p-3 border-2 font-bold text-sm transition ${operator === "airtel" ? "border-red-500 bg-gradient-to-br from-red-500/20 to-red-700/20 shadow-lg" : "border-border/40 bg-card/40 opacity-60"}`}
+          >
+            <div className="text-2xl mb-1">❤️</div>
+            Airtel Money
+          </button>
+        </div>
+
         {/* Numéro & anarana administratif — BIG en haut */}
-        <div className="card-felt rounded-2xl p-5 space-y-3 border-2 border-primary/40">
+        <div className={`card-felt rounded-2xl p-5 space-y-3 border-2 ${operator === "mvola" ? "border-yellow-400/60" : "border-red-500/60"}`}>
           <p className="text-[11px] uppercase tracking-widest text-muted-foreground text-center">
-            Numéro administratif MVOLA
+            Numéro administratif {OP.label}
           </p>
           <button
             onClick={() => copy(ADMIN_PHONE, "Numéro")}
@@ -134,7 +165,7 @@ export default function Wallet() {
             onClick={() => copy(ADMIN_NAME, "Anarana")}
             className="w-full flex items-center justify-between gap-3 bg-background/40 rounded-xl p-3 border border-primary/30 hover:border-primary transition"
           >
-            <p className="font-display font-extrabold gold-text text-2xl sm:text-3xl">
+            <p className="font-display font-extrabold gold-text text-xl sm:text-2xl">
               {ADMIN_NAME}
             </p>
             <Copy className="w-5 h-5 text-primary shrink-0" />
@@ -154,8 +185,8 @@ export default function Wallet() {
 
           <TabsContent value="deposit" className="space-y-3 mt-4">
             <div className="rounded-xl bg-primary/10 border border-primary/30 p-3 text-xs space-y-2">
-              <p className="font-bold gold-text">📥 Famolavolana Dépôt</p>
-              <p>1. Mandefa MVOLA amin'ny numéro administratif eto ambany.</p>
+              <p className="font-bold gold-text">📥 Famolavolana Dépôt · {OP.label}</p>
+              <p>1. Mandefa <b>{OP.label}</b> amin'ny numéro administratif eto ambany.</p>
               <div className="flex items-center justify-between bg-card/60 rounded-lg p-2 border border-primary/20">
                 <div>
                   <p className="text-[10px] text-muted-foreground">Numéro téléphone</p>
@@ -167,29 +198,29 @@ export default function Wallet() {
               </div>
               <div className="flex items-center justify-between bg-card/60 rounded-lg p-2 border border-primary/20">
                 <div>
-                  <p className="text-[10px] text-muted-foreground">Anarana certifié MVOLA</p>
+                  <p className="text-[10px] text-muted-foreground">Anarana certifié {OP.label}</p>
                   <p className="font-bold gold-text">{ADMIN_NAME}</p>
                 </div>
                 <Button size="sm" variant="outline" onClick={() => copy(ADMIN_NAME, "Anarana")}>
                   <Copy className="w-3 h-3 mr-1" />Copier
                 </Button>
               </div>
-              <p>2. Avereno eto amin'ny formulaire ny montant sy référence MVOLA.</p>
+              <p>2. Avereno eto amin'ny formulaire ny montant sy référence {OP.label}.</p>
               <p>3. Ny administratif no hanamarina (mahazo notification ianao).</p>
             </div>
             <div><Label>Montant (Ar)</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="100000" /></div>
-            <div><Label>Référence transaction MVOLA</Label><Input value={ref} onChange={(e) => setRef(e.target.value)} placeholder="MP..." /></div>
+            <div><Label>Référence transaction {OP.label}</Label><Input value={ref} onChange={(e) => setRef(e.target.value)} placeholder={operator === "mvola" ? "MP..." : "AM..."} /></div>
             <Button className="w-full btn-gold" onClick={submitDeposit}>Mandefa demande</Button>
           </TabsContent>
 
           <TabsContent value="withdraw" className="space-y-3 mt-4">
             <div className="rounded-xl bg-primary/10 border border-primary/30 p-3 text-xs">
-              <p className="font-bold gold-text mb-1">📤 Famolavolana Retrait</p>
-              <p>Soraty ny numéro téléphone sy ny anarana certifié MVOLA handefasana ny vola, dia ampidiro ny PIN-nao.</p>
+              <p className="font-bold gold-text mb-1">📤 Famolavolana Retrait · {OP.label}</p>
+              <p>Soraty ny numéro téléphone {operator === "mvola" ? "MVola (034/038)" : "Airtel (033/035)"} sy ny anarana certifié {OP.label} handefasana ny vola, dia ampidiro ny PIN-nao.</p>
             </div>
             <div><Label>Montant (Ar)</Label><Input type="number" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} placeholder="10000" /></div>
-            <div><Label>Numéro téléphone (handefasana ny vola)</Label><Input inputMode="tel" value={withdrawPhone} onChange={(e) => setWithdrawPhone(e.target.value)} placeholder="034XXXXXXX" /></div>
-            <div><Label>Anarana certifié MVOLA</Label><Input value={withdrawName} onChange={(e) => setWithdrawName(e.target.value)} placeholder="Jean Claude" /></div>
+            <div><Label>Numéro {OP.label} (handefasana ny vola)</Label><Input inputMode="tel" value={withdrawPhone} onChange={(e) => setWithdrawPhone(e.target.value)} placeholder={operator === "mvola" ? "034XXXXXXX" : "033XXXXXXX"} /></div>
+            <div><Label>Anarana certifié {OP.label}</Label><Input value={withdrawName} onChange={(e) => setWithdrawName(e.target.value)} placeholder="Jean Claude" /></div>
             <div><Label>Code PIN</Label><Input type="password" inputMode="numeric" maxLength={6} value={pin} onChange={(e) => setPin(e.target.value)} placeholder="1234" /></div>
             <Button className="w-full btn-gold" onClick={submitWithdraw}>Mangataka retrait</Button>
           </TabsContent>

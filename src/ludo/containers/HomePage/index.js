@@ -1,7 +1,6 @@
 import React, { Component, Fragment } from 'react';
 import Toastr from 'toastr';
 import { connect } from 'react-redux';
-import { Redirect } from 'react-router-dom';
 
 import { setNumberOfPlayers } from '../../actions';
 import './HomePage.module.css';
@@ -28,7 +27,10 @@ class HomePage extends Component {
   render() {
     const { numberOfPlayers } = this.state;
     const { numberOfPlayersUpdated } = this.props;
-    if (numberOfPlayersUpdated) return (<Redirect to="/play" />);
+    if (numberOfPlayersUpdated && this.props.onStart) {
+      this.props.onStart();
+      return null;
+    }
 
     return (
       <Fragment>

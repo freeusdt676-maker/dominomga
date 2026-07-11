@@ -165,9 +165,9 @@ function Board({ players, activeColor, onPickPawn, movable }: {
   const yard = (row: number, col: number, c: ColorKey) => (
     <g key={`yard-${c}`}>
       <rect x={col*S} y={row*S} width={6*S} height={6*S} fill={HEX[c].base} stroke="#111" strokeWidth={2} />
-      {/* Slightly tinted inner area (color echo) instead of pure white */}
+      {/* White inner area */}
       <rect x={col*S+S*0.6} y={row*S+S*0.6} width={4.8*S} height={4.8*S}
-            fill={HEX[c].light} opacity={0.55}
+            fill="#ffffff"
             stroke={HEX[c].dark} strokeWidth={1.5} rx={6}/>
     </g>
   );
@@ -232,14 +232,13 @@ function Board({ players, activeColor, onPickPawn, movable }: {
   const pawnEls: JSX.Element[] = [];
   groups.forEach((arr, key) => {
     arr.forEach((p, i) => {
-      const SCALE = 1.30;
-      // tip local y in path = 16 → after scale = 16*SCALE.
-      // We want the pointed tip to land exactly at the cell center.
+      const SCALE = 1.55;
+      // Pawn body spans y: -22..16 (mid ≈ -3). Center the body in the cell.
       const offset = arr.length > 1 ? (i - (arr.length - 1) / 2) * 10 : 0;
       const cellCx = p.c * S + S / 2 + offset;
       const cellCy = p.r * S + S / 2;
       const x = cellCx;
-      const y = cellCy - 16 * SCALE; // anchor tip at cell center
+      const y = cellCy + 3 * SCALE; // center pawn body at cell center
       const active = p.color === activeColor && movable.has(p.pIdx);
       pawnEls.push(
         <g key={`p-${p.color}-${p.pIdx}`}

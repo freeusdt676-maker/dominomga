@@ -504,7 +504,6 @@ export default function LudoPage() {
           };
           const DiceCell = ({ c }: { c: ColorKey }) => {
             const isActive = current.color === c;
-            const pl = players.find(p => p.color === c)!;
             return (
               <div className={`flex flex-col items-center gap-1 ${cornerFor[c]}`}>
                 <Dice
@@ -514,12 +513,6 @@ export default function LudoPage() {
                   onRoll={rollDice}
                   color={c}
                 />
-                <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isActive ? "ring-2 ring-white" : ""}`}
-                  style={{ background: HEX[c].base, color: c === "yellow" ? "#111" : "#fff" }}
-                >
-                  {labelOf(c)} {pl.isBot ? "(Bot)" : "(Ianao)"}
-                </span>
               </div>
             );
           };

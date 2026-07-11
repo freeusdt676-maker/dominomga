@@ -232,13 +232,13 @@ function Board({ players, activeColor, onPickPawn, movable }: {
   const pawnEls: JSX.Element[] = [];
   groups.forEach((arr, key) => {
     arr.forEach((p, i) => {
-      const SCALE = 1.55;
+      const SCALE = 1.75;
       // Pawn body spans y: -22..16 (mid ≈ -3). Center the body in the cell.
       const offset = arr.length > 1 ? (i - (arr.length - 1) / 2) * 10 : 0;
       const cellCx = p.c * S + S / 2 + offset;
       const cellCy = p.r * S + S / 2;
       const x = cellCx;
-      const y = cellCy + 3 * SCALE; // center pawn body at cell center
+      const y = cellCy - 2 * SCALE; // lift so pin + shadow are visually centered
       const active = p.color === activeColor && movable.has(p.pIdx);
       pawnEls.push(
         <g key={`p-${p.color}-${p.pIdx}`}
@@ -250,10 +250,9 @@ function Board({ players, activeColor, onPickPawn, movable }: {
            }}
            onClick={() => active && onPickPawn(p.color, p.pIdx)}>
           {/* GPS localisation pin — teardrop head with center hole + ripple base */}
-          {/* Ripple rings at ground */}
-          <ellipse cx={0} cy={16} rx={13} ry={3.4} fill="none" stroke={HEX[p.color].dark} strokeWidth={1} opacity={0.55}/>
-          <ellipse cx={0} cy={16} rx={9} ry={2.4} fill="none" stroke={HEX[p.color].dark} strokeWidth={1} opacity={0.75}/>
-          <ellipse cx={0} cy={16} rx={5} ry={1.4} fill={HEX[p.color].dark} opacity={0.55}/>
+          {/* Soft ground shadow */}
+          <ellipse cx={0} cy={17} rx={8} ry={2.2} fill="rgba(0,0,0,0.28)"/>
+          <ellipse cx={0} cy={16.5} rx={5} ry={1.3} fill={HEX[p.color].dark} opacity={0.7}/>
           {/* Teardrop pin body: round top, pointed bottom */}
           <path d={`M 0 16
                     C -3 10, -10 6, -10 -4

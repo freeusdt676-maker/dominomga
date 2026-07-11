@@ -411,7 +411,7 @@ export default function LudoPage() {
       const steps: number[] = [];
       for (let p = first; p <= target; p++) steps.push(p);
 
-      const STEP_MS = 230;
+      const STEP_MS = 105;
       let didCapture = false;
       let didFinish = false;
 
@@ -422,7 +422,14 @@ export default function LudoPage() {
             next[playerIdx].pawns[pawnIdx].progress = prog;
             return next;
           });
-          sfx.step();
+          // Distinct SFX per event
+          if (i === 0 && startProg === 0) {
+            sfx.leave();          // pawn leaving the yard
+          } else if (prog === 52) {
+            sfx.enterHome();      // entering own colored home column
+          } else {
+            sfx.step();           // regular walking tick
+          }
 
           // On the final step: resolve capture / finish
           if (i === steps.length - 1) {

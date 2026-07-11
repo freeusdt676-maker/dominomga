@@ -482,31 +482,44 @@ export default function LudoPage() {
           ))}
         </div>
 
-        {/* Board */}
-        <Board players={players} activeColor={current.color}
-               onPickPawn={(color, idx) => {
-                 if (color !== current.color || current.isBot) return;
-                 if (!movable.has(idx)) return;
-                 movePawn(turnIdx, idx, dice);
-               }}
-               movable={current.isBot ? new Set() : movable} />
+        {/* Board with corner dice */}
+        <div className="relative">
+          <Board players={players} activeColor={current.color}
+                 onPickPawn={(color, idx) => {
+                   if (color !== current.color || current.isBot) return;
+                   if (!movable.has(idx)) return;
+                   movePawn(turnIdx, idx, dice);
+                 }}
+                 movable={current.isBot ? new Set() : movable} />
+          {(["red","green","blue","yellow"] as ColorKey[]).map((c) => {
+            const pos: Record<ColorKey,string> = {
+              red: "top-1 left-1",
+              green: "top-1 right-1",
+              blue: "bottom-1 left-1",
+              yellow: "bottom-1 right-1",
+            };
+            const isActive = current.color === c;
+            return (
+              <div key={c} className={`absolute ${pos[c]} z-10`}>
+                <Dice
+                  value={isActive ? dice : 1}
+                  rolling={isActive && rolling}
+                  disabled={!isActive || !canRoll || current.isBot || !!winner}
+                  onRoll={rollDice}
+                  color={c}
+                />
+              </div>
+            );
+          })}
+        </div>
 
-        {/* Bottom control bar */}
-        <div className="flex items-center justify-between gap-3 rounded-xl bg-black/40 p-3 border border-white/10">
-          <div className="flex-1 min-w-0">
-            <p className="text-[11px] uppercase tracking-wider opacity-70">Tour</p>
-            <p className="font-bold truncate" style={{ color: HEX[current.color].light }}>
-              {labelOf(current.color)} {current.isBot ? "(Bot)" : "(Ianao)"}
-            </p>
-            <p className="text-xs opacity-80 mt-1">{message}</p>
-          </div>
-          <Dice
-            value={dice}
-            rolling={rolling}
-            disabled={!canRoll || current.isBot || !!winner}
-            onRoll={rollDice}
-            color={current.color}
-          />
+        {/* Bottom status */}
+        <div className="rounded-xl bg-black/40 p-3 border border-white/10">
+          <p className="text-[11px] uppercase tracking-wider opacity-70">Tour</p>
+          <p className="font-bold" style={{ color: HEX[current.color].light }}>
+            {labelOf(current.color)} {current.isBot ? "(Bot)" : "(Ianao)"}
+          </p>
+          <p className="text-xs opacity-80 mt-1">{message}</p>
         </div>
 
         {winner && (

@@ -225,32 +225,34 @@ function Board({ players, activeColor, onPickPawn, movable }: {
   const pawnEls: JSX.Element[] = [];
   groups.forEach((arr, key) => {
     arr.forEach((p, i) => {
-      const offset = arr.length > 1 ? (i - (arr.length - 1) / 2) * 8 : 0;
+      const offset = arr.length > 1 ? (i - (arr.length - 1) / 2) * 9 : 0;
       const x = p.c * S + S/2 + offset;
       const y = p.r * S + S/2;
       const active = p.color === activeColor && movable.has(p.pIdx);
       pawnEls.push(
         <g key={`p-${p.color}-${p.pIdx}-${key}`}
-           transform={`translate(${x}, ${y})`}
+           transform={`translate(${x}, ${y}) scale(1.35)`}
            onClick={() => active && onPickPawn(p.color, p.pIdx)}
            style={{ cursor: active ? "pointer" : "default" }}>
           {/* Pawn: GPS-pin (teardrop with hole) + ripple base */}
-          <ellipse cx={0} cy={17} rx={13} ry={3} fill="none"
-                   stroke={HEX[p.color].base} strokeWidth={1.4} opacity={0.85} />
-          <ellipse cx={0} cy={17} rx={9} ry={2} fill="none"
-                   stroke={HEX[p.color].base} strokeWidth={1.2} opacity={0.7} />
-          <ellipse cx={0} cy={17} rx={5} ry={1.2} fill="none"
-                   stroke={HEX[p.color].base} strokeWidth={1} opacity={0.55} />
-          {/* Teardrop body */}
-          <path d={`M 0 15 C -13 4 -13 -10 0 -18 C 13 -10 13 4 0 15 Z`}
+          {/* Ripple base */}
+          <ellipse cx={0} cy={16} rx={14} ry={3} fill="none"
+                   stroke={HEX[p.color].base} strokeWidth={1.5} opacity={0.9} />
+          <ellipse cx={0} cy={16} rx={10} ry={2.2} fill="none"
+                   stroke={HEX[p.color].base} strokeWidth={1.3} opacity={0.75} />
+          <ellipse cx={0} cy={16} rx={6} ry={1.4} fill="none"
+                   stroke={HEX[p.color].base} strokeWidth={1.1} opacity={0.6} />
+          {/* Teardrop body — rounded top, sharp bottom point */}
+          <path d={`M 0 14 C -14 4 -14 -12 0 -18 C 14 -12 14 4 0 14 Z`}
                 fill={`url(#grad-${p.color})`}
-                stroke={HEX[p.color].dark} strokeWidth={1.3} />
-          {/* Hole */}
-          <circle cx={0} cy={-7} r={5} fill="#fff"
-                  stroke={HEX[p.color].dark} strokeWidth={1.2} />
+                stroke={HEX[p.color].dark} strokeWidth={1.4} />
+          {/* Center hole */}
+          <circle cx={0} cy={-8} r={5.5} fill="#fff"
+                  stroke={HEX[p.color].dark} strokeWidth={1.3} />
           {/* Gloss highlight */}
-          <path d={`M -6 -12 Q -9 -4 -6 4`} fill="none"
-                stroke="rgba(255,255,255,0.55)" strokeWidth={1.6} strokeLinecap="round" />
+          <path d={`M -7 -13 Q -10 -5 -7 3`} fill="none"
+                stroke="rgba(255,255,255,0.7)" strokeWidth={1.8} strokeLinecap="round" />
+          <ellipse cx={-4} cy={-13} rx={2} ry={1.2} fill="rgba(255,255,255,0.55)"/>
           {active && (
             <circle cx={0} cy={-2} r={18} fill="none" stroke="#fff" strokeWidth={2}
                     strokeDasharray="3 3" opacity={0.9}>
@@ -449,6 +451,30 @@ export default function LudoPage() {
     }
   }, [turnIdx, canRoll, winner]); // eslint-disable-line
 
+  // Auto-roll for human after 10s of inactivity
+  useEffect(() => {
+    if (winner) return;
+    if (!current.isBot && canRoll && !rolling) {
+      const t = setTimeout(() => rollDice(), 10000);
+      return () => clearTimeout(t);
+    }
+  }, [turnIdx, canRoll, rolling, winner]); // eslint-disable-line
+
+  // Auto-pick pawn for human after 10s if they don't tap
+  useEffect(() => {
+    if (winner) return;
+    if (current.isBot) return;
+    if (movable.size === 0) return;
+    const t = setTimeout(() => {
+      const others = players.filter((_, i) => i !== turnIdx);
+      const choice = botChoose(current, dice, others);
+      if (choice != null && movable.has(choice)) {
+        movePawn(turnIdx, choice, dice);
+      }
+    }, 10000);
+    return () => clearTimeout(t);
+  }, [movable, turnIdx, dice, winner]); // eslint-disable-line
+
   const reset = () => {
     setPlayers(initialPlayers());
     setTurnIdx(0);
@@ -502,7 +528,6 @@ export default function LudoPage() {
           };
           const DiceCell = ({ c }: { c: ColorKey }) => {
             const isActive = current.color === c;
-            const pl = players.find(p => p.color === c)!;
             return (
               <div className={`flex flex-col items-center gap-1 ${cornerFor[c]}`}>
                 <Dice
@@ -512,12 +537,6 @@ export default function LudoPage() {
                   onRoll={rollDice}
                   color={c}
                 />
-                <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isActive ? "ring-2 ring-white" : ""}`}
-                  style={{ background: HEX[c].base, color: c === "yellow" ? "#111" : "#fff" }}
-                >
-                  {labelOf(c)} {pl.isBot ? "(Bot)" : "(Ianao)"}
-                </span>
               </div>
             );
           };

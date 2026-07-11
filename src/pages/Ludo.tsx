@@ -229,38 +229,28 @@ function Board({ players, activeColor, onPickPawn, movable }: {
         <g key={`p-${p.color}-${p.pIdx}`}
            style={{
              cursor: active ? "pointer" : "default",
-             transform: `translate(${x}px, ${y - 4}px) scale(1.4)`,
-             transition: "transform 220ms cubic-bezier(0.4, 0.0, 0.2, 1)",
+             transform: `translate(${x}px, ${y - 4}px) scale(1.35)`,
+             transition: "transform 110ms cubic-bezier(0.4, 0.0, 0.2, 1)",
              transformBox: "fill-box",
            }}
            onClick={() => active && onPickPawn(p.color, p.pIdx)}>
-          {/* Classic bowling-pin ludo pawn — wide bulb base, thin neck, round ball head */}
-          {/* Base disk (flat ellipse footprint) */}
-          <ellipse cx={0} cy={16} rx={13} ry={3.2} fill="#000" opacity={0.28}/>
-          <ellipse cx={0} cy={15} rx={12} ry={3}
-                   fill={`url(#grad-${p.color})`}
-                   stroke={HEX[p.color].dark} strokeWidth={1.2}/>
-          {/* Bulb body — wide rounded bottom tapering to a narrow neck */}
-          <path d={`M -11 13
-                    C -12 4, -9 -2, -5 -5
-                    C -4 -6, -4 -8, -3.2 -9
-                    L 3.2 -9
-                    C 4 -8, 4 -6, 5 -5
-                    C 9 -2, 12 4, 11 13
-                    Z`}
+          {/* GPS localisation pin — teardrop head with center hole + ripple base */}
+          {/* Ripple rings at ground */}
+          <ellipse cx={0} cy={16} rx={13} ry={3.4} fill="none" stroke={HEX[p.color].dark} strokeWidth={1} opacity={0.55}/>
+          <ellipse cx={0} cy={16} rx={9} ry={2.4} fill="none" stroke={HEX[p.color].dark} strokeWidth={1} opacity={0.75}/>
+          <ellipse cx={0} cy={16} rx={5} ry={1.4} fill={HEX[p.color].dark} opacity={0.55}/>
+          {/* Teardrop pin body: round top, pointed bottom */}
+          <path d={`M 0 16
+                    C -3 10, -10 6, -10 -4
+                    A 10 10 0 1 1 10 -4
+                    C 10 6, 3 10, 0 16 Z`}
                 fill={`url(#grad-${p.color})`}
-                stroke={HEX[p.color].dark} strokeWidth={1.3}
+                stroke={HEX[p.color].dark} strokeWidth={1.4}
                 strokeLinejoin="round"/>
-          {/* Neck shadow ring */}
-          <ellipse cx={0} cy={-8.5} rx={3.2} ry={0.9} fill={HEX[p.color].dark} opacity={0.6}/>
-          {/* Round ball head */}
-          <circle cx={0} cy={-13} r={5.6}
-                  fill={`url(#grad-${p.color})`}
-                  stroke={HEX[p.color].dark} strokeWidth={1.3}/>
-          {/* Highlights */}
-          <ellipse cx={-1.8} cy={-14.6} rx={2} ry={1.3} fill="rgba(255,255,255,0.85)"/>
-          <path d={`M -6 -2 Q -8 5 -5 11`} fill="none"
-                stroke="rgba(255,255,255,0.55)" strokeWidth={1.4} strokeLinecap="round"/>
+          {/* Center hole */}
+          <circle cx={0} cy={-4} r={3.6} fill="#fff" stroke={HEX[p.color].dark} strokeWidth={1.2}/>
+          {/* Highlight */}
+          <ellipse cx={-3} cy={-8} rx={2.2} ry={1.4} fill="rgba(255,255,255,0.75)"/>
           {active && (
             <circle cx={0} cy={0} r={17} fill="none" stroke="#fff" strokeWidth={2}
                     strokeDasharray="3 3" opacity={0.9}>

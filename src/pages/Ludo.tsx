@@ -534,6 +534,8 @@ export default function LudoPage() {
   const nav = useNavigate();
   const [row, setRow] = useState<ServerRow | null>(null);
   const [names, setNames] = useState<Record<string, string>>({});
+  const [avatars, setAvatars] = useState<Record<string, string | null>>({});
+  const [phones, setPhones] = useState<Record<string, string | null>>({});
   const [rolling, setRolling] = useState(false);
   const [diceDisplay, setDiceDisplay] = useState(1);
   const [movable, setMovable] = useState<Set<number>>(new Set());
@@ -547,11 +549,24 @@ export default function LudoPage() {
     const uids = [r.player1_id, r.player2_id, r.player3_id, r.player4_id].filter(Boolean) as string[];
     const missing = uids.filter((u) => !names[u]);
     if (missing.length) {
-      const { data } = await supabase.from("profiles").select("user_id, mvola_name").in("user_id", missing);
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, mvola_name, avatar_url, phone")
+        .in("user_id", missing);
       if (data) {
         setNames((prev) => {
           const nx = { ...prev };
           (data as any[]).forEach((p) => { nx[p.user_id] = p.mvola_name ?? "Mpilalao"; });
+          return nx;
+        });
+        setAvatars((prev) => {
+          const nx = { ...prev };
+          (data as any[]).forEach((p) => { nx[p.user_id] = p.avatar_url ?? null; });
+          return nx;
+        });
+        setPhones((prev) => {
+          const nx = { ...prev };
+          (data as any[]).forEach((p) => { nx[p.user_id] = p.phone ?? null; });
           return nx;
         });
       }

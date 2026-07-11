@@ -856,8 +856,10 @@ export default function LudoPage() {
           <ArrowLeft className="w-5 h-5" /> Miverina
         </Link>
         <h1 className="text-xl font-bold tracking-wide">LUDO · {fmtAr(Number(row.stake))}</h1>
-        <div className="w-6" />
-        <RadioPlayer />
+        <div className="flex items-center gap-2">
+          <LudoVoiceChat gameId={id} />
+          <RadioPlayer />
+        </div>
       </header>
 
       <div className="max-w-2xl mx-auto p-3 space-y-3 min-h-[calc(100vh-56px)] flex flex-col justify-center">
@@ -870,7 +872,6 @@ export default function LudoPage() {
             yellow: "justify-self-end",
           };
           const DiceCell = ({ c }: { c: ColorKey }) => {
-            const seat = (Object.entries(SEAT_COLOR).find(([, v]) => v === c)?.[0] ?? "0") as unknown as number;
             const pl = players.find((p) => p.color === c);
             if (!pl) return <div className={cornerFor[c]} />;
             const isActive = current?.color === c;
@@ -879,7 +880,6 @@ export default function LudoPage() {
             const iAmThisCell = myColor === c;
           const uidHere = pl.userId ?? "";
           const avatarUrl = uidHere ? avatars[uidHere] : null;
-          const phoneNum = uidHere ? phones[uidHere] : null;
             return (
               <div className={`flex flex-col ${align} gap-1 ${cornerFor[c]}`}>
                 <div className={`flex ${align === "items-end" ? "flex-row-reverse" : "flex-row"} items-center gap-1.5`}>
@@ -927,7 +927,7 @@ export default function LudoPage() {
               <div /> {/* top spacer */}
               <DiceCell c="green" />
               <div className="col-span-3">
-                <Board players={players} activeColor={current?.color ?? "red"}
+                <Board players={displayPlayers} activeColor={current?.color ?? "red"}
                        onPickPawn={(color, idx) => {
                          if (!myColor || color !== myColor) return;
                          movePawn(idx);

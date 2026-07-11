@@ -14,8 +14,8 @@ function fmtMG(iso?: string | null) {
   return `${days[mg.getUTCDay()]} ${String(mg.getUTCDate()).padStart(2,"0")}/${String(mg.getUTCMonth()+1).padStart(2,"0")} ${String(mg.getUTCHours()).padStart(2,"0")}:${String(mg.getUTCMinutes()).padStart(2,"0")}`;
 }
 
-type GameType = "domino" | "ludo" | "petanque";
-const GT_LABEL: Record<GameType, string> = { domino: "🁫 DOMINO", ludo: "🎲 LUDO", petanque: "🎯 PÉTANQUE" };
+type GameType = "domino" | "petanque";
+const GT_LABEL: Record<GameType, string> = { domino: "🁫 DOMINO", petanque: "🎯 PÉTANQUE" };
 
 export default function TournamentAdmin() {
   const [gameType, setGameType] = useState<GameType>("domino");

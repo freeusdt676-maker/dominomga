@@ -11,7 +11,6 @@ import { Wallet, Users, Trophy, MessageCircle, LogOut, Shield, MessagesSquare, U
 import CircleNavButton from "@/components/CircleNavButton";
 import logo from "@/assets/logo.png";
 import logoDomino from "@/assets/logo-domino.png";
-import logoLudo from "@/assets/logo-ludo.png";
 import logoPetanque from "@/assets/logo-petanque.png";
 import logoTournoi from "@/assets/logo-tournoi.png";
 import MessageInbox from "@/components/MessageInbox";
@@ -300,20 +299,6 @@ export default function Home() {
                 <p className="eyebrow">Classique</p>
                 <h3 className="font-serif-luxe text-2xl gold-luxe-text leading-tight">Domino</h3>
                 <p className="text-xs text-muted-foreground mt-1">2P · 3P — Mise sy gain mitovy</p>
-              </div>
-              <span className="text-[hsl(var(--gold-1))] opacity-50 group-hover:opacity-100 transition text-xl">→</span>
-            </div>
-          </Link>
-
-          <Link to="/ludo" className="block luxe-card p-5 group transition hover:border-[hsl(var(--gold-1)/0.5)]">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-xl flex items-center justify-center bg-gradient-to-br from-[#4a2580] to-[#2c1356] border border-[hsl(var(--gold-1)/0.3)] overflow-hidden">
-                <img src={logoLudo} alt="Ludo" className="w-14 h-14 object-contain" width={56} height={56} loading="lazy" />
-              </div>
-              <div className="flex-1">
-                <p className="eyebrow">Royale</p>
-                <h3 className="font-serif-luxe text-2xl gold-luxe-text leading-tight">Ludo Master</h3>
-                <p className="text-xs text-muted-foreground mt-1">2P · 3P · 4P — Mise sy gain mitovy</p>
               </div>
               <span className="text-[hsl(var(--gold-1))] opacity-50 group-hover:opacity-100 transition text-xl">→</span>
             </div>

@@ -520,7 +520,7 @@ function rowToPlayers(row: ServerRow, names: Record<string, string>): Player[] {
   }
   const activeSeats = seats.length ? seats : ([1, 2, 3, 4] as number[]).filter((s) => userBySeat[s]);
   return activeSeats.map((seat) => {
-    const color = SEAT_COLOR[seat];
+    const color = seatColor(seat, row.players_count);
     const uid = seatToUser[seat] ?? null;
     const pawns: Pawn[] = [0, 1, 2, 3].map((i) => {
       const rec = (row.pawns ?? []).find((r) => r.seat === seat && r.idx === i);

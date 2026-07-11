@@ -3,7 +3,7 @@
 // moving even if everyone disconnects.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const TURN_LIMIT_MS = 15_000;
+const TURN_LIMIT_MS = 10_000;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

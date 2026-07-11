@@ -20,13 +20,15 @@ const COLORS: ColorKey[] = ["red", "green", "yellow", "blue"];
 //   2P (duel)  : blue, green
 //   3P (tri)   : blue, red, green
 //   4P (quadri): red, green, yellow, blue
-const SEAT_COLOR_2P: Record<number, ColorKey> = { 1: "blue", 2: "green", 3: "blue", 4: "green" };
-const SEAT_COLOR_3P: Record<number, ColorKey> = { 1: "blue", 2: "red",   3: "green", 4: "blue" };
-const SEAT_COLOR_4P: Record<number, ColorKey> = { 1: "red",  2: "green", 3: "yellow", 4: "blue" };
-function seatColor(seat: number, playersCount: number): ColorKey {
-  if (playersCount === 2) return SEAT_COLOR_2P[seat];
-  if (playersCount === 3) return SEAT_COLOR_3P[seat];
-  return SEAT_COLOR_4P[seat];
+// Seats map 1:1 with the physical yards on the board.
+//   seat 1 = top-left (red), seat 2 = top-right (green),
+//   seat 3 = bottom-right (yellow), seat 4 = bottom-left (blue).
+// Player→seat assignment is chosen by ludo_join_and_start so that
+//   duel (2P) = blue + green, tri (3P) = blue + red + green,
+//   quadri (4P) = blue + red + green + yellow.
+const SEAT_COLOR: Record<number, ColorKey> = { 1: "red", 2: "green", 3: "yellow", 4: "blue" };
+function seatColor(seat: number, _playersCount: number): ColorKey {
+  return SEAT_COLOR[seat] ?? "blue";
 }
 const HEX: Record<ColorKey, { base: string; dark: string; light: string; ring: string }> = {
   red:    { base: "#e53935", dark: "#8e1414", light: "#ff7a75", ring: "#c62828" },

@@ -155,12 +155,6 @@ function Board({ players, activeColor, onPickPawn, movable }: {
     <g key={`yard-${c}`}>
       <rect x={col*S} y={row*S} width={6*S} height={6*S} fill={HEX[c].base} stroke="#111" strokeWidth={2} />
       <rect x={col*S+S*0.6} y={row*S+S*0.6} width={4.8*S} height={4.8*S} fill="#fff" stroke="#111" strokeWidth={1.5} rx={6}/>
-      {YARD_SLOTS[c].map((_, i) => {
-        const [r, cc] = YARD_SLOTS[c][i];
-        return (
-          <circle key={i} cx={cc*S+S/2} cy={r*S+S/2} r={S*0.42} fill="#fff" stroke={HEX[c].dark} strokeWidth={2.5} />
-        );
-      })}
     </g>
   );
 

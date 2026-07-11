@@ -196,7 +196,7 @@ function Board({ players, activeColor, onPickPawn, movable }: {
       <g key={`t-${idx}`}>
         <rect x={c*S} y={r*S} width={S} height={S} fill={fill} stroke="#111" strokeWidth={1} />
         {SAFE.has(idx) && (
-          <text x={c*S+S/2} y={r*S+S/2+4} textAnchor="middle" fontSize={16} fill="#333">★</text>
+          <text x={c*S+S/2} y={r*S+S/2+7} textAnchor="middle" fontSize={22} fontWeight={900} fill="#0a0a0a" style={{ pointerEvents: "none" }}>★</text>
         )}
       </g>
     );

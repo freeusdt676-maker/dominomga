@@ -224,31 +224,45 @@ function Board({ players, activeColor, onPickPawn, movable }: {
       const y = p.r * S + S/2;
       const active = p.color === activeColor && movable.has(p.pIdx);
       pawnEls.push(
-        <g key={`p-${p.color}-${p.pIdx}-${key}`}
-           transform={`translate(${x}, ${y - 6}) scale(1.35)`}
-           onClick={() => active && onPickPawn(p.color, p.pIdx)}
-           style={{ cursor: active ? "pointer" : "default" }}>
-          {/* Classic pawn: round head on top, pointy cone base below */}
-          {/* Cone body — wide at shoulders, tapering to sharp point at bottom */}
-          <path d={`M 0 20 L -9 -2 C -9 -8 -5 -10 0 -10 C 5 -10 9 -8 9 -2 Z`}
+        <g key={`p-${p.color}-${p.pIdx}`}
+           style={{
+             cursor: active ? "pointer" : "default",
+             transform: `translate(${x}px, ${y - 4}px) scale(1.4)`,
+             transition: "transform 220ms cubic-bezier(0.4, 0.0, 0.2, 1)",
+             transformBox: "fill-box",
+           }}
+           onClick={() => active && onPickPawn(p.color, p.pIdx)}>
+          {/* Classic bowling-pin ludo pawn — wide bulb base, thin neck, round ball head */}
+          {/* Base disk (flat ellipse footprint) */}
+          <ellipse cx={0} cy={16} rx={13} ry={3.2} fill="#000" opacity={0.28}/>
+          <ellipse cx={0} cy={15} rx={12} ry={3}
+                   fill={`url(#grad-${p.color})`}
+                   stroke={HEX[p.color].dark} strokeWidth={1.2}/>
+          {/* Bulb body — wide rounded bottom tapering to a narrow neck */}
+          <path d={`M -11 13
+                    C -12 4, -9 -2, -5 -5
+                    C -4 -6, -4 -8, -3.2 -9
+                    L 3.2 -9
+                    C 4 -8, 4 -6, 5 -5
+                    C 9 -2, 12 4, 11 13
+                    Z`}
                 fill={`url(#grad-${p.color})`}
-                stroke={HEX[p.color].dark} strokeWidth={1.4}
-                strokeLinejoin="round" />
-          {/* Neck ring */}
-          <ellipse cx={0} cy={-10} rx={6.5} ry={1.6}
-                   fill={HEX[p.color].dark} opacity={0.85}/>
-          {/* Round head */}
-          <circle cx={0} cy={-16} r={7} fill={`url(#grad-${p.color})`}
-                  stroke={HEX[p.color].dark} strokeWidth={1.4}/>
-          {/* Gloss on head */}
-          <ellipse cx={-2.2} cy={-18} rx={2.4} ry={1.6} fill="rgba(255,255,255,0.75)"/>
-          {/* Gloss on body */}
-          <path d={`M -5 -6 Q -7 4 -3 14`} fill="none"
-                stroke="rgba(255,255,255,0.55)" strokeWidth={1.6} strokeLinecap="round"/>
+                stroke={HEX[p.color].dark} strokeWidth={1.3}
+                strokeLinejoin="round"/>
+          {/* Neck shadow ring */}
+          <ellipse cx={0} cy={-8.5} rx={3.2} ry={0.9} fill={HEX[p.color].dark} opacity={0.6}/>
+          {/* Round ball head */}
+          <circle cx={0} cy={-13} r={5.6}
+                  fill={`url(#grad-${p.color})`}
+                  stroke={HEX[p.color].dark} strokeWidth={1.3}/>
+          {/* Highlights */}
+          <ellipse cx={-1.8} cy={-14.6} rx={2} ry={1.3} fill="rgba(255,255,255,0.85)"/>
+          <path d={`M -6 -2 Q -8 5 -5 11`} fill="none"
+                stroke="rgba(255,255,255,0.55)" strokeWidth={1.4} strokeLinecap="round"/>
           {active && (
-            <circle cx={0} cy={-6} r={22} fill="none" stroke="#fff" strokeWidth={2}
+            <circle cx={0} cy={0} r={17} fill="none" stroke="#fff" strokeWidth={2}
                     strokeDasharray="3 3" opacity={0.9}>
-              <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="3s" repeatCount="indefinite"/>
+              <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="3s" repeatCount="indefinite"/>
             </circle>
           )}
         </g>

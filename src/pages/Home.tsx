@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Wallet, Users, Trophy, MessageCircle, LogOut, Shield, MessagesSquare, User as UserIcon, Download, Eye, EyeOff, FileEdit, RotateCcw, BookOpen, ArrowDownToLine } from "lucide-react";
+import { Play } from "lucide-react";
 import CircleNavButton from "@/components/CircleNavButton";
 import logo from "@/assets/logo.png";
 import logoDomino from "@/assets/logo-domino.png";
@@ -45,6 +46,8 @@ export default function Home() {
   const [pendingProfilesCount, setPendingProfilesCount] = useState(0);
   const [resetOpen, setResetOpen] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [activeLudoId, setActiveLudoId] = useState<string | null>(null);
+  const [activePetanqueId, setActivePetanqueId] = useState<string | null>(null);
 
   useEffect(() => {
     const onBip = (e: any) => { e.preventDefault(); setInstallPrompt(e); };
@@ -103,6 +106,38 @@ export default function Home() {
       clearInterval(itv);
     };
   }, [user, nav]);
+
+  // Ludo + Pétanque: hita ny lalao mandeha (tsy manao auto-redirect fa "Hanohy" fotsiny)
+  useEffect(() => {
+    if (!user) return;
+    const loadActive = async () => {
+      const { data: l } = await supabase
+        .from("ludo_games")
+        .select("id")
+        .or(`player1_id.eq.${user.id},player2_id.eq.${user.id},player3_id.eq.${user.id},player4_id.eq.${user.id}`)
+        .eq("status", "in_progress")
+        .order("updated_at", { ascending: false })
+        .limit(1);
+      setActiveLudoId(l?.[0]?.id ?? null);
+      const { data: p } = await supabase
+        .from("petanque_games")
+        .select("id")
+        .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
+        .eq("status", "in_progress")
+        .order("updated_at", { ascending: false })
+        .limit(1);
+      setActivePetanqueId(p?.[0]?.id ?? null);
+    };
+    loadActive();
+    const ch1 = supabase.channel(`home-ludo-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "ludo_games" }, () => loadActive())
+      .subscribe();
+    const ch2 = supabase.channel(`home-petanque-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "petanque_games" }, () => loadActive())
+      .subscribe();
+    const itv = setInterval(loadActive, 30000);
+    return () => { supabase.removeChannel(ch1); supabase.removeChannel(ch2); clearInterval(itv); };
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -305,7 +340,12 @@ export default function Home() {
             </div>
           </Link>
 
-          <Link to="/petanque" className="block luxe-card p-5 group transition hover:border-[hsl(var(--gold-1)/0.5)]">
+          <Link to={activePetanqueId ? `/petanque/${activePetanqueId}` : "/petanque"} className="block luxe-card p-5 group transition hover:border-[hsl(var(--gold-1)/0.5)] relative">
+            {activePetanqueId && (
+              <span className="absolute top-2 right-2 inline-flex items-center gap-1 bg-green-600 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-md animate-pulse">
+                <Play className="w-3 h-3 fill-current" /> Hanohy
+              </span>
+            )}
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-xl flex items-center justify-center bg-gradient-to-br from-[#1a5e3a] to-[#0a2e1c] border border-[hsl(var(--gold-1)/0.3)] overflow-hidden">
                 <img src={logoPetanque} alt="Pétanque" className="w-14 h-14 object-contain" width={56} height={56} loading="lazy" />
@@ -319,7 +359,12 @@ export default function Home() {
             </div>
           </Link>
 
-          <Link to="/ludo" className="block luxe-card p-5 group transition hover:border-[hsl(var(--gold-1)/0.5)]">
+          <Link to={activeLudoId ? `/ludo/${activeLudoId}` : "/ludo"} className="block luxe-card p-5 group transition hover:border-[hsl(var(--gold-1)/0.5)] relative">
+            {activeLudoId && (
+              <span className="absolute top-2 right-2 inline-flex items-center gap-1 bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-md animate-pulse">
+                <Play className="w-3 h-3 fill-current" /> Hanohy
+              </span>
+            )}
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-xl flex items-center justify-center bg-gradient-to-br from-[#1e88e5] to-[#0b3d75] border border-[hsl(var(--gold-1)/0.3)] overflow-hidden">
                 <img src={logoLudo} alt="Ludo" className="w-14 h-14 object-contain" width={56} height={56} loading="lazy" />

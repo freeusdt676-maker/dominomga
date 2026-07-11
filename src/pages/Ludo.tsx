@@ -896,14 +896,6 @@ export default function LudoPage() {
                   <div className="flex flex-col leading-tight" style={{ color: HEX[c].light }}>
                     <span className="text-[10px] font-bold uppercase tracking-wide">{pl.name}</span>
                     <span className="text-[9px] opacity-80">🏠 {pl.pawns.filter((x) => x.progress === 57).length}/4</span>
-                    {phoneNum && !iAmThisCell && (
-                      <a
-                        href={`tel:${phoneNum}`}
-                        className="text-[9px] mt-0.5 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-600/80 text-white w-fit"
-                      >
-                        📞 Antso
-                      </a>
-                    )}
                   </div>
                 </div>
                 <Dice

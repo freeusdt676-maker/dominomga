@@ -339,6 +339,145 @@ function winnerOf(p: Player): boolean {
   return p.pawns.every((pw) => pw.progress === 57);
 }
 
+/* ==================== Local Chat (offline) ==================== */
+const CHAT_EMOJIS: { e: string; anim: string }[] = [
+  { e: "😂", anim: "emo-laugh" },
+  { e: "😭", anim: "emo-cry" },
+  { e: "😱", anim: "emo-shock" },
+  { e: "😡", anim: "emo-shake" },
+  { e: "❤️", anim: "emo-beat" },
+  { e: "👏", anim: "emo-clap" },
+  { e: "🔥", anim: "emo-fire" },
+  { e: "🎉", anim: "emo-spin" },
+  { e: "👍", anim: "emo-beat" },
+  { e: "🙏", anim: "emo-beat" },
+];
+const QUICKS = ["👋 Salama", "🔥 Tsara!", "😂", "👍", "💪 Mazoto e!", "🎉 Bravo!"];
+
+function LudoChat() {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const [msgs, setMsgs] = useState<{ id: string; who: "me" | "bot"; content: string }[]>([]);
+  const [bursts, setBursts] = useState<{ id: string; e: string; anim: string; left: string; top: string }[]>([]);
+  const [floaters, setFloaters] = useState<{ id: string; content: string }[]>([]);
+
+  const beep = (f: number, d = 0.1) => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = "triangle"; o.frequency.value = f; g.gain.value = 0.18;
+      o.connect(g).connect(ctx.destination);
+      o.start(); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + d);
+      o.stop(ctx.currentTime + d);
+    } catch {}
+  };
+
+  const pushBurst = (e: string, anim: string) => {
+    const id = crypto.randomUUID();
+    const left = `${10 + Math.random() * 80}%`;
+    const top = `${20 + Math.random() * 50}%`;
+    setBursts((b) => [...b, { id, e, anim, left, top }]);
+    setTimeout(() => setBursts((b) => b.filter((x) => x.id !== id)), 2200);
+  };
+
+  const pushFloater = (content: string) => {
+    const id = crypto.randomUUID();
+    setFloaters((f) => [...f, { id, content }]);
+    setTimeout(() => setFloaters((f) => f.filter((x) => x.id !== id)), 3000);
+  };
+
+  const send = (content: string) => {
+    if (!content.trim()) return;
+    setMsgs((m) => [...m.slice(-30), { id: crypto.randomUUID(), who: "me", content }]);
+    pushFloater(content);
+    beep(880, 0.08);
+    setText("");
+  };
+
+  const sendEmoji = (e: string, anim: string) => {
+    pushBurst(e, anim);
+    setMsgs((m) => [...m.slice(-30), { id: crypto.randomUUID(), who: "me", content: e }]);
+    beep(1200, 0.1);
+  };
+
+  return (
+    <>
+      {/* On-screen emoji bursts (global) */}
+      <div className="pointer-events-none fixed inset-0 z-[70] overflow-hidden">
+        {bursts.map((b) => (
+          <div key={b.id} className={`absolute text-5xl ${b.anim}`} style={{ left: b.left, top: b.top }}>
+            {b.e}
+          </div>
+        ))}
+        {floaters.map((f, i) => (
+          <div key={f.id}
+               className="absolute left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full bg-black/70 text-white text-sm font-semibold shadow-lg animate-fade-in"
+               style={{ top: `${8 + i * 40}px` }}>
+            {f.content}
+          </div>
+        ))}
+      </div>
+
+      {!open && (
+        <button onClick={() => setOpen(true)}
+                className="fixed bottom-4 right-4 z-[60] w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-xl flex items-center justify-center hover:scale-105 transition">
+          <MessageCircle className="w-6 h-6" />
+        </button>
+      )}
+
+      {open && (
+        <div className="fixed bottom-4 right-4 z-[60] w-[90vw] max-w-[320px] rounded-2xl bg-slate-900/95 border border-white/10 shadow-2xl backdrop-blur flex flex-col overflow-hidden">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-white/10">
+            <div className="text-sm font-bold text-white">Chat</div>
+            <button onClick={() => setOpen(false)} className="text-white/70 hover:text-white">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="max-h-40 overflow-y-auto p-2 space-y-1 text-sm">
+            {msgs.length === 0 && (
+              <div className="text-white/50 italic text-xs">Manombohana ny resaka…</div>
+            )}
+            {msgs.map((m) => (
+              <div key={m.id} className="px-2 py-1 rounded-lg bg-white/10 text-white w-fit max-w-full break-words">
+                {m.content}
+              </div>
+            ))}
+          </div>
+
+          <div className="px-2 py-1 flex flex-wrap gap-1 border-t border-white/10">
+            {CHAT_EMOJIS.map((x) => (
+              <button key={x.e} onClick={() => sendEmoji(x.e, x.anim)}
+                      className="text-xl hover:scale-125 transition">
+                {x.e}
+              </button>
+            ))}
+          </div>
+
+          <div className="px-2 py-1 flex flex-wrap gap-1 border-t border-white/10">
+            {QUICKS.map((q) => (
+              <button key={q} onClick={() => send(q)}
+                      className="text-[11px] px-2 py-0.5 rounded-full bg-white/10 text-white hover:bg-white/20">
+                {q}
+              </button>
+            ))}
+          </div>
+
+          <form onSubmit={(e) => { e.preventDefault(); send(text); }}
+                className="flex items-center gap-1 p-2 border-t border-white/10">
+            <input value={text} onChange={(e) => setText(e.target.value)}
+                   placeholder="Soraty…"
+                   className="flex-1 bg-white/10 text-white text-sm rounded-full px-3 py-1.5 outline-none placeholder:text-white/40" />
+            <button type="submit" className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+              <Send className="w-4 h-4" />
+            </button>
+          </form>
+        </div>
+      )}
+    </>
+  );
+}
+
 /* ==================== Main page ==================== */
 export default function LudoPage() {
   const [players, setPlayers] = useState<Player[]>(initialPlayers);
@@ -549,7 +688,7 @@ export default function LudoPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0b1a2e] via-[#123055] to-[#0b1a2e] text-white">
-      <header className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+      <header className="relative flex items-center justify-between px-4 py-3 border-b border-white/10">
         <Link to="/" className="inline-flex items-center gap-2 text-white/80 hover:text-white">
           <ArrowLeft className="w-5 h-5" /> Miverina
         </Link>
@@ -557,6 +696,7 @@ export default function LudoPage() {
         <button onClick={reset} className="inline-flex items-center gap-1 text-white/80 hover:text-white">
           <RotateCcw className="w-5 h-5" /> Vaovao
         </button>
+        <RadioPlayer />
       </header>
 
       <div className="max-w-2xl mx-auto p-3 space-y-3 min-h-[calc(100vh-56px)] flex flex-col justify-center">
@@ -633,6 +773,8 @@ export default function LudoPage() {
           </div>
         )}
       </div>
+
+      <LudoChat />
     </div>
   );
 }

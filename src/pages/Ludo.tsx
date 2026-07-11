@@ -235,14 +235,14 @@ function Board({ players, activeColor, onPickPawn, movable }: {
            onClick={() => active && onPickPawn(p.color, p.pIdx)}
            style={{ cursor: active ? "pointer" : "default" }}>
           {/* Pawn: base cone + round head, 3D shaded */}
-          <ellipse cx={0} cy={11} rx={13} ry={4} fill="rgba(0,0,0,0.35)" />
-          <path d={`M -11 10 Q -13 -2 -6 -6 L 6 -6 Q 13 -2 11 10 Z`}
+          <ellipse cx={0} cy={16} rx={12} ry={3.5} fill="rgba(0,0,0,0.35)" />
+          <path d={`M -11 15 Q -13 -4 -5 -10 L 5 -10 Q 13 -4 11 15 Z`}
                 fill={`url(#grad-${p.color})`} stroke={HEX[p.color].dark} strokeWidth={1.5} />
-          <ellipse cx={-3} cy={-2} rx={3} ry={6} fill="rgba(255,255,255,0.35)" />
-          <circle cx={0} cy={-11} r={7} fill={`url(#grad-${p.color})`} stroke={HEX[p.color].dark} strokeWidth={1.5}/>
-          <circle cx={-2} cy={-13} r={2} fill="rgba(255,255,255,0.6)" />
+          <ellipse cx={-3} cy={-4} rx={2.8} ry={9} fill="rgba(255,255,255,0.35)" />
+          <circle cx={0} cy={-16} r={7} fill={`url(#grad-${p.color})`} stroke={HEX[p.color].dark} strokeWidth={1.5}/>
+          <circle cx={-2} cy={-18} r={2} fill="rgba(255,255,255,0.6)" />
           {active && (
-            <circle cx={0} cy={0} r={16} fill="none" stroke="#fff" strokeWidth={2}
+            <circle cx={0} cy={-2} r={18} fill="none" stroke="#fff" strokeWidth={2}
                     strokeDasharray="3 3" opacity={0.9}>
               <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="3s" repeatCount="indefinite"/>
             </circle>

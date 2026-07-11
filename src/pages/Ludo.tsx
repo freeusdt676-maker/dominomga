@@ -32,7 +32,7 @@ export default function Ludo() {
           </Button>
           <h1 className="font-bold text-lg">Ludo</h1>
         </div>
-        {started ? <GamePlay /> : <HomePage onStart={() => setStarted(true)} />}
+        {started ? <GamePlay /> : <HomePage onStart={() => queueMicrotask(() => setStarted(true))} />}
       </div>
     </Provider>
   );

@@ -6,7 +6,7 @@ import { moveSeed,
 } from '../actions/gameData';
 import store from '../store';
 
-import { startPoint, newSeedPosition } from './seedPath.js';
+import { startPoint, newSeedPosition } from './seedPath';
 import { still, movesLeft, home, NUMBER } from './constants';
 
 /**

@@ -231,30 +231,30 @@ function Board({ players, activeColor, onPickPawn, movable }: {
       const active = p.color === activeColor && movable.has(p.pIdx);
       pawnEls.push(
         <g key={`p-${p.color}-${p.pIdx}-${key}`}
-           transform={`translate(${x}, ${y}) scale(1.35)`}
+           transform={`translate(${x}, ${y - 4}) scale(1.35)`}
            onClick={() => active && onPickPawn(p.color, p.pIdx)}
            style={{ cursor: active ? "pointer" : "default" }}>
           {/* Pawn: GPS-pin (teardrop with hole) + ripple base */}
           {/* Ripple base */}
-          <ellipse cx={0} cy={16} rx={14} ry={3} fill="none"
+          <ellipse cx={0} cy={18} rx={11} ry={2.4} fill="none"
                    stroke={HEX[p.color].base} strokeWidth={1.5} opacity={0.9} />
-          <ellipse cx={0} cy={16} rx={10} ry={2.2} fill="none"
+          <ellipse cx={0} cy={18} rx={8} ry={1.8} fill="none"
                    stroke={HEX[p.color].base} strokeWidth={1.3} opacity={0.75} />
-          <ellipse cx={0} cy={16} rx={6} ry={1.4} fill="none"
+          <ellipse cx={0} cy={18} rx={5} ry={1.2} fill="none"
                    stroke={HEX[p.color].base} strokeWidth={1.1} opacity={0.6} />
-          {/* Teardrop body — rounded top, sharp bottom point */}
-          <path d={`M 0 14 C -14 4 -14 -12 0 -18 C 14 -12 14 4 0 14 Z`}
+          {/* Teardrop body — taller & slimmer */}
+          <path d={`M 0 16 C -10 6 -11 -14 0 -22 C 11 -14 10 6 0 16 Z`}
                 fill={`url(#grad-${p.color})`}
                 stroke={HEX[p.color].dark} strokeWidth={1.4} />
           {/* Center hole */}
-          <circle cx={0} cy={-8} r={5.5} fill="#fff"
+          <circle cx={0} cy={-10} r={4.5} fill="#fff"
                   stroke={HEX[p.color].dark} strokeWidth={1.3} />
           {/* Gloss highlight */}
-          <path d={`M -7 -13 Q -10 -5 -7 3`} fill="none"
+          <path d={`M -5 -16 Q -8 -6 -5 4`} fill="none"
                 stroke="rgba(255,255,255,0.7)" strokeWidth={1.8} strokeLinecap="round" />
-          <ellipse cx={-4} cy={-13} rx={2} ry={1.2} fill="rgba(255,255,255,0.55)"/>
+          <ellipse cx={-3} cy={-16} rx={1.6} ry={1} fill="rgba(255,255,255,0.55)"/>
           {active && (
-            <circle cx={0} cy={-2} r={18} fill="none" stroke="#fff" strokeWidth={2}
+            <circle cx={0} cy={-4} r={20} fill="none" stroke="#fff" strokeWidth={2}
                     strokeDasharray="3 3" opacity={0.9}>
               <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="3s" repeatCount="indefinite"/>
             </circle>
@@ -345,6 +345,7 @@ export default function LudoPage() {
   const [winner, setWinner] = useState<ColorKey | null>(null);
   const [message, setMessage] = useState<string>("Mianjera ny dés, ry Mena!");
   const consecSix = useRef(0);
+  const [countdown, setCountdown] = useState<number>(10);
 
   const current = players[turnIdx];
 
@@ -475,6 +476,16 @@ export default function LudoPage() {
     return () => clearTimeout(t);
   }, [movable, turnIdx, dice, winner]); // eslint-disable-line
 
+  // Visible 10s countdown
+  useEffect(() => {
+    if (winner) { setCountdown(0); return; }
+    setCountdown(10);
+    const iv = setInterval(() => {
+      setCountdown((c) => (c > 0 ? c - 1 : 0));
+    }, 1000);
+    return () => clearInterval(iv);
+  }, [turnIdx, movable, canRoll, rolling, winner]);
+
   const reset = () => {
     setPlayers(initialPlayers());
     setTurnIdx(0);
@@ -505,19 +516,6 @@ export default function LudoPage() {
       </header>
 
       <div className="max-w-2xl mx-auto p-3 space-y-3">
-        {/* Scoreboard */}
-        <div className="grid grid-cols-4 gap-2">
-          {players.map((p, i) => (
-            <div key={p.color}
-                 className={`rounded-lg p-2 text-center transition ${i === turnIdx ? "ring-2 ring-white scale-105" : "opacity-70"}`}
-                 style={{ background: HEX[p.color].base, color: p.color === "yellow" ? "#111" : "#fff" }}>
-              <div className="text-[10px] uppercase tracking-wider">{p.isBot ? "Bot" : "You"}</div>
-              <div className="font-bold text-sm">{labelOf(p.color)}</div>
-              <div className="text-xs mt-1">🏠 {scores[i].done}/4</div>
-            </div>
-          ))}
-        </div>
-
         {/* Board framed by 4 external dice + name labels */}
         {(() => {
           const cornerFor: Record<ColorKey, string> = {
@@ -528,8 +526,14 @@ export default function LudoPage() {
           };
           const DiceCell = ({ c }: { c: ColorKey }) => {
             const isActive = current.color === c;
+            const align = (c === "red" || c === "blue") ? "items-start" : "items-end";
             return (
-              <div className={`flex flex-col items-center gap-1 ${cornerFor[c]}`}>
+              <div className={`flex flex-col ${align} gap-1 ${cornerFor[c]}`}>
+                <div className="text-[10px] font-bold uppercase tracking-wider leading-tight text-center"
+                     style={{ color: HEX[c].light }}>
+                  {labelOf(c)}
+                  <div className="text-[9px] opacity-80">🏠 {scores[COLORS.indexOf(c)].done}/4</div>
+                </div>
                 <Dice
                   value={isActive ? dice : 1}
                   rolling={isActive && rolling}
@@ -537,6 +541,16 @@ export default function LudoPage() {
                   onRoll={rollDice}
                   color={c}
                 />
+                {isActive && !winner && (
+                  <div className="text-[11px] font-black tabular-nums px-2 py-0.5 rounded-md"
+                       style={{
+                         background: countdown <= 3 ? "#e11d48" : "rgba(0,0,0,0.55)",
+                         color: "#fff",
+                         border: `1px solid ${HEX[c].light}`,
+                       }}>
+                    ⏱ {countdown}s
+                  </div>
+                )}
               </div>
             );
           };
@@ -560,15 +574,6 @@ export default function LudoPage() {
             </div>
           );
         })()}
-
-        {/* Bottom status */}
-        <div className="rounded-xl bg-black/40 p-3 border border-white/10">
-          <p className="text-[11px] uppercase tracking-wider opacity-70">Tour</p>
-          <p className="font-bold" style={{ color: HEX[current.color].light }}>
-            {labelOf(current.color)} {current.isBot ? "(Bot)" : "(Ianao)"}
-          </p>
-          <p className="text-xs opacity-80 mt-1">{message}</p>
-        </div>
 
         {winner && (
           <div className="rounded-xl p-4 text-center font-bold text-lg"

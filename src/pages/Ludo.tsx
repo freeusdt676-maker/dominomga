@@ -102,8 +102,10 @@ function beep(freq: number, dur: number, type: OscillatorType = "sine", vol = 0.
 }
 const sfx = {
   dice: () => { beep(720, 0.08, "square"); setTimeout(() => beep(520, 0.09, "square"), 60); },
-  step: () => beep(880, 0.04, "triangle", 0.12),
-  capture: () => { beep(220, 0.12, "sawtooth", 0.18); setTimeout(() => beep(160, 0.16, "sawtooth", 0.18), 100); },
+  leave: () => { beep(520, 0.06, "square", 0.18); setTimeout(() => beep(780, 0.09, "triangle", 0.18), 55); },
+  step: () => beep(1200, 0.025, "triangle", 0.10),
+  enterHome: () => { beep(700, 0.07, "sine", 0.18); setTimeout(() => beep(1050, 0.09, "sine", 0.2), 70); setTimeout(() => beep(1400, 0.12, "sine", 0.2), 150); },
+  capture: () => { beep(220, 0.12, "sawtooth", 0.22); setTimeout(() => beep(160, 0.18, "sawtooth", 0.22), 90); setTimeout(() => beep(110, 0.22, "sawtooth", 0.22), 190); },
   home: () => { beep(660, 0.1, "sine", 0.2); setTimeout(() => beep(990, 0.16, "sine", 0.2), 110); },
   win: () => [0,120,240,360].forEach((d,i) => setTimeout(() => beep(660 + i*110, 0.18, "triangle", 0.2), d)),
 };

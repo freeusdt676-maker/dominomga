@@ -20,6 +20,7 @@ import ProfileEdit from "./pages/ProfileEdit";
 import SpectateDomino from "./pages/SpectateDomino";
 import SpectatePetanque from "./pages/SpectatePetanque";
 import Tournament from "./pages/Tournament";
+import Ludo from "./pages/Ludo";
 import TournamentRules from "./pages/TournamentRules";
 import TournamentHistory from "./pages/TournamentHistory";
 import TournamentLeaderboard from "./pages/TournamentLeaderboard";
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/spectate/domino/:id" element={<SpectateDomino />} />
             <Route path="/spectate/petanque/:id" element={<SpectatePetanque />} />
             <Route path="/tournament" element={<Tournament />} />
+            <Route path="/ludo" element={<Ludo />} />
             <Route path="/tournament/rules" element={<TournamentRules />} />
             <Route path="/tournament/history" element={<TournamentHistory />} />
             <Route path="/tournament/leaderboard" element={<TournamentLeaderboard />} />

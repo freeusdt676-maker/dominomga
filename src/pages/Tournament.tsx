@@ -14,11 +14,10 @@ import logoTournoi from "@/assets/logo-tournoi.png";
 
 const MG_TZ_OFFSET = 3 * 3600_000;
 
-type GameType = "domino" | "ludo" | "petanque";
+type GameType = "domino" | "petanque";
 
 const GAME_META: Record<GameType, { label: string; icon: any; emoji: string; gameRoute: (id: string) => string; subtitle: string }> = {
   domino: { label: "Domino", icon: Trophy, emoji: "🁫", gameRoute: (id) => `/game/${id}`, subtitle: "Bracket apahavalon-dalana · Domino 2P" },
-  ludo:   { label: "Ludo",   icon: Dices,  emoji: "🎲", gameRoute: (id) => `/ludo/${id}`, subtitle: "Bracket apahavalon-dalana · Ludo 2P" },
   petanque: { label: "Pétanque", icon: Target, emoji: "🎯", gameRoute: (id) => `/petanque/${id}`, subtitle: "Bracket apahavalon-dalana · Pétanque 2P" },
 };
 

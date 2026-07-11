@@ -12,15 +12,12 @@ import AdminChat from "./pages/AdminChat";
 import Game from "./pages/Game";
 import Admin from "./pages/Admin";
 import AdminSecurity from "./pages/AdminSecurity";
-import LudoLobby from "./pages/LudoLobby";
-import LudoGame from "./pages/LudoGame";
 import PetanqueLobby from "./pages/PetanqueLobby";
 import PetanqueGame from "./pages/PetanqueGame";
 import Discussions from "./pages/Discussions";
 import Profile from "./pages/Profile";
 import ProfileEdit from "./pages/ProfileEdit";
 import SpectateDomino from "./pages/SpectateDomino";
-import SpectateLudo from "./pages/SpectateLudo";
 import SpectatePetanque from "./pages/SpectatePetanque";
 import Tournament from "./pages/Tournament";
 import TournamentRules from "./pages/TournamentRules";
@@ -50,15 +47,12 @@ const App = () => (
             <Route path="/game/:id" element={<Game />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/security" element={<AdminSecurity />} />
-            <Route path="/ludo" element={<LudoLobby />} />
-            <Route path="/ludo/:id" element={<LudoGame />} />
             <Route path="/petanque" element={<PetanqueLobby />} />
             <Route path="/petanque/:id" element={<PetanqueGame />} />
             <Route path="/discussions" element={<Discussions />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/profile/edit" element={<ProfileEdit />} />
             <Route path="/spectate/domino/:id" element={<SpectateDomino />} />
-            <Route path="/spectate/ludo/:id" element={<SpectateLudo />} />
             <Route path="/spectate/petanque/:id" element={<SpectatePetanque />} />
             <Route path="/tournament" element={<Tournament />} />
             <Route path="/tournament/rules" element={<TournamentRules />} />

@@ -61,7 +61,7 @@ type Player = { color: ColorKey; isBot: boolean; pawns: Pawn[] };
 function initialPlayers(): Player[] {
   return COLORS.map((c) => ({
     color: c,
-    isBot: c !== "red",
+    isBot: c !== "blue",
     pawns: [{ progress: 0 }, { progress: 0 }, { progress: 0 }, { progress: 0 }],
   }));
 }
@@ -155,12 +155,6 @@ function Board({ players, activeColor, onPickPawn, movable }: {
     <g key={`yard-${c}`}>
       <rect x={col*S} y={row*S} width={6*S} height={6*S} fill={HEX[c].base} stroke="#111" strokeWidth={2} />
       <rect x={col*S+S*0.6} y={row*S+S*0.6} width={4.8*S} height={4.8*S} fill="#fff" stroke="#111" strokeWidth={1.5} rx={6}/>
-      {YARD_SLOTS[c].map((_, i) => {
-        const [r, cc] = YARD_SLOTS[c][i];
-        return (
-          <circle key={i} cx={cc*S+S/2} cy={r*S+S/2} r={S*0.42} fill="#fff" stroke={HEX[c].dark} strokeWidth={2.5} />
-        );
-      })}
     </g>
   );
 
@@ -231,30 +225,28 @@ function Board({ players, activeColor, onPickPawn, movable }: {
       const active = p.color === activeColor && movable.has(p.pIdx);
       pawnEls.push(
         <g key={`p-${p.color}-${p.pIdx}-${key}`}
-           transform={`translate(${x}, ${y - 4}) scale(1.35)`}
+           transform={`translate(${x}, ${y - 6}) scale(1.35)`}
            onClick={() => active && onPickPawn(p.color, p.pIdx)}
            style={{ cursor: active ? "pointer" : "default" }}>
-          {/* Pawn: GPS-pin (teardrop with hole) + ripple base */}
-          {/* Ripple base */}
-          <ellipse cx={0} cy={18} rx={11} ry={2.4} fill="none"
-                   stroke={HEX[p.color].base} strokeWidth={1.5} opacity={0.9} />
-          <ellipse cx={0} cy={18} rx={8} ry={1.8} fill="none"
-                   stroke={HEX[p.color].base} strokeWidth={1.3} opacity={0.75} />
-          <ellipse cx={0} cy={18} rx={5} ry={1.2} fill="none"
-                   stroke={HEX[p.color].base} strokeWidth={1.1} opacity={0.6} />
-          {/* Teardrop body — taller & slimmer */}
-          <path d={`M 0 16 C -10 6 -11 -14 0 -22 C 11 -14 10 6 0 16 Z`}
+          {/* Classic pawn: round head on top, pointy cone base below */}
+          {/* Cone body — wide at shoulders, tapering to sharp point at bottom */}
+          <path d={`M 0 20 L -9 -2 C -9 -8 -5 -10 0 -10 C 5 -10 9 -8 9 -2 Z`}
                 fill={`url(#grad-${p.color})`}
-                stroke={HEX[p.color].dark} strokeWidth={1.4} />
-          {/* Center hole */}
-          <circle cx={0} cy={-10} r={4.5} fill="#fff"
-                  stroke={HEX[p.color].dark} strokeWidth={1.3} />
-          {/* Gloss highlight */}
-          <path d={`M -5 -16 Q -8 -6 -5 4`} fill="none"
-                stroke="rgba(255,255,255,0.7)" strokeWidth={1.8} strokeLinecap="round" />
-          <ellipse cx={-3} cy={-16} rx={1.6} ry={1} fill="rgba(255,255,255,0.55)"/>
+                stroke={HEX[p.color].dark} strokeWidth={1.4}
+                strokeLinejoin="round" />
+          {/* Neck ring */}
+          <ellipse cx={0} cy={-10} rx={6.5} ry={1.6}
+                   fill={HEX[p.color].dark} opacity={0.85}/>
+          {/* Round head */}
+          <circle cx={0} cy={-16} r={7} fill={`url(#grad-${p.color})`}
+                  stroke={HEX[p.color].dark} strokeWidth={1.4}/>
+          {/* Gloss on head */}
+          <ellipse cx={-2.2} cy={-18} rx={2.4} ry={1.6} fill="rgba(255,255,255,0.75)"/>
+          {/* Gloss on body */}
+          <path d={`M -5 -6 Q -7 4 -3 14`} fill="none"
+                stroke="rgba(255,255,255,0.55)" strokeWidth={1.6} strokeLinecap="round"/>
           {active && (
-            <circle cx={0} cy={-4} r={20} fill="none" stroke="#fff" strokeWidth={2}
+            <circle cx={0} cy={-6} r={22} fill="none" stroke="#fff" strokeWidth={2}
                     strokeDasharray="3 3" opacity={0.9}>
               <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="3s" repeatCount="indefinite"/>
             </circle>
@@ -486,6 +478,16 @@ export default function LudoPage() {
     return () => clearInterval(iv);
   }, [turnIdx, movable, canRoll, rolling, winner]);
 
+  // Strong vibration + beep on last 3 seconds — only if it's the human's turn
+  useEffect(() => {
+    if (winner) return;
+    if (current.isBot) return;
+    if (countdown > 0 && countdown <= 3) {
+      try { navigator.vibrate?.([200, 80, 200]); } catch {}
+      beep(880, 0.12, "square", 0.22);
+    }
+  }, [countdown, current.isBot, winner]);
+
   const reset = () => {
     setPlayers(initialPlayers());
     setTurnIdx(0);
@@ -515,7 +517,7 @@ export default function LudoPage() {
         </button>
       </header>
 
-      <div className="max-w-2xl mx-auto p-3 space-y-3">
+      <div className="max-w-2xl mx-auto p-3 space-y-3 min-h-[calc(100vh-56px)] flex flex-col justify-center">
         {/* Board framed by 4 external dice + name labels */}
         {(() => {
           const cornerFor: Record<ColorKey, string> = {
@@ -527,6 +529,7 @@ export default function LudoPage() {
           const DiceCell = ({ c }: { c: ColorKey }) => {
             const isActive = current.color === c;
             const align = (c === "red" || c === "blue") ? "items-start" : "items-end";
+            const urgent = isActive && !winner && countdown > 0 && countdown <= 3;
             return (
               <div className={`flex flex-col ${align} gap-1 ${cornerFor[c]}`}>
                 <div className="text-[10px] font-bold uppercase tracking-wider leading-tight text-center"
@@ -542,12 +545,15 @@ export default function LudoPage() {
                   color={c}
                 />
                 {isActive && !winner && (
-                  <div className="text-[11px] font-black tabular-nums px-2 py-0.5 rounded-md"
-                       style={{
-                         background: countdown <= 3 ? "#e11d48" : "rgba(0,0,0,0.55)",
-                         color: "#fff",
-                         border: `1px solid ${HEX[c].light}`,
-                       }}>
+                  <div
+                    className={`font-black tabular-nums px-2 py-0.5 rounded-md ${urgent ? "text-lg animate-pulse" : "text-[11px]"}`}
+                    style={{
+                      background: urgent ? "#dc2626" : "rgba(0,0,0,0.55)",
+                      color: "#fff",
+                      border: `1px solid ${urgent ? "#fff" : HEX[c].light}`,
+                      boxShadow: urgent ? "0 0 12px rgba(220,38,38,0.9)" : "none",
+                    }}
+                  >
                     ⏱ {countdown}s
                   </div>
                 )}

@@ -946,19 +946,113 @@ export default function LudoPage() {
           );
         })()}
 
-        {winner && (
-          <div className="rounded-xl p-4 text-center font-bold text-lg"
-               style={{ background: HEX[winner].base, color: winner === "yellow" ? "#111" : "#fff" }}>
-            🏆 {labelOf(winner)} no mpandresy!
-            <button onClick={() => nav("/ludo")}
-                    className="block mx-auto mt-3 px-4 py-2 rounded-lg bg-black/30 text-white text-sm">
-              Miverina any Lobby
-            </button>
-          </div>
-        )}
+        {winner && row && (() => {
+          const stake = Number(row.stake ?? 0);
+          const pc = Number(row.players_count ?? 2);
+          const commissionEach = Math.round(stake * 0.10);
+          const pot = (stake - commissionEach) * pc;
+          const netGain = pot - stake;
+          const iWon = row.winner_id === user?.id;
+          const winnerName =
+            players.find((p) => p.userId === row.winner_id)?.name ?? labelOf(winner);
+          return (
+            <LudoResultOverlay
+              iWon={iWon}
+              netGain={netGain}
+              pot={pot}
+              stake={stake}
+              winnerName={winnerName}
+              onDone={() => nav("/ludo", { replace: true })}
+            />
+          );
+        })()}
       </div>
 
       <LudoChat />
+    </div>
+  );
+}
+
+function LudoResultOverlay({
+  iWon, netGain, pot, stake, winnerName, onDone,
+}: {
+  iWon: boolean; netGain: number; pot: number; stake: number;
+  winnerName: string; onDone: () => void;
+}) {
+  const [count, setCount] = useState(5);
+  useEffect(() => {
+    try { sfx.win(); } catch {}
+    const t = setInterval(() => setCount((c) => Math.max(0, c - 1)), 1000);
+    const done = setTimeout(onDone, 5000);
+    return () => { clearInterval(t); clearTimeout(done); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const dust = Array.from({ length: 80 }, (_, i) => i);
+  const tears = Array.from({ length: 40 }, (_, i) => i);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm overflow-hidden">
+      {iWon && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {dust.map((i) => {
+            const left = Math.random() * 100;
+            const dur = 2.2 + Math.random() * 2.6;
+            const delay = Math.random() * 1.5;
+            const size = 4 + Math.random() * 6;
+            return (
+              <span
+                key={i}
+                className="gold-dust"
+                style={{ left: `${left}%`, width: `${size}px`, height: `${size}px`, animationDuration: `${dur}s`, animationDelay: `${delay}s` }}
+              />
+            );
+          })}
+        </div>
+      )}
+      {!iWon && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {tears.map((i) => {
+            const left = Math.random() * 100;
+            const dur = 2.4 + Math.random() * 2.2;
+            const delay = Math.random() * 2;
+            return (
+              <span
+                key={i}
+                className="sad-tear"
+                style={{ left: `${left}%`, animationDuration: `${dur}s`, animationDelay: `${delay}s` }}
+              />
+            );
+          })}
+        </div>
+      )}
+      <div className={`${iWon ? "domino-win-pop" : "domino-lose-pop"} relative w-[92%] max-w-md text-center rounded-3xl p-7 border-4 shadow-2xl ${
+        iWon ? "border-green-300 bg-gradient-to-br from-green-500 via-emerald-500 to-green-700 shadow-[0_0_80px_rgba(34,197,94,0.85)]"
+        : "border-red-300 bg-gradient-to-br from-slate-700 via-red-900 to-slate-900 shadow-[0_0_80px_rgba(239,68,68,0.65)]"
+      }`}>
+        {iWon ? (
+          <>
+            <p className="text-6xl mb-2">🏆</p>
+            <p className="font-display text-4xl font-black text-green-50 domino-win-glow tracking-wide">
+              Arabaina nandresy ianao!
+            </p>
+            <div className="mt-4 inline-flex flex-col items-center rounded-2xl bg-black/30 px-5 py-3 border border-yellow-200/40">
+              <p className="text-xs text-yellow-100/80">Gain</p>
+              <p className="font-display text-3xl font-black text-yellow-200 drop-shadow-lg">+{fmtAr(netGain)}</p>
+              <p className="text-[11px] text-yellow-100/70">(Pot azo: {fmtAr(pot)})</p>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-6xl mb-2 sad-emoji">😢</p>
+            <p className="font-display text-3xl font-black text-white sad-title">Resy ianao</p>
+            <p className="text-sm text-white/90 mt-2">
+              Nandresy <b>{winnerName}</b>
+            </p>
+            <p className="font-display text-2xl font-black text-yellow-100 mt-3">-{fmtAr(stake)}</p>
+            <p className="text-[11px] text-white/80">(very ny mise napetrakao)</p>
+          </>
+        )}
+        <p className="text-[11px] text-white/80 mt-4 italic">Hiverina amin'ny lobby afaka {count}s…</p>
+      </div>
     </div>
   );
 }

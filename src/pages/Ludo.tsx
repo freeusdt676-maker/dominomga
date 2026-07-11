@@ -234,13 +234,23 @@ function Board({ players, activeColor, onPickPawn, movable }: {
            transform={`translate(${x}, ${y})`}
            onClick={() => active && onPickPawn(p.color, p.pIdx)}
            style={{ cursor: active ? "pointer" : "default" }}>
-          {/* Pawn: base cone + round head, 3D shaded */}
-          <ellipse cx={0} cy={16} rx={12} ry={3.5} fill="rgba(0,0,0,0.35)" />
-          <path d={`M -11 15 Q -13 -4 -5 -10 L 5 -10 Q 13 -4 11 15 Z`}
-                fill={`url(#grad-${p.color})`} stroke={HEX[p.color].dark} strokeWidth={1.5} />
-          <ellipse cx={-3} cy={-4} rx={2.8} ry={9} fill="rgba(255,255,255,0.35)" />
-          <circle cx={0} cy={-16} r={7} fill={`url(#grad-${p.color})`} stroke={HEX[p.color].dark} strokeWidth={1.5}/>
-          <circle cx={-2} cy={-18} r={2} fill="rgba(255,255,255,0.6)" />
+          {/* Pawn: GPS-pin (teardrop with hole) + ripple base */}
+          <ellipse cx={0} cy={17} rx={13} ry={3} fill="none"
+                   stroke={HEX[p.color].base} strokeWidth={1.4} opacity={0.85} />
+          <ellipse cx={0} cy={17} rx={9} ry={2} fill="none"
+                   stroke={HEX[p.color].base} strokeWidth={1.2} opacity={0.7} />
+          <ellipse cx={0} cy={17} rx={5} ry={1.2} fill="none"
+                   stroke={HEX[p.color].base} strokeWidth={1} opacity={0.55} />
+          {/* Teardrop body */}
+          <path d={`M 0 15 C -13 4 -13 -10 0 -18 C 13 -10 13 4 0 15 Z`}
+                fill={`url(#grad-${p.color})`}
+                stroke={HEX[p.color].dark} strokeWidth={1.3} />
+          {/* Hole */}
+          <circle cx={0} cy={-7} r={5} fill="#fff"
+                  stroke={HEX[p.color].dark} strokeWidth={1.2} />
+          {/* Gloss highlight */}
+          <path d={`M -6 -12 Q -9 -4 -6 4`} fill="none"
+                stroke="rgba(255,255,255,0.55)" strokeWidth={1.6} strokeLinecap="round" />
           {active && (
             <circle cx={0} cy={-2} r={18} fill="none" stroke="#fff" strokeWidth={2}
                     strokeDasharray="3 3" opacity={0.9}>

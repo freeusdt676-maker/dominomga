@@ -232,13 +232,15 @@ function Board({ players, activeColor, onPickPawn, movable }: {
   const pawnEls: JSX.Element[] = [];
   groups.forEach((arr, key) => {
     arr.forEach((p, i) => {
-      const SCALE = 1.75;
-      // Pawn body spans y: -22..16 (mid ≈ -3). Center the body in the cell.
-      const offset = arr.length > 1 ? (i - (arr.length - 1) / 2) * 10 : 0;
+      // On-track pins must fit fully inside a 40px cell; yard pins can be larger.
+      const inYard = p.progress === 0;
+      const SCALE = inYard ? 1.5 : 1.15;
+      // Body spans y ≈ -14..+16 (h=30). Center on cell by shifting up by mid=1*SCALE.
+      const offset = arr.length > 1 ? (i - (arr.length - 1) / 2) * (inYard ? 10 : 8) : 0;
       const cellCx = p.c * S + S / 2 + offset;
       const cellCy = p.r * S + S / 2;
       const x = cellCx;
-      const y = cellCy - 2 * SCALE; // lift so pin + shadow are visually centered
+      const y = cellCy - 1 * SCALE;
       const active = p.color === activeColor && movable.has(p.pIdx);
       pawnEls.push(
         <g key={`p-${p.color}-${p.pIdx}`}

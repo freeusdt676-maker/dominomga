@@ -610,7 +610,7 @@ export default function LudoPage() {
     const seats = row.seat_assignment ?? [1, 2, 3, 4];
     return idx >= 0 ? seats[idx] ?? null : null;
   }, [user, row]);
-  const myColor = mySeat ? SEAT_COLOR[mySeat] : null;
+  const myColor = mySeat && row ? seatColor(mySeat, row.players_count) : null;
   const isMyTurn = !!row && row.status === "in_progress" && currentSeat === mySeat && !row.winner_id;
   const canRoll = isMyTurn && row?.dice_rolled === false;
 

@@ -1,3 +1,0 @@
-export {
- disableEmptyHouses,
-} from './disableEmptyHouses';

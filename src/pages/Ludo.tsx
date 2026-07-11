@@ -231,30 +231,30 @@ function Board({ players, activeColor, onPickPawn, movable }: {
       const active = p.color === activeColor && movable.has(p.pIdx);
       pawnEls.push(
         <g key={`p-${p.color}-${p.pIdx}-${key}`}
-           transform={`translate(${x}, ${y}) scale(1.35)`}
+           transform={`translate(${x}, ${y - 4}) scale(1.35)`}
            onClick={() => active && onPickPawn(p.color, p.pIdx)}
            style={{ cursor: active ? "pointer" : "default" }}>
           {/* Pawn: GPS-pin (teardrop with hole) + ripple base */}
           {/* Ripple base */}
-          <ellipse cx={0} cy={16} rx={14} ry={3} fill="none"
+          <ellipse cx={0} cy={18} rx={11} ry={2.4} fill="none"
                    stroke={HEX[p.color].base} strokeWidth={1.5} opacity={0.9} />
-          <ellipse cx={0} cy={16} rx={10} ry={2.2} fill="none"
+          <ellipse cx={0} cy={18} rx={8} ry={1.8} fill="none"
                    stroke={HEX[p.color].base} strokeWidth={1.3} opacity={0.75} />
-          <ellipse cx={0} cy={16} rx={6} ry={1.4} fill="none"
+          <ellipse cx={0} cy={18} rx={5} ry={1.2} fill="none"
                    stroke={HEX[p.color].base} strokeWidth={1.1} opacity={0.6} />
-          {/* Teardrop body — rounded top, sharp bottom point */}
-          <path d={`M 0 14 C -14 4 -14 -12 0 -18 C 14 -12 14 4 0 14 Z`}
+          {/* Teardrop body — taller & slimmer */}
+          <path d={`M 0 16 C -10 6 -11 -14 0 -22 C 11 -14 10 6 0 16 Z`}
                 fill={`url(#grad-${p.color})`}
                 stroke={HEX[p.color].dark} strokeWidth={1.4} />
           {/* Center hole */}
-          <circle cx={0} cy={-8} r={5.5} fill="#fff"
+          <circle cx={0} cy={-10} r={4.5} fill="#fff"
                   stroke={HEX[p.color].dark} strokeWidth={1.3} />
           {/* Gloss highlight */}
-          <path d={`M -7 -13 Q -10 -5 -7 3`} fill="none"
+          <path d={`M -5 -16 Q -8 -6 -5 4`} fill="none"
                 stroke="rgba(255,255,255,0.7)" strokeWidth={1.8} strokeLinecap="round" />
-          <ellipse cx={-4} cy={-13} rx={2} ry={1.2} fill="rgba(255,255,255,0.55)"/>
+          <ellipse cx={-3} cy={-16} rx={1.6} ry={1} fill="rgba(255,255,255,0.55)"/>
           {active && (
-            <circle cx={0} cy={-2} r={18} fill="none" stroke="#fff" strokeWidth={2}
+            <circle cx={0} cy={-4} r={20} fill="none" stroke="#fff" strokeWidth={2}
                     strokeDasharray="3 3" opacity={0.9}>
               <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="3s" repeatCount="indefinite"/>
             </circle>

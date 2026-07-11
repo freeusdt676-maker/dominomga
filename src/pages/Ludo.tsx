@@ -451,6 +451,30 @@ export default function LudoPage() {
     }
   }, [turnIdx, canRoll, winner]); // eslint-disable-line
 
+  // Auto-roll for human after 10s of inactivity
+  useEffect(() => {
+    if (winner) return;
+    if (!current.isBot && canRoll && !rolling) {
+      const t = setTimeout(() => rollDice(), 10000);
+      return () => clearTimeout(t);
+    }
+  }, [turnIdx, canRoll, rolling, winner]); // eslint-disable-line
+
+  // Auto-pick pawn for human after 10s if they don't tap
+  useEffect(() => {
+    if (winner) return;
+    if (current.isBot) return;
+    if (movable.size === 0) return;
+    const t = setTimeout(() => {
+      const others = players.filter((_, i) => i !== turnIdx);
+      const choice = botChoose(current, dice, others);
+      if (choice != null && movable.has(choice)) {
+        movePawn(turnIdx, choice, dice);
+      }
+    }, 10000);
+    return () => clearTimeout(t);
+  }, [movable, turnIdx, dice, winner]); // eslint-disable-line
+
   const reset = () => {
     setPlayers(initialPlayers());
     setTurnIdx(0);

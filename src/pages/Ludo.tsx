@@ -232,13 +232,15 @@ function Board({ players, activeColor, onPickPawn, movable }: {
   const pawnEls: JSX.Element[] = [];
   groups.forEach((arr, key) => {
     arr.forEach((p, i) => {
-      const SCALE = 1.75;
-      // Pawn body spans y: -22..16 (mid ≈ -3). Center the body in the cell.
-      const offset = arr.length > 1 ? (i - (arr.length - 1) / 2) * 10 : 0;
+      // On-track pins must fit fully inside a 40px cell; yard pins can be larger.
+      const inYard = p.progress === 0;
+      const SCALE = inYard ? 1.5 : 1.15;
+      // Body spans y ≈ -14..+16 (h=30). Center on cell by shifting up by mid=1*SCALE.
+      const offset = arr.length > 1 ? (i - (arr.length - 1) / 2) * (inYard ? 10 : 8) : 0;
       const cellCx = p.c * S + S / 2 + offset;
       const cellCy = p.r * S + S / 2;
       const x = cellCx;
-      const y = cellCy - 2 * SCALE; // lift so pin + shadow are visually centered
+      const y = cellCy - 1 * SCALE;
       const active = p.color === activeColor && movable.has(p.pIdx);
       pawnEls.push(
         <g key={`p-${p.color}-${p.pIdx}`}
@@ -534,6 +536,8 @@ export default function LudoPage() {
   const nav = useNavigate();
   const [row, setRow] = useState<ServerRow | null>(null);
   const [names, setNames] = useState<Record<string, string>>({});
+  const [avatars, setAvatars] = useState<Record<string, string | null>>({});
+  const [phones, setPhones] = useState<Record<string, string | null>>({});
   const [rolling, setRolling] = useState(false);
   const [diceDisplay, setDiceDisplay] = useState(1);
   const [movable, setMovable] = useState<Set<number>>(new Set());
@@ -547,11 +551,24 @@ export default function LudoPage() {
     const uids = [r.player1_id, r.player2_id, r.player3_id, r.player4_id].filter(Boolean) as string[];
     const missing = uids.filter((u) => !names[u]);
     if (missing.length) {
-      const { data } = await supabase.from("profiles").select("user_id, mvola_name").in("user_id", missing);
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, mvola_name, avatar_url, phone")
+        .in("user_id", missing);
       if (data) {
         setNames((prev) => {
           const nx = { ...prev };
           (data as any[]).forEach((p) => { nx[p.user_id] = p.mvola_name ?? "Mpilalao"; });
+          return nx;
+        });
+        setAvatars((prev) => {
+          const nx = { ...prev };
+          (data as any[]).forEach((p) => { nx[p.user_id] = p.avatar_url ?? null; });
+          return nx;
+        });
+        setPhones((prev) => {
+          const nx = { ...prev };
+          (data as any[]).forEach((p) => { nx[p.user_id] = p.phone ?? null; });
           return nx;
         });
       }
@@ -801,12 +818,34 @@ export default function LudoPage() {
             const align = (c === "red" || c === "blue") ? "items-start" : "items-end";
             const urgent = isActive && !winner && countdown > 0 && countdown <= 3;
             const iAmThisCell = myColor === c;
+          const uidHere = pl.userId ?? "";
+          const avatarUrl = uidHere ? avatars[uidHere] : null;
+          const phoneNum = uidHere ? phones[uidHere] : null;
             return (
               <div className={`flex flex-col ${align} gap-1 ${cornerFor[c]}`}>
-                <div className="text-[10px] font-bold uppercase tracking-wider leading-tight text-center"
-                     style={{ color: HEX[c].light }}>
-                  {pl.name}
-                  <div className="text-[9px] opacity-80">🏠 {pl.pawns.filter((x) => x.progress === 57).length}/4</div>
+                <div className={`flex ${align === "items-end" ? "flex-row-reverse" : "flex-row"} items-center gap-1.5`}>
+                  <div
+                    className="w-9 h-9 rounded-full overflow-hidden bg-black/40 flex items-center justify-center shrink-0"
+                    style={{ border: `2px solid ${HEX[c].light}`, boxShadow: isActive ? `0 0 8px ${HEX[c].light}` : "none" }}
+                  >
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-sm">👤</span>
+                    )}
+                  </div>
+                  <div className="flex flex-col leading-tight" style={{ color: HEX[c].light }}>
+                    <span className="text-[10px] font-bold uppercase tracking-wide">{pl.name}</span>
+                    <span className="text-[9px] opacity-80">🏠 {pl.pawns.filter((x) => x.progress === 57).length}/4</span>
+                    {phoneNum && !iAmThisCell && (
+                      <a
+                        href={`tel:${phoneNum}`}
+                        className="text-[9px] mt-0.5 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-600/80 text-white w-fit"
+                      >
+                        📞 Antso
+                      </a>
+                    )}
+                  </div>
                 </div>
                 <Dice
                   value={isActive ? diceDisplay : (pl.pawns.length ? (row.last_dice && current?.color === c ? row.last_dice : 1) : 1)}

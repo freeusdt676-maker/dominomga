@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { RadioPlayer } from "@/components/RadioPlayer";
 import { MessageCircle, Send, X } from "lucide-react";
+import LudoVoiceChat from "@/components/LudoVoiceChat";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -17,6 +18,11 @@ type ColorKey = "red" | "green" | "yellow" | "blue";
 const COLORS: ColorKey[] = ["red", "green", "yellow", "blue"];
 // Seat number (1..4) → color mapping. seats 1=red, 2=green, 3=yellow, 4=blue.
 const SEAT_COLOR: Record<number, ColorKey> = { 1: "red", 2: "green", 3: "yellow", 4: "blue" };
+// In duel (2 players) we force blue vs green — no red/yellow.
+const SEAT_COLOR_DUEL: Record<number, ColorKey> = { 1: "blue", 2: "green", 3: "blue", 4: "green" };
+function seatColor(seat: number, playersCount: number): ColorKey {
+  return playersCount === 2 ? SEAT_COLOR_DUEL[seat] : SEAT_COLOR[seat];
+}
 const HEX: Record<ColorKey, { base: string; dark: string; light: string; ring: string }> = {
   red:    { base: "#e53935", dark: "#8e1414", light: "#ff7a75", ring: "#c62828" },
   green:  { base: "#2ea84a", dark: "#0f5b26", light: "#77e08d", ring: "#1f7a34" },

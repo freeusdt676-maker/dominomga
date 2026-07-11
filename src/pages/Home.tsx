@@ -318,9 +318,9 @@ export default function Home() {
               <button className="btn-luxe inline-flex items-center gap-2">
                 <Wallet className="w-3.5 h-3.5" />
                 <span>WALLET</span>
-                <span className="inline-flex items-center gap-0.5 text-[9px] font-black leading-none">
-                  <span className="rounded-full bg-yellow-400 text-black px-1">M</span>
-                  <span className="rounded-full bg-red-600 text-white px-1">A</span>
+                <span className="inline-flex items-center gap-0.5 text-[9px] font-black leading-none text-[hsl(var(--gold-1))]">
+                  <span className="rounded-full border border-[hsl(var(--gold-1)/0.5)] px-1">M</span>
+                  <span className="rounded-full border border-[hsl(var(--gold-1)/0.5)] px-1">A</span>
                 </span>
               </button>
             </Link>

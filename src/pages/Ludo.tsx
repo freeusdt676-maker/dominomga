@@ -4,9 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import store from "@/ludo/store";
-// @ts-expect-error - plain JS module
+// @ts-ignore - plain JS module
 import HomePage from "@/ludo/containers/HomePage";
-// @ts-expect-error - plain JS module
+// @ts-ignore - plain JS module
 import GamePlay from "@/ludo/containers/GamePlay";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "toastr/build/toastr.min.css";
@@ -17,10 +17,10 @@ export default function Ludo() {
   const [started, setStarted] = useState(false);
 
   useEffect(() => {
-    // Ensure toastr is configured
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const t = require("toastr");
-    t.options = { positionClass: "toast-top-right", timeOut: 2500 };
+    import("toastr").then((mod) => {
+      const t: any = mod.default ?? mod;
+      t.options = { positionClass: "toast-top-right", timeOut: 2500 };
+    });
   }, []);
 
   return (

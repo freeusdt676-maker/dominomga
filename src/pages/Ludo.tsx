@@ -233,13 +233,12 @@ function Board({ players, activeColor, onPickPawn, movable }: {
   groups.forEach((arr, key) => {
     arr.forEach((p, i) => {
       const SCALE = 1.55;
-      // tip local y in path = 16 → after scale = 16*SCALE.
-      // We want the pointed tip to land exactly at the cell center.
+      // Pawn body spans y: -22..16 (mid ≈ -3). Center the body in the cell.
       const offset = arr.length > 1 ? (i - (arr.length - 1) / 2) * 10 : 0;
       const cellCx = p.c * S + S / 2 + offset;
       const cellCy = p.r * S + S / 2;
       const x = cellCx;
-      const y = cellCy - 16 * SCALE; // anchor tip at cell center
+      const y = cellCy + 3 * SCALE; // center pawn body at cell center
       const active = p.color === activeColor && movable.has(p.pIdx);
       pawnEls.push(
         <g key={`p-${p.color}-${p.pIdx}`}

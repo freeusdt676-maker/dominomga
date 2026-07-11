@@ -225,30 +225,28 @@ function Board({ players, activeColor, onPickPawn, movable }: {
       const active = p.color === activeColor && movable.has(p.pIdx);
       pawnEls.push(
         <g key={`p-${p.color}-${p.pIdx}-${key}`}
-           transform={`translate(${x}, ${y - 4}) scale(1.35)`}
+           transform={`translate(${x}, ${y - 6}) scale(1.35)`}
            onClick={() => active && onPickPawn(p.color, p.pIdx)}
            style={{ cursor: active ? "pointer" : "default" }}>
-          {/* Pawn: GPS-pin (teardrop with hole) + ripple base */}
-          {/* Ripple base */}
-          <ellipse cx={0} cy={18} rx={11} ry={2.4} fill="none"
-                   stroke={HEX[p.color].base} strokeWidth={1.5} opacity={0.9} />
-          <ellipse cx={0} cy={18} rx={8} ry={1.8} fill="none"
-                   stroke={HEX[p.color].base} strokeWidth={1.3} opacity={0.75} />
-          <ellipse cx={0} cy={18} rx={5} ry={1.2} fill="none"
-                   stroke={HEX[p.color].base} strokeWidth={1.1} opacity={0.6} />
-          {/* Teardrop body — taller & slimmer */}
-          <path d={`M 0 16 C -10 6 -11 -14 0 -22 C 11 -14 10 6 0 16 Z`}
+          {/* Classic pawn: round head on top, pointy cone base below */}
+          {/* Cone body — wide at shoulders, tapering to sharp point at bottom */}
+          <path d={`M 0 20 L -9 -2 C -9 -8 -5 -10 0 -10 C 5 -10 9 -8 9 -2 Z`}
                 fill={`url(#grad-${p.color})`}
-                stroke={HEX[p.color].dark} strokeWidth={1.4} />
-          {/* Center hole */}
-          <circle cx={0} cy={-10} r={4.5} fill="#fff"
-                  stroke={HEX[p.color].dark} strokeWidth={1.3} />
-          {/* Gloss highlight */}
-          <path d={`M -5 -16 Q -8 -6 -5 4`} fill="none"
-                stroke="rgba(255,255,255,0.7)" strokeWidth={1.8} strokeLinecap="round" />
-          <ellipse cx={-3} cy={-16} rx={1.6} ry={1} fill="rgba(255,255,255,0.55)"/>
+                stroke={HEX[p.color].dark} strokeWidth={1.4}
+                strokeLinejoin="round" />
+          {/* Neck ring */}
+          <ellipse cx={0} cy={-10} rx={6.5} ry={1.6}
+                   fill={HEX[p.color].dark} opacity={0.85}/>
+          {/* Round head */}
+          <circle cx={0} cy={-16} r={7} fill={`url(#grad-${p.color})`}
+                  stroke={HEX[p.color].dark} strokeWidth={1.4}/>
+          {/* Gloss on head */}
+          <ellipse cx={-2.2} cy={-18} rx={2.4} ry={1.6} fill="rgba(255,255,255,0.75)"/>
+          {/* Gloss on body */}
+          <path d={`M -5 -6 Q -7 4 -3 14`} fill="none"
+                stroke="rgba(255,255,255,0.55)" strokeWidth={1.6} strokeLinecap="round"/>
           {active && (
-            <circle cx={0} cy={-4} r={20} fill="none" stroke="#fff" strokeWidth={2}
+            <circle cx={0} cy={-6} r={22} fill="none" stroke="#fff" strokeWidth={2}
                     strokeDasharray="3 3" opacity={0.9}>
               <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="3s" repeatCount="indefinite"/>
             </circle>

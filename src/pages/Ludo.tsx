@@ -56,10 +56,10 @@ const HOME_COL: Record<ColorKey, [number, number][]> = {
 
 // Yard slots (4 pawn positions inside each corner house)
 const YARD_SLOTS: Record<ColorKey, [number, number][]> = {
-  red:    [[1.5,1.5],[1.5,3.5],[3.5,1.5],[3.5,3.5]],
-  green:  [[1.5,10.5],[1.5,12.5],[3.5,10.5],[3.5,12.5]],
-  yellow: [[10.5,10.5],[10.5,12.5],[12.5,10.5],[12.5,12.5]],
-  blue:   [[10.5,1.5],[10.5,3.5],[12.5,1.5],[12.5,3.5]],
+  red:    [[1.7,1.7],[1.7,3.7],[3.7,1.7],[3.7,3.7]],
+  green:  [[1.7,10.7],[1.7,12.7],[3.7,10.7],[3.7,12.7]],
+  yellow: [[10.7,10.7],[10.7,12.7],[12.7,10.7],[12.7,12.7]],
+  blue:   [[10.7,1.7],[10.7,3.7],[12.7,1.7],[12.7,3.7]],
 };
 
 // progress: 0 = yard, 1..51 outer, 52..57 home column, 57 = finished (center)

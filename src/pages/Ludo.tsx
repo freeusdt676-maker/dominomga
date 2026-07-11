@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, RotateCcw } from "lucide-react";
+import { RadioPlayer } from "@/components/RadioPlayer";
+import { MessageCircle, Send, X, Smile } from "lucide-react";
 
 /* =========================================================
    LUDO — offline solo vs 3 bots
@@ -221,15 +223,20 @@ function Board({ players, activeColor, onPickPawn, movable }: {
   const pawnEls: JSX.Element[] = [];
   groups.forEach((arr, key) => {
     arr.forEach((p, i) => {
-      const offset = arr.length > 1 ? (i - (arr.length - 1) / 2) * 9 : 0;
-      const x = p.c * S + S/2 + offset;
-      const y = p.r * S + S/2;
+      const SCALE = 1.55;
+      // tip local y in path = 16 → after scale = 16*SCALE.
+      // We want the pointed tip to land exactly at the cell center.
+      const offset = arr.length > 1 ? (i - (arr.length - 1) / 2) * 10 : 0;
+      const cellCx = p.c * S + S / 2 + offset;
+      const cellCy = p.r * S + S / 2;
+      const x = cellCx;
+      const y = cellCy - 16 * SCALE; // anchor tip at cell center
       const active = p.color === activeColor && movable.has(p.pIdx);
       pawnEls.push(
         <g key={`p-${p.color}-${p.pIdx}`}
            style={{
              cursor: active ? "pointer" : "default",
-             transform: `translate(${x}px, ${y - 4}px) scale(1.35)`,
+             transform: `translate(${x}px, ${y}px) scale(${SCALE})`,
              transition: "transform 110ms cubic-bezier(0.4, 0.0, 0.2, 1)",
              transformBox: "fill-box",
            }}

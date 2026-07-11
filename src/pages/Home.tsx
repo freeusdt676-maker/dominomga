@@ -318,6 +318,20 @@ export default function Home() {
             </div>
           </Link>
 
+          <Link to="/ludo" className="block luxe-card p-5 group transition hover:border-[hsl(var(--gold-1)/0.5)]">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-xl flex items-center justify-center bg-gradient-to-br from-[#1e3a8a] to-[#0b1a3a] border border-[hsl(var(--gold-1)/0.3)] text-3xl">
+                🎲
+              </div>
+              <div className="flex-1">
+                <p className="eyebrow">Classique offline</p>
+                <h3 className="font-serif-luxe text-2xl gold-luxe-text leading-tight">Ludo</h3>
+                <p className="text-xs text-muted-foreground mt-1">2P · 3P · 4P — Lalao amin'ny finday iray</p>
+              </div>
+              <span className="text-[hsl(var(--gold-1))] opacity-50 group-hover:opacity-100 transition text-xl">→</span>
+            </div>
+          </Link>
+
           <Link to="/tournament" className="block luxe-card p-5 group transition hover:border-[hsl(var(--gold-1)/0.5)] ring-1 ring-[hsl(var(--gold-1)/0.35)]">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-xl flex items-center justify-center bg-gradient-to-br from-[#8a6c10] to-[#3a2a04] border border-[hsl(var(--gold-1)/0.5)] overflow-hidden">

@@ -240,20 +240,22 @@ function Board({ players, activeColor, onPickPawn, movable }: {
     arr.forEach((p, i) => {
       // On-track pins must fit fully inside a 40px cell; yard pins can be larger.
       const inYard = p.progress === 0;
-      const SCALE = inYard ? 1.5 : 1.15;
-      // Body spans y ≈ -14..+16 (h=30). Center on cell by shifting up by mid=1*SCALE.
-      const offset = arr.length > 1 ? (i - (arr.length - 1) / 2) * (inYard ? 10 : 8) : 0;
+      const SCALE = inYard ? 1.55 : 1.30;
+      // Pin tip is at local y=+16, top at y=-14. Anchor the tip a hair below the
+      // cell center so the pin visually stands INSIDE the case (fa tsy amin'ny tsipika).
+      const offset = arr.length > 1 ? (i - (arr.length - 1) / 2) * (inYard ? 10 : 7) : 0;
       const cellCx = p.c * S + S / 2 + offset;
       const cellCy = p.r * S + S / 2;
       const x = cellCx;
-      const y = cellCy - 1 * SCALE;
+      // Tip lands at cellCy + 2px (slightly below center) → pin body fills the cell.
+      const y = cellCy - 16 * SCALE + 2;
       const active = p.color === activeColor && movable.has(p.pIdx);
       pawnEls.push(
         <g key={`p-${p.color}-${p.pIdx}`}
            style={{
              cursor: active ? "pointer" : "default",
              transform: `translate(${x}px, ${y}px) scale(${SCALE})`,
-             transition: "transform 110ms cubic-bezier(0.4, 0.0, 0.2, 1)",
+             transition: "transform 140ms linear",
              transformBox: "fill-box",
            }}
            onClick={() => active && onPickPawn(p.color, p.pIdx)}>

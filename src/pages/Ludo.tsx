@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { RadioPlayer } from "@/components/RadioPlayer";
 import { MessageCircle, Send, X } from "lucide-react";
+import LudoVoiceChat from "@/components/LudoVoiceChat";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -17,6 +18,11 @@ type ColorKey = "red" | "green" | "yellow" | "blue";
 const COLORS: ColorKey[] = ["red", "green", "yellow", "blue"];
 // Seat number (1..4) → color mapping. seats 1=red, 2=green, 3=yellow, 4=blue.
 const SEAT_COLOR: Record<number, ColorKey> = { 1: "red", 2: "green", 3: "yellow", 4: "blue" };
+// In duel (2 players) we force blue vs green — no red/yellow.
+const SEAT_COLOR_DUEL: Record<number, ColorKey> = { 1: "blue", 2: "green", 3: "blue", 4: "green" };
+function seatColor(seat: number, playersCount: number): ColorKey {
+  return playersCount === 2 ? SEAT_COLOR_DUEL[seat] : SEAT_COLOR[seat];
+}
 const HEX: Record<ColorKey, { base: string; dark: string; light: string; ring: string }> = {
   red:    { base: "#e53935", dark: "#8e1414", light: "#ff7a75", ring: "#c62828" },
   green:  { base: "#2ea84a", dark: "#0f5b26", light: "#77e08d", ring: "#1f7a34" },
@@ -234,20 +240,22 @@ function Board({ players, activeColor, onPickPawn, movable }: {
     arr.forEach((p, i) => {
       // On-track pins must fit fully inside a 40px cell; yard pins can be larger.
       const inYard = p.progress === 0;
-      const SCALE = inYard ? 1.5 : 1.15;
-      // Body spans y ≈ -14..+16 (h=30). Center on cell by shifting up by mid=1*SCALE.
-      const offset = arr.length > 1 ? (i - (arr.length - 1) / 2) * (inYard ? 10 : 8) : 0;
+      const SCALE = inYard ? 1.55 : 1.30;
+      // Pin tip is at local y=+16, top at y=-14. Anchor the tip a hair below the
+      // cell center so the pin visually stands INSIDE the case (fa tsy amin'ny tsipika).
+      const offset = arr.length > 1 ? (i - (arr.length - 1) / 2) * (inYard ? 10 : 7) : 0;
       const cellCx = p.c * S + S / 2 + offset;
       const cellCy = p.r * S + S / 2;
       const x = cellCx;
-      const y = cellCy - 1 * SCALE;
+      // Tip lands at cellCy + 2px (slightly below center) → pin body fills the cell.
+      const y = cellCy - 16 * SCALE + 2;
       const active = p.color === activeColor && movable.has(p.pIdx);
       pawnEls.push(
         <g key={`p-${p.color}-${p.pIdx}`}
            style={{
              cursor: active ? "pointer" : "default",
              transform: `translate(${x}px, ${y}px) scale(${SCALE})`,
-             transition: "transform 110ms cubic-bezier(0.4, 0.0, 0.2, 1)",
+             transition: "transform 140ms linear",
              transformBox: "fill-box",
            }}
            onClick={() => active && onPickPawn(p.color, p.pIdx)}>
@@ -514,7 +522,7 @@ function rowToPlayers(row: ServerRow, names: Record<string, string>): Player[] {
   }
   const activeSeats = seats.length ? seats : ([1, 2, 3, 4] as number[]).filter((s) => userBySeat[s]);
   return activeSeats.map((seat) => {
-    const color = SEAT_COLOR[seat];
+    const color = seatColor(seat, row.players_count);
     const uid = seatToUser[seat] ?? null;
     const pawns: Pawn[] = [0, 1, 2, 3].map((i) => {
       const rec = (row.pawns ?? []).find((r) => r.seat === seat && r.idx === i);
@@ -596,6 +604,57 @@ export default function LudoPage() {
 
   // --- Derived state ---
   const players = useMemo<Player[]>(() => (row ? rowToPlayers(row, names) : []), [row, names]);
+  // Cell-by-cell walking animation — displayPlayers lags server players and
+  // steps 1 cell at a time so pawns move milamina fa tsy mitsambikina.
+  const [displayPawns, setDisplayPawns] = useState<Record<string, number>>({});
+  const stepTimer = useRef<number | null>(null);
+  useEffect(() => {
+    // Ensure every pawn has a display entry.
+    setDisplayPawns((prev) => {
+      const nx = { ...prev };
+      players.forEach((pl) => pl.pawns.forEach((pw, i) => {
+        const k = `${pl.seat}:${i}`;
+        if (nx[k] === undefined) nx[k] = pw.progress;
+      }));
+      return nx;
+    });
+  }, [players]);
+  useEffect(() => {
+    if (stepTimer.current) return;
+    const step = () => {
+      setDisplayPawns((prev) => {
+        const nx = { ...prev };
+        let changed = false;
+        players.forEach((pl) => pl.pawns.forEach((pw, i) => {
+          const k = `${pl.seat}:${i}`;
+          const cur = nx[k] ?? pw.progress;
+          if (cur === pw.progress) return;
+          // Instant jump when going back to yard (capture) — don't walk backwards.
+          if (pw.progress === 0 || Math.abs(pw.progress - cur) > 6) {
+            nx[k] = pw.progress; changed = true; return;
+          }
+          if (cur < pw.progress) {
+            nx[k] = cur + 1; changed = true;
+            try { sfx.step(); } catch {}
+          } else {
+            nx[k] = pw.progress; changed = true;
+          }
+        }));
+        if (changed) {
+          stepTimer.current = window.setTimeout(() => { stepTimer.current = null; step(); }, 150);
+        }
+        return nx;
+      });
+    };
+    // Kick off if any diff exists
+    const hasDiff = players.some((pl) => pl.pawns.some((pw, i) => (displayPawns[`${pl.seat}:${i}`] ?? pw.progress) !== pw.progress));
+    if (hasDiff) step();
+    return () => { if (stepTimer.current) { clearTimeout(stepTimer.current); stepTimer.current = null; } };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [players]);
+  const displayPlayers = useMemo<Player[]>(() =>
+    players.map((pl) => ({ ...pl, pawns: pl.pawns.map((pw, i) => ({ progress: displayPawns[`${pl.seat}:${i}`] ?? pw.progress })) })),
+  [players, displayPawns]);
   const currentSeat = row?.current_turn_seat ?? 0;
   const current = players.find((p) => p.seat === currentSeat) ?? players[0];
   const mySeat = useMemo(() => {
@@ -604,7 +663,7 @@ export default function LudoPage() {
     const seats = row.seat_assignment ?? [1, 2, 3, 4];
     return idx >= 0 ? seats[idx] ?? null : null;
   }, [user, row]);
-  const myColor = mySeat ? SEAT_COLOR[mySeat] : null;
+  const myColor = mySeat && row ? seatColor(mySeat, row.players_count) : null;
   const isMyTurn = !!row && row.status === "in_progress" && currentSeat === mySeat && !row.winner_id;
   const canRoll = isMyTurn && row?.dice_rolled === false;
 
@@ -797,8 +856,10 @@ export default function LudoPage() {
           <ArrowLeft className="w-5 h-5" /> Miverina
         </Link>
         <h1 className="text-xl font-bold tracking-wide">LUDO · {fmtAr(Number(row.stake))}</h1>
-        <div className="w-6" />
-        <RadioPlayer />
+        <div className="flex items-center gap-2">
+          <LudoVoiceChat gameId={id} />
+          <RadioPlayer />
+        </div>
       </header>
 
       <div className="max-w-2xl mx-auto p-3 space-y-3 min-h-[calc(100vh-56px)] flex flex-col justify-center">
@@ -811,7 +872,6 @@ export default function LudoPage() {
             yellow: "justify-self-end",
           };
           const DiceCell = ({ c }: { c: ColorKey }) => {
-            const seat = (Object.entries(SEAT_COLOR).find(([, v]) => v === c)?.[0] ?? "0") as unknown as number;
             const pl = players.find((p) => p.color === c);
             if (!pl) return <div className={cornerFor[c]} />;
             const isActive = current?.color === c;
@@ -820,7 +880,6 @@ export default function LudoPage() {
             const iAmThisCell = myColor === c;
           const uidHere = pl.userId ?? "";
           const avatarUrl = uidHere ? avatars[uidHere] : null;
-          const phoneNum = uidHere ? phones[uidHere] : null;
             return (
               <div className={`flex flex-col ${align} gap-1 ${cornerFor[c]}`}>
                 <div className={`flex ${align === "items-end" ? "flex-row-reverse" : "flex-row"} items-center gap-1.5`}>
@@ -837,14 +896,6 @@ export default function LudoPage() {
                   <div className="flex flex-col leading-tight" style={{ color: HEX[c].light }}>
                     <span className="text-[10px] font-bold uppercase tracking-wide">{pl.name}</span>
                     <span className="text-[9px] opacity-80">🏠 {pl.pawns.filter((x) => x.progress === 57).length}/4</span>
-                    {phoneNum && !iAmThisCell && (
-                      <a
-                        href={`tel:${phoneNum}`}
-                        className="text-[9px] mt-0.5 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-600/80 text-white w-fit"
-                      >
-                        📞 Antso
-                      </a>
-                    )}
                   </div>
                 </div>
                 <Dice
@@ -876,7 +927,7 @@ export default function LudoPage() {
               <div /> {/* top spacer */}
               <DiceCell c="green" />
               <div className="col-span-3">
-                <Board players={players} activeColor={current?.color ?? "red"}
+                <Board players={displayPlayers} activeColor={current?.color ?? "red"}
                        onPickPawn={(color, idx) => {
                          if (!myColor || color !== myColor) return;
                          movePawn(idx);

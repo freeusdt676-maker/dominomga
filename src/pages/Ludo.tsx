@@ -61,7 +61,7 @@ type Player = { color: ColorKey; isBot: boolean; pawns: Pawn[] };
 function initialPlayers(): Player[] {
   return COLORS.map((c) => ({
     color: c,
-    isBot: c !== "red",
+    isBot: c !== "blue",
     pawns: [{ progress: 0 }, { progress: 0 }, { progress: 0 }, { progress: 0 }],
   }));
 }

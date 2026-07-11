@@ -604,6 +604,57 @@ export default function LudoPage() {
 
   // --- Derived state ---
   const players = useMemo<Player[]>(() => (row ? rowToPlayers(row, names) : []), [row, names]);
+  // Cell-by-cell walking animation — displayPlayers lags server players and
+  // steps 1 cell at a time so pawns move milamina fa tsy mitsambikina.
+  const [displayPawns, setDisplayPawns] = useState<Record<string, number>>({});
+  const stepTimer = useRef<number | null>(null);
+  useEffect(() => {
+    // Ensure every pawn has a display entry.
+    setDisplayPawns((prev) => {
+      const nx = { ...prev };
+      players.forEach((pl) => pl.pawns.forEach((pw, i) => {
+        const k = `${pl.seat}:${i}`;
+        if (nx[k] === undefined) nx[k] = pw.progress;
+      }));
+      return nx;
+    });
+  }, [players]);
+  useEffect(() => {
+    if (stepTimer.current) return;
+    const step = () => {
+      setDisplayPawns((prev) => {
+        const nx = { ...prev };
+        let changed = false;
+        players.forEach((pl) => pl.pawns.forEach((pw, i) => {
+          const k = `${pl.seat}:${i}`;
+          const cur = nx[k] ?? pw.progress;
+          if (cur === pw.progress) return;
+          // Instant jump when going back to yard (capture) — don't walk backwards.
+          if (pw.progress === 0 || Math.abs(pw.progress - cur) > 6) {
+            nx[k] = pw.progress; changed = true; return;
+          }
+          if (cur < pw.progress) {
+            nx[k] = cur + 1; changed = true;
+            try { sfx.step(); } catch {}
+          } else {
+            nx[k] = pw.progress; changed = true;
+          }
+        }));
+        if (changed) {
+          stepTimer.current = window.setTimeout(() => { stepTimer.current = null; step(); }, 150);
+        }
+        return nx;
+      });
+    };
+    // Kick off if any diff exists
+    const hasDiff = players.some((pl) => pl.pawns.some((pw, i) => (displayPawns[`${pl.seat}:${i}`] ?? pw.progress) !== pw.progress));
+    if (hasDiff) step();
+    return () => { if (stepTimer.current) { clearTimeout(stepTimer.current); stepTimer.current = null; } };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [players]);
+  const displayPlayers = useMemo<Player[]>(() =>
+    players.map((pl) => ({ ...pl, pawns: pl.pawns.map((pw, i) => ({ progress: displayPawns[`${pl.seat}:${i}`] ?? pw.progress })) })),
+  [players, displayPawns]);
   const currentSeat = row?.current_turn_seat ?? 0;
   const current = players.find((p) => p.seat === currentSeat) ?? players[0];
   const mySeat = useMemo(() => {

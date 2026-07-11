@@ -311,11 +311,18 @@ export default function Home() {
 
           <div className="flex items-end justify-between">
             <div>
-              <p className="eyebrow">Solde MVOLA</p>
+              <p className="eyebrow">Solde WALLET</p>
               <p className="font-serif-luxe text-[40px] leading-none gold-luxe-text mt-2">{fmtAr(balance)}</p>
             </div>
             <Link to="/wallet">
-              <button className="btn-luxe inline-flex items-center gap-2"><Wallet className="w-3.5 h-3.5" />MVola</button>
+              <button className="btn-luxe inline-flex items-center gap-2">
+                <Wallet className="w-3.5 h-3.5" />
+                <span>WALLET</span>
+                <span className="inline-flex items-center gap-0.5 text-[9px] font-black leading-none text-[hsl(var(--gold-1))]">
+                  <span className="rounded-full border border-[hsl(var(--gold-1)/0.5)] px-1">M</span>
+                  <span className="rounded-full border border-[hsl(var(--gold-1)/0.5)] px-1">A</span>
+                </span>
+              </button>
             </Link>
           </div>
         </div>
@@ -454,7 +461,7 @@ export default function Home() {
           <div className="grid grid-cols-3 gap-2">
             <CircleNavButton
               icon={<Wallet />}
-              label="MVola"
+              label="WALLET"
               variant="primary"
               onClick={() => nav("/wallet")}
             />

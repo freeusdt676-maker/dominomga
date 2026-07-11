@@ -1,4 +1,4 @@
-// Server-side Ludo watchdog: 15s turn limit. Plays a legal move (or rolls
+// Server-side Ludo watchdog: 10s turn limit. Plays a legal move (or rolls
 // & passes) on behalf of any player whose turn has expired, so the game keeps
 // moving even if everyone disconnects.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";

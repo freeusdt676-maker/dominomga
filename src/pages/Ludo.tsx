@@ -16,12 +16,17 @@ import { fmtAr } from "@/lib/constants";
 
 type ColorKey = "red" | "green" | "yellow" | "blue";
 const COLORS: ColorKey[] = ["red", "green", "yellow", "blue"];
-// Seat number (1..4) → color mapping. seats 1=red, 2=green, 3=yellow, 4=blue.
-const SEAT_COLOR: Record<number, ColorKey> = { 1: "red", 2: "green", 3: "yellow", 4: "blue" };
-// In duel (2 players) we force blue vs green — no red/yellow.
-const SEAT_COLOR_DUEL: Record<number, ColorKey> = { 1: "blue", 2: "green", 3: "blue", 4: "green" };
+// Seat → color, by player count:
+//   2P (duel)  : blue, green
+//   3P (tri)   : blue, red, green
+//   4P (quadri): red, green, yellow, blue
+const SEAT_COLOR_2P: Record<number, ColorKey> = { 1: "blue", 2: "green", 3: "blue", 4: "green" };
+const SEAT_COLOR_3P: Record<number, ColorKey> = { 1: "blue", 2: "red",   3: "green", 4: "blue" };
+const SEAT_COLOR_4P: Record<number, ColorKey> = { 1: "red",  2: "green", 3: "yellow", 4: "blue" };
 function seatColor(seat: number, playersCount: number): ColorKey {
-  return playersCount === 2 ? SEAT_COLOR_DUEL[seat] : SEAT_COLOR[seat];
+  if (playersCount === 2) return SEAT_COLOR_2P[seat];
+  if (playersCount === 3) return SEAT_COLOR_3P[seat];
+  return SEAT_COLOR_4P[seat];
 }
 const HEX: Record<ColorKey, { base: string; dark: string; light: string; ring: string }> = {
   red:    { base: "#e53935", dark: "#8e1414", light: "#ff7a75", ring: "#c62828" },

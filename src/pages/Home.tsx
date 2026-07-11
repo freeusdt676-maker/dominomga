@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Wallet, Users, Trophy, MessageCircle, LogOut, Shield, MessagesSquare, User as UserIcon, Download, Eye, EyeOff, FileEdit, RotateCcw, BookOpen, ArrowDownToLine } from "lucide-react";
+import { Play } from "lucide-react";
 import CircleNavButton from "@/components/CircleNavButton";
 import logo from "@/assets/logo.png";
 import logoDomino from "@/assets/logo-domino.png";
@@ -45,6 +46,8 @@ export default function Home() {
   const [pendingProfilesCount, setPendingProfilesCount] = useState(0);
   const [resetOpen, setResetOpen] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [activeLudoId, setActiveLudoId] = useState<string | null>(null);
+  const [activePetanqueId, setActivePetanqueId] = useState<string | null>(null);
 
   useEffect(() => {
     const onBip = (e: any) => { e.preventDefault(); setInstallPrompt(e); };
@@ -103,6 +106,38 @@ export default function Home() {
       clearInterval(itv);
     };
   }, [user, nav]);
+
+  // Ludo + Pétanque: hita ny lalao mandeha (tsy manao auto-redirect fa "Hanohy" fotsiny)
+  useEffect(() => {
+    if (!user) return;
+    const loadActive = async () => {
+      const { data: l } = await supabase
+        .from("ludo_games")
+        .select("id")
+        .or(`player1_id.eq.${user.id},player2_id.eq.${user.id},player3_id.eq.${user.id},player4_id.eq.${user.id}`)
+        .eq("status", "in_progress")
+        .order("updated_at", { ascending: false })
+        .limit(1);
+      setActiveLudoId(l?.[0]?.id ?? null);
+      const { data: p } = await supabase
+        .from("petanque_games")
+        .select("id")
+        .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
+        .eq("status", "in_progress")
+        .order("updated_at", { ascending: false })
+        .limit(1);
+      setActivePetanqueId(p?.[0]?.id ?? null);
+    };
+    loadActive();
+    const ch1 = supabase.channel(`home-ludo-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "ludo_games" }, () => loadActive())
+      .subscribe();
+    const ch2 = supabase.channel(`home-petanque-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "petanque_games" }, () => loadActive())
+      .subscribe();
+    const itv = setInterval(loadActive, 30000);
+    return () => { supabase.removeChannel(ch1); supabase.removeChannel(ch2); clearInterval(itv); };
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;

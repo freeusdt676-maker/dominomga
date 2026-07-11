@@ -501,7 +501,7 @@ function LudoChat() {
 }
 
 /* ==================== Main page (ONLINE multiplayer) ==================== */
-const TURN_TIMEOUT_S = 15;
+const TURN_TIMEOUT_S = 10;
 const labelOf = (c: ColorKey) => ({ red: "Mena", green: "Maitso", yellow: "Mavo", blue: "Manga" }[c]);
 
 type ServerRow = {

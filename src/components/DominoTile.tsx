@@ -89,6 +89,7 @@ export function DominoTile({
   pipColorA,
   pipColorB,
   glow,
+  edgeColor = null,
 }: {
   a: number;
   b: number;
@@ -125,7 +126,8 @@ export function DominoTile({
   const half = horizontal ? { w: tileW / 2, h: tileH } : { w: tileW, h: tileH / 2 };
   const faceColorA = pipColorA ?? pipColor ?? "black";
   const faceColorB = pipColorB ?? pipColor ?? "black";
-  const edge = (arguments[0] as any)?.edgeColor ?? null;
+  const edge: "green" | "red" | null = edgeColor;
+  const edgeStroke = edge === "red" ? "#dc2626" : edge === "green" ? "#16a34a" : null;
   const uid = `g${a}${b}${size}${horizontal ? "h" : "v"}${variant}${faceColorA}${faceColorB}${edge ?? "n"}`;
   return (
     <button

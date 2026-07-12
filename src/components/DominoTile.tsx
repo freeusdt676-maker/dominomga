@@ -198,7 +198,16 @@ export function DominoTile({
           <PipGradient id={`pip-a-${uid}`} color={faceColorA} />
           <PipGradient id={`pip-b-${uid}`} color={faceColorB} />
         </defs>
-        <rect x="0.5" y="0.5" width={tileW - 1} height={tileH - 1} rx={Math.min(tileW, tileH) * 0.08} fill={`url(#face-${uid})`} stroke={variant === "white" ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.55)"} strokeWidth="1" />
+        <rect
+          x="0.5"
+          y="0.5"
+          width={tileW - 1}
+          height={tileH - 1}
+          rx={Math.min(tileW, tileH) * 0.08}
+          fill={`url(#face-${uid})`}
+          stroke={edgeStroke ?? (variant === "white" ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.55)")}
+          strokeWidth={edgeStroke ? 2.5 : 1}
+        />
         {/* inner gold inset */}
         <rect x={2} y={2} width={tileW - 4} height={tileH - 4} rx={Math.min(tileW, tileH) * 0.06} fill="none" stroke={variant === "white" ? "rgba(0,0,0,0.12)" : "rgba(212,175,55,0.35)"} strokeWidth="0.8" />
         {/* spine */}

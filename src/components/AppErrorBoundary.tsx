@@ -2,14 +2,43 @@ import { Component, ReactNode } from "react";
 
 type State = { hasError: boolean; message?: string };
 
+// Errors that are caused by browser translation extensions (Google Translate,
+// Chrome auto-translate, etc.) racing with React's reconciler. They are
+// transient — the tree is fine after a re-render, so we should never block
+// the whole app with a modal for them.
+const TRANSIENT_DOM_ERRORS = [
+  "removeChild",
+  "insertBefore",
+  "The node to be removed is not a child of this node",
+  "The node before which the new node is to be inserted is not a child of this node",
+];
+
+function isTransientDomError(err: unknown): boolean {
+  const msg = (err as { message?: string })?.message ?? String(err ?? "");
+  return TRANSIENT_DOM_ERRORS.some((needle) => msg.includes(needle));
+}
+
 export class AppErrorBoundary extends Component<{ children: ReactNode }, State> {
   state: State = { hasError: false };
 
   static getDerivedStateFromError(err: Error): State {
+    if (isTransientDomError(err)) {
+      // Silently recover — do NOT show the fullscreen fallback.
+      return { hasError: false };
+    }
     return { hasError: true, message: err?.message ?? "Nisy tsy fetezana" };
   }
 
   componentDidCatch(err: Error, info: unknown) {
+    if (isTransientDomError(err)) {
+      // Force a clean re-render on the next tick to flush the stale nodes.
+      // eslint-disable-next-line no-console
+      console.warn("[AppErrorBoundary] transient DOM error swallowed:", err?.message);
+      queueMicrotask(() => {
+        try { this.forceUpdate(); } catch { /* noop */ }
+      });
+      return;
+    }
     // eslint-disable-next-line no-console
     console.error("[AppErrorBoundary]", err, info);
   }

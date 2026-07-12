@@ -253,11 +253,7 @@ export function Court() {
         <planeGeometry args={[COURT.maxX - COURT.minX + 0.4, COURT.maxZ - COURT.minZ + 0.4]} />
         <meshStandardMaterial map={sandTex} roughness={0.95} />
       </mesh>
-      {/* Cochonnet target zone — discret repère du fond du terrain */}
-      <mesh rotation={[-Math.PI/2, 0, 0]} position={[0, 0.015, 8.4]}>
-        <ringGeometry args={[1.55, 1.62, 64]} />
-        <meshBasicMaterial color="#3a2a14" transparent opacity={0.18} />
-      </mesh>
+      {/* Tsy misy repère cochonnet — libre ny fanipazana */}
       {/* Bordures tissées style lamba malgache */}
       {[
         { p: [COURT.minX - 0.15, 0.1, 4.7], s: [0.2, 0.2, COURT.maxZ - COURT.minZ + 0.6] },
@@ -649,7 +645,7 @@ export default function PetanqueGame() {
     const t = Math.max(0, Math.min(1, f / 100));
     const ballSpeedMax = 26;   // m/s — manakatra ny faran'ny terrain mora
     const ballSpeedMin = 5;
-    const jackSpeedMax = 11;
+    const jackSpeedMax = 22;  // hery lehibe kokoa — cochonnet mety tonga lavitra
     const jackSpeedMin = 3;
     const curve = Math.pow(t, 1.25); // courbe linéaire ~ exposant léger
     const speed = jackPhase

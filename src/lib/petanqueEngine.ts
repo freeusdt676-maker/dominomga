@@ -19,13 +19,13 @@ export const COURT = {
   minSpeed: 0.14,
 };
 
-// Valid jack zone — the cochonnet must land far down the court
-// (~70%–95% of the terrain length from the throw line at z=-1.3)
-export const JACK_VALID = { minZ: 6.8, maxZ: 10.0, maxAbsX: 1.2 };
+// Ny cochonnet dia ekena raha mbola tafiditra ao anaty COURT — na akaiky
+// na lavitra. Ny mpilalao no misafidy hery, ary tsy misy fetra bebe kokoa.
+export const JACK_VALID = { minZ: COURT.minZ, maxZ: COURT.maxZ, maxAbsX: COURT.maxX };
 export function isJackValid(j: Jack | null): boolean {
   if (!j) return false;
-  if (Math.abs(j.x) > JACK_VALID.maxAbsX) return false;
-  if (j.z < JACK_VALID.minZ || j.z > JACK_VALID.maxZ) return false;
+  if (j.x < COURT.minX || j.x > COURT.maxX) return false;
+  if (j.z < COURT.minZ || j.z > COURT.maxZ) return false;
   return true;
 }
 

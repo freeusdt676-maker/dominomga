@@ -649,7 +649,7 @@ export default function PetanqueGame() {
     const t = Math.max(0, Math.min(1, f / 100));
     const ballSpeedMax = 26;   // m/s — manakatra ny faran'ny terrain mora
     const ballSpeedMin = 5;
-    const jackSpeedMax = 11;
+    const jackSpeedMax = 22;  // hery lehibe kokoa — cochonnet mety tonga lavitra
     const jackSpeedMin = 3;
     const curve = Math.pow(t, 1.25); // courbe linéaire ~ exposant léger
     const speed = jackPhase

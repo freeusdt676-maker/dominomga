@@ -164,12 +164,9 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
           const placed = board[i];
           const tileKey = placed ? `${placed.tile[0]}-${placed.tile[1]}` : `i-${i}`;
           const isNew = !seenRef.current.has(tileKey);
-          // Ny vodiny havia ihany no MENA, ny lohany havanana ihany no MAITSO.
-          // Ny vato rehetra eo anelanelany mijanona mainty toy ny teo aloha.
-          const isRedTail = isHead;
-          const isGreenHead = isTail;
-          const redFace: "a" | "b" | null = isRedTail ? (it.direction === "left" ? "b" : "a") : null;
-          const greenFace: "a" | "b" | null = isGreenHead ? (it.direction === "left" ? "a" : "b") : null;
+          // Masombato mijanona MAINTY foana. Ny SISIN'ny vato ihany no
+          // miloko: MENA ny vodiny (voalohany) sy MAITSO ny lohany (farany).
+          const edge: "red" | "green" | null = isHead ? "red" : isTail ? "green" : null;
           return (
             <div
               key={tileKey}
@@ -191,9 +188,9 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
                 horizontal={it.horizontal}
                 variant="white"
                 fluid
-                pipColorA={redFace === "a" ? "red" : greenFace === "a" ? "green" : "black"}
-                pipColorB={redFace === "b" ? "red" : greenFace === "b" ? "green" : "black"}
+                pipColor="black"
                 glow={null}
+                edgeColor={edge}
               />
             </div>
           );

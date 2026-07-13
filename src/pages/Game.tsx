@@ -1319,6 +1319,9 @@ export default function Game() {
   const firstBoardTile = board.length === 1 ? board[0] : null;
   const firstBoardA = firstBoardTile ? (firstBoardTile.flipped ? firstBoardTile.tile[1] : firstBoardTile.tile[0]) : null;
   const firstBoardB = firstBoardTile ? (firstBoardTile.flipped ? firstBoardTile.tile[0] : firstBoardTile.tile[1]) : null;
+  const turnOrderLabel = getPlayerIds(game)
+    .map((pid) => pid === user?.id ? myName : (profileNames[pid] ?? "Mpilalao"))
+    .join(" → ");
 
   return (
     <div
@@ -1460,6 +1463,11 @@ export default function Game() {
             <div className="text-center text-[11px] uppercase tracking-[0.3em] text-[#ffe27a] mb-2 font-extrabold drop-shadow">
               SCORE {targetPts ? `(Tanjona ${targetPts})` : ""}
             </div>
+            {turnOrderLabel && (
+              <div className="-mt-1 mb-2 text-center text-[10px] font-bold text-emerald-200/90 truncate">
+                ↻ {turnOrderLabel}
+              </div>
+            )}
             <div className={`grid ${playersCount === 3 ? "grid-cols-3" : "grid-cols-2"} gap-3`}>
               {getPlayerIds(game).map((pid) => {
                 const isMe = pid === user?.id;

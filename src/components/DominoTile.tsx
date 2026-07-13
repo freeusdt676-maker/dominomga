@@ -90,6 +90,7 @@ export function DominoTile({
   pipColorB,
   glow,
   edgeColor = null,
+  splitEdge = false,
 }: {
   a: number;
   b: number;
@@ -113,6 +114,7 @@ export function DominoTile({
   pipColorB?: PipColor;
   glow?: "green" | "red" | null;
   edgeColor?: "green" | "red" | null;
+  splitEdge?: boolean;
 }) {
   const { w, h } = SIZES[size];
   const tileW = horizontal ? h : w;
@@ -208,6 +210,19 @@ export function DominoTile({
           stroke={edgeStroke ?? (variant === "white" ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.55)")}
           strokeWidth={edgeStroke ? 2.5 : 1}
         />
+        {splitEdge && (
+          horizontal ? (
+            <>
+              <path d={`M ${1.25} ${1.25} H ${tileW / 2} V ${tileH - 1.25} H ${1.25} Z`} fill="none" stroke="#dc2626" strokeWidth="2.5" strokeLinejoin="round" />
+              <path d={`M ${tileW / 2} ${1.25} H ${tileW - 1.25} V ${tileH - 1.25} H ${tileW / 2} Z`} fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinejoin="round" />
+            </>
+          ) : (
+            <>
+              <path d={`M ${1.25} ${1.25} H ${tileW - 1.25} V ${tileH / 2} H ${1.25} Z`} fill="none" stroke="#dc2626" strokeWidth="2.5" strokeLinejoin="round" />
+              <path d={`M ${1.25} ${tileH / 2} H ${tileW - 1.25} V ${tileH - 1.25} H ${1.25} Z`} fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinejoin="round" />
+            </>
+          )
+        )}
         {/* inner gold inset */}
         <rect x={2} y={2} width={tileW - 4} height={tileH - 4} rx={Math.min(tileW, tileH) * 0.06} fill="none" stroke={variant === "white" ? "rgba(0,0,0,0.12)" : "rgba(212,175,55,0.35)"} strokeWidth="0.8" />
         {/* spine */}

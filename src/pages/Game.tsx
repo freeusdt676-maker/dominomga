@@ -271,32 +271,7 @@ export default function Game() {
     return () => clearTimeout(t);
   }, [optimistic]);
 
-  // ────────────────────────────────────────────────────────────────────
-  // Detection automatique ny "pass" — mba tsy hiseho ho "voadingana" ny
-  // pilalao iray rehefa tsy nanana vato afaka napetraka. Isaky ny miova ny
-  // current_turn ary mitombo ny `passes`, dia mipoitra toast hoe
-  // "X nandalo" mba ho hita mazava fa nandeha tokoa ny tour-ny.
-  // ────────────────────────────────────────────────────────────────────
-  const prevTurnRef = useRef<{ turn: string | null; passes: number; round: number } | null>(null);
-  useEffect(() => {
-    if (!game) return;
-    const curTurn: string | null = game.current_turn ?? null;
-    const curPasses = Number(game.passes ?? 0);
-    const curRound = Number(game.round_number ?? 1);
-    const prev = prevTurnRef.current;
-    if (
-      prev
-      && prev.turn
-      && prev.round === curRound
-      && curTurn
-      && curTurn !== prev.turn
-      && curPasses > prev.passes
-    ) {
-      const name = profileNames[prev.turn] ?? "Mpilalao";
-      toast(`${name} nandalo — tsy nahita vato`);
-    }
-    prevTurnRef.current = { turn: curTurn, passes: curPasses, round: curRound };
-  }, [game?.current_turn, game?.passes, game?.round_number, profileNames]);
+  // Tsy misy toast pass/placement intsony: résumé "Tour vita" ihany no aseho.
 
   // DATINANDRO — NESORINA tanteraka. Tsy fandresena intsony ny "datinandro".
   // Ny target (D80=80, D120=120) sy SOLO sy DOUBLE 6 ihany no mahatonga
@@ -869,10 +844,10 @@ export default function Game() {
     if (!isMyTurn || !game || !user) return;
     const tile = myHand[idx];
     const possible = canPlace(board, tile);
-    if (!possible) return toast.error("Tsy mety apetraka", { duration: 500 });
+    if (!possible) return;
     let chosenSide: "left" | "right" = side ?? (possible === "either" ? "right" : possible);
     if (possible !== "either" && side && side !== possible) {
-      return toast.error("Tsy mifanaraka amin'io tendro io", { duration: 500 });
+      return;
     }
     const expectedCurrentTurn = game.current_turn ?? null;
     const expectedTurnStartedAt = game.turn_started_at ?? null;
@@ -906,7 +881,6 @@ export default function Game() {
       });
       if (error) {
         setOptimistic(null);
-        toast.error("Tsy voaray ilay placement, andramo indray", { duration: 500 });
         return;
       }
       await supabase.from("game_moves").insert({
@@ -931,7 +905,6 @@ export default function Game() {
     });
     if (error) {
       setOptimistic(null);
-      toast.error("Nisy fifanenjanana tamin'ny tour, andramo indray", { duration: 500 });
       return;
     }
     await supabase.from("game_moves").insert({
@@ -1066,11 +1039,7 @@ export default function Game() {
       expectedCurrentTurn,
       expectedTurnStartedAt,
     });
-    if (error) {
-      toast.error("Tsy voaray ilay pass, andramo indray", { duration: 500 });
-      return;
-    }
-    toast("TSY MANANA — mandalo any amin'ny manaraka");
+    if (error) return;
   };
 
   // Auto-action / Bot — rehefa lany ny 15s, mandeha ho azy ny lalao
@@ -1101,6 +1070,18 @@ export default function Game() {
       if (!fresh.current_turn || freshStartedAt !== expectedStartedAt) {
         autoActedRef.current = null;
         return;
+      }
+      if (!botActive) {
+        const freshKey = `${fresh.id}-${fresh.turn_started_at}-${fresh.current_turn}`;
+        const localAnchor = turnAnchorRef.current.key === freshKey ? turnAnchorRef.current.at : Date.now();
+        const freshElapsedMs = Math.min(
+          Math.max(0, Date.now() - freshStartedAt),
+          Math.max(0, Date.now() - localAnchor),
+        );
+        if (freshElapsedMs < TURN_TIMEOUT_SEC * 1000) {
+          autoActedRef.current = null;
+          return;
+        }
       }
 
       const liveBoard: Placed[] = (fresh.board_state as Placed[]) ?? [];
@@ -1281,27 +1262,6 @@ export default function Game() {
     }
   }, [selected, isMyTurn, myHand, board]);
 
-  // Auto-pass HAINGANA: raha tonga ny tour-ko nefa TSY MISY vato azoko apetraka
-  // mihitsy, tsy miandry ny 15s — mandalo automatique aorian'ny 1.2s mba
-    // tsy hisy "dingana" ny adversaire manaraka. Manaja foana ny rotation
-        // mankany ANKAVIA (3P: P1→P2→P3).
-  useEffect(() => {
-    if (!game || !user) return;
-    if (game.status !== "in_progress") return;
-    if (isRevealing) return;
-    if (game.current_turn !== user.id) return;
-    if (myHand.length === 0) return;
-    if (hasMove(myHand, board)) return;
-    const key = `noMove-${game.id}-${game.turn_started_at}-${user.id}`;
-    if (autoActedRef.current === key) return;
-    const t = setTimeout(() => {
-      autoActedRef.current = key;
-      passTurn().catch(() => { autoActedRef.current = null; });
-    }, 1200);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game?.id, game?.current_turn, game?.turn_started_at, game?.status, isRevealing, myHand, board, user?.id]);
-
   if (!game) return <div className="min-h-screen felt-bg flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
   const e = ends(board);
@@ -1359,6 +1319,9 @@ export default function Game() {
   const firstBoardTile = board.length === 1 ? board[0] : null;
   const firstBoardA = firstBoardTile ? (firstBoardTile.flipped ? firstBoardTile.tile[1] : firstBoardTile.tile[0]) : null;
   const firstBoardB = firstBoardTile ? (firstBoardTile.flipped ? firstBoardTile.tile[0] : firstBoardTile.tile[1]) : null;
+  const turnOrderLabel = getPlayerIds(game)
+    .map((pid) => pid === user?.id ? myName : (profileNames[pid] ?? "Mpilalao"))
+    .join(" → ");
 
   return (
     <div
@@ -1500,8 +1463,13 @@ export default function Game() {
             <div className="text-center text-[11px] uppercase tracking-[0.3em] text-[#ffe27a] mb-2 font-extrabold drop-shadow">
               SCORE {targetPts ? `(Tanjona ${targetPts})` : ""}
             </div>
+            {turnOrderLabel && (
+              <div className="-mt-1 mb-2 text-center text-[10px] font-bold text-emerald-200/90 truncate">
+                ↻ {turnOrderLabel}
+              </div>
+            )}
             <div className={`grid ${playersCount === 3 ? "grid-cols-3" : "grid-cols-2"} gap-3`}>
-              {[user?.id ?? "", ...opponents.map(o => o.id)].map((pid) => {
+              {getPlayerIds(game).map((pid) => {
                 const isMe = pid === user?.id;
                 const name = isMe ? myName : (profileNames[pid] ?? "Mpilalao");
                 const sc = scoreOf(pid);
@@ -1510,7 +1478,7 @@ export default function Game() {
                 return (
                   <div
                     key={pid}
-                    className={`rounded-xl px-2 py-1.5 border-2 ${isTurn ? "border-[#ffe27a] bg-[linear-gradient(180deg,rgba(212,165,44,0.25),rgba(0,0,0,0.45))] shadow-[0_0_18px_rgba(255,226,122,0.45)]" : "border-[#d4a52c]/40 bg-[linear-gradient(180deg,rgba(0,0,0,0.55),rgba(0,0,0,0.35))]"}`}
+                    className={`rounded-xl px-2 py-1.5 border-2 ${isTurn ? "domino-turn-border bg-[linear-gradient(180deg,rgba(22,163,74,0.24),rgba(0,0,0,0.45))]" : "border-[#d4a52c]/40 bg-[linear-gradient(180deg,rgba(0,0,0,0.55),rgba(0,0,0,0.35))]"}`}
                   >
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="text-xs font-extrabold text-white/95 truncate uppercase tracking-wide">{name}</span>
@@ -1723,9 +1691,9 @@ export default function Game() {
                       size={isMobile ? "xl" : "xl"}
                       horizontal={firstBoardA !== firstBoardB}
                       variant="white"
-                      pipColorA="red"
-                      pipColorB="green"
+                      pipColor="black"
                       glow={null}
+                      splitEdge
                     />
                   </div>
                 </div>
@@ -1770,7 +1738,7 @@ export default function Game() {
 
           {/* Tanako — lehibe sy mazava, mifanesy */}
           <div className="domino-hand-dock px-2 pb-3 pt-1">
-            <div className="domino-hand-mat domino-hand-mat--self">
+            <div className={`domino-hand-mat domino-hand-mat--self ${isMyTurn ? "is-turn" : ""}`}>
             <div className="flex items-center justify-between mb-2 px-1 gap-2">
               <span className={`text-xs font-bold ${isMyTurn ? "gold-text" : "text-muted-foreground"}`}>
                 {isMyTurn ? `▶ ${myName} — andiany!` : `${myName} (${myHand.length})`}

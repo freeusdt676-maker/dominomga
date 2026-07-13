@@ -487,10 +487,10 @@ html.theme-petanque {
       0 8px 18px rgba(0,0,0,0.42);
   }
   .domino-hand-mat.is-turn {
-    border-color: #ffe27a;
+    border-color: #22c55e;
+    animation: domino-turn-border-move 1.15s ease-in-out infinite;
     box-shadow:
-      inset 0 1px 0 rgba(255,245,180,0.38),
-      0 0 18px rgba(255,226,122,0.42),
+      inset 0 1px 0 rgba(187,247,208,0.32),
       0 8px 18px rgba(0,0,0,0.42);
   }
   .domino-hand-mat--opponent {
@@ -686,6 +686,37 @@ html.theme-petanque {
     font-weight: 800;
     text-align: center;
     box-shadow: 0 4px 14px -4px rgba(247,151,30,0.5);
+  }
+}
+
+@keyframes domino-turn-border-move {
+  0%, 100% {
+    border-color: #16a34a;
+    box-shadow:
+      inset 0 1px 0 rgba(187,247,208,0.28),
+      inset 0 -18px 30px rgba(0,0,0,0.24),
+      0 0 0 1px rgba(34,197,94,0.22),
+      0 8px 18px rgba(0,0,0,0.42);
+  }
+  50% {
+    border-color: #86efac;
+    box-shadow:
+      inset 0 1px 0 rgba(220,252,231,0.34),
+      inset 0 -18px 30px rgba(0,0,0,0.24),
+      0 0 0 3px rgba(34,197,94,0.32),
+      0 8px 18px rgba(0,0,0,0.42);
+  }
+}
+
+.domino-turn-border {
+  border-color: #22c55e;
+  animation: domino-turn-border-move 1.15s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .domino-hand-mat.is-turn,
+  .domino-turn-border {
+    animation: none;
   }
 }
 

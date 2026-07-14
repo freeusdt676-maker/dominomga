@@ -65,11 +65,12 @@ function getPlayerIds(g: any): string[] {
     : [g.player1_id, g.player2_id].filter(Boolean);
 }
 function nextTurnId(g: any, currentId: string): string {
-  // Fihodinana mihodina mankany ANKAVIA (contraire montre) hatrany.
-  // 2P: P1 ↔ P2. 3P: P1 → P2 → P3 → P1.
+  // Fihodinana mihodina mankany ANKAVIA (contraire montre) — mihemotra ao amin'ny
+  // ordre table live. 2P: P1 ↔ P2. 3P: P1 → P3 → P2 → P1 (A → C → B → A).
   const ids = getPlayerIds(g);
   const i = ids.indexOf(currentId);
-  return ids[(i + 1) % ids.length] ?? ids[0];
+  const n = ids.length;
+  return ids[(i - 1 + n) % n] ?? ids[0];
 }
 function roundOpenerId(g: any, roundNumber: number): string {
   const ids = getPlayerIds(g);
@@ -212,6 +213,7 @@ export default function Game() {
   const [optimistic, setOptimistic] = useState<any>(null);
   const game = optimistic ?? serverGame;
   const [profileNames, setProfileNames] = useState<Record<string, string>>({});
+  const [myBalance, setMyBalance] = useState<number | null>(null);
   const [profilePhotos, setProfilePhotos] = useState<Record<string, string | null>>({});
   const [selected, setSelected] = useState<number | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -770,6 +772,36 @@ export default function Game() {
       setProfilePhotos(ph);
     })();
   }, [game?.player1_id, game?.player2_id, game?.player3_id]);
+
+  // Solde ny mpilalao mijery (tsy hita amin'ny adversaire).
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    const fetchBal = async () => {
+      const { data } = await supabase
+        .from("wallets")
+        .select("balance")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!cancelled) setMyBalance(Number(data?.balance ?? 0));
+    };
+    fetchBal();
+    const ch = supabase
+      .channel(`wallet-me-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "wallets", filter: `user_id=eq.${user.id}` },
+        (payload: any) => {
+          const bal = Number((payload.new ?? payload.old)?.balance ?? 0);
+          setMyBalance(bal);
+        },
+      )
+      .subscribe();
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(ch);
+    };
+  }, [user?.id]);
 
   const myHand: Tile[] = useMemo(() => {
     if (!game || !user) return [];
@@ -1487,6 +1519,12 @@ export default function Game() {
                     {targetPts && (
                       <div className="mt-1.5 h-2 bg-black/60 rounded-full overflow-hidden border border-[#d4a52c]/30">
                         <div className="h-full bg-gradient-to-r from-[#d4a52c] via-[#ffe27a] to-[#fff4b8] transition-all shadow-[0_0_8px_rgba(255,226,122,0.6)]" style={{ width: `${pct}%` }} />
+                      </div>
+                    )}
+                    {isMe && myBalance !== null && (
+                      <div className="mt-1.5 flex items-center justify-between text-[10px] font-bold text-emerald-200/95 bg-black/40 rounded-md px-1.5 py-0.5 border border-emerald-500/40">
+                        <span className="uppercase tracking-wider opacity-80">Solde</span>
+                        <span className="tabular-nums">{fmtAr(myBalance)}</span>
                       </div>
                     )}
                   </div>

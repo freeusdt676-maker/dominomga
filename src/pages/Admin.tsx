@@ -17,6 +17,7 @@ import TournamentAdmin from "@/components/TournamentAdmin";
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import OnlineUsersDialog from "@/components/OnlineUsersDialog";
 import CircleNavButton from "@/components/CircleNavButton";
+import PhoneActions from "@/components/PhoneActions";
 export default function Admin() {
   const { user, isAdmin } = useAuth();
   const nav = useNavigate();
@@ -1361,7 +1362,7 @@ export default function Admin() {
                 </div>
               )}
               <Row label="Nom utilisateur" value={selectedUser.mvola_name} />
-              <Row label="Numéro téléphone" value={selectedUser.phone} />
+              <Row label="Numéro téléphone" value={<PhoneActions phone={selectedUser.phone} />} />
               <Row label="Date de naissance" value={selectedUser.birth_date ?? "—"} />
               <Row label="Sexe" value={
                 selectedUser.gender === "male" ? "LAHY" :

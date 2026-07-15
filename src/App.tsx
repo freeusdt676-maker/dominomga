@@ -28,6 +28,7 @@ import LudoLobby from "./pages/LudoLobby";
 import { AuthProvider } from "./contexts/AuthContext";
 import BlockedOverlay from "./components/BlockedOverlay";
 import AppErrorBoundary from "./components/AppErrorBoundary";
+import WalletBadge from "./components/WalletBadge";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +41,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <BlockedOverlay />
+          <WalletBadge />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/lobby" element={<Lobby />} />

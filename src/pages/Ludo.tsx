@@ -903,12 +903,11 @@ export default function LudoPage() {
 
   // Auto-play on countdown expiry for any active seat — fallback if watchdog delayed.
   useEffect(() => {
-    if (!row || row.status !== "in_progress" || row.winner_id) return;
-    if (countdown > 0) return;
-    const actionKey = `${row.turn_started_at ?? ""}:${row.current_turn_seat ?? ""}:${row.dice_rolled ? "move" : "roll"}:${row.last_dice ?? 0}`;
-    if (autoTapDone.current === actionKey) return;
-    autoTapDone.current = actionKey;
-    autoPlayExpiredTurn();
+    // Client autoplay ESORINA — tsy mety mihodina alohan'ny 10s.
+    // Server-side watchdog `ludo-autoplay` (cron isaky 2s) irery no mahazo
+    // mandefa move raha lany ny 10s tokoa. Izany no manome antoka fa ny
+    // topon'ny compte ihany no misafidy ny pion mandritra ny 10s manontolo.
+    if (!row || !autoTapDone.current) return;
     // eslint-disable-next-line
   }, [countdown, row?.turn_started_at, row?.current_turn_seat, row?.dice_rolled, row?.last_dice, row?.status, row?.winner_id]);
 

@@ -1283,6 +1283,29 @@ export default function Game() {
     supabase.rpc("settle_game", { _game_id: game.id, _winner: winner.id });
   }, [game?.id, game?.status, game?.current_turn, game?.reveal_until, game?.score_p1, game?.score_p2, game?.score_p3, game?.game_mode, game?.players_count, now, user?.id]);
 
+  // SAFETY NET — Raha tapitra ny reveal (fanambarana ny tour vita) nefa mbola
+  // tsy misy tour manaraka mandeha (current_turn=null) ary tsy mbola misy
+  // mpandresy: nudge-na ny watchdog server-side mba handefa avy hatrany ny
+  // tour manaraka. Miaro amin'ny "mihantona aorian'ny tour" raha ohatra tsy
+  // tafita ny setTimeout an'ny mpilalao nametraka farany (fialan-tsata, tab
+  // minimized, sns.).
+  useEffect(() => {
+    if (!game || game.status !== "in_progress") return;
+    if (game.current_turn) return;
+    if (!game.reveal_until) return;
+    const revealMs = new Date(game.reveal_until).getTime();
+    if (revealMs + 800 > now) return;
+    const mode = (game.game_mode ?? "d120") as GameMode;
+    const scores = [Number(game.score_p1 ?? 0), Number(game.score_p2 ?? 0), Number(game.score_p3 ?? 0)];
+    if (scores.some((s) => isDominoGameWin(s, mode))) return;
+    const key = `next-round-${game.id}-${game.reveal_until}`;
+    if (watchdogNudgeRef.current === key) return;
+    watchdogNudgeRef.current = key;
+    supabase.functions.invoke("domino-autoplay", { body: { game_id: game.id } }).catch(() => {
+      watchdogNudgeRef.current = null;
+    });
+  }, [game?.id, game?.status, game?.current_turn, game?.reveal_until, game?.score_p1, game?.score_p2, game?.score_p3, game?.game_mode, now]);
+
   useEffect(() => {
     if (selected === null) return;
     if (!isMyTurn || !myHand[selected]) {

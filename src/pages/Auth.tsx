@@ -19,6 +19,13 @@ import LiveSpectatorButton from "@/components/LiveSpectatorButton";
 import ForgotPasswordDialog from "@/components/ForgotPasswordDialog";
 
 const LOGIN_STEP_TIMEOUT_MS = 2500;
+const PASSWORD_LOGIN_TIMEOUT_MS = 8000;
+
+type PasswordLoginResult = {
+  data: { session: any; user: any } | null;
+  error: { message?: string } | null;
+  timedOut?: boolean;
+};
 
 const withTimeout = async <T,>(promise: PromiseLike<T>, ms = LOGIN_STEP_TIMEOUT_MS): Promise<T | null> => {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -36,6 +43,74 @@ const withTimeout = async <T,>(promise: PromiseLike<T>, ms = LOGIN_STEP_TIMEOUT_
 
 const runQuietly = (task: PromiseLike<unknown>) => {
   Promise.resolve(task).catch(() => undefined);
+};
+
+const getAuthStorageKey = () => {
+  try {
+    const ref = new URL(import.meta.env.VITE_SUPABASE_URL).hostname.split(".")[0];
+    return ref ? `sb-${ref}-auth-token` : null;
+  } catch {
+    return null;
+  }
+};
+
+const directPasswordLogin = async (email: string, password: string): Promise<PasswordLoginResult> => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), PASSWORD_LOGIN_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        "Content-Type": "application/json",
+        "x-client-info": "domino-mga-fast-login",
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { data: null, error: { message: payload?.error_description || payload?.msg || payload?.message || "Login failed" } };
+    }
+
+    if (!payload?.access_token || !payload?.refresh_token) {
+      return { data: null, error: { message: "Session tsy voaray" } };
+    }
+
+    const session = {
+      access_token: payload.access_token,
+      refresh_token: payload.refresh_token,
+      expires_in: payload.expires_in,
+      expires_at: payload.expires_at ?? Math.floor(Date.now() / 1000) + Number(payload.expires_in ?? 3600),
+      token_type: payload.token_type ?? "bearer",
+      user: payload.user,
+    };
+
+    const setResult = await withTimeout(
+      supabase.auth.setSession({ access_token: session.access_token, refresh_token: session.refresh_token }),
+      2500
+    );
+
+    if (setResult?.error) {
+      return { data: null, error: setResult.error };
+    }
+
+    // Fallback WebView: raha mihantona ny client auth, soratana mivantana ny session
+    // dia reload kely mba hiditra avy hatrany amin'ny compte.
+    if (!setResult) {
+      const key = getAuthStorageKey();
+      if (key) localStorage.setItem(key, JSON.stringify(session));
+      return { data: { session, user: session.user }, error: null };
+    }
+
+    return { data: { session: setResult.data.session ?? session, user: setResult.data.user ?? session.user }, error: null };
+  } catch (err: any) {
+    return { data: null, error: { message: err?.name === "AbortError" ? "timeout" : String(err?.message ?? err) }, timedOut: err?.name === "AbortError" };
+  } finally {
+    clearTimeout(timer);
+  }
 };
 
 export default function Auth() {
@@ -97,14 +172,24 @@ export default function Auth() {
         return toast.error("Voasakana 15 min noho ny fanandramana diso be loatra. Andraso.");
       }
 
-      const authResult = await withTimeout(
-        supabase.auth.signInWithPassword({ email: phoneToEmail(cleanPhone), password: cleanPwd }),
-        15000
-      );
+      const email = phoneToEmail(cleanPhone);
+      let authResult = await directPasswordLogin(email, cleanPwd);
 
-      if (!authResult) {
+      // Fallback farany: raha misy navigateur manakana fetch direct, andramana ilay client officiel
+      // fa tsy avela hahantona ela.
+      if (authResult.timedOut || authResult.error?.message === "timeout") {
+        const clientResult = await withTimeout(
+          supabase.auth.signInWithPassword({ email, password: cleanPwd }),
+          5000
+        );
+        authResult = clientResult
+          ? { data: { session: clientResult.data.session, user: clientResult.data.user }, error: clientResult.error }
+          : authResult;
+      }
+
+      if (!authResult.data && (authResult.timedOut || authResult.error?.message === "timeout")) {
         setLoading(false);
-        return toast.error("Connexion miadana be. Avereno tsindriana azafady.");
+        return toast.error("Connexion mbola miadana. Jereo réseau dia avereno tsindriana.");
       }
 
       const { data, error } = authResult;
@@ -120,6 +205,7 @@ export default function Auth() {
       setLoading(false);
       toast.success("Tonga soa!");
       nav("/", { replace: true });
+      if (data?.session && !data.user) window.location.replace("/");
 
       runQuietly(supabase.rpc("record_login_attempt", { _phone: cleanPhone, _success: true }));
 

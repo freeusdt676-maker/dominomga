@@ -18,6 +18,26 @@ import { Checkbox } from "@/components/ui/checkbox";
 import LiveSpectatorButton from "@/components/LiveSpectatorButton";
 import ForgotPasswordDialog from "@/components/ForgotPasswordDialog";
 
+const LOGIN_STEP_TIMEOUT_MS = 2500;
+
+const withTimeout = async <T,>(promise: PromiseLike<T>, ms = LOGIN_STEP_TIMEOUT_MS): Promise<T | null> => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      Promise.resolve(promise),
+      new Promise<null>((resolve) => {
+        timer = setTimeout(() => resolve(null), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+};
+
+const runQuietly = (task: PromiseLike<unknown>) => {
+  Promise.resolve(task).catch(() => undefined);
+};
+
 export default function Auth() {
   const nav = useNavigate();
   const [tab, setTab] = useState("login");
@@ -60,39 +80,72 @@ export default function Auth() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     const cleanPhone = phone.trim().replace(/\s/g, "");
     const cleanPwd = password.trim();
-    // Anti-brute-force: jereo aloha raha mihidy
-    const { data: lockData } = await supabase.rpc("check_login_lockout", { _phone: cleanPhone });
-    if (lockData && typeof lockData === "object" && (lockData as any).locked) {
+    if (!cleanPhone || !cleanPwd) return toast.error("Fenoy ny numéro sy mot de passe");
+
+    setLoading(true);
+    try {
+      // Anti-brute-force: tsy avela hanakana login ela be raha miadana ny backend.
+      const lockResult = await withTimeout(
+        supabase.rpc("check_login_lockout", { _phone: cleanPhone }),
+        1200
+      );
+      const lockData = lockResult?.data;
+      if (lockData && typeof lockData === "object" && (lockData as any).locked) {
+        setLoading(false);
+        return toast.error("Voasakana 15 min noho ny fanandramana diso be loatra. Andraso.");
+      }
+
+      const authResult = await withTimeout(
+        supabase.auth.signInWithPassword({ email: phoneToEmail(cleanPhone), password: cleanPwd }),
+        15000
+      );
+
+      if (!authResult) {
+        setLoading(false);
+        return toast.error("Connexion miadana be. Avereno tsindriana azafady.");
+      }
+
+      const { data, error } = authResult;
+      if (error) {
+        setLoading(false);
+        runQuietly(supabase.rpc("record_login_attempt", { _phone: cleanPhone, _success: false }));
+        if (error.message?.toLowerCase().includes("not confirmed")) {
+          return toast.error("Mbola eo am-panamarinana ny mombamomba anao ny Admin.");
+        }
+        return toast.error("Numéro na mot de passe diso");
+      }
+
       setLoading(false);
-      return toast.error("Voasakana 15 min noho ny fanandramana diso be loatra. Andraso.");
-    }
-    const { data, error } = await supabase.auth.signInWithPassword({ email: phoneToEmail(cleanPhone), password: cleanPwd });
-    setLoading(false);
-    if (error) {
-      await supabase.rpc("record_login_attempt", { _phone: cleanPhone, _success: false });
-      if (error.message?.toLowerCase().includes("not confirmed")) {
-        return toast.error("Mbola eo am-panamarinana ny mombamomba anao ny Admin.");
+      toast.success("Tonga soa!");
+      nav("/", { replace: true });
+
+      runQuietly(supabase.rpc("record_login_attempt", { _phone: cleanPhone, _success: true }));
+
+      // Fanamarinana compte atao haingana fa tsy mampihantona ny fidirana.
+      if (data.user) {
+        runQuietly((async () => {
+          const profileResult = await withTimeout(
+            supabase.from("profiles").select("account_status").eq("user_id", data.user.id).maybeSingle(),
+            1800
+          );
+          const status = profileResult?.data?.account_status;
+          if (status === "pending") {
+            await supabase.auth.signOut();
+            toast.error("Mbola eo am-panamarinana ny mombamomba anao ny Admin.");
+            nav("/", { replace: true });
+          } else if (status === "blocked") {
+            await supabase.auth.signOut();
+            toast.error("Voasakana ny kaontinao. Mifandraisa amin'ny Admin.");
+            nav("/", { replace: true });
+          }
+        })());
       }
-      return toast.error("Numéro na mot de passe diso");
+    } catch (err) {
+      setLoading(false);
+      toast.error("Tsy tafiditra. Jereo ny connexion dia avereno.");
     }
-    await supabase.rpc("record_login_attempt", { _phone: cleanPhone, _success: true });
-    // Mijery raha pending
-    if (data.user) {
-      const { data: prof } = await supabase.from("profiles").select("account_status").eq("user_id", data.user.id).maybeSingle();
-      if (prof?.account_status === "pending") {
-        await supabase.auth.signOut();
-        return toast.error("Mbola eo am-panamarinana ny mombamomba anao ny Admin.");
-      }
-      if (prof?.account_status === "blocked") {
-        await supabase.auth.signOut();
-        return toast.error("Voasakana ny kaontinao. Mifandraisa amin'ny Admin.");
-      }
-    }
-    toast.success("Tonga soa!");
-    nav("/");
   };
 
   // Camera lifecycle

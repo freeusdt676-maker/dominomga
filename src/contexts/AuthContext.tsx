@@ -24,6 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
       setSession(s);
       setUser(s?.user ?? null);
+      setLoading(false);
       if (s?.user) {
         // defer DB call
         setTimeout(async () => {
@@ -48,7 +49,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ensurePushSubscription({ isAdmin: admin });
         });
       }
-    });
+    }).catch(() => setLoading(false));
+
+    // Safety net: raha misy WebView (Facebook/Messenger in-app) mahatonga
+    // getSession() tsy mamaly, ajanona ny spinner aorian'ny 4s mba tsy hihodina mandrakizay.
+    const failsafe = setTimeout(() => setLoading((l) => (l ? false : l)), 4000);
 
     // Auto-lock: rehefa miala ny app ela be (30 min), vao manala
     const onHide = () => {
@@ -63,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     document.addEventListener("visibilitychange", onHide);
     return () => {
+      clearTimeout(failsafe);
       sub.subscription.unsubscribe();
       document.removeEventListener("visibilitychange", onHide);
     };

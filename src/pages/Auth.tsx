@@ -57,10 +57,7 @@ const getAuthStorageKey = () => {
 const persistAuthSession = (session: any) => {
   const key = getAuthStorageKey();
   if (!key || !session?.access_token || !session?.user) return;
-  localStorage.setItem(key, JSON.stringify({
-    currentSession: session,
-    expiresAt: session.expires_at,
-  }));
+  localStorage.setItem(key, JSON.stringify(session));
   window.dispatchEvent(new CustomEvent("dmga-auth-session", { detail: { session } }));
 };
 

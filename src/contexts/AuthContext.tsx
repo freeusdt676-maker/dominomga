@@ -14,9 +14,34 @@ type AuthCtx = {
 
 const Ctx = createContext<AuthCtx>({ user: null, session: null, loading: true, isAdmin: false, signOut: async () => {} });
 
+const getAuthStorageKey = () => {
+  try {
+    const ref = new URL(import.meta.env.VITE_SUPABASE_URL).hostname.split(".")[0];
+    return ref ? `sb-${ref}-auth-token` : null;
+  } catch {
+    return null;
+  }
+};
+
+const readStoredSession = (): Session | null => {
+  try {
+    const key = getAuthStorageKey();
+    if (!key) return null;
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const session = parsed?.currentSession ?? parsed;
+    if (!session?.access_token || !session?.user) return null;
+    return session as Session;
+  } catch {
+    return null;
+  }
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const initialSession = readStoredSession();
+  const [session, setSession] = useState<Session | null>(initialSession);
+  const [user, setUser] = useState<User | null>(initialSession?.user ?? null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -53,7 +78,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Safety net: raha misy WebView (Facebook/Messenger in-app) mahatonga
     // getSession() tsy mamaly, ajanona ny spinner aorian'ny 4s mba tsy hihodina mandrakizay.
-    const failsafe = setTimeout(() => setLoading((l) => (l ? false : l)), 4000);
+    const failsafe = setTimeout(() => {
+      const stored = readStoredSession();
+      if (stored) {
+        setSession(stored);
+        setUser(stored.user);
+      }
+      setLoading(false);
+    }, 4000);
 
     // Auto-lock: rehefa miala ny app ela be (30 min), vao manala
     const onHide = () => {

@@ -54,6 +54,16 @@ const getAuthStorageKey = () => {
   }
 };
 
+const persistAuthSession = (session: any) => {
+  const key = getAuthStorageKey();
+  if (!key || !session?.access_token || !session?.user) return;
+  localStorage.setItem(key, JSON.stringify({
+    currentSession: session,
+    expiresAt: session.expires_at,
+  }));
+  window.dispatchEvent(new CustomEvent("dmga-auth-session", { detail: { session } }));
+};
+
 const directPasswordLogin = async (email: string, password: string): Promise<PasswordLoginResult> => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), PASSWORD_LOGIN_TIMEOUT_MS);
@@ -88,20 +98,22 @@ const directPasswordLogin = async (email: string, password: string): Promise<Pas
       user: payload.user,
     };
 
+    // Soratana avy hatrany ny session vao marina ny mot de passe/numéro,
+    // mba hisokatra mivantana ny compte na miadana ny navigateur/WebView.
+    persistAuthSession(session);
+
     const setResult = await withTimeout(
       supabase.auth.setSession({ access_token: session.access_token, refresh_token: session.refresh_token }),
       2500
     );
 
     if (setResult?.error) {
-      return { data: null, error: setResult.error };
+      return { data: { session, user: session.user }, error: null };
     }
 
     // Fallback WebView: raha mihantona ny client auth, soratana mivantana ny session
     // dia reload kely mba hiditra avy hatrany amin'ny compte.
     if (!setResult) {
-      const key = getAuthStorageKey();
-      if (key) localStorage.setItem(key, JSON.stringify(session));
       return { data: { session, user: session.user }, error: null };
     }
 
@@ -205,7 +217,9 @@ export default function Auth() {
       setLoading(false);
       toast.success("Tonga soa!");
       nav("/", { replace: true });
-      if (data?.session && !data.user) window.location.replace("/");
+      if (data?.session) {
+        persistAuthSession(data.session);
+      }
 
       runQuietly(supabase.rpc("record_login_attempt", { _phone: cleanPhone, _success: true }));
 

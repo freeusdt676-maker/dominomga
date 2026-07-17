@@ -46,12 +46,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+    const applySession = (s: Session | null) => {
       setSession(s);
       setUser(s?.user ?? null);
       setLoading(false);
       if (s?.user) {
-        // defer DB call
         setTimeout(async () => {
           const { data } = await supabase.from("user_roles").select("role").eq("user_id", s.user.id).eq("role", "admin").maybeSingle();
           const admin = !!data;
@@ -62,18 +61,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsAdmin(false);
         unsubscribePush();
       }
+    };
+
+    const onManualSession = (event: Event) => {
+      const manualSession = (event as CustomEvent<{ session?: Session }>).detail?.session;
+      if (manualSession?.access_token && manualSession.user) applySession(manualSession);
+    };
+    window.addEventListener("dmga-auth-session", onManualSession as EventListener);
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+      applySession(s);
     });
     supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      setLoading(false);
-      if (data.session?.user) {
-        supabase.from("user_roles").select("role").eq("user_id", data.session.user.id).eq("role", "admin").maybeSingle().then(({ data: r }) => {
-          const admin = !!r;
-          setIsAdmin(admin);
-          ensurePushSubscription({ isAdmin: admin });
-        });
-      }
+      applySession(data.session);
     }).catch(() => setLoading(false));
 
     // Safety net: raha misy WebView (Facebook/Messenger in-app) mahatonga
@@ -102,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       clearTimeout(failsafe);
       sub.subscription.unsubscribe();
+      window.removeEventListener("dmga-auth-session", onManualSession as EventListener);
       document.removeEventListener("visibilitychange", onHide);
     };
   }, []);

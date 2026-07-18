@@ -12,18 +12,19 @@ import { fmtAr } from "@/lib/constants";
 export default function WalletBadge() {
   const { user } = useAuth();
   const [balance, setBalance] = useState<number | null>(null);
-  const [hidden, setHidden] = useState<boolean>(() => {
-    try { return localStorage.getItem("dmga_balance_hidden") === "1"; } catch { return false; }
-  });
+  const [revealed, setRevealed] = useState<boolean>(false);
+
+  // Auto-hide 4s aorian'ny fanehoana
+  useEffect(() => {
+    if (!revealed) return;
+    const t = window.setTimeout(() => setRevealed(false), 4000);
+    return () => window.clearTimeout(t);
+  }, [revealed]);
 
   const toggle = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setHidden((h) => {
-      const nv = !h;
-      try { localStorage.setItem("dmga_balance_hidden", nv ? "1" : "0"); } catch {}
-      return nv;
-    });
+    setRevealed((r) => !r);
   };
 
   useEffect(() => {
@@ -45,35 +46,45 @@ export default function WalletBadge() {
   if (!user || balance == null) return null;
   return (
     <div
-      className="fixed z-[80] inline-flex items-center gap-1 rounded-full shadow-xl backdrop-blur-md border border-[#ffe27a]/70 pl-1 pr-0.5 py-0.5 transition-transform hover:scale-[1.03] active:scale-95"
+      className="fixed z-[80] flex items-center gap-1"
       style={{
         top: "calc(env(safe-area-inset-top, 0px) + 64px)",
         right: "calc(env(safe-area-inset-right, 0px) + 8px)",
-        background: "linear-gradient(135deg,#0b3a22 0%,#0a5c33 55%,#065f46 100%)",
-        boxShadow: "0 8px 20px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.15)",
-        color: "#ffe27a",
       }}
     >
-      <Link
-        to="/wallet"
-        className="inline-flex items-center gap-1.5 pl-2 pr-2.5 py-1 rounded-full font-black text-[11px] leading-none"
-        title="Ny soldeko"
-      >
-        <span
-          className="inline-flex w-5 h-5 rounded-full items-center justify-center shadow-inner"
-          style={{ background: "linear-gradient(180deg,#ffe27a,#d4a52c 60%,#8a5a0a)" }}
-        >
-          <WalletIcon className="w-3 h-3 text-[#2a1a08]" />
-        </span>
-        <span className="tabular-nums drop-shadow">{hidden ? "•••••" : fmtAr(balance)}</span>
-      </Link>
+      {/* Bokotra maso boribory kely — mipoitra ny solde raha kitihina */}
       <button
         onClick={toggle}
-        aria-label={hidden ? "Asehoy ny solde" : "Afeno ny solde"}
-        className="p-1 rounded-full hover:bg-white/10 active:scale-90 transition"
+        aria-label={revealed ? "Afeno ny solde" : "Asehoy ny solde"}
+        className="w-8 h-8 rounded-full flex items-center justify-center border border-[#ffe27a]/60 shadow-lg active:scale-90 transition"
+        style={{
+          background: "linear-gradient(135deg,#0b3a22 0%,#0a5c33 55%,#065f46 100%)",
+          color: "#ffe27a",
+          boxShadow: "0 4px 10px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.15)",
+        }}
       >
-        {hidden ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+        {revealed ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
       </button>
+
+      {revealed && (
+        <Link
+          to="/wallet"
+          className="inline-flex items-center gap-1.5 pl-2 pr-2.5 py-1 rounded-full font-black text-[11px] leading-none border border-[#ffe27a]/70 shadow-xl backdrop-blur-md animate-in fade-in slide-in-from-right-2"
+          style={{
+            background: "linear-gradient(135deg,#0b3a22 0%,#0a5c33 55%,#065f46 100%)",
+            color: "#ffe27a",
+          }}
+          title="Ny soldeko"
+        >
+          <span
+            className="inline-flex w-5 h-5 rounded-full items-center justify-center shadow-inner"
+            style={{ background: "linear-gradient(180deg,#ffe27a,#d4a52c 60%,#8a5a0a)" }}
+          >
+            <WalletIcon className="w-3 h-3 text-[#2a1a08]" />
+          </span>
+          <span className="tabular-nums drop-shadow">{fmtAr(balance)}</span>
+        </Link>
+      )}
     </div>
   );
 }

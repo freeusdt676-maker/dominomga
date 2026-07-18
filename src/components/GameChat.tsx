@@ -273,12 +273,20 @@ export function GameChat({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={triggerClassName ?? "fab-circle absolute right-2 top-[calc(50%+56px)] -translate-y-1/2 z-20"}
+        className={
+          triggerClassName ??
+          "absolute right-1 bottom-1 z-20 w-9 h-9 rounded-full flex items-center justify-center border border-[#2a1a08] text-[#2a1a08] shadow-md active:scale-90 transition"
+        }
+        style={
+          triggerClassName
+            ? undefined
+            : { background: "linear-gradient(180deg,#ffe27a 0%,#d4a52c 60%,#8a5a0a 100%)" }
+        }
         title="Chap"
       >
-        <MessageCircle className="w-6 h-6" />
+        <MessageCircle className="w-4 h-4" />
         {unread > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
             {unread > 9 ? "9+" : unread}
           </span>
         )}

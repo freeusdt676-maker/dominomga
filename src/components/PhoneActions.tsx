@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Phone, MessageSquare, MessageCircle, Copy, X } from "lucide-react";
+import { Phone, MessageSquare, MessageCircle, Copy, X, Search } from "lucide-react";
 import { toast } from "sonner";
 
 /**
@@ -11,6 +11,14 @@ export default function PhoneActions({ phone, label }: { phone?: string | null; 
   const clean = String(phone).replace(/\s+/g, "");
   const intl = clean.startsWith("+") ? clean : (clean.startsWith("0") ? "+261" + clean.slice(1) : clean);
   const wa = intl.replace(/[^\d]/g, "");
+  const fbQueries = [clean, intl, wa, "0" + wa.slice(-9)];
+  const openFbSearch = () => {
+    fbQueries.forEach((q, i) => {
+      const url = `https://www.facebook.com/search/top/?q=${encodeURIComponent(q)}`;
+      // Sokafana tab vaovao samihafa ho an'ny format tsirairay
+      setTimeout(() => window.open(url, "_blank", "noopener,noreferrer"), i * 150);
+    });
+  };
 
   return (
     <>
@@ -40,11 +48,21 @@ export default function PhoneActions({ phone, label }: { phone?: string | null; 
               <MessageCircle className="w-5 h-5" /> WhatsApp
             </a>
             <button
+              onClick={() => { openFbSearch(); setOpen(false); }}
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-[#1877F2] text-white font-semibold shadow hover:brightness-110"
+              title="Hitady amin'ny Facebook amin'ny alalan'ny numéro"
+            >
+              <Search className="w-5 h-5" /> Hitady amin'ny Facebook
+            </button>
+            <button
               onClick={() => { navigator.clipboard?.writeText(phone).then(() => toast.success("Voa-copy")); setOpen(false); }}
               className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-slate-200 dark:bg-slate-700 font-semibold"
             >
               <Copy className="w-5 h-5" /> Copier
             </button>
+            <p className="text-[10px] text-muted-foreground text-center pt-1">
+              Facebook tsy manome API ny hitadiavana olona amin'ny numéro (nofoanana 2019). Ny bokotra dia manokatra fikarohana amin'ny Facebook — miankina amin'izay napetraky ny olona ao amin'ny profil-ny ny valiny.
+            </p>
           </div>
         </div>
       )}

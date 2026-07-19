@@ -41,9 +41,9 @@ function HiddenHand({ name, count, active }: { name: string; count: number; acti
   // tsara ny latabatra ho an'ny mpijery.
   return (
     <div
-      className={`flex flex-col items-center gap-0.5 p-1.5 rounded-lg border ${
-        active ? "border-primary shadow-[0_0_10px_rgba(212,175,55,0.35)]" : "border-primary/20"
-      } bg-card/30 min-w-[72px]`}
+      className={`flex flex-col items-center gap-0.5 p-1.5 rounded-lg border-2 bg-card/30 min-w-[72px] ${
+        active ? "domino-turn-border" : "border-primary/20"
+      }`}
     >
       <div className="text-[10px] font-bold truncate max-w-[90px] gold-text">{name}</div>
       <div className="flex flex-wrap justify-center gap-0.5">

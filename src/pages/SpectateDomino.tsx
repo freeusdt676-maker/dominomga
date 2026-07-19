@@ -41,9 +41,9 @@ function HiddenHand({ name, count, active }: { name: string; count: number; acti
   // tsara ny latabatra ho an'ny mpijery.
   return (
     <div
-      className={`flex flex-col items-center gap-0.5 p-1.5 rounded-lg border ${
-        active ? "border-primary shadow-[0_0_10px_rgba(212,175,55,0.35)]" : "border-primary/20"
-      } bg-card/30 min-w-[72px]`}
+      className={`flex flex-col items-center gap-0.5 p-1.5 rounded-lg border-2 bg-card/30 min-w-[72px] ${
+        active ? "domino-turn-border" : "border-primary/20"
+      }`}
     >
       <div className="text-[10px] font-bold truncate max-w-[90px] gold-text">{name}</div>
       <div className="flex flex-wrap justify-center gap-0.5">
@@ -133,7 +133,7 @@ export default function SpectateDomino() {
               return (
                 <div
                   key={i}
-                  className={`p-2 rounded-xl border-2 ${active ? "border-primary" : "border-primary/20"} bg-card/40`}
+                  className={`p-2 rounded-xl border-2 bg-card/40 ${active ? "domino-turn-border" : "border-primary/20"}`}
                 >
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-extrabold truncate">{p.name ?? "—"}</span>
@@ -154,6 +154,9 @@ export default function SpectateDomino() {
               <HiddenHand key={i} name={p.name} count={p.count} active={!!p.id && s.current_turn === p.id} hand={p.hand as Tile[] | null | undefined} />
             ))}
           </div>
+          {s.current_turn && (
+            <style>{`.spectator-active-hand{}`}</style>
+          )}
 
           {/* Board */}
           <div className="felt-board relative w-full min-h-[320px] flex-1 overflow-hidden">

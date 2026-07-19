@@ -1402,8 +1402,10 @@ export default function Game() {
         </div>
       )}
       {roundBanner && (
-        <div className="fixed inset-x-0 top-0 z-50 bg-primary text-primary-foreground py-3 px-4 text-center font-bold shadow-lg animate-in slide-in-from-top">
-          🏁 {roundBanner}
+        <div className="fixed inset-x-0 top-0 z-50 flex justify-center pointer-events-none animate-in fade-in slide-in-from-top">
+          <div className="mt-1 rounded-full bg-primary/95 text-primary-foreground px-2.5 py-0.5 text-[10px] font-bold shadow pointer-events-auto">
+            🏁 {roundBanner}
+          </div>
         </div>
       )}
       {(() => {
@@ -1422,21 +1424,21 @@ export default function Game() {
         const pc = Number(game.players_count ?? 2);
         return (
           // Banderole kely eo ambony — tsy manakana ny vato an-tànana.
-          <div className="fixed inset-x-0 top-12 z-[60] flex justify-center px-3 pointer-events-none animate-in fade-in slide-in-from-top">
-            <div className="w-auto max-w-[92%] rounded-lg border-2 border-[#ffe27a] bg-[linear-gradient(180deg,#0d3b22,#0a2818)] px-3 py-1.5 text-center shadow-lg pointer-events-auto">
-              <div className="flex items-center gap-2 justify-center flex-wrap">
-                <span className="text-base leading-none">{isGameWin ? "🏆" : "🏁"}</span>
-                <span className="text-[11px] font-extrabold text-[#ffe27a] tracking-wide">
-                  {isGameWin ? "LALAO VITA" : "TOUR VITA"}
+          <div className="fixed inset-x-0 top-10 z-[60] flex justify-center px-2 pointer-events-none animate-in fade-in slide-in-from-top">
+            <div className="w-auto max-w-[94%] rounded-full border border-[#ffe27a]/80 bg-[linear-gradient(180deg,#0d3b22,#0a2818)] px-2 py-0.5 text-center shadow pointer-events-auto">
+              <div className="flex items-center gap-1.5 justify-center flex-nowrap whitespace-nowrap">
+                <span className="text-[10px] leading-none">{isGameWin ? "🏆" : "🏁"}</span>
+                <span className="text-[9px] font-extrabold text-[#ffe27a] tracking-wide">
+                  {isGameWin ? "LALAO" : "TOUR"}
                 </span>
-                <span className="text-[11px] text-white font-semibold leading-tight">{r}</span>
-                <span className="text-[11px] text-white font-bold">
+                <span className="text-[9px] text-white/95 font-semibold leading-tight truncate max-w-[55vw]">{r}</span>
+                <span className="text-[9px] text-white font-bold">
                   {pc === 3
                     ? `${Number(game.score_p1 ?? 0)}—${Number(game.score_p2 ?? 0)}—${Number(game.score_p3 ?? 0)}`
                     : `${Number(game.score_p1 ?? 0)}—${Number(game.score_p2 ?? 0)}`}
                 </span>
                 {!isGameWin && revealing && (
-                  <span className="text-[10px] text-[#ffe27a]/90 italic">• {sec}s</span>
+                  <span className="text-[9px] text-[#ffe27a]/90 italic">{sec}s</span>
                 )}
               </div>
             </div>

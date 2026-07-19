@@ -1533,7 +1533,7 @@ export default function Game() {
                 return (
                   <div
                     key={pid}
-                    className={`rounded-xl px-2 py-1.5 border-2 ${isTurn ? "domino-turn-border bg-[linear-gradient(180deg,rgba(22,163,74,0.24),rgba(0,0,0,0.45))]" : "border-[#d4a52c]/40 bg-[linear-gradient(180deg,rgba(0,0,0,0.55),rgba(0,0,0,0.35))]"}`}
+                    className={`rounded-xl px-2 py-1.5 border-2 bg-[linear-gradient(180deg,rgba(0,0,0,0.55),rgba(0,0,0,0.35))] ${isTurn ? "domino-turn-border" : "border-[#d4a52c]/40"}`}
                   >
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="text-xs font-extrabold text-white/95 truncate uppercase tracking-wide">{name}</span>

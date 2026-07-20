@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { PasswordInput } from "@/components/PasswordInput";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { phoneToEmail } from "@/lib/constants";
@@ -379,7 +380,7 @@ export default function Auth() {
                 </div>
                 <div>
                   <Label>Mot de passe</Label>
-                  <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                  <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} />
                 </div>
                 <Button type="submit" disabled={loading} className="w-full btn-gold">Hiditra</Button>
                 <p className="text-xs text-muted-foreground text-center">
@@ -422,20 +423,20 @@ export default function Auth() {
                 </div>
                 <div>
                   <Label className="text-xs font-bold uppercase tracking-wide">Mot de passe</Label>
-                  <Input type="password" value={sPwd} onChange={(e) => setSPwd(e.target.value)} placeholder="DE4erStv." />
+                  <PasswordInput value={sPwd} onChange={(e) => setSPwd(e.target.value)} placeholder="DE4erStv." />
                 </div>
                 <div>
                   <Label className="text-xs font-bold uppercase tracking-wide">Confirmer mot de passe</Label>
-                  <Input type="password" value={sPwd2} onChange={(e) => setSPwd2(e.target.value)} placeholder="DE4erStv." />
+                  <PasswordInput value={sPwd2} onChange={(e) => setSPwd2(e.target.value)} placeholder="DE4erStv." />
                 </div>
                 <div>
                   <Label className="text-xs font-bold uppercase tracking-wide">PIN</Label>
-                  <Input type="password" inputMode="numeric" maxLength={4} value={sPin}
+                  <PasswordInput inputMode="numeric" maxLength={4} value={sPin}
                     onChange={(e) => setSPin(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="1234" />
                 </div>
                 <div>
                   <Label className="text-xs font-bold uppercase tracking-wide">Confirmer PIN</Label>
-                  <Input type="password" inputMode="numeric" maxLength={4} value={sPin2}
+                  <PasswordInput inputMode="numeric" maxLength={4} value={sPin2}
                     onChange={(e) => setSPin2(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="1234" />
                 </div>
                 <div>

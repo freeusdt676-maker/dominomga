@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PasswordInput } from "@/components/PasswordInput";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -601,7 +602,7 @@ export default function Home() {
       <Dialog open={showCode} onOpenChange={setShowCode}>
         <DialogContent>
           <DialogHeader><DialogTitle>Code Administratif</DialogTitle></DialogHeader>
-          <Input type="password" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Code" />
+          <PasswordInput value={code} onChange={(e) => setCode(e.target.value)} placeholder="Code" />
           <Button onClick={handleAdminCode} className="btn-gold">Hampiditra</Button>
         </DialogContent>
       </Dialog>

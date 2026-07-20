@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PasswordInput } from "@/components/PasswordInput";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -221,7 +222,7 @@ export default function Wallet() {
             <div><Label>Montant (Ar)</Label><Input type="number" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} placeholder="10000" /></div>
             <div><Label>Numéro {OP.label} (handefasana ny vola)</Label><Input inputMode="tel" value={withdrawPhone} onChange={(e) => setWithdrawPhone(e.target.value)} placeholder={operator === "mvola" ? "034XXXXXXX" : "033XXXXXXX"} /></div>
             <div><Label>Anarana certifié {OP.label}</Label><Input value={withdrawName} onChange={(e) => setWithdrawName(e.target.value)} placeholder="Jean Claude" /></div>
-            <div><Label>Code PIN</Label><Input type="password" inputMode="numeric" maxLength={6} value={pin} onChange={(e) => setPin(e.target.value)} placeholder="1234" /></div>
+            <div><Label>Code PIN</Label><PasswordInput inputMode="numeric" maxLength={6} value={pin} onChange={(e) => setPin(e.target.value)} placeholder="1234" /></div>
             <Button className="w-full btn-gold" onClick={submitWithdraw}>Mangataka retrait</Button>
           </TabsContent>
         </Tabs>

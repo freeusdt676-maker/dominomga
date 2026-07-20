@@ -727,16 +727,8 @@ export default function Game() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!id || !game || game.status !== "in_progress") return;
-    const markAbandoned = () => {
-      if (document.visibilityState === "hidden") {
-        sessionStorage.setItem(ABANDONED_GAME_KEY, id);
-      }
-    };
-    document.addEventListener("visibilitychange", markAbandoned);
-    return () => document.removeEventListener("visibilitychange", markAbandoned);
-  }, [id, game?.status]);
+  // Miala amin'ny table = tsy abandonné intsony. Ny mpilalao afaka mivoaka
+  // manao zavatra hafa ao amin'ny app dia miverina amin'ny lobby → "Hanohy".
 
   useEffect(() => {
     if (!id || !game) return;
@@ -1585,47 +1577,6 @@ export default function Game() {
           </div>
         </div>
       )}
-
-      {game.status === "in_progress" && (
-        <button
-          type="button"
-          onClick={() => setConfirmAbandon(true)}
-          disabled={isAbandoning}
-          className="fixed top-2 right-2 z-30 w-8 h-8 rounded-full bg-destructive/75 text-destructive-foreground flex items-center justify-center shadow backdrop-blur active:scale-95 disabled:opacity-50"
-          title="Hiala amin'ny lalao"
-          aria-label="Hiala amin'ny lalao"
-        >
-          {isAbandoning ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
-        </button>
-      )}
-
-      <AlertDialog open={confirmAbandon} onOpenChange={setConfirmAbandon}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>⚠️ Tena hiala amin'ny lalao tokoa?</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <span className="block font-semibold text-destructive">
-                Tandremo: raha hiala ianao izao dia:
-              </span>
-              <span className="block">• Ho <b>RESY avy hatrany</b> ianao</span>
-              <span className="block">• <b>HO VERY ny vola napetrakao</b> rehetra (mise)</span>
-              <span className="block">• Ny adversaire no handresy ka hahazo ny gain</span>
-              <span className="block pt-1 text-xs italic">
-                Mieritrereta tsara alohan'ny hanamafisana.
-              </span>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => { setConfirmAbandon(false); abandonGame(); }}
-            >
-              OK — Hiala ihany
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <Dialog open={!!zoomedPhoto} onOpenChange={(o) => !o && setZoomedPhoto(null)}>
         <DialogContent

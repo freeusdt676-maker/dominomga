@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { PasswordInput } from "@/components/PasswordInput";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -562,8 +563,8 @@ export default function Tournament() {
               <p className="text-sm text-muted-foreground text-center">
                 Hampidiro ny code PIN ny wallet-nao mba hanamarinana ny fanindriana.
               </p>
-              <Input
-                type="password"
+              <PasswordInput
+                
                 inputMode="numeric"
                 value={pin}
                 onChange={(e) => setPin(e.target.value)}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { PasswordInput } from "@/components/PasswordInput";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -157,11 +158,11 @@ export default function ProfileEdit() {
           </div>
           <div>
             <Label className="text-xs">Password vaovao</Label>
-            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••" />
+            <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••" />
           </div>
           <div>
             <Label className="text-xs">PIN vaovao (4 chiffres)</Label>
-            <Input type="password" value={pin} onChange={(e) => setPin(e.target.value)} maxLength={4} inputMode="numeric" placeholder="••••" />
+            <PasswordInput value={pin} onChange={(e) => setPin(e.target.value)} maxLength={4} inputMode="numeric" placeholder="••••" />
           </div>
 
           <div>

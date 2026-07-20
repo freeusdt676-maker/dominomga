@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PasswordInput } from "@/components/PasswordInput";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -216,7 +217,7 @@ export default function TournamentAdmin() {
         <DialogContent>
           <DialogHeader><DialogTitle>Hanafoana fisoratana anarana</DialogTitle></DialogHeader>
           <p className="text-sm">{cancelReg?.nom} — naverina amin'ny wallet ny <b>{fmtAr(cancelReg?.paid_amount)}</b></p>
-          <Input type="password" value={pin} onChange={(e) => setPin(e.target.value)} placeholder="Code PIN admin" />
+          <PasswordInput value={pin} onChange={(e) => setPin(e.target.value)} placeholder="Code PIN admin" />
           <DialogFooter>
             <Button variant="ghost" onClick={() => setCancelReg(null)}>Tsia</Button>
             <Button variant="destructive" onClick={handleCancelReg}>Foanana</Button>
@@ -228,7 +229,7 @@ export default function TournamentAdmin() {
         <DialogContent>
           <DialogHeader><DialogTitle>Hanafoana ny tournoi manontolo</DialogTitle></DialogHeader>
           <p className="text-sm">Hiverina any amin'ny wallet ny vola rehetra (8 × 5 000 Ar maximum).</p>
-          <Input type="password" value={pin} onChange={(e) => setPin(e.target.value)} placeholder="Code PIN admin" />
+          <PasswordInput value={pin} onChange={(e) => setPin(e.target.value)} placeholder="Code PIN admin" />
           <DialogFooter>
             <Button variant="ghost" onClick={() => setCancelAllOpen(false)}>Tsia</Button>
             <Button variant="destructive" onClick={handleCancelAll}>FOANANA DAHOLO</Button>
@@ -255,7 +256,7 @@ export default function TournamentAdmin() {
               })}
             </div>
           )}
-          <Input type="password" value={pin} onChange={(e) => setPin(e.target.value)} placeholder="Code PIN admin" />
+          <PasswordInput value={pin} onChange={(e) => setPin(e.target.value)} placeholder="Code PIN admin" />
           <DialogFooter>
             <Button variant="ghost" onClick={() => setForfeitMatch(null)}>Tsia</Button>
             <Button variant="destructive" onClick={handleForceForfeit} disabled={!forfeitLoser || !pin}>

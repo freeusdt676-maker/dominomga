@@ -113,7 +113,12 @@ function countSuit(h: Tile[], v: number) {
 function chooseBestBotMove(
   hand: Tile[],
   board: Placed[],
-  opts: { opponentSizes?: number[]; boneyardSize?: number } = {},
+  opts: {
+    opponentSizes?: number[];
+    boneyardSize?: number;
+    opponentScores?: number[];
+    targetPts?: number;
+  } = {},
 ): { index: number; side: "left" | "right" } | null {
   type Cand = { index: number; side: "left" | "right"; score: number };
   const cands: Cand[] = [];
@@ -123,6 +128,13 @@ function chooseBestBotMove(
   const oppMin = oppSizes.length ? Math.min(...oppSizes) : 7;
   const endgameOpp = oppMin <= 3;
   const criticalOpp = oppMin <= 2;
+  const oppScores = opts.opponentScores ?? [];
+  const target = Math.max(1, opts.targetPts ?? 80);
+  const leaderScore = oppScores.length ? Math.max(...oppScores) : 0;
+  // Pression fanindriana: raha efa akaiky tanjona ny mpanohitra ambony indrindra,
+  // manindry mafy ny bot (block + dump kokoa).
+  const pressure = Math.min(1, leaderScore / target); // 0..1
+  const squeeze = 1 + pressure * 1.5; // 1..2.5
 
   for (let i = 0; i < hand.length; i++) {
     const tile = hand[i];
@@ -149,7 +161,7 @@ function chooseBestBotMove(
       }
 
       // 2) Dump pips — lanjaina ambony amin'ny endgame (fandrao blocage)
-      const dumpWeight = criticalOpp ? 8 : endgameOpp ? 5 : 3;
+      const dumpWeight = (criticalOpp ? 8 : endgameOpp ? 5 : 3) * squeeze;
       score += (a + b) * dumpWeight;
       // Mihena raha be ny sisa an-tanana (mety ho bloqué)
       score -= pipsRem * 0.35;
@@ -174,7 +186,7 @@ function chooseBestBotMove(
         // 8 = isan'ny vato manana ilay suit iray ao anaty jeu (7 mifanaraka + double)
         const blockL = Math.max(0, 8 - uL);
         const blockR = Math.max(0, 8 - uR);
-        const blockMul = criticalOpp ? 3.5 : endgameOpp ? 2 : 1;
+        const blockMul = (criticalOpp ? 3.5 : endgameOpp ? 2 : 1) * squeeze;
         score += (blockL + blockR) * blockMul;
 
         // 6) Domination — tendrony roa mitovy suit + isika mifehy
@@ -1134,7 +1146,21 @@ export default function Game() {
           return k ? ((fresh[k] as Tile[]) ?? []).length : 7;
         });
       const boneyardSize = ((fresh.boneyard as Tile[]) ?? []).length;
-      const best = chooseBestBotMove(turnHand, liveBoard, { opponentSizes: oppSizes, boneyardSize });
+      const oppScoresArr = getPlayerIds(fresh)
+        .filter((pid) => pid !== turnId)
+        .map((pid) => {
+          if (pid === fresh.player1_id) return Number(fresh.score_p1 ?? 0);
+          if (pid === fresh.player2_id) return Number(fresh.score_p2 ?? 0);
+          if (pid === fresh.player3_id) return Number(fresh.score_p3 ?? 0);
+          return 0;
+        });
+      const targetPtsBot = Number((fresh as any).target_points ?? (Number(fresh.players_count ?? 2) === 3 ? 120 : 80));
+      const best = chooseBestBotMove(turnHand, liveBoard, {
+        opponentSizes: oppSizes,
+        boneyardSize,
+        opponentScores: oppScoresArr,
+        targetPts: targetPtsBot,
+      });
       if (best) {
         const { index: playableIdx, side: chosenSide } = best;
         const tile = turnHand[playableIdx];
@@ -1380,7 +1406,7 @@ export default function Game() {
 
   return (
     <div
-      className="min-h-screen domino-scene-bg flex flex-col"
+      className="h-[100svh] max-h-[100svh] overflow-hidden domino-scene-bg flex flex-col"
       style={{ backgroundImage: `url(${dominoSceneBg})` }}
     >
       {/* Permanent Bot toggle — bottom-left, always visible */}
@@ -1708,7 +1734,7 @@ export default function Game() {
           </div>
 
           {/* Latabatra — felt poker, snake path mihodina amin'ny sisiny */}
-          <div className="domino-table-zone relative flex-1 px-1 sm:px-3 py-3 min-h-[340px]">
+          <div className="domino-table-zone relative flex-1 min-h-0 px-1 sm:px-3 py-2">
             {/* Floating side action buttons */}
             <RadioPlayer />
             {id && <GameChat gameId={id} names={profileNames} />}
@@ -1718,7 +1744,7 @@ export default function Game() {
               </div>
             )}
 
-            <div className="felt-board relative w-full h-full min-h-[320px] mx-auto overflow-visible">
+            <div className="felt-board relative w-full h-full min-h-0 mx-auto overflow-visible">
               <div className="domino-arena absolute inset-[10px] rounded-[1rem]" aria-hidden="true" />
               <span className="table-leg table-leg--fl" aria-hidden="true" />
               <span className="table-leg table-leg--fr" aria-hidden="true" />

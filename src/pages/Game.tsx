@@ -1154,7 +1154,7 @@ export default function Game() {
           if (pid === fresh.player3_id) return Number(fresh.score_p3 ?? 0);
           return 0;
         });
-      const targetPtsBot = Number(fresh.target_points ?? (Number(fresh.players_count ?? 2) === 3 ? 120 : 80));
+      const targetPtsBot = Number((fresh as any).target_points ?? (Number(fresh.players_count ?? 2) === 3 ? 120 : 80));
       const best = chooseBestBotMove(turnHand, liveBoard, {
         opponentSizes: oppSizes,
         boneyardSize,

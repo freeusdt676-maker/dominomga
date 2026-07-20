@@ -91,7 +91,7 @@ export default function SpectateDomino() {
   }
 
   return (
-    <div className="min-h-screen domino-scene-bg flex flex-col" style={{ backgroundImage: `url(${dominoSceneBg})` }}>
+    <div className="h-[100svh] max-h-[100svh] overflow-hidden domino-scene-bg flex flex-col" style={{ backgroundImage: `url(${dominoSceneBg})` }}>
       <header className="flex items-center justify-between p-3 border-b border-primary/20">
         <Link to="/" className="flex items-center gap-2 text-sm text-foreground">
           <ArrowLeft className="w-5 h-5" /> <span className="text-base font-bold">Hiverina</span>
@@ -119,7 +119,7 @@ export default function SpectateDomino() {
       )}
 
       {s && (
-        <div className="flex-1 flex flex-col gap-3 p-3">
+        <div className="flex-1 min-h-0 flex flex-col gap-2 p-2">
           {/* Scores */}
           <div className={`grid gap-2 ${s.players_count === 3 ? "grid-cols-3" : "grid-cols-2"}`}>
             {[
@@ -159,7 +159,7 @@ export default function SpectateDomino() {
           )}
 
           {/* Board */}
-          <div className="felt-board relative w-full min-h-[320px] flex-1 overflow-hidden">
+          <div className="felt-board relative w-full min-h-0 flex-1 overflow-hidden">
             <div className="domino-arena absolute inset-0 rounded-2xl">
               <SnakeBoard board={(s.board ?? []) as Placed[]} tileSize="sm" />
             </div>

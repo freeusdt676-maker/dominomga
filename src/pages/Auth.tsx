@@ -515,8 +515,8 @@ export default function Auth() {
             <h2 className="font-display text-lg font-bold gold-text mb-3 flex items-center gap-2">
               <Shield className="w-5 h-5" /> Code ADMINISTRATIF
             </h2>
-            <Input
-              type="password"
+            <PasswordInput
+              
               value={adminCode}
               onChange={(e) => setAdminCode(e.target.value)}
               placeholder="Code..."

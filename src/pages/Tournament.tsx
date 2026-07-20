@@ -563,8 +563,8 @@ export default function Tournament() {
               <p className="text-sm text-muted-foreground text-center">
                 Hampidiro ny code PIN ny wallet-nao mba hanamarinana ny fanindriana.
               </p>
-              <Input
-                type="password"
+              <PasswordInput
+                
                 inputMode="numeric"
                 value={pin}
                 onChange={(e) => setPin(e.target.value)}

@@ -671,8 +671,8 @@ export default function Admin() {
               <p className="text-sm font-bold text-destructive flex items-center gap-1.5"><ShieldAlert className="w-4 h-4" />Bloqué le jeu</p>
               <p className="text-[10px] text-muted-foreground">Sakanana vetivety ny création/entrée room raha misy olana. Wallet tsy kitihina.</p>
             </div>
-            <Input
-              type="password"
+            <PasswordInput
+              
               inputMode="numeric"
               maxLength={6}
               value={gameBlockPin}
@@ -1252,8 +1252,8 @@ export default function Admin() {
               rows={3}
               placeholder="Antony / fanamarihana"
             />
-            <Input
-              type="password"
+            <PasswordInput
+              
               inputMode="numeric"
               maxLength={6}
               value={claimPin}
@@ -1480,8 +1480,8 @@ export default function Admin() {
           <p className="text-sm text-muted-foreground">
             Ny solde Wallet Admin (commission) dia hiverina 0 Ar. Ampidiro ny PIN administratif hanamafisana.
           </p>
-          <Input
-            type="password"
+          <PasswordInput
+            
             inputMode="numeric"
             maxLength={6}
             value={commissionPin}

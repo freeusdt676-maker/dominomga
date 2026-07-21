@@ -1386,9 +1386,9 @@ export default function Game() {
     nav("/lobby", { replace: true });
   };
 
-  // Sary kely kokoa amin'ny mobile mba tsy hifanaikitra
-  const handTileSize = isMobile ? "md" : "lg";
-  const boardTileSize = isMobile ? "sm" : "md";
+  // Mobile: ny tanana sy adversaire atao kely be, ny latabatra afovoany no lehibe.
+  const handTileSize = isMobile ? "xs" : "lg";
+  const boardTileSize = isMobile ? "md" : "md";
   const firstBoardTile = board.length === 1 ? board[0] : null;
   const firstBoardA = firstBoardTile ? (firstBoardTile.flipped ? firstBoardTile.tile[1] : firstBoardTile.tile[0]) : null;
   const firstBoardB = firstBoardTile ? (firstBoardTile.flipped ? firstBoardTile.tile[0] : firstBoardTile.tile[1]) : null;
@@ -1533,17 +1533,17 @@ export default function Game() {
 
       {/* Tableau ny score — mazava sy ngeza */}
       {game.status === "in_progress" && (
-          <div className="px-3 py-2 bg-[linear-gradient(180deg,#0a2818_0%,#072013_100%)] border-b-2 border-[#d4a52c]/60 shadow-[inset_0_-2px_0_rgba(212,165,44,0.25)]">
+          <div className="px-2 py-1 sm:px-3 sm:py-2 bg-[linear-gradient(180deg,#0a2818_0%,#072013_100%)] border-b-2 border-[#d4a52c]/60 shadow-[inset_0_-2px_0_rgba(212,165,44,0.25)]">
           <div className="max-w-md mx-auto">
-            <div className="text-center text-[11px] uppercase tracking-[0.3em] text-[#ffe27a] mb-2 font-extrabold drop-shadow">
+            <div className="text-center text-[9px] sm:text-[11px] uppercase tracking-[0.22em] sm:tracking-[0.3em] text-[#ffe27a] mb-1 sm:mb-2 font-extrabold drop-shadow">
               SCORE {targetPts ? `(Tanjona ${targetPts})` : ""}
             </div>
             {turnOrderLabel && (
-              <div className="-mt-1 mb-2 text-center text-[10px] font-bold text-emerald-200/90 truncate">
+              <div className="-mt-0.5 mb-1 sm:-mt-1 sm:mb-2 text-center text-[8px] sm:text-[10px] font-bold text-emerald-200/90 truncate">
                 ↻ {turnOrderLabel}
               </div>
             )}
-            <div className={`grid ${playersCount === 3 ? "grid-cols-3" : "grid-cols-2"} gap-3`}>
+            <div className={`grid ${playersCount === 3 ? "grid-cols-3" : "grid-cols-2"} gap-1.5 sm:gap-3`}>
               {getPlayerIds(game).map((pid) => {
                 const isMe = pid === user?.id;
                 const name = isMe ? myName : (profileNames[pid] ?? "Mpilalao");
@@ -1553,19 +1553,19 @@ export default function Game() {
                 return (
                   <div
                     key={pid}
-                    className={`rounded-xl px-2 py-1.5 border-2 bg-[linear-gradient(180deg,rgba(0,0,0,0.55),rgba(0,0,0,0.35))] ${isTurn ? "domino-turn-border" : "border-[#d4a52c]/40"}`}
+                    className={`rounded-lg sm:rounded-xl px-1.5 sm:px-2 py-1 sm:py-1.5 border-2 bg-[linear-gradient(180deg,rgba(0,0,0,0.55),rgba(0,0,0,0.35))] ${isTurn ? "domino-turn-border" : "border-[#d4a52c]/40"}`}
                   >
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-xs font-extrabold text-white/95 truncate uppercase tracking-wide">{name}</span>
-                      <span className="text-3xl font-black gold-text leading-none tabular-nums drop-shadow-[0_2px_6px_rgba(212,165,44,0.6)]">{sc}</span>
+                    <div className="flex items-baseline justify-between gap-1 sm:gap-2">
+                      <span className="text-[10px] sm:text-xs font-extrabold text-white/95 truncate uppercase tracking-wide">{name}</span>
+                      <span className="text-xl sm:text-3xl font-black gold-text leading-none tabular-nums drop-shadow-[0_2px_6px_rgba(212,165,44,0.6)]">{sc}</span>
                     </div>
                     {targetPts && (
-                      <div className="mt-1.5 h-2 bg-black/60 rounded-full overflow-hidden border border-[#d4a52c]/30">
+                      <div className="mt-1 h-1 sm:mt-1.5 sm:h-2 bg-black/60 rounded-full overflow-hidden border border-[#d4a52c]/30">
                         <div className="h-full bg-gradient-to-r from-[#d4a52c] via-[#ffe27a] to-[#fff4b8] transition-all shadow-[0_0_8px_rgba(255,226,122,0.6)]" style={{ width: `${pct}%` }} />
                       </div>
                     )}
                     {isMe && myBalance !== null && (
-                      <div className="mt-1.5 flex items-center justify-between text-[10px] font-bold text-emerald-200/95 bg-black/40 rounded-md px-1.5 py-0.5 border border-emerald-500/40">
+                      <div className="mt-1 sm:mt-1.5 flex items-center justify-between text-[8px] sm:text-[10px] font-bold text-emerald-200/95 bg-black/40 rounded-md px-1 py-0.5 sm:px-1.5 border border-emerald-500/40">
                         <span className="uppercase tracking-wider opacity-80">Solde</span>
                         <span className="tabular-nums">{fmtAr(myBalance)}</span>
                       </div>
@@ -1622,7 +1622,7 @@ export default function Game() {
       {game.status === "in_progress" && (
         <>
           {/* Tanan'ny adversaire — split-screen raha 2 na 3 mpilalao adversaire */}
-          <div className={`px-2 pt-2 pb-1 ${opponents.length >= 2 ? "grid grid-cols-2 gap-2" : "flex flex-col items-center"}`}>
+          <div className={`domino-opponents-strip px-1.5 pt-1 pb-0.5 sm:px-2 sm:pt-2 sm:pb-1 ${opponents.length >= 2 ? "grid grid-cols-2 gap-1.5 sm:gap-2" : "flex flex-col items-center"}`}>
             {opponents.map((o) => {
               const isTurn = game.current_turn === o.id;
               const initial = (o.name?.[0] ?? "?").toUpperCase();
@@ -1630,37 +1630,37 @@ export default function Game() {
               return (
                 <div
                   key={o.id}
-                  className={`domino-hand-mat domino-hand-mat--opponent flex flex-col items-center gap-1 ${
+                  className={`domino-hand-mat domino-hand-mat--opponent flex flex-col items-center gap-0.5 sm:gap-1 ${
                     isTurn ? "is-turn" : ""
                   }`}
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 sm:gap-2 min-w-0 max-w-full">
                     {photo ? (
                       <img
                         src={photo}
                         alt={o.name}
                         onClick={() => setZoomedPhoto(photo)}
-                        className={`w-9 h-9 rounded-full object-cover border-2 cursor-pointer active:scale-95 transition ${isTurn ? "border-primary" : "border-primary/30"}`}
+                        className={`w-6 h-6 sm:w-9 sm:h-9 rounded-full object-cover border-2 cursor-pointer active:scale-95 transition ${isTurn ? "border-primary" : "border-primary/30"}`}
                       />
                     ) : (
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold ${isTurn ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
+                      <div className={`w-6 h-6 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold ${isTurn ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
                         {initial}
                       </div>
                     )}
-                    <span className={`text-[11px] font-bold ${isTurn ? "gold-text" : "text-foreground/80"}`}>
+                    <span className={`text-[9px] sm:text-[11px] font-bold truncate ${isTurn ? "gold-text" : "text-foreground/80"}`}>
                       {isTurn ? "▶ " : ""}{o.name}
                       <span className="text-muted-foreground"> ({o.count})</span>
                     </span>
                   </div>
                   {showOppHands && o.hand.length > 0 && (
-                    <div className="text-[10px] font-extrabold text-[#ffe27a] uppercase tracking-wider">
+                    <div className="text-[8px] sm:text-[10px] font-extrabold text-[#ffe27a] uppercase tracking-wider">
                       Vato sisa
                     </div>
                   )}
                   <div
-                    className={`flex justify-center flex-wrap gap-1 max-w-full ${
+                    className={`flex justify-center flex-nowrap gap-0.5 sm:gap-1 max-w-full overflow-hidden ${
                       showOppHands
-                        ? "p-2 rounded-lg bg-black border-2 border-[#ffe27a] shadow-[0_0_28px_-2px_rgba(255,226,122,0.95)] ring-2 ring-[#ffe27a]/60"
+                        ? "p-1 sm:p-2 rounded-lg bg-black border-2 border-[#ffe27a] shadow-[0_0_28px_-2px_rgba(255,226,122,0.95)] ring-2 ring-[#ffe27a]/60"
                         : ""
                     }`}
                   >
@@ -1670,13 +1670,13 @@ export default function Game() {
                             key={i}
                             a={t[0]}
                             b={t[1]}
-                            size={isMobile ? "sm" : "md"}
+                             size={isMobile ? "xs" : "md"}
                             horizontal={false}
                             variant="white"
                           />
                         ))
-                      : Array.from({ length: o.count }).map((_, i) => (
-                          <DominoBack key={i} size="xs" />
+                       : Array.from({ length: o.count }).map((_, i) => (
+                           isMobile ? <span key={i} className="domino-mini-back" aria-hidden="true" /> : <DominoBack key={i} size="xs" />
                         ))}
                   </div>
                 </div>
@@ -1685,12 +1685,12 @@ export default function Game() {
           </div>
 
           {/* Latabatra — felt poker, snake path mihodina amin'ny sisiny */}
-          <div className="domino-table-zone relative flex-1 min-h-0 px-1 sm:px-3 py-2">
+          <div className="domino-table-zone relative flex-[1_1_auto] min-h-0 px-1 sm:px-3 py-1 sm:py-2">
             {/* Floating side action buttons */}
             <RadioPlayer />
             {id && <GameChat gameId={id} names={profileNames} />}
-            {id && game?.status === "in_progress" && (
-              <div className="absolute left-1/2 -translate-x-1/2 -top-1 z-30">
+              {id && game?.status === "in_progress" && (
+                <div className="absolute left-1/2 -translate-x-1/2 -top-0.5 sm:-top-1 z-30">
                 <LudoVoiceChat gameId={id} />
               </div>
             )}
@@ -1785,10 +1785,10 @@ export default function Game() {
           {/* Tap-to-play: tsy misy bokotra fanamafisana intsony */}
 
           {/* Tanako — lehibe sy mazava, mifanesy */}
-          <div className="domino-hand-dock px-2 pb-3 pt-1">
+          <div className="domino-hand-dock px-1.5 pb-2 pt-0.5 sm:px-2 sm:pb-3 sm:pt-1">
             <div className={`domino-hand-mat domino-hand-mat--self ${isMyTurn ? "is-turn" : ""}`}>
-            <div className="flex items-center justify-between mb-2 px-1 gap-2">
-              <span className={`text-xs font-bold ${isMyTurn ? "gold-text" : "text-muted-foreground"}`}>
+            <div className="flex items-center justify-between mb-1 sm:mb-2 px-1 gap-2">
+              <span className={`text-[10px] sm:text-xs font-bold ${isMyTurn ? "gold-text" : "text-muted-foreground"}`}>
                 {isMyTurn ? `▶ ${myName} — andiany!` : `${myName} (${myHand.length})`}
               </span>
               {isMyTurn && (
@@ -1797,7 +1797,7 @@ export default function Game() {
                     type="button"
                     onClick={() => { if (noMove) void passTurn(); }}
                     disabled={!noMove}
-                    className={`px-3 py-1.5 rounded-md text-[11px] font-extrabold uppercase tracking-wider border-2 transition active:scale-95 ${
+                    className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider border-2 transition active:scale-95 ${
                       noMove
                         ? "bg-destructive text-destructive-foreground border-destructive shadow-[0_0_12px_rgba(239,68,68,0.6)] animate-pulse"
                         : "bg-black/30 text-muted-foreground border-muted-foreground/30 opacity-50 cursor-not-allowed"
@@ -1809,7 +1809,7 @@ export default function Game() {
                 </div>
               )}
             </div>
-            <div className="grid grid-cols-7 gap-1 py-1 px-1 w-full">
+            <div className="grid grid-cols-7 justify-items-center gap-0.5 sm:gap-1 py-0.5 sm:py-1 px-0.5 sm:px-1 w-full">
               {myHand.map((t, i) => {
                 const placeable = canPlace(board, t) !== null;
                 const isFlipped = !!flippedHand[i];
@@ -1821,7 +1821,7 @@ export default function Game() {
                     a={showA}
                     b={showB}
                     size={handTileSize}
-                    fluid
+                    fluid={!isMobile}
                     onPointerDown={(e) => handleHandPointerDown(i, e)}
                     onPointerMove={(e) => handleHandPointerMove(i, e)}
                     onPointerEnter={() => handleHandPointerEnter(i)}

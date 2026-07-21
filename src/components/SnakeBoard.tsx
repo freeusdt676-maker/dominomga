@@ -38,7 +38,7 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
 
   const unit = SHORT[tileSize];
   const long = unit * 2;
-  const pad = 12;
+  const pad = 16;
   const availW = Math.max(80, vp.w - pad * 2);
   const availH = Math.max(80, vp.h - pad * 2);
   const horizontalRun = useMemo(() => {
@@ -142,7 +142,8 @@ export function SnakeBoard({ board, tileSize = "sm" }: { board: Placed[]; tileSi
 
   const boundsW = Math.max(long, bounds.maxX - bounds.minX);
   const boundsH = Math.max(long, bounds.maxY - bounds.minY);
-  const scale = Math.min(1, availW / boundsW, availH / boundsH);
+  // Safety factor 0.95 mba tsy hikitika ny sisin'ny arena ny vato
+  const scale = Math.min(1, availW / boundsW, availH / boundsH) * 0.95;
   const offsetX = (vp.w - boundsW * scale) / 2;
   const offsetY = (vp.h - boundsH * scale) / 2;
 

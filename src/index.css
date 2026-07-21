@@ -484,11 +484,28 @@ html.theme-petanque {
   }
   .domino-table-zone {
     padding-bottom: 0;
+    min-height: 0;
+  }
+  .domino-opponents-strip {
+    flex: 0 0 auto;
+  }
+  .domino-mini-back {
+    display: inline-block;
+    width: 16px;
+    height: 32px;
+    flex: 0 0 auto;
+    border-radius: 4px;
+    background:
+      linear-gradient(135deg, rgba(212,175,55,.16) 0%, transparent 42%),
+      linear-gradient(135deg, #1a2030 0%, #0a0f1a 100%);
+    border: 1px solid rgba(212,175,55,.35);
+    box-shadow: 0 3px 6px rgba(0,0,0,.5), inset 0 1px 0 rgba(212,175,55,.2);
   }
   .domino-hand-dock {
     position: relative;
     z-index: 4;
     background: linear-gradient(180deg, rgba(16,36,24,0.18), rgba(14,24,18,0.54));
+    flex: 0 0 auto;
   }
   .domino-hand-mat {
     border: 2px solid #d4a52c;
@@ -509,12 +526,12 @@ html.theme-petanque {
       0 8px 18px rgba(0,0,0,0.42);
   }
   .domino-hand-mat--opponent {
-    min-height: 94px;
-    padding: 8px;
+    min-height: 74px;
+    padding: 6px;
     width: 100%;
   }
   .domino-hand-mat--self {
-    padding: 10px;
+    padding: 8px;
     max-width: 720px;
     margin: 0 auto;
   }
@@ -542,16 +559,23 @@ html.theme-petanque {
       height: 66px;
     }
     .domino-table-zone {
-      min-height: 382px;
-      padding-top: 10px;
-      padding-bottom: 64px;
+      min-height: 0;
+      padding-top: 4px;
+      padding-bottom: 10px;
     }
     .domino-hand-mat--opponent {
-      min-height: 84px;
-      padding: 6px;
+      min-height: 54px;
+      padding: 4px;
+      border-radius: 10px;
     }
     .domino-hand-mat--self {
-      padding: 8px;
+      padding: 5px;
+      border-radius: 12px;
+    }
+    .domino-mini-back {
+      width: 14px;
+      height: 28px;
+      border-radius: 3px;
     }
   }
   .fab-circle {

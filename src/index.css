@@ -460,15 +460,30 @@ html.theme-petanque {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 1rem;
+    padding: 0.5rem;
+    max-width: 100%;
+    max-height: 100%;
     border-radius: 1rem;
     background: hsl(0 0% 100% / 0.03);
     box-shadow:
       0 18px 34px hsl(0 0% 0% / 0.38),
       inset 0 1px 0 hsl(0 0% 100% / 0.12);
   }
+  .domino-first-tile-stage > * {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+  }
+  .domino-first-tile-stage svg {
+    max-width: 100%;
+    max-height: 100%;
+    height: auto;
+    width: auto;
+  }
   .domino-table-zone {
-    padding-bottom: clamp(44px, 8vh, 78px);
+    padding-bottom: 0;
   }
   .domino-hand-dock {
     position: relative;

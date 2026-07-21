@@ -1723,17 +1723,25 @@ export default function Game() {
                   )}
                 </div>
               ) : firstBoardTile && firstBoardA !== null && firstBoardB !== null ? (
-                <div className="absolute inset-0 flex items-center justify-center p-4">
-                  <div className="domino-first-tile-stage animate-scale-in">
+                <div className="absolute inset-0 flex items-center justify-center p-2">
+                  <div
+                    className="domino-first-tile-stage animate-scale-in"
+                    style={{
+                      aspectRatio: firstBoardA !== firstBoardB ? "2 / 1" : "1 / 2",
+                      maxWidth: "min(100%, 60vh)",
+                      maxHeight: "min(100%, 90vw)",
+                      width: firstBoardA !== firstBoardB ? "min(70%, 55vh)" : "min(35%, 30vh)",
+                    }}
+                  >
                     <DominoTile
                       a={firstBoardA}
                       b={firstBoardB}
-                      size={isMobile ? "xl" : "xl"}
                       horizontal={firstBoardA !== firstBoardB}
                       variant="white"
                       pipColor="black"
                       glow={null}
                       splitEdge
+                      fluid
                     />
                   </div>
                 </div>

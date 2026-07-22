@@ -1386,8 +1386,8 @@ export default function Game() {
     nav("/lobby", { replace: true });
   };
 
-  // Mobile: ny tanana sy adversaire atao kely be, ny latabatra afovoany no lehibe.
-  const handTileSize = isMobile ? "xs" : "lg";
+  // Mobile: ny vato an-tanana atao mazava kokoa, fa mbola voafehy mba tsy hanakona ny latabatra.
+  const handTileSize = isMobile ? "hand" : "lg";
   const boardTileSize = isMobile ? "md" : "md";
   const firstBoardTile = board.length === 1 ? board[0] : null;
   const firstBoardA = firstBoardTile ? (firstBoardTile.flipped ? firstBoardTile.tile[1] : firstBoardTile.tile[0]) : null;

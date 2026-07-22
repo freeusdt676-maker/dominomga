@@ -3,7 +3,7 @@
 const SIZES = {
   xxs: { w: 20, h: 40 },
   xs: { w: 28, h: 56 },
-  hand: { w: 36, h: 72 },
+  hand: { w: 44, h: 88 },
   sm: { w: 44, h: 88 },
   md: { w: 72, h: 144 },
   lg: { w: 92, h: 184 },

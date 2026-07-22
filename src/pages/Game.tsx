@@ -118,6 +118,9 @@ function chooseBestBotMove(
     boneyardSize?: number;
     opponentScores?: number[];
     targetPts?: number;
+    // Perfect-information mode (Bot ON): fantatra ny vato rehetra
+    opponentHands?: Tile[][];
+    boneyard?: Tile[];
   } = {},
 ): { index: number; side: "left" | "right" } | null {
   type Cand = { index: number; side: "left" | "right"; score: number };
@@ -135,6 +138,9 @@ function chooseBestBotMove(
   // manindry mafy ny bot (block + dump kokoa).
   const pressure = Math.min(1, leaderScore / target); // 0..1
   const squeeze = 1 + pressure * 1.5; // 1..2.5
+  const perfect = !!(opts.opponentHands && opts.opponentHands.length);
+  const oppHands = opts.opponentHands ?? [];
+  const boneyardArr = opts.boneyard ?? [];
 
   for (let i = 0; i < hand.length; i++) {
     const tile = hand[i];
@@ -205,6 +211,55 @@ function chooseBestBotMove(
         if (endgameOpp) {
           if (uL <= 2) score += 15;
           if (uR <= 2) score += 15;
+        }
+
+        // 9) PERFECT-INFO (Bot ON): fantatra ny vaton'ny mpanohitra.
+        // Mikajy tsara raha voatery pass / raha manana vato lehibe hafahafa.
+        if (perfect && oppHands.length) {
+          let totalBlockedPlays = 0;
+          let sumPlayableOppPips = 0;
+          let allOppBlocked = true;
+          for (const oh of oppHands) {
+            let playable = 0;
+            let bestOppPipsDump = 0;
+            for (const ot of oh) {
+              const oc = canPlace(nb, ot);
+              if (oc !== null) {
+                playable += 1;
+                const p = ot[0] + ot[1];
+                if (p > bestOppPipsDump) bestOppPipsDump = p;
+              }
+            }
+            if (playable === 0) totalBlockedPlays += 1;
+            else allOppBlocked = false;
+            sumPlayableOppPips += bestOppPipsDump;
+          }
+          // Manery pass ho an'ny mpanohitra manaraka
+          score += totalBlockedPlays * 60;
+          // Raha bloqué DAHOLO ny mpanohitra sady kely ny pipsRem-nay → tsara be
+          if (allOppBlocked) {
+            score += 200;
+            if (pipsRem < 15) score += 300;
+          }
+          // Ahenanay ny pips lehibe azon'ny mpanohitra ovaina (dump-value)
+          score -= sumPlayableOppPips * 1.2;
+          // Raha misy mpanohitra manana vato 1 monja sisa: manery hihazona vato lehibe
+          for (let k = 0; k < oppHands.length; k += 1) {
+            const oh = oppHands[k];
+            if (oh.length <= 2) {
+              // Sarotra ho azy = tsara ho antsika
+              let anyPlay = false;
+              for (const ot of oh) if (canPlace(nb, ot) !== null) { anyPlay = true; break; }
+              if (!anyPlay) score += 150; // adversaire kely voabloka = tena tsara
+            }
+          }
+          // Fanampiny: mifidy tendrony izay tsy manana intsony na iza na iza (boneyard koa)
+          const boneL = countSuit(boneyardArr, e.left);
+          const boneR = countSuit(boneyardArr, e.right);
+          const oppL = oppHands.reduce((s, oh) => s + countSuit(oh, e.left), 0);
+          const oppR = oppHands.reduce((s, oh) => s + countSuit(oh, e.right), 0);
+          if (oppL + boneL === 0) score += 40;
+          if (oppR + boneR === 0) score += 40;
         }
       }
 

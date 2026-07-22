@@ -48,7 +48,7 @@ function HiddenHand({ name, count, active }: { name: string; count: number; acti
       <div className="text-[10px] font-bold truncate max-w-[90px] gold-text">{name}</div>
       <div className="flex flex-wrap justify-center gap-0.5">
         {Array.from({ length: Math.min(count, 7) }).map((_, i) => (
-          <DominoBack key={i} size="xs" horizontal={false} />
+          <DominoBack key={i} size="xxs" horizontal={false} />
         ))}
       </div>
       <div className="text-[9px] text-muted-foreground">({count})</div>

@@ -1202,11 +1202,23 @@ export default function Game() {
           return 0;
         });
       const targetPtsBot = Number((fresh as any).target_points ?? (Number(fresh.players_count ?? 2) === 3 ? 120 : 80));
+      // Bot ON → perfect information: alefa amin'ny bot ny vaton'ny mpanohitra rehetra + boneyard.
+      const perfectOppHands: Tile[][] = botActive
+        ? getPlayerIds(fresh)
+            .filter((pid) => pid !== turnId)
+            .map((pid) => {
+              const k = getHandKey(fresh, pid);
+              return k ? (((fresh as any)[k] as Tile[]) ?? []) : [];
+            })
+        : [];
+      const perfectBoneyard: Tile[] = botActive ? (((fresh as any).boneyard as Tile[]) ?? []) : [];
       const best = chooseBestBotMove(turnHand, liveBoard, {
         opponentSizes: oppSizes,
         boneyardSize,
         opponentScores: oppScoresArr,
         targetPts: targetPtsBot,
+        opponentHands: perfectOppHands,
+        boneyard: perfectBoneyard,
       });
       if (best) {
         const { index: playableIdx, side: chosenSide } = best;

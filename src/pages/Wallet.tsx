@@ -91,6 +91,8 @@ export default function Wallet() {
       return toast.error("Numéro MVola tokony 034/038 XXXXXXX");
     if (operator === "airtel" && !["033", "035"].includes(prefix))
       return toast.error("Numéro Airtel tokony 033/035 XXXXXXX");
+    if (operator === "orange" && !["032", "037"].includes(prefix))
+      return toast.error("Numéro Orange tokony 032/037 XXXXXXX");
     if (!withdrawName.trim()) return toast.error(`Anarana certifié ${OP.label} ilaina`);
     if (!/^\d{4,6}$/.test(pin)) return toast.error("PIN diso");
     // Block: at most ONE pending deposit/withdrawal per user.
@@ -135,25 +137,25 @@ export default function Wallet() {
 
       <div className="p-4 max-w-lg mx-auto space-y-4">
         {/* Operator selector */}
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            onClick={() => setOperator("mvola")}
-            className={`rounded-2xl p-3 border-2 font-bold text-sm transition ${operator === "mvola" ? "border-yellow-400 bg-gradient-to-br from-yellow-400/20 to-orange-500/20 shadow-lg" : "border-border/40 bg-card/40 opacity-60"}`}
-          >
-            <div className="text-2xl mb-1">💛</div>
-            MVola
-          </button>
-          <button
-            onClick={() => setOperator("airtel")}
-            className={`rounded-2xl p-3 border-2 font-bold text-sm transition ${operator === "airtel" ? "border-red-500 bg-gradient-to-br from-red-500/20 to-red-700/20 shadow-lg" : "border-border/40 bg-card/40 opacity-60"}`}
-          >
-            <div className="text-2xl mb-1">❤️</div>
-            Airtel Money
-          </button>
+        <div className="grid grid-cols-3 gap-2">
+          {(Object.keys(OPERATORS) as Array<keyof typeof OPERATORS>).map((k) => {
+            const O = OPERATORS[k];
+            const active = operator === k;
+            return (
+              <button
+                key={k}
+                onClick={() => setOperator(k)}
+                className={`rounded-2xl p-2 border-2 font-bold text-xs transition flex flex-col items-center gap-1 ${active ? `${O.ring} bg-gradient-to-br ${O.bg} shadow-lg` : "border-border/40 bg-card/40 opacity-60"}`}
+              >
+                <img src={O.logo} alt={O.label} className="w-12 h-12 object-contain rounded-lg bg-white/90 p-0.5" />
+                {O.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Numéro & anarana administratif — BIG en haut */}
-        <div className={`card-felt rounded-2xl p-5 space-y-3 border-2 ${operator === "mvola" ? "border-yellow-400/60" : "border-red-500/60"}`}>
+        <div className={`card-felt rounded-2xl p-5 space-y-3 border-2 ${OP.ring}/60`}>
           <p className="text-[11px] uppercase tracking-widest text-muted-foreground text-center">
             Numéro administratif {OP.label}
           </p>

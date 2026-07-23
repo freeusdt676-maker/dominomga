@@ -308,8 +308,8 @@ export default function Auth() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanPhoneIn = sPhone.replace(/\s/g, "");
-    if (!/^0(33|34|35|38)\d{7}$/.test(cleanPhoneIn))
-      return toast.error("Numéro téléphone diso (Yas/MVola: 034/038 · Airtel: 033/035 — XXXXXXX)");
+    if (!/^0(32|33|34|35|37|38)\d{7}$/.test(cleanPhoneIn))
+      return toast.error("Numéro téléphone diso (Yas/MVola: 034/038 · Airtel: 033/035 · Orange: 032/037 — XXXXXXX)");
     if (sName.trim().length < 3) return toast.error("Anarana certifié Mobile Money tsy ampy");
     if (!sBirth || !ageOK(sBirth)) return toast.error("Daty nahaterahana tsy mety na tsy ampy 18 taona");
     if (sPwd.length < 6) return toast.error("Mot de passe ≥ 6 caractères");

@@ -155,7 +155,7 @@ export default function Wallet() {
         </div>
 
         {/* Numéro & anarana administratif — BIG en haut */}
-        <div className={`card-felt rounded-2xl p-5 space-y-3 border-2 ${OP.ring}/60`}>
+        <div className={`card-felt rounded-2xl p-5 space-y-3 border-2 ${OP.ring}`}>
           <p className="text-[11px] uppercase tracking-widest text-muted-foreground text-center">
             Numéro administratif {OP.label}
           </p>

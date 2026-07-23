@@ -10,6 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, ArrowDownToLine, ArrowUpFromLine, Copy, ShieldAlert } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 import { toast } from "sonner";
+import mvolaLogo from "@/assets/mvola-logo.jpg.asset.json";
+import airtelLogo from "@/assets/airtel-logo.jpg.asset.json";
+import orangeLogo from "@/assets/orange-logo.png.asset.json";
 export default function Wallet() {
   const { user } = useAuth();
   const nav = useNavigate();
@@ -21,11 +24,12 @@ export default function Wallet() {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawPhone, setWithdrawPhone] = useState("");
   const [withdrawName, setWithdrawName] = useState("");
-  const [operator, setOperator] = useState<"mvola" | "airtel">("mvola");
+  const [operator, setOperator] = useState<"mvola" | "airtel" | "orange">("mvola");
 
   const OPERATORS = {
-    mvola:  { label: "MVola",        phone: "0345023006", name: "Jean Rolland",              color: "from-yellow-400 to-orange-500", tag: "💛" },
-    airtel: { label: "Airtel Money", phone: "0336470412", name: "JeanRolland Ratovoheriniaina", color: "from-red-500 to-red-700",     tag: "❤️" },
+    mvola:  { label: "MVola",        phone: "0345023006", name: "Jean Rolland",              logo: mvolaLogo.url,  ring: "border-yellow-400", bg: "from-yellow-400/20 to-orange-500/20" },
+    airtel: { label: "Airtel Money", phone: "0336470412", name: "JeanRolland Ratovoheriniaina", logo: airtelLogo.url, ring: "border-red-500",    bg: "from-red-500/20 to-red-700/20" },
+    orange: { label: "Orange Money", phone: "0373666205", name: "Jean",                       logo: orangeLogo.url, ring: "border-orange-500", bg: "from-orange-500/20 to-orange-700/20" },
   } as const;
   const OP = OPERATORS[operator];
   const ADMIN_PHONE = OP.phone;
@@ -87,6 +91,8 @@ export default function Wallet() {
       return toast.error("Numéro MVola tokony 034/038 XXXXXXX");
     if (operator === "airtel" && !["033", "035"].includes(prefix))
       return toast.error("Numéro Airtel tokony 033/035 XXXXXXX");
+    if (operator === "orange" && !["032", "037"].includes(prefix))
+      return toast.error("Numéro Orange tokony 032/037 XXXXXXX");
     if (!withdrawName.trim()) return toast.error(`Anarana certifié ${OP.label} ilaina`);
     if (!/^\d{4,6}$/.test(pin)) return toast.error("PIN diso");
     // Block: at most ONE pending deposit/withdrawal per user.
@@ -131,25 +137,25 @@ export default function Wallet() {
 
       <div className="p-4 max-w-lg mx-auto space-y-4">
         {/* Operator selector */}
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            onClick={() => setOperator("mvola")}
-            className={`rounded-2xl p-3 border-2 font-bold text-sm transition ${operator === "mvola" ? "border-yellow-400 bg-gradient-to-br from-yellow-400/20 to-orange-500/20 shadow-lg" : "border-border/40 bg-card/40 opacity-60"}`}
-          >
-            <div className="text-2xl mb-1">💛</div>
-            MVola
-          </button>
-          <button
-            onClick={() => setOperator("airtel")}
-            className={`rounded-2xl p-3 border-2 font-bold text-sm transition ${operator === "airtel" ? "border-red-500 bg-gradient-to-br from-red-500/20 to-red-700/20 shadow-lg" : "border-border/40 bg-card/40 opacity-60"}`}
-          >
-            <div className="text-2xl mb-1">❤️</div>
-            Airtel Money
-          </button>
+        <div className="grid grid-cols-3 gap-2">
+          {(Object.keys(OPERATORS) as Array<keyof typeof OPERATORS>).map((k) => {
+            const O = OPERATORS[k];
+            const active = operator === k;
+            return (
+              <button
+                key={k}
+                onClick={() => setOperator(k)}
+                className={`rounded-2xl p-2 border-2 font-bold text-xs transition flex flex-col items-center gap-1 ${active ? `${O.ring} bg-gradient-to-br ${O.bg} shadow-lg` : "border-border/40 bg-card/40 opacity-60"}`}
+              >
+                <img src={O.logo} alt={O.label} className="w-12 h-12 object-contain rounded-lg bg-white/90 p-0.5" />
+                {O.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Numéro & anarana administratif — BIG en haut */}
-        <div className={`card-felt rounded-2xl p-5 space-y-3 border-2 ${operator === "mvola" ? "border-yellow-400/60" : "border-red-500/60"}`}>
+        <div className={`card-felt rounded-2xl p-5 space-y-3 border-2 ${OP.ring}`}>
           <p className="text-[11px] uppercase tracking-widest text-muted-foreground text-center">
             Numéro administratif {OP.label}
           </p>
@@ -210,17 +216,17 @@ export default function Wallet() {
               <p>3. Ny administratif no hanamarina (mahazo notification ianao).</p>
             </div>
             <div><Label>Montant (Ar)</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="100000" /></div>
-            <div><Label>Référence transaction {OP.label}</Label><Input value={ref} onChange={(e) => setRef(e.target.value)} placeholder={operator === "mvola" ? "MP..." : "AM..."} /></div>
+            <div><Label>Référence transaction {OP.label}</Label><Input value={ref} onChange={(e) => setRef(e.target.value)} placeholder={operator === "mvola" ? "MP..." : operator === "airtel" ? "AM..." : "OM..."} /></div>
             <Button className="w-full btn-gold" onClick={submitDeposit}>Mandefa demande</Button>
           </TabsContent>
 
           <TabsContent value="withdraw" className="space-y-3 mt-4">
             <div className="rounded-xl bg-primary/10 border border-primary/30 p-3 text-xs">
               <p className="font-bold gold-text mb-1">📤 Famolavolana Retrait · {OP.label}</p>
-              <p>Soraty ny numéro téléphone {operator === "mvola" ? "MVola (034/038)" : "Airtel (033/035)"} sy ny anarana certifié {OP.label} handefasana ny vola, dia ampidiro ny PIN-nao.</p>
+              <p>Soraty ny numéro téléphone {operator === "mvola" ? "MVola (034/038)" : operator === "airtel" ? "Airtel (033/035)" : "Orange (032/037)"} sy ny anarana certifié {OP.label} handefasana ny vola, dia ampidiro ny PIN-nao.</p>
             </div>
             <div><Label>Montant (Ar)</Label><Input type="number" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} placeholder="10000" /></div>
-            <div><Label>Numéro {OP.label} (handefasana ny vola)</Label><Input inputMode="tel" value={withdrawPhone} onChange={(e) => setWithdrawPhone(e.target.value)} placeholder={operator === "mvola" ? "034XXXXXXX" : "033XXXXXXX"} /></div>
+            <div><Label>Numéro {OP.label} (handefasana ny vola)</Label><Input inputMode="tel" value={withdrawPhone} onChange={(e) => setWithdrawPhone(e.target.value)} placeholder={operator === "mvola" ? "034XXXXXXX" : operator === "airtel" ? "033XXXXXXX" : "032XXXXXXX"} /></div>
             <div><Label>Anarana certifié {OP.label}</Label><Input value={withdrawName} onChange={(e) => setWithdrawName(e.target.value)} placeholder="Jean Claude" /></div>
             <div><Label>Code PIN</Label><PasswordInput inputMode="numeric" maxLength={6} value={pin} onChange={(e) => setPin(e.target.value)} placeholder="1234" /></div>
             <Button className="w-full btn-gold" onClick={submitWithdraw}>Mangataka retrait</Button>

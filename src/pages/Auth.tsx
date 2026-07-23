@@ -308,8 +308,8 @@ export default function Auth() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanPhoneIn = sPhone.replace(/\s/g, "");
-    if (!/^0(33|34|35|38)\d{7}$/.test(cleanPhoneIn))
-      return toast.error("Numéro téléphone diso (Yas/MVola: 034/038 · Airtel: 033/035 — XXXXXXX)");
+    if (!/^0(32|33|34|35|37|38)\d{7}$/.test(cleanPhoneIn))
+      return toast.error("Numéro téléphone diso (Yas/MVola: 034/038 · Airtel: 033/035 · Orange: 032/037 — XXXXXXX)");
     if (sName.trim().length < 3) return toast.error("Anarana certifié Mobile Money tsy ampy");
     if (!sBirth || !ageOK(sBirth)) return toast.error("Daty nahaterahana tsy mety na tsy ampy 18 taona");
     if (sPwd.length < 6) return toast.error("Mot de passe ≥ 6 caractères");
@@ -373,9 +373,9 @@ export default function Auth() {
               <form onSubmit={handleLogin} className="space-y-3">
                 <div>
                   <Label>Numéro téléphone</Label>
-                  <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="033 / 034 / 035 / 038 XXXXXXX" inputMode="tel" />
+                  <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="032 / 033 / 034 / 035 / 037 / 038 XXXXXXX" inputMode="tel" />
                   <p className="text-[10px] text-muted-foreground mt-1">
-                    💛 <b>Yas/MVola</b>: 034 · 038 &nbsp;·&nbsp; ❤️ <b>Airtel</b>: 033 · 035
+                    <b>Yas/MVola</b>: 034 · 038 &nbsp;·&nbsp; <b>Airtel</b>: 033 · 035 &nbsp;·&nbsp; <b>Orange</b>: 032 · 037
                   </p>
                 </div>
                 <div>
@@ -397,9 +397,9 @@ export default function Auth() {
                 <div>
                   <Label className="text-xs font-bold uppercase tracking-wide">Numéro téléphone</Label>
                   <Input value={sPhone} onChange={(e) => setSPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                    placeholder="033/034/035/038 XXXXXXX" inputMode="tel" maxLength={10} />
+                    placeholder="032/033/034/035/037/038 XXXXXXX" inputMode="tel" maxLength={10} />
                   <p className="text-[10px] text-muted-foreground mt-1">
-                    💛 <b>Yas/MVola</b>: 034 · 038 &nbsp;·&nbsp; ❤️ <b>Airtel Money</b>: 033 · 035
+                    <b>Yas/MVola</b>: 034 · 038 &nbsp;·&nbsp; <b>Airtel Money</b>: 033 · 035 &nbsp;·&nbsp; <b>Orange Money</b>: 032 · 037
                   </p>
                 </div>
                 <div>

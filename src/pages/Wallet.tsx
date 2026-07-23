@@ -216,17 +216,17 @@ export default function Wallet() {
               <p>3. Ny administratif no hanamarina (mahazo notification ianao).</p>
             </div>
             <div><Label>Montant (Ar)</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="100000" /></div>
-            <div><Label>Référence transaction {OP.label}</Label><Input value={ref} onChange={(e) => setRef(e.target.value)} placeholder={operator === "mvola" ? "MP..." : "AM..."} /></div>
+            <div><Label>Référence transaction {OP.label}</Label><Input value={ref} onChange={(e) => setRef(e.target.value)} placeholder={operator === "mvola" ? "MP..." : operator === "airtel" ? "AM..." : "OM..."} /></div>
             <Button className="w-full btn-gold" onClick={submitDeposit}>Mandefa demande</Button>
           </TabsContent>
 
           <TabsContent value="withdraw" className="space-y-3 mt-4">
             <div className="rounded-xl bg-primary/10 border border-primary/30 p-3 text-xs">
               <p className="font-bold gold-text mb-1">📤 Famolavolana Retrait · {OP.label}</p>
-              <p>Soraty ny numéro téléphone {operator === "mvola" ? "MVola (034/038)" : "Airtel (033/035)"} sy ny anarana certifié {OP.label} handefasana ny vola, dia ampidiro ny PIN-nao.</p>
+              <p>Soraty ny numéro téléphone {operator === "mvola" ? "MVola (034/038)" : operator === "airtel" ? "Airtel (033/035)" : "Orange (032/037)"} sy ny anarana certifié {OP.label} handefasana ny vola, dia ampidiro ny PIN-nao.</p>
             </div>
             <div><Label>Montant (Ar)</Label><Input type="number" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} placeholder="10000" /></div>
-            <div><Label>Numéro {OP.label} (handefasana ny vola)</Label><Input inputMode="tel" value={withdrawPhone} onChange={(e) => setWithdrawPhone(e.target.value)} placeholder={operator === "mvola" ? "034XXXXXXX" : "033XXXXXXX"} /></div>
+            <div><Label>Numéro {OP.label} (handefasana ny vola)</Label><Input inputMode="tel" value={withdrawPhone} onChange={(e) => setWithdrawPhone(e.target.value)} placeholder={operator === "mvola" ? "034XXXXXXX" : operator === "airtel" ? "033XXXXXXX" : "032XXXXXXX"} /></div>
             <div><Label>Anarana certifié {OP.label}</Label><Input value={withdrawName} onChange={(e) => setWithdrawName(e.target.value)} placeholder="Jean Claude" /></div>
             <div><Label>Code PIN</Label><PasswordInput inputMode="numeric" maxLength={6} value={pin} onChange={(e) => setPin(e.target.value)} placeholder="1234" /></div>
             <Button className="w-full btn-gold" onClick={submitWithdraw}>Mangataka retrait</Button>

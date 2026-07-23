@@ -373,9 +373,9 @@ export default function Auth() {
               <form onSubmit={handleLogin} className="space-y-3">
                 <div>
                   <Label>Numéro téléphone</Label>
-                  <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="033 / 034 / 035 / 038 XXXXXXX" inputMode="tel" />
+                  <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="032 / 033 / 034 / 035 / 037 / 038 XXXXXXX" inputMode="tel" />
                   <p className="text-[10px] text-muted-foreground mt-1">
-                    💛 <b>Yas/MVola</b>: 034 · 038 &nbsp;·&nbsp; ❤️ <b>Airtel</b>: 033 · 035
+                    <b>Yas/MVola</b>: 034 · 038 &nbsp;·&nbsp; <b>Airtel</b>: 033 · 035 &nbsp;·&nbsp; <b>Orange</b>: 032 · 037
                   </p>
                 </div>
                 <div>
@@ -397,9 +397,9 @@ export default function Auth() {
                 <div>
                   <Label className="text-xs font-bold uppercase tracking-wide">Numéro téléphone</Label>
                   <Input value={sPhone} onChange={(e) => setSPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                    placeholder="033/034/035/038 XXXXXXX" inputMode="tel" maxLength={10} />
+                    placeholder="032/033/034/035/037/038 XXXXXXX" inputMode="tel" maxLength={10} />
                   <p className="text-[10px] text-muted-foreground mt-1">
-                    💛 <b>Yas/MVola</b>: 034 · 038 &nbsp;·&nbsp; ❤️ <b>Airtel Money</b>: 033 · 035
+                    <b>Yas/MVola</b>: 034 · 038 &nbsp;·&nbsp; <b>Airtel Money</b>: 033 · 035 &nbsp;·&nbsp; <b>Orange Money</b>: 032 · 037
                   </p>
                 </div>
                 <div>

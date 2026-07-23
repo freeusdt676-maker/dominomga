@@ -10,6 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, ArrowDownToLine, ArrowUpFromLine, Copy, ShieldAlert } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 import { toast } from "sonner";
+import mvolaLogo from "@/assets/mvola-logo.jpg.asset.json";
+import airtelLogo from "@/assets/airtel-logo.jpg.asset.json";
+import orangeLogo from "@/assets/orange-logo.png.asset.json";
 export default function Wallet() {
   const { user } = useAuth();
   const nav = useNavigate();
@@ -21,11 +24,12 @@ export default function Wallet() {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawPhone, setWithdrawPhone] = useState("");
   const [withdrawName, setWithdrawName] = useState("");
-  const [operator, setOperator] = useState<"mvola" | "airtel">("mvola");
+  const [operator, setOperator] = useState<"mvola" | "airtel" | "orange">("mvola");
 
   const OPERATORS = {
-    mvola:  { label: "MVola",        phone: "0345023006", name: "Jean Rolland",              color: "from-yellow-400 to-orange-500", tag: "💛" },
-    airtel: { label: "Airtel Money", phone: "0336470412", name: "JeanRolland Ratovoheriniaina", color: "from-red-500 to-red-700",     tag: "❤️" },
+    mvola:  { label: "MVola",        phone: "0345023006", name: "Jean Rolland",              logo: mvolaLogo.url,  ring: "border-yellow-400", bg: "from-yellow-400/20 to-orange-500/20" },
+    airtel: { label: "Airtel Money", phone: "0336470412", name: "JeanRolland Ratovoheriniaina", logo: airtelLogo.url, ring: "border-red-500",    bg: "from-red-500/20 to-red-700/20" },
+    orange: { label: "Orange Money", phone: "0373666205", name: "Jean",                       logo: orangeLogo.url, ring: "border-orange-500", bg: "from-orange-500/20 to-orange-700/20" },
   } as const;
   const OP = OPERATORS[operator];
   const ADMIN_PHONE = OP.phone;

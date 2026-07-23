@@ -1718,69 +1718,6 @@ export default function Game() {
 
       {game.status === "in_progress" && (
         <>
-          {/* Tanan'ny adversaire — split-screen raha 2 na 3 mpilalao adversaire */}
-          <div className={`domino-opponents-strip px-1.5 pt-1 pb-0.5 sm:px-2 sm:pt-2 sm:pb-1 ${opponents.length >= 2 ? "grid grid-cols-2 gap-1.5 sm:gap-2" : "flex flex-col items-center"}`}>
-            {opponents.map((o) => {
-              const isTurn = game.current_turn === o.id;
-              const initial = (o.name?.[0] ?? "?").toUpperCase();
-              const photo = profilePhotos[o.id];
-              return (
-                <div
-                  key={o.id}
-                  className={`domino-hand-mat domino-hand-mat--opponent flex flex-col items-center gap-0.5 sm:gap-1 ${
-                    isTurn ? "is-turn" : ""
-                  }`}
-                >
-                  <div className="flex items-center gap-1 sm:gap-2 min-w-0 max-w-full">
-                    {photo ? (
-                      <img
-                        src={photo}
-                        alt={o.name}
-                        onClick={() => setZoomedPhoto(photo)}
-                        className={`w-6 h-6 sm:w-9 sm:h-9 rounded-full object-cover border-2 cursor-pointer active:scale-95 transition ${isTurn ? "border-primary" : "border-primary/30"}`}
-                      />
-                    ) : (
-                      <div className={`w-6 h-6 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold ${isTurn ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
-                        {initial}
-                      </div>
-                    )}
-                    <span className={`text-[9px] sm:text-[11px] font-bold truncate ${isTurn ? "gold-text" : "text-foreground/80"}`}>
-                      {isTurn ? "▶ " : ""}{o.name}
-                      <span className="text-muted-foreground"> ({o.count})</span>
-                    </span>
-                  </div>
-                  {showOppHands && o.hand.length > 0 && (
-                    <div className="text-[8px] sm:text-[10px] font-extrabold text-[#ffe27a] uppercase tracking-wider">
-                      Vato sisa
-                    </div>
-                  )}
-                  <div
-                    className={`flex justify-center flex-nowrap gap-0.5 sm:gap-1 max-w-full overflow-hidden ${
-                      showOppHands
-                        ? "p-1 sm:p-2 rounded-lg bg-black border-2 border-[#ffe27a] shadow-[0_0_28px_-2px_rgba(255,226,122,0.95)] ring-2 ring-[#ffe27a]/60"
-                        : ""
-                    }`}
-                  >
-                    {showOppHands
-                      ? o.hand.map((t, i) => (
-                          <DominoTile
-                            key={i}
-                            a={t[0]}
-                            b={t[1]}
-                             size={isMobile ? "xs" : "md"}
-                            horizontal={false}
-                            variant="white"
-                          />
-                        ))
-                       : Array.from({ length: o.count }).map((_, i) => (
-                           isMobile ? <span key={i} className="domino-mini-back" aria-hidden="true" /> : <DominoBack key={i} size="xs" />
-                        ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
           {/* Latabatra — felt poker, snake path mihodina amin'ny sisiny */}
           <div className="domino-table-zone relative flex-[1_1_auto] min-h-0 px-1 sm:px-3 py-1 sm:py-2">
             {/* Floating side action buttons */}

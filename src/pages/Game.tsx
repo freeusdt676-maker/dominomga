@@ -482,7 +482,7 @@ export default function Game() {
     try {
       const { data: fresh } = await supabase
         .from("games")
-        .select("id, round_number, score_p1, score_p2, score_p3, player1_id, player2_id, player3_id, players_count, game_mode")
+        .select("id, round_number, score_p1, score_p2, score_p3, player1_id, player2_id, player3_id, players_count, game_mode, player1_hand, player2_hand, player3_hand")
         .eq("id", game.id)
         .single();
       if (fresh) liveGame = { ...game, ...fresh };
@@ -511,7 +511,16 @@ export default function Game() {
     ].filter((score) => score !== null);
     const soloWin = isDominoSoloWin(wScore, mode, opponentScores);
     const doubleSixOut = isDominoDoubleSixOut(lastTile, points);
-    const instantWin = targetReached || soloWin || doubleSixOut;
+    // Vato sisa amin'ny mpanohitra rehefa lany vato ny mpandresy (out-win).
+    const winnerOut = !!lastTile && safePoints > 0;
+    const opponentHands: Tile[][] = [
+      winnerId === liveGame.player1_id ? [] : ((liveGame.player1_hand ?? []) as Tile[]),
+      winnerId === liveGame.player2_id ? [] : ((liveGame.player2_hand ?? []) as Tile[]),
+      ...(pc === 3 ? [winnerId === liveGame.player3_id ? [] : ((liveGame.player3_hand ?? []) as Tile[])] : []),
+    ].filter((h) => h.length > 0);
+    const lowTileKO = winnerOut && isDominoLowTileKnockout(opponentHands);
+    const singleRoundKO = isDominoSingleRoundKO(safePoints);
+    const instantWin = targetReached || soloWin || doubleSixOut || lowTileKO || singleRoundKO;
 
     // Build a human-readable "porofo" of how this round was won, for the replay banner.
     const winnerName = (profileNames[winnerId] ?? "Mpandresy");
@@ -531,6 +540,10 @@ export default function Game() {
       ? `MANDRESY NY LALAO — DOUBLE 6 • ${winnerName} namarana ny tour tamin'ny [6|6]`
       : soloWin && !targetReached
       ? `MANDRESY NY LALAO — MANDEHA IRERY • ${winnerName} tonga ${wScore} (${soloThreshold}+)`
+      : lowTileKO && !targetReached
+      ? `MANDRESY NY LALAO — VATO AMBANY • ${winnerName} nampijanona ny mpanohitra tamin'ny [0|0]/[0|1]`
+      : singleRoundKO && !targetReached
+      ? `MANDRESY NY LALAO — TOUR NAHAVOA 40+ • ${winnerName} nahazo ${safePoints} isa tao anatin'ny tour tokana`
       : getDominoRoundReason({
           winnerName,
           mode,
@@ -564,7 +577,7 @@ export default function Game() {
     if (pc === 3) updatePayload.score_p3 = newScoreP3;
     // Raha mandeha irery: terena mitovy amin'ny target ny score-n'ny mpandresy
     // mba ho rakitry ny historique fa lalao vita.
-    if ((soloWin || doubleSixOut) && !targetReached) {
+    if ((soloWin || doubleSixOut || lowTileKO || singleRoundKO) && !targetReached) {
       const slot = winnerId === game.player1_id ? 1 : winnerId === game.player2_id ? 2 : 3;
       updatePayload[`score_p${slot}`] = target;
     }

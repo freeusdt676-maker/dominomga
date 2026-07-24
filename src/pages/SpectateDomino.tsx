@@ -28,6 +28,8 @@ type Snap = {
   score_p2: number;
   score_p3: number;
   players_count: number;
+  mode?: string | null;
+  stake?: number | null;
   round: number;
   last_reason: string | null;
   reveal_until?: string | null;
@@ -36,24 +38,17 @@ type Snap = {
   p3_hand?: Tile[] | null;
 };
 
-function HiddenHand({ name, count, active }: { name: string; count: number; active: boolean; hand?: Tile[] | null }) {
-  // Tsy aseho intsony ny vato sisa — atao kely ny back-tile mba ho malalaka
-  // tsara ny latabatra ho an'ny mpijery.
-  return (
-    <div
-      className={`flex flex-col items-center gap-0.5 p-1.5 rounded-lg border-2 bg-card/30 min-w-[72px] ${
-        active ? "domino-turn-border" : "border-primary/20"
-      }`}
-    >
-      <div className="text-[10px] font-bold truncate max-w-[90px] gold-text">{name}</div>
-      <div className="flex flex-wrap justify-center gap-0.5">
-        {Array.from({ length: Math.min(count, 7) }).map((_, i) => (
-          <DominoBack key={i} size="xxs" horizontal={false} />
-        ))}
-      </div>
-      <div className="text-[9px] text-muted-foreground">({count})</div>
-    </div>
-  );
+function formatK(n?: number | null) {
+  const v = Number(n ?? 0);
+  if (v >= 1000) {
+    const k = v / 1000;
+    return `${k % 1 === 0 ? k.toFixed(0) : k.toFixed(1)}K`;
+  }
+  return String(v);
+}
+function modeLabel(m?: string | null) {
+  if (m === "d80") return "D80";
+  return "D120";
 }
 
 export default function SpectateDomino() {

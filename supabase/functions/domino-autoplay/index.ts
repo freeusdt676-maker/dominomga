@@ -308,17 +308,31 @@ async function finishRoundOnServer(
   const targetReached = winnerScore >= target;
   const soloWin = winnerScore >= soloThreshold(g.game_mode) && opponentScores(g, winnerId).every((s) => Number(s ?? 0) === 0);
   const doubleSixOut = !!lastTile && lastTile[0] === 6 && lastTile[1] === 6 && points > 0;
-  const instantWin = targetReached || soloWin || doubleSixOut;
+  // Opponents' remaining tiles (post-move: raha winner=out dia efa lany ny handKey)
+  const oppRemaining: Tile[][] = getPlayerIds(g)
+    .filter((id) => id !== winnerId)
+    .map((id) => getHand(g, id))
+    .filter((h) => h.length > 0);
+  const winnerOut = !!lastTile && points > 0;
+  const isLowTile = (t: Tile) => (t[0] === 0 && t[1] === 0) || (t[0] === 0 && t[1] === 1) || (t[0] === 1 && t[1] === 0);
+  const lowTileKO = winnerOut && oppRemaining.length > 0
+    && oppRemaining.every((h) => h.length > 0 && h.every(isLowTile));
+  const singleRoundKO = points >= 40;
+  const instantWin = targetReached || soloWin || doubleSixOut || lowTileKO || singleRoundKO;
   const winnerName = playerLabel(g, winnerId);
   const reason = doubleSixOut && !targetReached && !soloWin
     ? `MANDRESY NY LALAO — DOUBLE 6 • ${winnerName} namarana ny tour tamin'ny [6|6]`
     : soloWin && !targetReached
       ? `MANDRESY NY LALAO — MANDEHA IRERY • ${winnerName} tonga ${winnerScore} (${soloThreshold(g.game_mode)}+)`
+      : lowTileKO && !targetReached
+        ? `MANDRESY NY LALAO — VATO AMBANY • ${winnerName} nampijanona ny mpanohitra tamin'ny [0|0]/[0|1]`
+      : singleRoundKO && !targetReached
+        ? `MANDRESY NY LALAO — TOUR NAHAVOA 40+ • ${winnerName} nahazo ${points} isa tao anatin'ny tour tokana`
       : targetReached
         ? `MANDRESY NY LALAO — ${winnerName} tonga ${target}`
         : (reasonOverride ?? (points > 0 ? `Tour vita — ${winnerName} nahazo +${points} isa` : `Tour vita — ${winnerName}`));
 
-  if ((soloWin || doubleSixOut) && !targetReached) {
+  if ((soloWin || doubleSixOut || lowTileKO || singleRoundKO) && !targetReached) {
     if (winnerId === g.player1_id) scores.score_p1 = target;
     else if (winnerId === g.player2_id) scores.score_p2 = target;
     else scores.score_p3 = target;

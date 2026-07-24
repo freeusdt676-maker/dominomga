@@ -41,6 +41,8 @@ import {
   isDominoDoubleSixOut,
   isDominoGameWin,
   isDominoSoloWin,
+  isDominoLowTileKnockout,
+  isDominoSingleRoundKO,
 } from "@/lib/dominoRules";
 
 type GameState = {

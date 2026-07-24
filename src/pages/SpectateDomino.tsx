@@ -115,7 +115,15 @@ export default function SpectateDomino() {
 
       {s && (
         <div className="flex-1 min-h-0 flex flex-col gap-2 p-2">
-          {/* Scores */}
+          {/* Détail lalao — mode / mise / joueurs / round */}
+          <div className="flex flex-wrap items-center justify-center gap-2 text-[11px] font-bold">
+            <span className="px-2 py-0.5 rounded-full bg-primary/20 border border-primary/40 gold-text">Domy maty {modeLabel(s.mode) === "D80" ? 80 : 120}</span>
+            <span className="px-2 py-0.5 rounded-full bg-primary/20 border border-primary/40 gold-text">Mise {formatK(s.stake)}</span>
+            <span className="px-2 py-0.5 rounded-full bg-primary/20 border border-primary/40 gold-text">{s.players_count}P</span>
+            <span className="px-2 py-0.5 rounded-full bg-primary/20 border border-primary/40 gold-text">Tour {Number(s.round ?? 1)}</span>
+          </div>
+
+          {/* Cartes joueurs — score + vato sisa mitambatra */}
           <div className={`grid gap-2 ${s.players_count === 3 ? "grid-cols-3" : "grid-cols-2"}`}>
             {[
               { name: s.p1_name, score: s.score_p1, id: s.p1_id, count: s.p1_count },
@@ -128,30 +136,24 @@ export default function SpectateDomino() {
               return (
                 <div
                   key={i}
-                  className={`p-2 rounded-xl border-2 bg-card/40 ${active ? "domino-turn-border" : "border-primary/20"}`}
+                  className={`p-2 rounded-xl border-2 bg-card/40 flex flex-col gap-1 ${active ? "domino-turn-border" : "border-primary/20"}`}
                 >
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-extrabold truncate">{p.name ?? "—"}</span>
-                    <span className="font-display text-2xl gold-text">{Number(p.score ?? 0)}</span>
+                    <span className="text-xs font-extrabold truncate">{p.name ?? "—"}</span>
+                    <span className="font-display text-xl gold-text">{Number(p.score ?? 0)}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="flex flex-wrap gap-0.5 flex-1">
+                      {Array.from({ length: Math.min(Number(p.count ?? 0), 7) }).map((_, k) => (
+                        <DominoBack key={k} size="xxs" horizontal={false} />
+                      ))}
+                    </div>
+                    <span className="text-[9px] text-muted-foreground">({Number(p.count ?? 0)})</span>
                   </div>
                 </div>
               );
             })}
           </div>
-
-          {/* Hidden hands */}
-          <div className="flex justify-center gap-3 flex-wrap">
-            {[
-              { name: s.p1_name ?? "P1", id: s.p1_id, count: s.p1_count, hand: s.p1_hand },
-              { name: s.p2_name ?? "P2", id: s.p2_id, count: s.p2_count, hand: s.p2_hand },
-              ...(s.players_count === 3 ? [{ name: s.p3_name ?? "P3", id: s.p3_id, count: s.p3_count, hand: s.p3_hand }] : []),
-            ].map((p, i) => (
-              <HiddenHand key={i} name={p.name} count={p.count} active={!!p.id && s.current_turn === p.id} hand={p.hand as Tile[] | null | undefined} />
-            ))}
-          </div>
-          {s.current_turn && (
-            <style>{`.spectator-active-hand{}`}</style>
-          )}
 
           {/* Board */}
           <div className="felt-board relative w-full min-h-0 flex-1 overflow-hidden">

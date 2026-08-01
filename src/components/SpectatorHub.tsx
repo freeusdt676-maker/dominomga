@@ -54,7 +54,11 @@ function GamesList({
     const refresh = () => { if (document.visibilityState === "visible") load(); };
     const id = window.setInterval(refresh, 10000);
     window.addEventListener("online", load);
-    return () => { alive = false; window.clearInterval(id); };
+    return () => {
+      alive = false;
+      window.clearInterval(id);
+      window.removeEventListener("online", load);
+    };
   }, [type]);
 
   if (rows === null) {

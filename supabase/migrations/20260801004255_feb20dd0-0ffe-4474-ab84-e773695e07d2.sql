@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS idx_game_moves_game_created ON public.game_moves (game_id, created_at);

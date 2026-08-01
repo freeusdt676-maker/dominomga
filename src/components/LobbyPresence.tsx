@@ -22,6 +22,7 @@ export default function LobbyPresence({ kind, accent = "text-primary" }: Props) 
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
     let myName = "Mpilalao";
     (async () => {
       const { data } = await supabase
@@ -31,7 +32,7 @@ export default function LobbyPresence({ kind, accent = "text-primary" }: Props) 
         .maybeSingle();
       myName = (data?.mvola_name as string) || "Mpilalao";
       if (cancelled) return;
-      const channel = supabase.channel(`lobby-presence-${kind}`, {
+      channel = supabase.channel(`lobby-presence-${kind}`, {
         config: { presence: { key: user.id } },
       });
       channel
@@ -49,15 +50,10 @@ export default function LobbyPresence({ kind, accent = "text-primary" }: Props) 
             await channel.track({ name: myName });
           }
         });
-      // cleanup
-      (window as any).__lobbyPresenceCleanup__ = () => {
-        supabase.removeChannel(channel);
-      };
     })();
     return () => {
       cancelled = true;
-      const c = (window as any).__lobbyPresenceCleanup__;
-      if (typeof c === "function") c();
+      if (channel) supabase.removeChannel(channel);
     };
   }, [user, kind]);
 

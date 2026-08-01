@@ -87,23 +87,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     }, 4000);
 
-    // Auto-lock: rehefa miala ny app ela be (30 min), vao manala
-    const onHide = () => {
-      if (document.visibilityState === "hidden") {
-        sessionStorage.setItem("dmga_lastHide", String(Date.now()));
-      } else {
-        const t = Number(sessionStorage.getItem("dmga_lastHide") || 0);
-        if (t && Date.now() - t > 30 * 60_000) {
-          supabase.auth.signOut();
-        }
-      }
-    };
-    document.addEventListener("visibilitychange", onHide);
     return () => {
       clearTimeout(failsafe);
       sub.subscription.unsubscribe();
       window.removeEventListener("dmga-auth-session", onManualSession as EventListener);
-      document.removeEventListener("visibilitychange", onHide);
     };
   }, []);
 

@@ -98,8 +98,10 @@ export default function SpectatePetanque() {
       setLastSnap(data as Snap);
     };
     load();
-    const t = window.setInterval(load, 1500);
-    return () => { alive = false; window.clearInterval(t); };
+    const refresh = () => { if (document.visibilityState === "visible") load(); };
+    const t = window.setInterval(refresh, 3000);
+    window.addEventListener("online", load);
+    return () => { alive = false; window.clearInterval(t); window.removeEventListener("online", load); };
   }, [id]);
 
   if (missing && lastSnap) {

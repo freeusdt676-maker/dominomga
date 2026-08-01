@@ -51,8 +51,14 @@ function GamesList({
       if (alive) setRows(Array.isArray(data) ? (data as Row[]) : []);
     };
     load();
-    const id = window.setInterval(load, 3000);
-    return () => { alive = false; window.clearInterval(id); };
+    const refresh = () => { if (document.visibilityState === "visible") load(); };
+    const id = window.setInterval(refresh, 10000);
+    window.addEventListener("online", load);
+    return () => {
+      alive = false;
+      window.clearInterval(id);
+      window.removeEventListener("online", load);
+    };
   }, [type]);
 
   if (rows === null) {

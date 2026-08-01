@@ -130,14 +130,17 @@ export default function Home() {
       setActivePetanqueId(p?.[0]?.id ?? null);
     };
     loadActive();
-    const ch1 = supabase.channel(`home-ludo-${user.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "ludo_games" }, () => loadActive())
-      .subscribe();
-    const ch2 = supabase.channel(`home-petanque-${user.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "petanque_games" }, () => loadActive())
-      .subscribe();
+    // Tsy mihaino ny fihetsiky ny lalaon'ny olona rehetra intsony; izany no
+    // niteraka fanontaniana marobe tamin'ny Home rehefa be mpilalao.
     const itv = setInterval(loadActive, 30000);
-    return () => { supabase.removeChannel(ch1); supabase.removeChannel(ch2); clearInterval(itv); };
+    const refresh = () => { if (document.visibilityState === "visible") loadActive(); };
+    window.addEventListener("online", loadActive);
+    window.addEventListener("focus", refresh);
+    return () => {
+      clearInterval(itv);
+      window.removeEventListener("online", loadActive);
+      window.removeEventListener("focus", refresh);
+    };
   }, [user]);
 
   useEffect(() => {

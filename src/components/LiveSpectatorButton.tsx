@@ -32,7 +32,8 @@ export default function LiveSpectatorButton({ position = "home" }: Props) {
       }
     };
     tick();
-    const id = window.setInterval(tick, 5000);
+    // Count décoratif: tsy mila mamely RPC 3 isa isaky ny 5s amin'ny finday rehetra.
+    const id = window.setInterval(tick, 30000);
     return () => { alive = false; window.clearInterval(id); };
   }, []);
 

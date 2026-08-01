@@ -92,14 +92,24 @@ export function useGlobalPresence(user: User | null) {
       }
     };
 
+    const onOnline = () => {
+      // Mobile réseau niova (Wi‑Fi/data): esory ny socket mety maty dia
+      // mamorona présence vaovao, fa tsy miandry refresh ny app.
+      leave().finally(() => {
+        if (!cancelled && document.visibilityState === "visible") join();
+      });
+    };
+
     join();
     document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("online", onOnline);
     window.addEventListener("pagehide", leave);
     window.addEventListener("beforeunload", leave);
 
     return () => {
       cancelled = true;
       document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("online", onOnline);
       window.removeEventListener("pagehide", leave);
       window.removeEventListener("beforeunload", leave);
       leave();

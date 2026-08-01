@@ -564,9 +564,16 @@ export default function PetanqueGame() {
       })
       .subscribe();
     channelRef.current = ch;
-    // Polling de secours toutes les 2s (essentiel pour le matchmaking si realtime ne livre pas)
-    const itv = setInterval(load, 2000);
-    return () => { supabase.removeChannel(ch); channelRef.current = null; clearInterval(itv); };
+    // Realtime no voalohany; polling 5s secours rehefa visible ihany.
+    const refresh = () => { if (document.visibilityState === "visible") load(); };
+    const itv = setInterval(refresh, 5000);
+    window.addEventListener("online", load);
+    return () => {
+      supabase.removeChannel(ch);
+      channelRef.current = null;
+      clearInterval(itv);
+      window.removeEventListener("online", load);
+    };
   }, [id]);
 
   useEffect(() => {

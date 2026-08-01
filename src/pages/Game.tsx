@@ -698,9 +698,13 @@ export default function Game() {
 
   useEffect(() => {
     if (!id) return;
+    let loading = false;
     const load = async () => {
+      if (loading || !navigator.onLine) return;
+      loading = true;
       const { data } = await supabase.from("games").select("*").eq("id", id).single();
-      setServerGame(data);
+      loading = false;
+      if (data) setServerGame(data);
     };
     load();
     const ch = supabase.channel("game-" + id)
@@ -713,17 +717,17 @@ export default function Game() {
           return b >= a ? p.new : prev;
         }))
       .subscribe();
-    // Polling fallback (1.5s) — raha sendra tara ny realtime, mba hifohazan'ny tour avy hatrany
-    const poll = setInterval(async () => {
-      const { data } = await supabase.from("games").select("*").eq("id", id).single();
-      if (data) setServerGame((prev: any) => {
-        if (!prev) return data;
-        const a = new Date(prev.updated_at ?? 0).getTime();
-        const b = new Date(data.updated_at ?? 0).getTime();
-        return b >= a ? data : prev;
-      });
-    }, 1500);
-    return () => { supabase.removeChannel(ch); clearInterval(poll); };
+    // Realtime no voalohany; polling 5s dia secours rehefa visible ihany.
+    const refresh = () => { if (document.visibilityState === "visible") load(); };
+    const poll = setInterval(refresh, 5000);
+    window.addEventListener("online", load);
+    window.addEventListener("focus", refresh);
+    return () => {
+      supabase.removeChannel(ch);
+      clearInterval(poll);
+      window.removeEventListener("online", load);
+      window.removeEventListener("focus", refresh);
+    };
   }, [id]);
 
   useEffect(() => {

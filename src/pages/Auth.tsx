@@ -46,22 +46,6 @@ const runQuietly = (task: PromiseLike<unknown>) => {
   Promise.resolve(task).catch(() => undefined);
 };
 
-const getAuthStorageKey = () => {
-  try {
-    const ref = new URL(import.meta.env.VITE_SUPABASE_URL).hostname.split(".")[0];
-    return ref ? `sb-${ref}-auth-token` : null;
-  } catch {
-    return null;
-  }
-};
-
-const persistAuthSession = (session: any) => {
-  const key = getAuthStorageKey();
-  if (!key || !session?.access_token || !session?.user) return;
-  localStorage.setItem(key, JSON.stringify(session));
-  window.dispatchEvent(new CustomEvent("dmga-auth-session", { detail: { session } }));
-};
-
 const directPasswordLogin = async (email: string, password: string): Promise<PasswordLoginResult> => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), PASSWORD_LOGIN_TIMEOUT_MS);
@@ -95,10 +79,6 @@ const directPasswordLogin = async (email: string, password: string): Promise<Pas
       token_type: payload.token_type ?? "bearer",
       user: payload.user,
     };
-
-    // Soratana avy hatrany ny session vao marina ny mot de passe/numéro,
-    // mba hisokatra mivantana ny compte na miadana ny navigateur/WebView.
-    persistAuthSession(session);
 
     const setResult = await withTimeout(
       supabase.auth.setSession({ access_token: session.access_token, refresh_token: session.refresh_token }),
@@ -215,9 +195,6 @@ export default function Auth() {
       setLoading(false);
       toast.success("Tonga soa!");
       nav("/", { replace: true });
-      if (data?.session) {
-        persistAuthSession(data.session);
-      }
 
       runQuietly(supabase.rpc("record_login_attempt", { _phone: cleanPhone, _success: true }));
 

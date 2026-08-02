@@ -41,8 +41,7 @@ import {
   isDominoDoubleSixOut,
   isDominoGameWin,
   isDominoSoloWin,
-  isDominoLowTileKnockout,
-  isDominoSingleRoundKO,
+  isDominoFortyRound,
 } from "@/lib/dominoRules";
 
 type GameState = {
@@ -377,12 +376,12 @@ export default function Game() {
       // lehibe indrindra intsony — io no mahatonga ny "mifanatrika" mateti-piverina.
       const ids = getPlayerIds(currentGame);
       const round1 = Number(currentGame.round_number ?? 1);
-      // Rotation TSOTRA isaky ny tour: tour 1 → P1, tour 2 → P2, tour 3 → P3,
-      // dia miverina amin'ny P1. Mitovy aminizay nataony ao amin'ny finishRound
-      // sy finishBlocked mba tsy hisy mpilalao iray foana no lohavato.
-      const openerId = roundOpenerId(currentGame, round1);
-      const openerIdxInit = Math.max(0, ids.indexOf(openerId));
-      const opener = { ...chooseOpening(hands, mode), playerIndex: openerIdxInit, forced: false };
+      const selectedOpening = chooseOpening(hands, mode);
+      const openerIdxInit = selectedOpening.forced
+        ? selectedOpening.playerIndex
+        : Math.max(0, ids.indexOf(roundOpenerId(currentGame, round1)));
+      const openerId = ids[openerIdxInit];
+      const opener = { ...selectedOpening, playerIndex: openerIdxInit };
       // DATINANDRO nesorina — tsy fandresena intsony.
       let board: Placed[] = [];
       let nextId = openerId;
@@ -489,9 +488,6 @@ export default function Game() {
     } catch {}
 
     const pc = Number(liveGame.players_count ?? 2);
-    // LOCKED: Tsy misy intsony datinandro/double-6 ho fandresena. Ny target
-    // ihany (D80 → 80, D120 → 120) no mandresy ny lalao.
-    void lastTile; // tahirizina ho an'ny historique fotsiny
     const safePoints = Math.max(0, Number(points) || 0);
     const addTo = (uid: string, base: number) => Number(base ?? 0) + (winnerId === uid ? safePoints : 0);
     const newScoreP1 = addTo(liveGame.player1_id, liveGame.score_p1);
@@ -504,23 +500,9 @@ export default function Game() {
 
     const targetReached = isDominoGameWin(wScore, mode);
     const soloThreshold = getDominoSoloThreshold(mode);
-    const opponentScores = [
-      winnerId === liveGame.player1_id ? null : liveGame.score_p1,
-      winnerId === liveGame.player2_id ? null : liveGame.score_p2,
-      pc === 3 && winnerId !== liveGame.player3_id ? liveGame.score_p3 : null,
-    ].filter((score) => score !== null);
-    const soloWin = isDominoSoloWin(wScore, mode, opponentScores);
     const doubleSixOut = isDominoDoubleSixOut(lastTile, points);
-    // Vato sisa amin'ny mpanohitra rehefa lany vato ny mpandresy (out-win).
-    const winnerOut = !!lastTile && safePoints > 0;
-    const opponentHands: Tile[][] = [
-      winnerId === liveGame.player1_id ? [] : ((liveGame.player1_hand ?? []) as Tile[]),
-      winnerId === liveGame.player2_id ? [] : ((liveGame.player2_hand ?? []) as Tile[]),
-      ...(pc === 3 ? [winnerId === liveGame.player3_id ? [] : ((liveGame.player3_hand ?? []) as Tile[])] : []),
-    ].filter((h) => h.length > 0);
-    const lowTileKO = winnerOut && isDominoLowTileKnockout(opponentHands);
-    const singleRoundKO = isDominoSingleRoundKO(safePoints);
-    const instantWin = targetReached || soloWin || doubleSixOut || lowTileKO || singleRoundKO;
+    const fortyRound = isDominoFortyRound(safePoints);
+    const instantWin = targetReached;
 
     // Build a human-readable "porofo" of how this round was won, for the replay banner.
     const winnerName = (profileNames[winnerId] ?? "Mpandresy");
@@ -536,14 +518,10 @@ export default function Game() {
     // Anisan'ny sokajy "MANDRESY NY LALAO" ireto efatra ireto ihany:
     //   • TARGET (D120/D80) • SOLO (60/40 irery) • DOUBLE 6 • DATINANDRO.
     // Ny ambin'ireo (lany vato, blocage, +N isa) dia tour ihany.
-    const reason = doubleSixOut && !targetReached && !soloWin
-      ? `MANDRESY NY LALAO — DOUBLE 6 • ${winnerName} namarana ny tour tamin'ny [6|6]`
-      : soloWin && !targetReached
-      ? `MANDRESY NY LALAO — MANDEHA IRERY • ${winnerName} tonga ${wScore} (${soloThreshold}+)`
-      : lowTileKO && !targetReached
-      ? `MANDRESY NY LALAO — VATO AMBANY • ${winnerName} nampijanona ny mpanohitra tamin'ny [0|0]/[0|1]`
-      : singleRoundKO && !targetReached
-      ? `MANDRESY NY LALAO — TOUR NAHAVOA 40+ • ${winnerName} nahazo ${safePoints} isa tao anatin'ny tour tokana`
+    const reason = targetReached && doubleSixOut
+      ? `MANDRESY NY LALAO — DOUBLE 6 • ${winnerName} tonga ${target}`
+      : fortyRound && !targetReached
+      ? `Tour vita — 40 PREND TOUT • ${winnerName} nahazo +${safePoints} isa`
       : getDominoRoundReason({
           winnerName,
           mode,
@@ -575,12 +553,6 @@ export default function Game() {
       passes: 0,
     };
     if (pc === 3) updatePayload.score_p3 = newScoreP3;
-    // Raha mandeha irery: terena mitovy amin'ny target ny score-n'ny mpandresy
-    // mba ho rakitry ny historique fa lalao vita.
-    if ((soloWin || doubleSixOut || lowTileKO || singleRoundKO) && !targetReached) {
-      const slot = winnerId === game.player1_id ? 1 : winnerId === game.player2_id ? 2 : 3;
-      updatePayload[`score_p${slot}`] = target;
-    }
     await supabase.from("games").update(updatePayload).eq("id", game.id);
     setOptimistic(null);
 
@@ -673,7 +645,7 @@ export default function Game() {
     }
     const winnerId = totals[0].id;
     const sumOthers = totals.slice(1).reduce((s, x) => s + x.p, 0);
-    const points = sumOthers - totals[0].p;
+    const points = sumOthers;
     const winnerName = (profileNames[winnerId] ?? "Mpandresy");
     const loserIds = totals.slice(1).map((x) => x.id);
     const loserName = loserIds

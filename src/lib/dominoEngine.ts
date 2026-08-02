@@ -102,8 +102,12 @@ export function chooseOpening(
   hands: Tile[][],
   mode: "d120" | "d80" | "hand",
 ): { playerIndex: number; tile: Tile; forced: boolean } {
-  // Tour rehetra (na d120, d80, na hand): tsy misy double terena.
-  // Ny mpilalao manana ny vato lehibe indrindra no manomboka, mametraka izay tiany.
+  // Official opening: whoever holds [6|6] must open with it.
+  for (let i = 0; i < hands.length; i += 1) {
+    const doubleSix = hands[i].find((t) => t[0] === 6 && t[1] === 6);
+    if (doubleSix) return { playerIndex: i, tile: doubleSix, forced: true };
+  }
+  // Defensive fallback for malformed/imported deals without [6|6].
   let best = { playerIndex: 0, tile: hands[0][0], score: -1 };
   for (let i = 0; i < hands.length; i += 1) {
     for (const t of hands[i]) {

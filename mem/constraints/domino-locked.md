@@ -26,26 +26,15 @@ Frozen parameters (do not change without explicit prompt):
 - Removed "maty atànana" as an instant-win reason in `finishRound`. Blocked endgame still resolves by lowest pipsTotal via `finishBlocked` (no mode renaming).
 - Turn rotation is **contraire montre / mankany ANKAVIA** as understood from the live table order (3P: P1 → P2 → P3 → P1). Explicitly corrected by user on 2026-07-04. Opener rotates round-robin per round (round N opener = ids[(N-1) % count]) — direction unchanged.
 
-## Domino WIN conditions (LOCKED — 2026-06-03, FINAL)
-Four conditions make a player WIN THE GAME (settle_game):
-1. **Target reached**: score ≥ target (D120 → 120, D80 → 80).
-2. **Datinandro**: at deal time, a player's hand pip total equals today's day-of-month (1–31). Triggers instant settle_game; all hands are written to DB so spectators/opponents can verify. A center-screen overlay announces the winner.
-3. **Mandeha irery**: in a single round, a player earns points ≥ 60 (D120) or ≥ 40 (D80). Triggers instant settle_game. Winner score is forced to target for history.
-4. **Double 6 out**: a player ENDS the round by placing the [6|6] as their LAST tile (empties their hand with double-6). Triggers instant settle_game. Winner score is forced to target for history. NOT triggered if double-6 is played mid-round with tiles still in hand.
+## Domino official rules (LOCKED — 2026-08-02)
+- **Match victory:** only when accumulated score reaches the selected target (D80=80, D120=120).
+- **Blocked round:** the player with the lowest remaining pip total wins the round. Their own pips are not counted; awarded points equal the sum of all opponents' remaining pips. A blocked round never bypasses the match target.
+- **Opening:** the holder of [6|6] must open with [6|6].
+- **40 prend tout:** a 40+ point round receives the full round points but does not bypass the 80/120 target.
+- **Ray sy Fotsy / [0|0]-[0|1] rule:** completely removed and must never be reintroduced.
+- Running out, Double 6 out, a block, or a tied block only end the round unless the resulting accumulated score reaches target.
 
-ALL of these are removed and MUST NOT be reintroduced — even partially, even as an opt-in:
-- ❌ Double 6 instant win
-- ❌ "5+ double atànana" deal-time instant win
-- ❌ Auto-play branch that settles when tile = [6,6]
-- ❌ "Maty atànana" / running out of tiles instant win
-- ❌ Blocage instant win
-- ❌ Endgame vote / continue-stop flow after target
-
-Running out of tiles, blocage and "mitovy vato" only end the ROUND and may add points. They only win the GAME if the resulting score crosses the target.
-
-History label `last_reason` MUST be prefixed `MANDRESY NY LALAO — …`. Target wins use `… tonga {target}`; datinandro wins use `… DATINANDRO {day} • {name} tonga datinandro`; mandeha irery uses `… MANDEHA IRERY • {name} nahazo +{points} amin'ny tour iray ({threshold}+)`; double-6 out uses `… DOUBLE 6 • {name} namarana ny tour tamin'ny [6|6]`. Profile.tsx `parseReason` order: datinandro → mandeha irery → double-6 out → tonga.
-
-**Why:** The user repeatedly demanded that ONLY the target wins ("ny akoatrizay tsimisy"). Any re-introduction of bonus win conditions is a regression. If a future task asks for a new win category, push back and ask for explicit confirmation that this lock is being intentionally lifted.
+**Why:** These requirements supersede all older contradictory Domino win-condition memories.
 
 ## Anti-skip invariant (2026-06-28)
 Never advance/pass a Domino turn while the current player has at least one legal tile for the board ends. This applies to:

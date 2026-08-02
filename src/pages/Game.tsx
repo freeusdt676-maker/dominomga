@@ -40,7 +40,6 @@ import {
   getDominoTarget,
   isDominoDoubleSixOut,
   isDominoGameWin,
-  isDominoSoloWin,
   isDominoFortyRound,
 } from "@/lib/dominoRules";
 
@@ -499,7 +498,6 @@ export default function Game() {
       winnerId === liveGame.player1_id ? newScoreP1 : winnerId === liveGame.player2_id ? newScoreP2 : newScoreP3;
 
     const targetReached = isDominoGameWin(wScore, mode);
-    const soloThreshold = getDominoSoloThreshold(mode);
     const doubleSixOut = isDominoDoubleSixOut(lastTile, points);
     const fortyRound = isDominoFortyRound(safePoints);
     const instantWin = targetReached;

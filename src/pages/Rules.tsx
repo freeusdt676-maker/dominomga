@@ -52,14 +52,15 @@ export default function Rules() {
                 <li>Mametraka mise alohan'ny lalao. Mise: <b>1 000 Ar</b> ka hatramin'ny <b>10 000 Ar</b>.</li>
                 <li>Lalao 28 pièces. Pièce iray = roa fizarana (0–6 pwen).</li>
                 <li>Mpilalao tsirairay = 7 pièces eo am-piandohana. Ny sisa = pioche.</li>
-                <li>Ilay manana ny pièce avo indrindra no manomboka, fa mahazo mametraka <b>na inona na inona</b> pièce.</li>
+                <li>Ilay manana ny <b>Double 6</b> no manomboka ary mametraka azy.</li>
                 <li>Ny tour mihodina <b>miankavia</b> isaky ny tour vaovao.</li>
                 <li>Raha tsy misy pièce mety, maka anatin'ny pioche mandra-pahitana ny mety.</li>
                 <li>Ny voalohany mahalany ny pièce-ny no <b>nandresy</b>.</li>
-                <li>Raha "bloc" (tsy misy mety mametraka), ny manana pwen kely indrindra no resy.</li>
+                <li>Raha "bloc", ny manana pwen kely indrindra no mandresy ny tour ary mahazo ny fitambaran'ny pwen an'ny mpanohitra rehetra; tsy isaina ny pwen-ny.</li>
+                <li><b>40 joue seul / 40 prend tout</b>: 40+ azo ao anatin'ny tour iray dia raisina manontolo ho score an'io tour io, fa tsy mamarana match raha tsy tratra ny 80 na 120.</li>
                 <li><b>Maty 120</b>: rehefa feno 120 pwen ny pwen-n'ny lalao iray, mipoitra ny mpandresy.</li>
                 <li><b>Maty 80</b>: rehefa feno 80 pwen, mipoitra ny mpandresy.</li>
-                <li>Tour iray = <b>20 segondra</b> raha ela kokoa, manjary automatique ny coup.</li>
+                <li>Tour iray = <b>15 segondra</b>; rehefa lany ihany vao mandeha automatique ny coup.</li>
                 <li>Ny gain = (Mise − 10% commission) × isan'ny mpilalao.</li>
                 <li>Voarara ny milalao amina latabatra maro miaraka.</li>
                 <li>Lalao tsy maintsy vita anatin'ny <b>7 andro</b>, raha tsy izany resy automatique.</li>

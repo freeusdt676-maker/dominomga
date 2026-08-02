@@ -36,7 +36,6 @@ import { toast } from "sonner";
 import { sfx } from "@/lib/sfx";
 import {
   getDominoRoundReason,
-  getDominoSoloThreshold,
   getDominoTarget,
   isDominoDoubleSixOut,
   isDominoGameWin,

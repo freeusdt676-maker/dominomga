@@ -229,10 +229,6 @@ function targetFor(mode: string | null | undefined) {
   return mode === "d80" ? 80 : 120;
 }
 
-function soloThreshold(mode: string | null | undefined) {
-  return mode === "d80" ? 40 : 60;
-}
-
 function scoreFor(g: any, playerId: string) {
   if (playerId === g.player1_id) return Number(g.score_p1 ?? 0);
   if (playerId === g.player2_id) return Number(g.score_p2 ?? 0);
@@ -254,10 +250,6 @@ function winnerScoreFromPayload(g: any, winnerId: string, scores: Record<string,
   if (winnerId === g.player1_id) return scores.score_p1;
   if (winnerId === g.player2_id) return scores.score_p2;
   return scores.score_p3 ?? 0;
-}
-
-function opponentScores(g: any, winnerId: string) {
-  return getPlayerIds(g).filter((id) => id !== winnerId).map((id) => scoreFor(g, id));
 }
 
 function playerLabel(g: any, playerId: string) {

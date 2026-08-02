@@ -189,7 +189,7 @@ export default function Home() {
     const loadCh = async () => {
       const { data } = await supabase
         .from("challenges")
-        .select("*, profiles!challenges_from_user_fkey(mvola_name)")
+        .select("*, profiles!challenges_from_user_profile_fkey(mvola_name)")
         .eq("to_user", user.id).eq("status","pending")
         .gt("expires_at", new Date().toISOString());
       setIncoming(data ?? []);

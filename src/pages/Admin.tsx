@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Check, X, Megaphone, Wallet as WalletIcon, UserCheck, Eye, EyeOff, MessageSquare, ArrowDownToLine, ArrowUpFromLine, History, Search, Unlock, Trash2, RotateCcw, ShieldAlert, Share2, Bell, BellOff, Wifi } from "lucide-react";
+import { ArrowLeft, Check, X, Megaphone, Wallet as WalletIcon, UserCheck, Eye, EyeOff, MessageSquare, ArrowDownToLine, ArrowUpFromLine, History, Search, Unlock, Trash2, RotateCcw, ShieldAlert, Share2, Bell, BellOff, Wifi, Download } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 import { toast } from "sonner";
 import { DominoTile } from "@/components/DominoTile";
@@ -19,6 +19,7 @@ import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import OnlineUsersDialog from "@/components/OnlineUsersDialog";
 import CircleNavButton from "@/components/CircleNavButton";
 import PhoneActions from "@/components/PhoneActions";
+import { downloadPlayerInformation } from "@/components/AdminPlayerReport";
 export default function Admin() {
   const { user, isAdmin } = useAuth();
   const nav = useNavigate();
@@ -555,6 +556,15 @@ export default function Admin() {
     load();
   };
 
+  const downloadPlayerPdf = async (player: any) => {
+    try {
+      await downloadPlayerInformation(player);
+      toast.success("Téléchargement PDF vita");
+    } catch (error: any) {
+      toast.error(error?.message ?? "Tsy nahomby ny PDF");
+    }
+  };
+
   const deposits = pending.filter(t => t.type === "deposit");
   const withdrawals = pending.filter(t => t.type === "withdrawal");
   const pendingUsersCount = users.filter(u => u.account_status === "pending").length;
@@ -791,14 +801,14 @@ export default function Admin() {
                 );
               })
               .map((u) => (
-              <button
+              <div
                 key={u.user_id}
-                onClick={() => setSelectedUser(u)}
                 className="w-full card-felt rounded-xl p-3 text-sm text-left hover:bg-primary/5 transition relative"
               >
                 {u.account_status === "pending" && (
                   <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-5 h-5 text-[10px] flex items-center justify-center font-bold">!</span>
                 )}
+                <button className="w-full text-left" onClick={() => setSelectedUser(u)}>
                 <div className="flex items-center justify-between">
                   <p className="font-bold flex items-center gap-2">
                     <span className={`inline-block w-2 h-2 rounded-full ${u.is_online ? "bg-green-500" : "bg-muted"}`} />
@@ -817,7 +827,16 @@ export default function Admin() {
                     {u.account_status === "pending" ? "Miandry" : u.account_status === "active" ? "Active" : "Bloqué"}
                   </span>
                 </p>
-              </button>
+                </button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-2 h-8 w-full text-[11px]"
+                  onClick={() => downloadPlayerPdf(u)}
+                >
+                  <Download className="w-3.5 h-3.5 mr-1.5" /> Download Player Information
+                </Button>
+              </div>
             ))}
           </TabsContent>
 

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useGlobalPresence } from "@/hooks/useGlobalPresence";
@@ -44,13 +44,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(initialSession?.user ?? null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const adminLookupRef = useRef<string | null>(null);
 
   useEffect(() => {
     const applySession = (s: Session | null) => {
       setSession(s);
       setUser(s?.user ?? null);
       setLoading(false);
-      if (s?.user) {
+      if (s?.user && adminLookupRef.current !== s.user.id) {
+        adminLookupRef.current = s.user.id;
         setTimeout(async () => {
           const { data } = await supabase.from("user_roles").select("role").eq("user_id", s.user.id).eq("role", "admin").maybeSingle();
           const admin = !!data;
@@ -58,6 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ensurePushSubscription({ isAdmin: admin });
         }, 0);
       } else {
+        adminLookupRef.current = null;
         setIsAdmin(false);
         unsubscribePush();
       }

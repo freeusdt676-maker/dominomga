@@ -105,7 +105,15 @@ export type Database = {
           status?: string
           to_user?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "challenges_from_user_profile_fkey"
+            columns: ["from_user"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       chat_messages: {
         Row: {

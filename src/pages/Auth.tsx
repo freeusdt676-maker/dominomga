@@ -13,7 +13,6 @@ import logo from "@/assets/logo.png";
 import logoDomino from "@/assets/logo-domino.png";
 import logoPetanque from "@/assets/logo-petanque.png";
 import { Camera, Shield, X } from "lucide-react";
-import { ADMIN_CODE, ADMIN_CODE_ALT } from "@/lib/constants";
 import { Link } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 import LiveSpectatorButton from "@/components/LiveSpectatorButton";
@@ -126,22 +125,8 @@ export default function Auth() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [loading, setLoading] = useState(false);
-  const [adminOpen, setAdminOpen] = useState(false);
-  const [adminCode, setAdminCode] = useState("");
   const [forgotOpen, setForgotOpen] = useState(false);
 
-  const handleAdminAccess = () => {
-    const c = adminCode.trim();
-    if (c === ADMIN_CODE || c === ADMIN_CODE_ALT) {
-      sessionStorage.setItem("admin_code_ok", "1");
-      toast.success("Code marina");
-      setAdminOpen(false);
-      setAdminCode("");
-      nav("/admin");
-    } else {
-      toast.error("Code diso");
-    }
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

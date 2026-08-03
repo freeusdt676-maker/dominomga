@@ -23,8 +23,7 @@ import { downloadPlayerInformation } from "@/components/AdminPlayerReport";
 export default function Admin() {
   const { user, isAdmin } = useAuth();
   const nav = useNavigate();
-  const codeOk = typeof window !== "undefined" && sessionStorage.getItem("admin_code_ok") === "1";
-  const allowed = isAdmin || codeOk;
+  const allowed = isAdmin;
   const [notifPerm, setNotifPerm] = useState<NotificationPermission>(
     typeof window !== "undefined" && "Notification" in window ? Notification.permission : "default",
   );
@@ -50,7 +49,6 @@ export default function Admin() {
   const [rejectFor, setRejectFor] = useState<any | null>(null);
   const [rejectMsg, setRejectMsg] = useState("");
   const [txSubTab, setTxSubTab] = useState<"deposit" | "withdrawal">("deposit");
-  const [resolvedAdminId, setResolvedAdminId] = useState<string | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [historySearch, setHistorySearch] = useState("");
   const [commissions, setCommissions] = useState<any[]>([]);
@@ -81,17 +79,9 @@ export default function Admin() {
   const [onlineOpen, setOnlineOpen] = useState(false);
   const [gameBlocks, setGameBlocks] = useState<Record<string, boolean>>({ domino: false, ludo: false, petanque: false });
   const [gameBlockPin, setGameBlockPin] = useState("");
-  const adminId = user?.id ?? resolvedAdminId;
+  const adminId = user?.id;
   const normalizeTicket = (value: string) => value.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
   const detectedCancelGame = history.find((item) => normalizeTicket(item.ticket_number ?? "") === normalizeTicket(cancelTicketInput));
-
-  useEffect(() => {
-    if (!user?.id && codeOk && !resolvedAdminId) {
-      supabase.rpc("get_admin_id").then(({ data }) => {
-        if (data) setResolvedAdminId(data as string);
-      });
-    }
-  }, [user?.id, codeOk, resolvedAdminId]);
 
   // Pending profile approvals count + realtime
   useEffect(() => {
@@ -174,7 +164,7 @@ export default function Admin() {
       .eq("status", "pending");
     setResets((r ?? []).map((rr: any) => ({ ...rr, profiles: profMap[rr.user_id] ?? null })));
 
-    const aid = user?.id ?? resolvedAdminId;
+    const aid = user?.id;
     if (aid) {
       const { data: aw } = await supabase.from("admin_wallets").select("balance").eq("admin_id", aid).maybeSingle();
       setAdminBalance(Number(aw?.balance ?? 0));

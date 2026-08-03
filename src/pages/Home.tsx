@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { fmtAr, ADMIN_CODE, ADMIN_CODE_ALT } from "@/lib/constants";
+import { fmtAr } from "@/lib/constants";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -38,9 +38,6 @@ export default function Home() {
   const nav = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [balance, setBalance] = useState(0);
-  const [tapCount, setTapCount] = useState(0);
-  const [showCode, setShowCode] = useState(false);
-  const [code, setCode] = useState("");
   const [incoming, setIncoming] = useState<any[]>([]);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [showSecrets, setShowSecrets] = useState(false);
@@ -215,27 +212,6 @@ export default function Home() {
     await supabase.from("challenges").update({ status: "declined" }).eq("id", c.id);
   };
 
-  const handleAdminTap = () => {
-    const next = tapCount + 1;
-    setTapCount(next);
-    if (next >= 3) {
-      setTapCount(0);
-      setShowCode(true);
-    }
-    setTimeout(() => setTapCount(0), 1500);
-  };
-
-  const handleAdminCode = () => {
-    const c = code.trim();
-    if (c === ADMIN_CODE || c === ADMIN_CODE_ALT) {
-      setShowCode(false);
-      setCode("");
-      sessionStorage.setItem("admin_code_ok", "1");
-      nav("/admin");
-    } else {
-      toast.error("Code diso");
-    }
-  };
 
   const handleResetData = async () => {
     if (resetting) return;

@@ -6,6 +6,8 @@ import {
   isDominoDoubleSixOut,
   isDominoGameWin,
   isDominoSoloWin,
+  isDominoFortyInstantWin,
+  getBlockedRoundResult,
 } from "@/lib/dominoRules";
 
 describe("domino rules lock", () => {
@@ -30,12 +32,26 @@ describe("domino rules lock", () => {
 
   it("mandeha irery raha tratra ny seuil amin'ny total score ary mbola 0 ny adversaire", () => {
     expect(getDominoSoloThreshold("d80")).toBe(40);
-    expect(getDominoSoloThreshold("d120")).toBe(60);
+    expect(getDominoSoloThreshold("d120")).toBe(40);
     expect(isDominoSoloWin(40, "d80", [0])).toBe(true);
-    expect(isDominoSoloWin(60, "d120", [0, 0])).toBe(true);
+    expect(isDominoSoloWin(40, "d120", [0, 0])).toBe(true);
     expect(isDominoSoloWin(39, "d80", [0])).toBe(false);
     expect(isDominoSoloWin(60, "d120", [0, 1])).toBe(false);
     expect(isDominoSoloWin(25, "d80", [0])).toBe(false);
+  });
+
+  it("40 Indray Maka ends either match mode immediately", () => {
+    expect(isDominoFortyInstantWin(40)).toBe(true);
+    expect(isDominoFortyInstantWin(57)).toBe(true);
+    expect(isDominoFortyInstantWin(39)).toBe(false);
+  });
+
+  it.each([
+    [[{ id: "A", pips: 7 }, { id: "B", pips: 13 }], { winnerId: "A", points: 13, tied: false }],
+    [[{ id: "A", pips: 5 }, { id: "B", pips: 12 }, { id: "C", pips: 8 }], { winnerId: "A", points: 20, tied: false }],
+    [[{ id: "A", pips: 3 }, { id: "B", pips: 9 }, { id: "C", pips: 11 }, { id: "D", pips: 15 }], { winnerId: "A", points: 35, tied: false }],
+  ])("blocked scoring sums opponents only", (players, expected) => {
+    expect(getBlockedRoundResult(players)).toEqual(expected);
   });
 
   it("double 6 out dia [6|6] farany sady nahazo isa", () => {

@@ -17,8 +17,8 @@ export function isDominoGameWin(score: number, mode?: string | null): boolean {
   return Number(score ?? 0) >= getDominoTarget(mode);
 }
 
-export function getDominoSoloThreshold(mode?: string | null): number {
-  return mode === "d80" ? 40 : 60;
+export function getDominoSoloThreshold(_mode?: string | null): number {
+  return 40;
 }
 
 export function areDominoOpponentScoresZero(
@@ -43,13 +43,26 @@ export function isDominoDoubleSixOut(lastTile?: DominoTileLike | null, points = 
     && Number(points ?? 0) > 0;
 }
 
-// LOW-TILE KNOCKOUT: raha lany vato ny mpandresy ary ny vato rehetra sisa
-// amin'ny mpanohitra dia ao anatin'ny { [0|0], [0|1] } ihany (ohatra 2P: [0|0]
-// na [0|1]; 3P: B=[0|0] ary C=[0|1]) → mandresy avy hatrany ny lalao.
-// "40 takes all": a 40+ round awards all opponent pips for that round.
-// It does not bypass the 80/120 match target.
-export function isDominoFortyRound(points: number): boolean {
+// 40 Indray Maka: 40+ points earned in one round ends the match immediately.
+export function isDominoFortyInstantWin(points: number): boolean {
   return Number(points ?? 0) >= 40;
+}
+
+export const isDominoFortyRound = isDominoFortyInstantWin;
+
+export function getBlockedRoundResult(
+  players: Array<{ id: string; pips: number }>,
+): { winnerId: string | null; points: number; tied: boolean } {
+  if (players.length < 2) return { winnerId: null, points: 0, tied: true };
+  const ordered = players
+    .map((player) => ({ ...player, pips: Math.max(0, Number(player.pips) || 0) }))
+    .sort((a, b) => a.pips - b.pips);
+  if (ordered[0].pips === ordered[1].pips) return { winnerId: null, points: 0, tied: true };
+  return {
+    winnerId: ordered[0].id,
+    points: ordered.slice(1).reduce((sum, player) => sum + player.pips, 0),
+    tied: false,
+  };
 }
 
 export function getDominoRoundReason(params: {

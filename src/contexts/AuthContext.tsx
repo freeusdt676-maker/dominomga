@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setIsAdmin(admin);
           ensurePushSubscription({ isAdmin: admin });
         }, 0);
-      } else {
+      } else if (!s?.user) {
         adminLookupRef.current = null;
         setIsAdmin(false);
         unsubscribePush();
@@ -90,9 +90,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     }, 4000);
 
+    const recoverSession = async () => {
+      if (!navigator.onLine) return;
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        await supabase.auth.refreshSession(data.session).catch(() => undefined);
+      }
+    };
+    window.addEventListener("online", recoverSession);
+    window.addEventListener("focus", recoverSession);
+
     return () => {
       clearTimeout(failsafe);
       sub.subscription.unsubscribe();
+      window.removeEventListener("online", recoverSession);
+      window.removeEventListener("focus", recoverSession);
       window.removeEventListener("dmga-auth-session", onManualSession as EventListener);
     };
   }, []);

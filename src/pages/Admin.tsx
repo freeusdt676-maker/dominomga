@@ -256,13 +256,7 @@ export default function Admin() {
     setCommissions(commissionRows);
   };
 
-  useEffect(() => { if (allowed) load(); }, [allowed, user, resolvedAdminId]);
-
-  useEffect(() => {
-    if (allowed && !isAdmin) {
-      // Admin via code: full access granted through SECURITY DEFINER RPCs
-    }
-  }, [allowed, isAdmin]);
+  useEffect(() => { if (allowed) load(); }, [allowed, user]);
 
   useEffect(() => {
     if (!allowed) return;

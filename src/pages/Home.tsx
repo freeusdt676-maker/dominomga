@@ -564,27 +564,7 @@ export default function Home() {
         )}
       </div>
 
-      {/* Bokotra ADMINISTRATIF — FAB amin'ny zorony havanana ambany — triple click */}
-      <button
-        onClick={handleAdminTap}
-        aria-label="Administratif"
-        className="fixed bottom-4 right-4 w-14 h-14 rounded-full bg-card/40 border border-primary/20 backdrop-blur flex items-center justify-center shadow-lg active:scale-95 transition select-none z-50"
-      >
-        <Shield className="w-5 h-5 text-primary/40" />
-        {tapCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] rounded-full w-5 h-5 flex items-center justify-center font-bold">{tapCount}</span>
-        )}
-      </button>
-
       <LiveSpectatorButton position="home" />
-
-      <Dialog open={showCode} onOpenChange={setShowCode}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Code Administratif</DialogTitle></DialogHeader>
-          <PasswordInput value={code} onChange={(e) => setCode(e.target.value)} placeholder="Code" />
-          <Button onClick={handleAdminCode} className="btn-gold">Hampiditra</Button>
-        </DialogContent>
-      </Dialog>
 
       <AlertDialog open={resetOpen} onOpenChange={setResetOpen}>
         <AlertDialogContent>

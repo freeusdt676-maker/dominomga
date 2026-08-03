@@ -12,8 +12,7 @@ import { toast } from "sonner";
 import logo from "@/assets/logo.png";
 import logoDomino from "@/assets/logo-domino.png";
 import logoPetanque from "@/assets/logo-petanque.png";
-import { Camera, Shield, X } from "lucide-react";
-import { ADMIN_CODE, ADMIN_CODE_ALT } from "@/lib/constants";
+import { Camera, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 import LiveSpectatorButton from "@/components/LiveSpectatorButton";
@@ -126,22 +125,8 @@ export default function Auth() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [loading, setLoading] = useState(false);
-  const [adminOpen, setAdminOpen] = useState(false);
-  const [adminCode, setAdminCode] = useState("");
   const [forgotOpen, setForgotOpen] = useState(false);
 
-  const handleAdminAccess = () => {
-    const c = adminCode.trim();
-    if (c === ADMIN_CODE || c === ADMIN_CODE_ALT) {
-      sessionStorage.setItem("admin_code_ok", "1");
-      toast.success("Code marina");
-      setAdminOpen(false);
-      setAdminCode("");
-      nav("/admin");
-    } else {
-      toast.error("Code diso");
-    }
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -464,16 +449,6 @@ export default function Auth() {
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={() => setAdminOpen(true)}
-        className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-xl btn-gold shadow-2xl font-display font-bold text-sm"
-        aria-label="ADMINISTRATIF"
-      >
-        <Shield className="w-4 h-4" />
-        ADMINISTRATIF
-      </button>
-
       <LiveSpectatorButton position="auth" />
 
       <button
@@ -486,27 +461,6 @@ export default function Auth() {
       </button>
       <ForgotPasswordDialog open={forgotOpen} onClose={() => setForgotOpen(false)} />
 
-      {adminOpen && (
-        <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4" onClick={() => setAdminOpen(false)}>
-          <div className="card-felt rounded-2xl p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-            <h2 className="font-display text-lg font-bold gold-text mb-3 flex items-center gap-2">
-              <Shield className="w-5 h-5" /> Code ADMINISTRATIF
-            </h2>
-            <PasswordInput
-              
-              value={adminCode}
-              onChange={(e) => setAdminCode(e.target.value)}
-              placeholder="Code..."
-              onKeyDown={(e) => e.key === "Enter" && handleAdminAccess()}
-              autoFocus
-            />
-            <div className="grid grid-cols-2 gap-2 mt-3">
-              <Button variant="outline" onClick={() => { setAdminOpen(false); setAdminCode(""); }}>Hiala</Button>
-              <Button className="btn-gold" onClick={handleAdminAccess}>Hiditra</Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

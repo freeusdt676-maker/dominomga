@@ -40,6 +40,8 @@ import {
   isDominoDoubleSixOut,
   isDominoGameWin,
   isDominoFortyRound,
+  isDominoSoloWin,
+  getBlockedRoundResult,
 } from "@/lib/dominoRules";
 
 type GameState = {
@@ -498,8 +500,14 @@ export default function Game() {
 
     const targetReached = isDominoGameWin(wScore, mode);
     const doubleSixOut = isDominoDoubleSixOut(lastTile, points);
+    const opponentScores = [
+      winnerId !== liveGame.player1_id ? newScoreP1 : null,
+      winnerId !== liveGame.player2_id ? newScoreP2 : null,
+      ...(pc === 3 && winnerId !== liveGame.player3_id ? [newScoreP3] : []),
+    ].filter((score): score is number => score !== null);
+    const fortySolo = isDominoSoloWin(wScore, mode, opponentScores);
     const fortyRound = isDominoFortyRound(safePoints);
-    const instantWin = targetReached;
+    const instantWin = targetReached || fortySolo || fortyRound;
 
     // Build a human-readable "porofo" of how this round was won, for the replay banner.
     const winnerName = (profileNames[winnerId] ?? "Mpandresy");
@@ -515,10 +523,12 @@ export default function Game() {
     // Anisan'ny sokajy "MANDRESY NY LALAO" ireto efatra ireto ihany:
     //   • TARGET (D120/D80) • SOLO (60/40 irery) • DOUBLE 6 • DATINANDRO.
     // Ny ambin'ireo (lany vato, blocage, +N isa) dia tour ihany.
-    const reason = targetReached && doubleSixOut
+    const reason = fortySolo
+      ? `MANDRESY NY LALAO — 40 MANDEHA IRERY • ${winnerName}`
+      : fortyRound
+      ? `MANDRESY NY LALAO — 40 INDRAY MAKA • ${winnerName}`
+      : targetReached && doubleSixOut
       ? `MANDRESY NY LALAO — DOUBLE 6 • ${winnerName} tonga ${target}`
-      : fortyRound && !targetReached
-      ? `Tour vita — 40 PREND TOUT • ${winnerName} nahazo +${safePoints} isa`
       : getDominoRoundReason({
           winnerName,
           mode,
@@ -603,9 +613,8 @@ export default function Game() {
     const totals = pc === 3
       ? [{ id: game.player1_id, p: p1Pips }, { id: game.player2_id, p: p2Pips }, { id: game.player3_id, p: p3Pips }]
       : [{ id: game.player1_id, p: p1Pips }, { id: game.player2_id, p: p2Pips }];
-    totals.sort((a, b) => a.p - b.p);
-    const tied = totals[0].p === totals[1].p;
-    if (tied) {
+    const blocked = getBlockedRoundResult(totals.map(({ id, p }) => ({ id, pips: p })));
+    if (blocked.tied || !blocked.winnerId) {
       // Mitovy: tsy misy point, alefa tour vaovao
       const nextRound = (game.round_number ?? 1) + 1;
       const seed = `${game.ticket_number || game.id}-r${nextRound}`;
@@ -640,11 +649,10 @@ export default function Game() {
       await supabase.from("games").update(updateNext).eq("id", game.id);
       return;
     }
-    const winnerId = totals[0].id;
-    const sumOthers = totals.slice(1).reduce((s, x) => s + x.p, 0);
-    const points = sumOthers;
+    const winnerId = blocked.winnerId;
+    const points = blocked.points;
     const winnerName = (profileNames[winnerId] ?? "Mpandresy");
-    const loserIds = totals.slice(1).map((x) => x.id);
+    const loserIds = totals.filter((x) => x.id !== winnerId).map((x) => x.id);
     const loserName = loserIds
       .map((id) => profileNames[id] ?? "Mpilalao")
       .join(" sy ");

@@ -8,31 +8,49 @@ type Player = {
   phone?: string | null;
   player_number?: number | null;
   _balance?: number | null;
+  created_at?: string | null;
+  last_seen?: string | null;
+  account_status?: string | null;
 };
 
 const money = (value: number) => `${Number(value || 0).toLocaleString("fr-FR")} Ar`;
 
 export async function downloadPlayerInformation(player: Player) {
-  const { data, error } = await supabase
+  const [recentResult, totalsResult] = await Promise.all([
+    supabase
     .from("transactions")
     .select("type, amount, status, mvola_reference, created_at")
     .eq("user_id", player.user_id)
     .order("created_at", { ascending: false })
-    .limit(20);
-  if (error) throw error;
+    .limit(20),
+    supabase
+      .from("transactions")
+      .select("type, amount, status, mvola_reference")
+      .eq("user_id", player.user_id)
+      .in("status", ["approved", "completed"]),
+  ]);
+  if (recentResult.error) throw recentResult.error;
+  if (totalsResult.error) throw totalsResult.error;
 
-  const rows = data ?? [];
-  const deposits = rows
+  const rows = recentResult.data ?? [];
+  const allRows = totalsResult.data ?? [];
+  const deposits = allRows
     .filter((tx) => tx.type === "deposit" && ["approved", "completed"].includes(tx.status))
     .reduce((sum, tx) => sum + Number(tx.amount ?? 0), 0);
-  const withdrawals = rows
+  const withdrawals = allRows
     .filter((tx) => tx.type === "withdrawal" && ["approved", "completed"].includes(tx.status))
     .reduce((sum, tx) => sum + Number(tx.amount ?? 0), 0);
-  const wins = rows
+  const wins = allRows
     .filter((tx) => tx.type === "game_win" && tx.status === "completed")
     .reduce((sum, tx) => sum + Number(tx.amount ?? 0), 0);
-  const stakes = rows
+  const stakes = allRows
     .filter((tx) => ["game_stake", "game_loss"].includes(tx.type) && tx.status === "completed")
+    .reduce((sum, tx) => sum + Number(tx.amount ?? 0), 0);
+  const bonuses = allRows
+    .filter((tx) => tx.type === "game_win" && /bonus/i.test(tx.mvola_reference ?? ""))
+    .reduce((sum, tx) => sum + Number(tx.amount ?? 0), 0);
+  const refunds = allRows
+    .filter((tx) => tx.type === "refund")
     .reduce((sum, tx) => sum + Number(tx.amount ?? 0), 0);
 
   const doc = new jsPDF({ unit: "mm", format: "a4" });
@@ -58,6 +76,9 @@ export async function downloadPlayerInformation(player: Player) {
       ["Téléphone", player.phone || "—"],
       ["ID joueur", player.player_number != null ? `#${String(player.player_number).padStart(4, "0")}` : player.user_id],
       ["ID compte", player.user_id],
+      ["Création du compte", player.created_at ? new Date(player.created_at).toLocaleString("fr-FR") : "—"],
+      ["Dernière activité", player.last_seen ? new Date(player.last_seen).toLocaleString("fr-FR") : "—"],
+      ["Statut", player.account_status || "—"],
       ["Solde actuel", money(Number(player._balance ?? 0))],
       ["Téléchargé le", downloadedAt],
     ],
@@ -68,13 +89,15 @@ export async function downloadPlayerInformation(player: Player) {
   autoTable(doc, {
     startY: (firstTable.lastAutoTable?.finalY ?? 90) + 8,
     theme: "grid",
-    head: [["Résumé comptable (20 dernières opérations)", "Montant"]],
+    head: [["Résumé comptable global", "Montant"]],
     body: [
       ["Dépôts approuvés", money(deposits)],
       ["Retraits approuvés", money(withdrawals)],
       ["Gains de jeu", money(wins)],
       ["Mises / pertes", money(stakes)],
-      ["Flux net observé", money(deposits + wins - withdrawals - stakes)],
+      ["Bonus", money(bonuses)],
+      ["Remboursements", money(refunds)],
+      ["Flux net observé", money(deposits + wins + refunds - withdrawals - stakes)],
       ["Solde actuel", money(Number(player._balance ?? 0))],
     ],
     headStyles: { fillColor: [166, 118, 22], textColor: [255, 255, 255] },

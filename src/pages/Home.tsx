@@ -1,14 +1,11 @@
 import { useEffect, useState } from "react";
-import { PasswordInput } from "@/components/PasswordInput";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { fmtAr, ADMIN_CODE, ADMIN_CODE_ALT } from "@/lib/constants";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { fmtAr } from "@/lib/constants";
 import { toast } from "sonner";
-import { Wallet, Users, Trophy, MessageCircle, LogOut, Shield, MessagesSquare, User as UserIcon, Download, Eye, EyeOff, FileEdit, RotateCcw, BookOpen, ArrowDownToLine } from "lucide-react";
+import { Wallet, Users, Trophy, MessageCircle, LogOut, Shield, MessagesSquare, User as UserIcon, Download, FileEdit, RotateCcw, BookOpen, ArrowDownToLine } from "lucide-react";
 import { Play } from "lucide-react";
 import CircleNavButton from "@/components/CircleNavButton";
 import logo from "@/assets/logo.png";
@@ -38,12 +35,8 @@ export default function Home() {
   const nav = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [balance, setBalance] = useState(0);
-  const [tapCount, setTapCount] = useState(0);
-  const [showCode, setShowCode] = useState(false);
-  const [code, setCode] = useState("");
   const [incoming, setIncoming] = useState<any[]>([]);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
-  const [showSecrets, setShowSecrets] = useState(false);
   const [pendingProfilesCount, setPendingProfilesCount] = useState(0);
   const [resetOpen, setResetOpen] = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -215,27 +208,6 @@ export default function Home() {
     await supabase.from("challenges").update({ status: "declined" }).eq("id", c.id);
   };
 
-  const handleAdminTap = () => {
-    const next = tapCount + 1;
-    setTapCount(next);
-    if (next >= 3) {
-      setTapCount(0);
-      setShowCode(true);
-    }
-    setTimeout(() => setTapCount(0), 1500);
-  };
-
-  const handleAdminCode = () => {
-    const c = code.trim();
-    if (c === ADMIN_CODE || c === ADMIN_CODE_ALT) {
-      setShowCode(false);
-      setCode("");
-      sessionStorage.setItem("admin_code_ok", "1");
-      nav("/admin");
-    } else {
-      toast.error("Code diso");
-    }
-  };
 
   const handleResetData = async () => {
     if (resetting) return;
@@ -522,12 +494,6 @@ export default function Home() {
         <div className="luxe-card p-4">
           <div className="flex items-center justify-between mb-3">
             <p className="eyebrow">Mombamomba anao (privé)</p>
-            <button
-              onClick={() => setShowSecrets((s) => !s)}
-              className="text-[10px] text-[hsl(var(--gold-1))] inline-flex items-center gap-1"
-            >
-              {showSecrets ? <><EyeOff className="w-3 h-3" /> Hafenina</> : <><Eye className="w-3 h-3" /> Asehoy</>}
-            </button>
           </div>
           <div className="flex items-center gap-3 mb-3">
             <div className="w-16 h-16 rounded-full overflow-hidden border border-[hsl(var(--gold-1)/0.4)] bg-black/40 flex items-center justify-center">
@@ -541,16 +507,6 @@ export default function Home() {
               <p><span className="text-muted-foreground">Nom:</span> <b>{profile?.mvola_name ?? "—"}</b></p>
               <p><span className="text-muted-foreground">Tel:</span> {profile?.phone ?? "—"}</p>
               <p><span className="text-muted-foreground">ID:</span> #{profile?.player_number ?? "—"}</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-[11px]">
-            <div className="hairline rounded-lg p-2">
-              <p className="text-muted-foreground text-[10px]">Password</p>
-              <p className="font-mono">{showSecrets ? (profile?.password_plain ?? "—") : "••••••"}</p>
-            </div>
-            <div className="hairline rounded-lg p-2">
-              <p className="text-muted-foreground text-[10px]">PIN</p>
-              <p className="font-mono">{showSecrets ? (profile?.pin_plain ?? "—") : "••••"}</p>
             </div>
           </div>
           <Link to="/profile/edit" className="mt-3 block">
@@ -588,27 +544,7 @@ export default function Home() {
         )}
       </div>
 
-      {/* Bokotra ADMINISTRATIF — FAB amin'ny zorony havanana ambany — triple click */}
-      <button
-        onClick={handleAdminTap}
-        aria-label="Administratif"
-        className="fixed bottom-4 right-4 w-14 h-14 rounded-full bg-card/40 border border-primary/20 backdrop-blur flex items-center justify-center shadow-lg active:scale-95 transition select-none z-50"
-      >
-        <Shield className="w-5 h-5 text-primary/40" />
-        {tapCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] rounded-full w-5 h-5 flex items-center justify-center font-bold">{tapCount}</span>
-        )}
-      </button>
-
       <LiveSpectatorButton position="home" />
-
-      <Dialog open={showCode} onOpenChange={setShowCode}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Code Administratif</DialogTitle></DialogHeader>
-          <PasswordInput value={code} onChange={(e) => setCode(e.target.value)} placeholder="Code" />
-          <Button onClick={handleAdminCode} className="btn-gold">Hampiditra</Button>
-        </DialogContent>
-      </Dialog>
 
       <AlertDialog open={resetOpen} onOpenChange={setResetOpen}>
         <AlertDialogContent>

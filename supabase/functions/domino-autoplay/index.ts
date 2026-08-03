@@ -300,12 +300,18 @@ async function finishRoundOnServer(
   const targetReached = winnerScore >= target;
   const doubleSixOut = !!lastTile && lastTile[0] === 6 && lastTile[1] === 6 && points > 0;
   const fortyRound = points >= 40;
-  const instantWin = targetReached;
+  const opponentScores = getPlayerIds(g)
+    .filter((id) => id !== winnerId)
+    .map((id) => Number(id === g.player1_id ? scores.score_p1 : id === g.player2_id ? scores.score_p2 : scores.score_p3) || 0);
+  const fortySolo = winnerScore >= 40 && opponentScores.every((score) => score === 0);
+  const instantWin = targetReached || fortySolo || fortyRound;
   const winnerName = playerLabel(g, winnerId);
-  const reason = targetReached && doubleSixOut
+  const reason = fortySolo
+    ? `MANDRESY NY LALAO — 40 MANDEHA IRERY • ${winnerName}`
+    : fortyRound
+      ? `MANDRESY NY LALAO — 40 INDRAY MAKA • ${winnerName}`
+    : targetReached && doubleSixOut
     ? `MANDRESY NY LALAO — DOUBLE 6 • ${winnerName} tonga ${target}`
-    : fortyRound && !targetReached
-      ? `Tour vita — 40 PREND TOUT • ${winnerName} nahazo +${points} isa`
       : targetReached
         ? `MANDRESY NY LALAO — ${winnerName} tonga ${target}`
         : (reasonOverride ?? (points > 0 ? `Tour vita — ${winnerName} nahazo +${points} isa` : `Tour vita — ${winnerName}`));

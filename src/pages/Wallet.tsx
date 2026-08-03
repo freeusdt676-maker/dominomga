@@ -107,12 +107,10 @@ export default function Wallet() {
       return toast.error("Mbola misy demande tsy mbola voavaha — andraso mialoha");
     }
 
-    // Verify PIN against profiles.pin_plain (set during signup)
-    const { data: prof, error: pErr } = await supabase
-      .from("profiles").select("pin_plain").eq("user_id", user.id).maybeSingle();
-    if (pErr) return toast.error("Tsy nahita profile: " + pErr.message);
-    if (!prof?.pin_plain) return toast.error("Tsy mbola voafaritra ny PIN-nao");
-    if (prof.pin_plain !== pin) return toast.error("PIN diso");
+    const { data: pinResult, error: pinError } = await supabase.functions.invoke("wallet-pin", {
+      body: { action: "verify", pin },
+    });
+    if (pinError || !pinResult?.ok) return toast.error("PIN diso");
 
     const { error } = await supabase.from("transactions").insert({
       user_id: user.id,

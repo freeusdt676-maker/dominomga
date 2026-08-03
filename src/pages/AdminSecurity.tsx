@@ -9,8 +9,7 @@ import { toast } from "sonner";
 export default function AdminSecurity() {
   const { isAdmin } = useAuth();
   const nav = useNavigate();
-  const codeOk = typeof window !== "undefined" && sessionStorage.getItem("admin_code_ok") === "1";
-  const allowed = isAdmin || codeOk;
+  const allowed = isAdmin;
   const [alerts, setAlerts] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
   const [logins, setLogins] = useState<any[]>([]);

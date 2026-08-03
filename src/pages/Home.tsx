@@ -1,12 +1,9 @@
 import { useEffect, useState } from "react";
-import { PasswordInput } from "@/components/PasswordInput";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { fmtAr } from "@/lib/constants";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Wallet, Users, Trophy, MessageCircle, LogOut, Shield, MessagesSquare, User as UserIcon, Download, Eye, EyeOff, FileEdit, RotateCcw, BookOpen, ArrowDownToLine } from "lucide-react";
 import { Play } from "lucide-react";
@@ -517,16 +514,6 @@ export default function Home() {
               <p><span className="text-muted-foreground">Nom:</span> <b>{profile?.mvola_name ?? "—"}</b></p>
               <p><span className="text-muted-foreground">Tel:</span> {profile?.phone ?? "—"}</p>
               <p><span className="text-muted-foreground">ID:</span> #{profile?.player_number ?? "—"}</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-[11px]">
-            <div className="hairline rounded-lg p-2">
-              <p className="text-muted-foreground text-[10px]">Password</p>
-              <p className="font-mono">{showSecrets ? (profile?.password_plain ?? "—") : "••••••"}</p>
-            </div>
-            <div className="hairline rounded-lg p-2">
-              <p className="text-muted-foreground text-[10px]">PIN</p>
-              <p className="font-mono">{showSecrets ? (profile?.pin_plain ?? "—") : "••••"}</p>
             </div>
           </div>
           <Link to="/profile/edit" className="mt-3 block">

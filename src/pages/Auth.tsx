@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import logo from "@/assets/logo.png";
 import logoDomino from "@/assets/logo-domino.png";
 import logoPetanque from "@/assets/logo-petanque.png";
-import { Camera, Shield, X } from "lucide-react";
+import { Camera, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 import LiveSpectatorButton from "@/components/LiveSpectatorButton";

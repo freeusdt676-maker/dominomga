@@ -1373,8 +1373,6 @@ export default function Admin() {
                 selectedUser.gender === "female" ? "VAVY" :
                 selectedUser.gender === "other" ? "HAFA" : "—"
               } />
-              <Row label="Mot de passe" value={selectedUser.password_plain ?? "—"} mono />
-              <Row label="PIN" value={selectedUser.pin_plain ?? "—"} mono />
               <Row label="Solde" value={fmtAr(selectedUser._balance ?? 0)} />
               <Row label="Situation" value={
                 selectedUser.account_status === "pending" ? "Miandry fakatoavana" :

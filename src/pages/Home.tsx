@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { fmtAr } from "@/lib/constants";
 import { toast } from "sonner";
-import { Wallet, Users, Trophy, MessageCircle, LogOut, Shield, MessagesSquare, User as UserIcon, Download, Eye, EyeOff, FileEdit, RotateCcw, BookOpen, ArrowDownToLine } from "lucide-react";
+import { Wallet, Users, Trophy, MessageCircle, LogOut, Shield, MessagesSquare, User as UserIcon, Download, FileEdit, RotateCcw, BookOpen, ArrowDownToLine } from "lucide-react";
 import { Play } from "lucide-react";
 import CircleNavButton from "@/components/CircleNavButton";
 import logo from "@/assets/logo.png";
@@ -37,7 +37,6 @@ export default function Home() {
   const [balance, setBalance] = useState(0);
   const [incoming, setIncoming] = useState<any[]>([]);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
-  const [showSecrets, setShowSecrets] = useState(false);
   const [pendingProfilesCount, setPendingProfilesCount] = useState(0);
   const [resetOpen, setResetOpen] = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -495,12 +494,6 @@ export default function Home() {
         <div className="luxe-card p-4">
           <div className="flex items-center justify-between mb-3">
             <p className="eyebrow">Mombamomba anao (privé)</p>
-            <button
-              onClick={() => setShowSecrets((s) => !s)}
-              className="text-[10px] text-[hsl(var(--gold-1))] inline-flex items-center gap-1"
-            >
-              {showSecrets ? <><EyeOff className="w-3 h-3" /> Hafenina</> : <><Eye className="w-3 h-3" /> Asehoy</>}
-            </button>
           </div>
           <div className="flex items-center gap-3 mb-3">
             <div className="w-16 h-16 rounded-full overflow-hidden border border-[hsl(var(--gold-1)/0.4)] bg-black/40 flex items-center justify-center">

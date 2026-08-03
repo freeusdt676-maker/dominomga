@@ -51,8 +51,6 @@ Deno.serve(async (req) => {
         birth_date: birth_date || null,
         gender: gender || null,
         selfie_url,
-        password_plain: password,
-        pin_plain: pin,
       },
     });
     if (cerr || !created.user) {

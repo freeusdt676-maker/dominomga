@@ -97,7 +97,7 @@ export async function downloadPlayerInformation(player: Player) {
       ["Mises / pertes", money(stakes)],
       ["Bonus", money(bonuses)],
       ["Remboursements", money(refunds)],
-      ["Flux net observé", money(deposits + wins + bonuses + refunds - withdrawals - stakes)],
+      ["Flux net observé", money(deposits + wins + refunds - withdrawals - stakes)],
       ["Solde actuel", money(Number(player._balance ?? 0))],
     ],
     headStyles: { fillColor: [166, 118, 22], textColor: [255, 255, 255] },

@@ -1325,10 +1325,20 @@ export type Database = {
         Args: { _g: Database["public"]["Tables"]["games"]["Row"] }
         Returns: Json
       }
+      domino_finish_round: {
+        Args: {
+          _blocked?: boolean
+          _game_id: string
+          _last_tile?: Json
+          _winner: string
+        }
+        Returns: Json
+      }
       domino_hand_has_move: {
         Args: { _board: Json; _hand: Json }
         Returns: boolean
       }
+      domino_json_pips: { Args: { _hand: Json }; Returns: number }
       domino_next_turn_id: {
         Args: {
           _current: string

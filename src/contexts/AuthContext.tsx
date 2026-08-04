@@ -97,7 +97,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { data: sessionData } = await supabase.auth.getSession();
         if (!sessionData.session) return;
         const { data: userData, error } = await supabase.auth.getUser();
-        if (!error && userData.user) return;
+        if (!error && userData.user) {
+          const { data: roleData } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", userData.user.id)
+            .eq("role", "admin")
+            .maybeSingle();
+          setIsAdmin(Boolean(roleData));
+          return;
+        }
         const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
         if (!refreshError && refreshed.session) applySession(refreshed.session);
       })().catch(() => undefined).finally(() => {

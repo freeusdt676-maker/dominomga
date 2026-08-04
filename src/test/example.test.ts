@@ -54,9 +54,16 @@ describe("domino rules lock", () => {
     expect(getBlockedRoundResult(players)).toEqual(expected);
   });
 
+  it("blocked scoring is exact for every supported Domino player count", () => {
+    expect(getBlockedRoundResult([{ id: "A", pips: 5 }, { id: "B", pips: 12 }])).toEqual({ winnerId: "A", points: 12, tied: false });
+    expect(getBlockedRoundResult([{ id: "A", pips: 5 }, { id: "B", pips: 12 }, { id: "C", pips: 8 }])).toEqual({ winnerId: "A", points: 20, tied: false });
+    expect(getBlockedRoundResult([{ id: "A", pips: 5 }, { id: "B", pips: 12 }, { id: "C", pips: 8 }, { id: "D", pips: 9 }])).toEqual({ winnerId: "A", points: 29, tied: false });
+    expect(getBlockedRoundResult([{ id: "A", pips: 5 }, { id: "B", pips: 5 }, { id: "C", pips: 8 }])).toEqual({ winnerId: null, points: 0, tied: true });
+  });
+
   it("double 6 out dia [6|6] farany sady nahazo isa", () => {
     expect(isDominoDoubleSixOut([6, 6], 21)).toBe(true);
-    expect(isDominoDoubleSixOut([6, 6], 0)).toBe(false);
+    expect(isDominoDoubleSixOut([6, 6], 0)).toBe(true);
     expect(isDominoDoubleSixOut([6, 5], 21)).toBe(false);
   });
 

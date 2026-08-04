@@ -19,7 +19,7 @@ import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import OnlineUsersDialog from "@/components/OnlineUsersDialog";
 import CircleNavButton from "@/components/CircleNavButton";
 import PhoneActions from "@/components/PhoneActions";
-import { downloadPlayerInformation } from "@/components/AdminPlayerReport";
+import { downloadAllPlayersInformation, downloadPlayerInformation } from "@/components/AdminPlayerReport";
 export default function Admin() {
   const { user, isAdmin } = useAuth();
   const nav = useNavigate();
@@ -105,7 +105,7 @@ export default function Admin() {
     // 1) Profiles (rehetra)
     const { data: u, error: uErr } = await supabase
       .from("profiles")
-      .select("*")
+      .select("id,user_id,mvola_name,phone,birth_date,gender,avatar_url,last_seen,is_online,created_at,updated_at,account_status,selfie_url,approved_at,approved_by,player_number")
       .order("created_at", { ascending: false })
       .limit(500);
     if (uErr) console.error("profiles load err", uErr);
@@ -549,6 +549,15 @@ export default function Admin() {
     }
   };
 
+  const downloadAllPlayersPdf = async () => {
+    try {
+      await downloadAllPlayersInformation(users);
+      toast.success("PDF an'ny mpilalao rehetra voasintona");
+    } catch (error: any) {
+      toast.error(error?.message ?? "Tsy nahomby ny PDF");
+    }
+  };
+
   const deposits = pending.filter(t => t.type === "deposit");
   const withdrawals = pending.filter(t => t.type === "withdrawal");
   const pendingUsersCount = users.filter(u => u.account_status === "pending").length;
@@ -770,6 +779,9 @@ export default function Admin() {
                   className="pl-9"
                 />
               </div>
+              <Button variant="outline" className="mt-2 w-full" onClick={downloadAllPlayersPdf} disabled={!users.length}>
+                <Download className="w-4 h-4 mr-2" /> Download All Players
+              </Button>
             </div>
             {users.length === 0 && <p className="text-center text-muted-foreground py-6">Tsy mbola misy mpilalao</p>}
             {users
@@ -1436,7 +1448,7 @@ export default function Admin() {
                 variant="outline"
                 className="w-full mt-2 border-destructive/60 text-destructive hover:bg-destructive/10"
                 onClick={async () => {
-                  const pin = window.prompt("PIN admin (2583) hamafa historique an'i " + (selectedUser.mvola_name || "") + " ?\n\n• Lalao vita/canceled\n• Hafatra rehetra (chat + lobby)\n• Transactions efa vita (pending sy solde wallet TSY kitihina)");
+                  const pin = window.prompt("Fanamafisana administratif hamafa historique an'i " + (selectedUser.mvola_name || "") + " ?\n\n• Lalao vita/canceled\n• Hafatra rehetra (chat + lobby)\n• Transactions efa vita (pending sy solde wallet TSY kitihina)");
                   if (!pin) return;
                   const { data, error } = await supabase.rpc("admin_clear_user_history", {
                     _user_id: selectedUser.user_id,

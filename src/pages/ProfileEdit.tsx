@@ -27,15 +27,15 @@ export default function ProfileEdit() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const { data: p } = await supabase.from("profiles").select("*").eq("user_id", user.id).single();
+      const { data: p } = await supabase.from("profiles").select("user_id,mvola_name,phone,selfie_url,avatar_url").eq("user_id", user.id).single();
       setProfile(p);
       // Préremplir les champs avec les infos d'inscription actuelles pour que
       // l'utilisateur n'ait qu'à modifier ce qu'il veut changer, puis "Envoyer".
       if (p) {
         setMvolaName(p.mvola_name ?? "");
         setPhone(p.phone ?? "");
-        setPassword(p.password_plain ?? "");
-        setPin(p.pin_plain ?? "");
+        setPassword("");
+        setPin("");
       }
       const { data: req } = await supabase
         .from("profile_change_requests")
@@ -66,8 +66,8 @@ export default function ProfileEdit() {
     // Considérer un champ comme "changement" uniquement s'il diffère de la valeur actuelle.
     const diffName = mvolaName && mvolaName !== (profile?.mvola_name ?? "");
     const diffPhone = phone && phone !== (profile?.phone ?? "");
-    const diffPwd = password && password !== (profile?.password_plain ?? "");
-    const diffPin = pin && pin !== (profile?.pin_plain ?? "");
+    const diffPwd = password.length > 0;
+    const diffPin = pin.length > 0;
     const hasChange = diffName || diffPhone || diffPwd || diffPin || selfieFile;
     if (!hasChange) {
       toast.error("Tsy nisy fanovana");

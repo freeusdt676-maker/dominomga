@@ -276,6 +276,7 @@ async function startNextRound(supabase: any, g: any) {
     passes: 0,
     reveal_until: null,
     last_reason: null,
+    pending_winner_id: null,
   };
   if (pc === 3) updateNext.player3_hand = hands[2];
   const { error } = await supabase.from("games").update(updateNext).eq("id", g.id).eq("status", "in_progress");
@@ -293,42 +294,20 @@ async function finishRoundOnServer(
   newHand?: Tile[],
   reasonOverride?: string,
 ) {
-  const points = Math.max(0, Number(pointsRaw) || 0);
-  const target = targetFor(g.game_mode);
-  const scores = scorePayload(g, winnerId, points);
-  const winnerScore = winnerScoreFromPayload(g, winnerId, scores);
-  const targetReached = winnerScore >= target;
-  const doubleSixOut = !!lastTile && lastTile[0] === 6 && lastTile[1] === 6 && points > 0;
-  const fortyRound = points >= 40;
-  const opponentScores = getPlayerIds(g)
-    .filter((id) => id !== winnerId)
-    .map((id) => Number(id === g.player1_id ? scores.score_p1 : id === g.player2_id ? scores.score_p2 : scores.score_p3) || 0);
-  const fortySolo = winnerScore >= 40 && opponentScores.every((score) => score === 0);
-  const instantWin = targetReached || fortySolo || fortyRound;
-  const winnerName = playerLabel(g, winnerId);
-  const reason = fortySolo
-    ? `MANDRESY NY LALAO — 40 MANDEHA IRERY • ${winnerName}`
-    : fortyRound
-      ? `MANDRESY NY LALAO — 40 INDRAY MAKA • ${winnerName}`
-    : targetReached && doubleSixOut
-    ? `MANDRESY NY LALAO — DOUBLE 6 • ${winnerName} tonga ${target}`
-      : targetReached
-        ? `MANDRESY NY LALAO — ${winnerName} tonga ${target}`
-        : (reasonOverride ?? (points > 0 ? `Tour vita — ${winnerName} nahazo +${points} isa` : `Tour vita — ${winnerName}`));
-
-  const payload: Record<string, unknown> = {
-    ...scores,
-    board_state: board,
-    reveal_until: new Date(Date.now() + REVEAL_MS).toISOString(),
-    last_reason: reason,
-    current_turn: null,
-    turn_started_at: null,
-    passes: 0,
-  };
+  void pointsRaw;
+  void reasonOverride;
+  const payload: Record<string, unknown> = { board_state: board };
   if (handKey && newHand) payload[handKey] = newHand;
   const { error } = await supabase.from("games").update(payload).eq("id", g.id).eq("status", "in_progress");
   if (error) throw error;
-  return { instantWin };
+  const { data, error: finishError } = await supabase.rpc("domino_finish_round", {
+    _game_id: g.id,
+    _winner: winnerId,
+    _last_tile: lastTile,
+    _blocked: false,
+  });
+  if (finishError) throw finishError;
+  return { instantWin: Boolean(data?.instant_win) };
 }
 
 async function finishBlockedOnServer(supabase: any, g: any, board: Placed[]) {
@@ -340,21 +319,20 @@ async function finishBlockedOnServer(supabase: any, g: any, board: Placed[]) {
     return;
   }
   const winner = totals[0];
-  const points = totals.slice(1).reduce((s, x) => s + x.p, 0);
-  await finishRoundOnServer(
-    supabase,
-    g,
-    winner.id,
-    points,
-    null,
-    board,
-    null,
-    undefined,
-    `Blocage: ${playerLabel(g, winner.id)} nahazo +${points} isa (vato kely indrindra)`,
-  );
+  const { error } = await supabase.rpc("domino_finish_round", {
+    _game_id: g.id,
+    _winner: winner.id,
+    _last_tile: null,
+    _blocked: true,
+  });
+  if (error) throw error;
 }
 
 async function handleExpiredReveal(supabase: any, g: any) {
+  if (g.pending_winner_id) {
+    await supabase.rpc("settle_game", { _game_id: g.id, _winner: g.pending_winner_id });
+    return;
+  }
   const target = targetFor(g.game_mode);
   const hasWinner = getPlayerIds(g).some((id) => scoreFor(g, id) >= target);
   if (hasWinner) {
@@ -376,7 +354,7 @@ Deno.serve(async (req) => {
   const cutoffMs = Date.now() - HANG_THRESHOLD_MS;
   const { data: games, error } = await supabase
     .from("games")
-    .select("id, ticket_number, game_mode, players_count, player1_id, player2_id, player3_id, current_turn, turn_started_at, status, passes, board_state, player1_hand, player2_hand, player3_hand, boneyard, score_p1, score_p2, score_p3, round_number, reveal_until, last_reason")
+    .select("id, ticket_number, game_mode, players_count, player1_id, player2_id, player3_id, current_turn, turn_started_at, status, passes, board_state, player1_hand, player2_hand, player3_hand, boneyard, score_p1, score_p2, score_p3, round_number, reveal_until, last_reason, pending_winner_id")
     .eq("status", "in_progress")
     .limit(100);
 

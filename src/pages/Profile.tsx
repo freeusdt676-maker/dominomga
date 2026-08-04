@@ -36,7 +36,7 @@ export default function Profile() {
     if (!user) return;
     setHidden(loadHidden(user.id));
     (async () => {
-      const { data: p } = await supabase.from("profiles").select("*").eq("user_id", user.id).single();
+      const { data: p } = await supabase.from("profiles").select("id,user_id,mvola_name,phone,birth_date,gender,avatar_url,last_seen,is_online,created_at,updated_at,account_status,selfie_url,approved_at,approved_by,player_number").eq("user_id", user.id).single();
       setProfile(p);
       const [domRes, ludoRes, petRes] = await Promise.all([
         supabase.from("games")

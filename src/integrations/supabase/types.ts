@@ -309,6 +309,7 @@ export type Database = {
           is_tournament: boolean
           last_reason: string | null
           passes: number
+          pending_winner_id: string | null
           player1_hand: Json | null
           player1_id: string
           player2_hand: Json | null
@@ -344,6 +345,7 @@ export type Database = {
           is_tournament?: boolean
           last_reason?: string | null
           passes?: number
+          pending_winner_id?: string | null
           player1_hand?: Json | null
           player1_id: string
           player2_hand?: Json | null
@@ -379,6 +381,7 @@ export type Database = {
           is_tournament?: boolean
           last_reason?: string | null
           passes?: number
+          pending_winner_id?: string | null
           player1_hand?: Json | null
           player1_id?: string
           player2_hand?: Json | null
@@ -1199,7 +1202,7 @@ export type Database = {
         Returns: Json
       }
       admin_clear_user_history: {
-        Args: { _admin_pin: string; _user_id: string }
+        Args: { _admin_pin?: string; _user_id: string }
         Returns: Json
       }
       admin_decide_recovery: {
@@ -1325,10 +1328,20 @@ export type Database = {
         Args: { _g: Database["public"]["Tables"]["games"]["Row"] }
         Returns: Json
       }
+      domino_finish_round: {
+        Args: {
+          _blocked?: boolean
+          _game_id: string
+          _last_tile?: Json
+          _winner: string
+        }
+        Returns: Json
+      }
       domino_hand_has_move: {
         Args: { _board: Json; _hand: Json }
         Returns: boolean
       }
+      domino_json_pips: { Args: { _hand: Json }; Returns: number }
       domino_next_turn_id: {
         Args: {
           _current: string

@@ -33,7 +33,7 @@ export default function PendingProfileApprovals({ onChange }: { onChange?: () =>
     setItems(list);
     const uids = Array.from(new Set(list.map((r) => r.user_id)));
     if (uids.length) {
-      const { data: ps } = await supabase.from("profiles").select("*").in("user_id", uids);
+      const { data: ps } = await supabase.from("profiles").select("user_id,mvola_name,phone,avatar_url,selfie_url").in("user_id", uids);
       const map: Record<string, any> = {};
       (ps ?? []).forEach((p: any) => { map[p.user_id] = p; });
       setProfiles(map);
@@ -102,8 +102,8 @@ export default function PendingProfileApprovals({ onChange }: { onChange?: () =>
 
             <Field label="Nom" current={cur.mvola_name} proposed={r.proposed_mvola_name} />
             <Field label="Téléphone" current={cur.phone} proposed={r.proposed_phone} />
-            <Field label="Password" current={cur.password_plain ? "••••••" : "—"} proposed={r.proposed_password ? "••••••" : null} />
-            <Field label="PIN" current={cur.pin_plain ? "••••" : "—"} proposed={r.proposed_pin ? "••••" : null} />
+            <Field label="Password" current="Protégé" proposed={r.proposed_password ? "••••••" : null} />
+            <Field label="PIN" current="Protégé" proposed={r.proposed_pin ? "••••" : null} />
             {r.proposed_selfie_url && (
               <div className="grid grid-cols-2 gap-2 text-[11px] py-2">
                 <div>

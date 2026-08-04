@@ -474,6 +474,19 @@ export default function Game() {
     if (roundEndLockRef.current === key) return;
     roundEndLockRef.current = key;
 
+    const { data: finishData, error: finishError } = await supabase.rpc("domino_finish_round" as any, {
+      _game_id: game.id,
+      _winner: winnerId,
+      _last_tile: lastTile,
+      _blocked: Boolean(reasonOverride?.startsWith("Blocage:")),
+    });
+    if (finishError) {
+      roundEndLockRef.current = null;
+      toast.error(finishError.message);
+      return;
+    }
+    const serverResult = finishData as any;
+
     // Vakio ny score MARINA avy any amin'ny serveur alohan'ny hanampiana
     // teboka, mba tsy hisy "score tsy mitombo" raha sendra mbola lany
     // ny state optimistic na tara ny realtime.
@@ -488,11 +501,10 @@ export default function Game() {
     } catch {}
 
     const pc = Number(liveGame.players_count ?? 2);
-    const safePoints = Math.max(0, Number(points) || 0);
-    const addTo = (uid: string, base: number) => Number(base ?? 0) + (winnerId === uid ? safePoints : 0);
-    const newScoreP1 = addTo(liveGame.player1_id, liveGame.score_p1);
-    const newScoreP2 = addTo(liveGame.player2_id, liveGame.score_p2);
-    const newScoreP3 = pc === 3 ? addTo(liveGame.player3_id, liveGame.score_p3) : 0;
+    const safePoints = Number(serverResult?.points ?? Math.max(0, Number(points) || 0));
+    const newScoreP1 = Number(serverResult?.score_p1 ?? liveGame.score_p1 ?? 0);
+    const newScoreP2 = Number(serverResult?.score_p2 ?? liveGame.score_p2 ?? 0);
+    const newScoreP3 = Number(serverResult?.score_p3 ?? liveGame.score_p3 ?? 0);
     const mode = (liveGame.game_mode ?? "d120") as GameMode;
     const target = getDominoTarget(mode);
     const wScore =
@@ -507,7 +519,7 @@ export default function Game() {
     ].filter((score): score is number => score !== null);
     const fortySolo = isDominoSoloWin(wScore, mode, opponentScores);
     const fortyRound = isDominoFortyRound(safePoints);
-    const instantWin = targetReached || fortySolo || fortyRound;
+    const instantWin = Boolean(serverResult?.instant_win ?? (targetReached || fortySolo || fortyRound));
 
     // Build a human-readable "porofo" of how this round was won, for the replay banner.
     const winnerName = (profileNames[winnerId] ?? "Mpandresy");
@@ -548,19 +560,6 @@ export default function Game() {
         : `${reason} • ${newScoreP1} - ${newScoreP2}`,
     );
     setTimeout(() => setRoundBanner(null), REVEAL_MS + 500);
-    const updatePayload: any = {
-      score_p1: newScoreP1,
-      score_p2: newScoreP2,
-      reveal_until: revealUntil,
-      last_reason: reason,
-      // Vonoy ny tour mandritra ny reveal mba tsy hisy fihetsika afaka atao
-      // alohan'ny hidiran'ny tour manaraka.
-      current_turn: null,
-      turn_started_at: null,
-      passes: 0,
-    };
-    if (pc === 3) updatePayload.score_p3 = newScoreP3;
-    await supabase.from("games").update(updatePayload).eq("id", game.id);
     setOptimistic(null);
 
     setTimeout(async () => {

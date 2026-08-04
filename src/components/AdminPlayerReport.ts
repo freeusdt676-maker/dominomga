@@ -124,3 +124,34 @@ export async function downloadPlayerInformation(player: Player) {
   const safeName = (player.mvola_name || "joueur").replace(/[^a-zA-Z0-9_-]+/g, "-");
   doc.save(`Domino-MGA-${safeName}-${new Date().toISOString().slice(0, 10)}.pdf`);
 }
+
+export async function downloadAllPlayersInformation(players: Player[]) {
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
+  doc.setFillColor(12, 43, 27);
+  doc.rect(0, 0, 297, 30, "F");
+  doc.setTextColor(246, 208, 96);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.text("DOMINO MGA — RELEVÉ DE TOUS LES JOUEURS", 14, 13);
+  doc.setFontSize(9);
+  doc.text(`Généré le ${new Date().toLocaleString("fr-FR")} · ${players.length} comptes`, 14, 21);
+  autoTable(doc, {
+    startY: 36,
+    theme: "grid",
+    head: [["ID", "Nom complet", "Téléphone", "ID compte", "Création", "Dernière activité", "Statut", "Solde"]],
+    body: players.map((player) => [
+      player.player_number != null ? `#${String(player.player_number).padStart(4, "0")}` : "—",
+      player.mvola_name || "—",
+      player.phone || "—",
+      player.user_id,
+      player.created_at ? new Date(player.created_at).toLocaleDateString("fr-FR") : "—",
+      player.last_seen ? new Date(player.last_seen).toLocaleString("fr-FR") : "—",
+      player.account_status || "—",
+      money(Number(player._balance ?? 0)),
+    ]),
+    styles: { fontSize: 7, cellPadding: 1.8 },
+    columnStyles: { 3: { cellWidth: 56 }, 7: { halign: "right" } },
+    headStyles: { fillColor: [12, 43, 27], textColor: [246, 208, 96] },
+  });
+  doc.save(`Domino-MGA-Tous-les-joueurs-${new Date().toISOString().slice(0, 10)}.pdf`);
+}

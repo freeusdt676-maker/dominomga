@@ -148,19 +148,17 @@ export default function Auth() {
       }
 
       const email = phoneToEmail(cleanPhone);
-      let authResult = await directPasswordLogin(email, cleanPwd);
+      const clientResult = await withTimeout(
+        supabase.auth.signInWithPassword({ email, password: cleanPwd }),
+        8000,
+      );
+      let authResult: PasswordLoginResult = clientResult
+        ? { data: { session: clientResult.data.session, user: clientResult.data.user }, error: clientResult.error }
+        : { data: null, error: { message: "timeout" }, timedOut: true };
 
-      // Fallback farany: raha misy navigateur manakana fetch direct, andramana ilay client officiel
-      // fa tsy avela hahantona ela.
-      if (authResult.timedOut || authResult.error?.message === "timeout") {
-        const clientResult = await withTimeout(
-          supabase.auth.signInWithPassword({ email, password: cleanPwd }),
-          5000
-        );
-        authResult = clientResult
-          ? { data: { session: clientResult.data.session, user: clientResult.data.user }, error: clientResult.error }
-          : authResult;
-      }
+      // WebView fallback only: import the returned refresh token through the official
+      // client and wait until it is durably persisted before entering the app.
+      if (authResult.timedOut) authResult = await directPasswordLogin(email, cleanPwd);
 
       if (!authResult.data && (authResult.timedOut || authResult.error?.message === "timeout")) {
         setLoading(false);
@@ -177,6 +175,10 @@ export default function Auth() {
         return toast.error("Numéro na mot de passe diso");
       }
 
+      if (!data.session) {
+        setLoading(false);
+        return toast.error("Session tsy voatahiry. Avereno ny connexion.");
+      }
       setLoading(false);
       toast.success("Tonga soa!");
       nav("/", { replace: true });

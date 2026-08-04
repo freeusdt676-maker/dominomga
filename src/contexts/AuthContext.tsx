@@ -45,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const adminLookupRef = useRef<string | null>(null);
+  const recoveryRef = useRef<Promise<void> | null>(null);
 
   useEffect(() => {
     const applySession = (s: Session | null) => {
@@ -91,11 +92,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, 4000);
 
     const recoverSession = async () => {
-      if (!navigator.onLine) return;
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        await supabase.auth.refreshSession(data.session).catch(() => undefined);
-      }
+      if (!navigator.onLine || recoveryRef.current) return recoveryRef.current;
+      recoveryRef.current = (async () => {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData.session) return;
+        const { data: userData, error } = await supabase.auth.getUser();
+        if (!error && userData.user) return;
+        const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+        if (!refreshError && refreshed.session) applySession(refreshed.session);
+      })().catch(() => undefined).finally(() => {
+        recoveryRef.current = null;
+      });
+      return recoveryRef.current;
     };
     window.addEventListener("online", recoverSession);
     window.addEventListener("focus", recoverSession);

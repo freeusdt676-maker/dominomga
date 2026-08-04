@@ -74,7 +74,7 @@ export default function Tournament() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const { data: p } = await supabase.from("profiles").select("*").eq("user_id", user.id).single();
+      const { data: p } = await supabase.from("profiles").select("user_id,mvola_name,phone,player_number,account_status").eq("user_id", user.id).single();
       setProfile(p);
       setFNom(p?.mvola_name ?? "");
       setFTel(p?.phone ?? "");

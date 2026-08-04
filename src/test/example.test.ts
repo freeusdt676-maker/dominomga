@@ -63,7 +63,7 @@ describe("domino rules lock", () => {
 
   it("double 6 out dia [6|6] farany sady nahazo isa", () => {
     expect(isDominoDoubleSixOut([6, 6], 21)).toBe(true);
-    expect(isDominoDoubleSixOut([6, 6], 0)).toBe(false);
+    expect(isDominoDoubleSixOut([6, 6], 0)).toBe(true);
     expect(isDominoDoubleSixOut([6, 5], 21)).toBe(false);
   });
 

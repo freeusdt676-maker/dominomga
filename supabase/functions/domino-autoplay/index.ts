@@ -276,6 +276,7 @@ async function startNextRound(supabase: any, g: any) {
     passes: 0,
     reveal_until: null,
     last_reason: null,
+    pending_winner_id: null,
   };
   if (pc === 3) updateNext.player3_hand = hands[2];
   const { error } = await supabase.from("games").update(updateNext).eq("id", g.id).eq("status", "in_progress");
@@ -328,6 +329,10 @@ async function finishBlockedOnServer(supabase: any, g: any, board: Placed[]) {
 }
 
 async function handleExpiredReveal(supabase: any, g: any) {
+  if (g.pending_winner_id) {
+    await supabase.rpc("settle_game", { _game_id: g.id, _winner: g.pending_winner_id });
+    return;
+  }
   const target = targetFor(g.game_mode);
   const hasWinner = getPlayerIds(g).some((id) => scoreFor(g, id) >= target);
   if (hasWinner) {
@@ -349,7 +354,7 @@ Deno.serve(async (req) => {
   const cutoffMs = Date.now() - HANG_THRESHOLD_MS;
   const { data: games, error } = await supabase
     .from("games")
-    .select("id, ticket_number, game_mode, players_count, player1_id, player2_id, player3_id, current_turn, turn_started_at, status, passes, board_state, player1_hand, player2_hand, player3_hand, boneyard, score_p1, score_p2, score_p3, round_number, reveal_until, last_reason")
+    .select("id, ticket_number, game_mode, players_count, player1_id, player2_id, player3_id, current_turn, turn_started_at, status, passes, board_state, player1_hand, player2_hand, player3_hand, boneyard, score_p1, score_p2, score_p3, round_number, reveal_until, last_reason, pending_winner_id")
     .eq("status", "in_progress")
     .limit(100);
 

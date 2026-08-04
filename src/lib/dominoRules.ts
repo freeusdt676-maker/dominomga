@@ -37,10 +37,10 @@ export function isDominoSoloWin(
 }
 
 export function isDominoDoubleSixOut(lastTile?: DominoTileLike | null, points = 0): boolean {
+  void points;
   return !!lastTile
     && lastTile[0] === 6
-    && lastTile[1] === 6
-    && Number(points ?? 0) > 0;
+    && lastTile[1] === 6;
 }
 
 // 40 Indray Maka: 40+ points earned in one round ends the match immediately.

@@ -553,7 +553,6 @@ export default function Game() {
     void loserName;
 
     const REVEAL_MS = 5000;
-    const revealUntil = new Date(Date.now() + REVEAL_MS).toISOString();
     setRoundBanner(
       pc === 3
         ? `${reason} • ${newScoreP1}-${newScoreP2}-${newScoreP3}`
@@ -579,7 +578,6 @@ export default function Game() {
       // LOCKED: tsy misy "instant win" mandritra ny re-deal — target ihany.
       // Tour 2+: tsy misy double terena, ny topon'ny tour no mametraka izay tiany.
       // Mihodina automatique makany ANKAVIA isaky ny tour.
-      const ids = pc === 3 ? [game.player1_id, game.player2_id, game.player3_id] : [game.player1_id, game.player2_id];
       const hands = pc === 3 ? [h1, h2, h3] : [h1, h2];
       const nextId = roundOpenerId(game, nextRound);
       // DATINANDRO nesorina — tsy fandresena intsony.
@@ -593,6 +591,7 @@ export default function Game() {
         turn_started_at: new Date().toISOString(),
         passes: 0,
         reveal_until: null,
+        pending_winner_id: null,
       };
       if (pc === 3) updateNext.player3_hand = hands[2];
       await supabase.from("games").update(updateNext).eq("id", game.id);

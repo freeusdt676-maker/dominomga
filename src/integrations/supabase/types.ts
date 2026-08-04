@@ -309,6 +309,7 @@ export type Database = {
           is_tournament: boolean
           last_reason: string | null
           passes: number
+          pending_winner_id: string | null
           player1_hand: Json | null
           player1_id: string
           player2_hand: Json | null
@@ -344,6 +345,7 @@ export type Database = {
           is_tournament?: boolean
           last_reason?: string | null
           passes?: number
+          pending_winner_id?: string | null
           player1_hand?: Json | null
           player1_id: string
           player2_hand?: Json | null
@@ -379,6 +381,7 @@ export type Database = {
           is_tournament?: boolean
           last_reason?: string | null
           passes?: number
+          pending_winner_id?: string | null
           player1_hand?: Json | null
           player1_id?: string
           player2_hand?: Json | null
@@ -1199,7 +1202,7 @@ export type Database = {
         Returns: Json
       }
       admin_clear_user_history: {
-        Args: { _admin_pin: string; _user_id: string }
+        Args: { _admin_pin?: string; _user_id: string }
         Returns: Json
       }
       admin_decide_recovery: {

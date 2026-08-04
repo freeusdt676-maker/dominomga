@@ -591,7 +591,6 @@ export default function Game() {
         turn_started_at: new Date().toISOString(),
         passes: 0,
         reveal_until: null,
-        pending_winner_id: null,
       };
       if (pc === 3) updateNext.player3_hand = hands[2];
       await supabase.from("games").update(updateNext).eq("id", game.id);

@@ -38,6 +38,7 @@ import {
   getDominoRoundReason,
   getDominoTarget,
   isDominoDoubleSixOut,
+  getDominoDayNumber,
   isDominoGameWin,
   isDominoFortyRound,
   isDominoSoloWin,
@@ -511,7 +512,7 @@ export default function Game() {
       winnerId === liveGame.player1_id ? newScoreP1 : winnerId === liveGame.player2_id ? newScoreP2 : newScoreP3;
 
     const targetReached = isDominoGameWin(wScore, mode);
-    const doubleSixOut = isDominoDoubleSixOut(lastTile, points);
+    const doubleSixOut = Boolean(serverResult?.double_six ?? isDominoDoubleSixOut(lastTile, points));
     const opponentScores = [
       winnerId !== liveGame.player1_id ? newScoreP1 : null,
       winnerId !== liveGame.player2_id ? newScoreP2 : null,
@@ -519,7 +520,11 @@ export default function Game() {
     ].filter((score): score is number => score !== null);
     const fortySolo = isDominoSoloWin(wScore, mode, opponentScores);
     const fortyRound = isDominoFortyRound(safePoints);
-    const instantWin = Boolean(serverResult?.instant_win ?? (targetReached || fortySolo || fortyRound));
+    const dayNum = Number(serverResult?.day_num ?? getDominoDayNumber());
+    const dateWin = Boolean(serverResult?.date_win ?? (safePoints === dayNum));
+    const instantWin = Boolean(
+      serverResult?.instant_win ?? (targetReached || fortySolo || fortyRound || doubleSixOut || dateWin),
+    );
 
     // Build a human-readable "porofo" of how this round was won, for the replay banner.
     const winnerName = (profileNames[winnerId] ?? "Mpandresy");
@@ -535,12 +540,14 @@ export default function Game() {
     // Anisan'ny sokajy "MANDRESY NY LALAO" ireto efatra ireto ihany:
     //   • TARGET (D120/D80) • SOLO (60/40 irery) • DOUBLE 6 • DATINANDRO.
     // Ny ambin'ireo (lany vato, blocage, +N isa) dia tour ihany.
-    const reason = fortySolo
+    const reason = doubleSixOut
+      ? `MANDRESY NY LALAO — MIALA DOUBLE 6 • ${winnerName}`
+      : fortySolo
       ? `MANDRESY NY LALAO — 40 MANDEHA IRERY • ${winnerName}`
       : fortyRound
       ? `MANDRESY NY LALAO — 40 INDRAY MAKA • ${winnerName}`
-      : targetReached && doubleSixOut
-      ? `MANDRESY NY LALAO — DOUBLE 6 • ${winnerName} tonga ${target}`
+      : dateWin
+      ? `MANDRESY NY LALAO — DATINANDRO (${dayNum} isa) • ${winnerName}`
       : getDominoRoundReason({
           winnerName,
           mode,

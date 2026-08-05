@@ -1358,15 +1358,23 @@ export default function Game() {
       { id: game.player2_id, score: Number(game.score_p2 ?? 0) },
       ...(pc === 3 ? [{ id: game.player3_id, score: Number(game.score_p3 ?? 0) }] : []),
     ];
-    const winner = candidates
-      .filter((c) => c.id && isDominoGameWin(c.score, mode))
-      .sort((a, b) => b.score - a.score)[0];
+    const pending = (game as any).pending_winner_id as string | null | undefined;
+    const winner = pending
+      ? { id: pending, score: 0 }
+      : candidates
+          .filter((c) => {
+            if (!c.id) return false;
+            if (isDominoGameWin(c.score, mode)) return true;
+            const opps = candidates.filter((o) => o.id !== c.id).map((o) => o.score);
+            return isDominoSoloWin(c.score, mode, opps);
+          })
+          .sort((a, b) => b.score - a.score)[0];
     if (!winner?.id) return;
     const key = `safety-${game.id}-${winner.id}`;
     if (roundEndLockRef.current === key) return;
     roundEndLockRef.current = key;
     supabase.rpc("settle_game", { _game_id: game.id, _winner: winner.id });
-  }, [game?.id, game?.status, game?.current_turn, game?.reveal_until, game?.score_p1, game?.score_p2, game?.score_p3, game?.game_mode, game?.players_count, now, user?.id]);
+  }, [game?.id, game?.status, game?.current_turn, game?.reveal_until, game?.score_p1, game?.score_p2, game?.score_p3, game?.game_mode, game?.players_count, (game as any)?.pending_winner_id, now, user?.id]);
 
   // SAFETY NET — Raha tapitra ny reveal (fanambarana ny tour vita) nefa mbola
   // tsy misy tour manaraka mandeha (current_turn=null) ary tsy mbola misy
@@ -1380,6 +1388,7 @@ export default function Game() {
     if (!game.reveal_until) return;
     const revealMs = new Date(game.reveal_until).getTime();
     if (revealMs + 800 > now) return;
+    if ((game as any).pending_winner_id) return;
     const mode = (game.game_mode ?? "d120") as GameMode;
     const scores = [Number(game.score_p1 ?? 0), Number(game.score_p2 ?? 0), Number(game.score_p3 ?? 0)];
     if (scores.some((s) => isDominoGameWin(s, mode))) return;

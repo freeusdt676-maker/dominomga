@@ -38,6 +38,7 @@ import {
   getDominoRoundReason,
   getDominoTarget,
   isDominoDoubleSixOut,
+  getDominoDayNumber,
   isDominoGameWin,
   isDominoFortyRound,
   isDominoSoloWin,

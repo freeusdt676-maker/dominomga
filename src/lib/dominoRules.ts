@@ -43,6 +43,20 @@ export function isDominoDoubleSixOut(lastTile?: DominoTileLike | null, points = 
     && lastTile[1] === 6;
 }
 
+// DATINANDRO: raha mitovy TSOTRA amin'ny isan'ny andro (1..31) any Antananarivo
+// ny isa azo tamin'ny TOUR iray dia mandresy ny lalao avy hatrany.
+export function getDominoDayNumber(now: Date = new Date()): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Indian/Antananarivo",
+    day: "numeric",
+  }).format(now);
+  return Number(parts);
+}
+
+export function isDominoDateWin(points: number, now: Date = new Date()): boolean {
+  return Number(points ?? 0) === getDominoDayNumber(now);
+}
+
 // 40 Indray Maka: 40+ points earned in one round ends the match immediately.
 export function isDominoFortyInstantWin(points: number): boolean {
   return Number(points ?? 0) >= 40;

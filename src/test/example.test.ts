@@ -7,6 +7,7 @@ import {
   isDominoGameWin,
   isDominoSoloWin,
   isDominoFortyInstantWin,
+  isDominoDateWin,
   getBlockedRoundResult,
 } from "@/lib/dominoRules";
 
@@ -44,6 +45,13 @@ describe("domino rules lock", () => {
     expect(isDominoFortyInstantWin(40)).toBe(true);
     expect(isDominoFortyInstantWin(57)).toBe(true);
     expect(isDominoFortyInstantWin(39)).toBe(false);
+  });
+
+  it("Datinandro mandresy raha mitovy amin'ny andro any Antananarivo ny isa azo tao amin'ny tour", () => {
+    const augustFiveInMadagascar = new Date("2026-08-05T08:00:00.000Z");
+    expect(isDominoDateWin(5, augustFiveInMadagascar)).toBe(true);
+    expect(isDominoDateWin(4, augustFiveInMadagascar)).toBe(false);
+    expect(isDominoDateWin(6, augustFiveInMadagascar)).toBe(false);
   });
 
   it.each([

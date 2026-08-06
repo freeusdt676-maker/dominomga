@@ -344,9 +344,8 @@ export default function Game() {
 
   // Tsy misy toast pass/placement intsony: résumé "Tour vita" ihany no aseho.
 
-  // DATINANDRO — NESORINA tanteraka. Tsy fandresena intsony ny "datinandro".
-  // Ny target (D80=80, D120=120) sy SOLO sy DOUBLE 6 ihany no mahatonga
-  // fandresena. (Voasoratra eto mba tsy hiverina ho azy ny code.)
+  // Ny backend no loharano tokana amin'ny score sy ny fandresena manokana:
+  // target D80/D120, 40 mandeha irery, 40 indray maka, Double 6 ary Datinandro.
 
   const initializeGameHands = async (currentGame: any) => {
     const pc = Number(currentGame?.players_count ?? 2);
@@ -369,9 +368,6 @@ export default function Game() {
         hands = [d.p1, d.p2];
         boneyard = d.boneyard;
       }
-      // LOCKED: Tsy misy "instant win" amin'ny double atànana intsony. Ny lalao
-      // dia mandeha hatrany, ary izay tonga aloha amin'ny target (D80=80,
-      // D120=120) no mandresy. (Sokajy hafa rehetra nesorina.)
       // Rotation explicite ny topon'ny tour: tour 1 = player1, tour 2 = player2,
       // tour 3 = player3, dia miverina amin'ny player1. Tsy miankina amin'ny vato
       // lehibe indrindra intsony — io no mahatonga ny "mifanatrika" mateti-piverina.
@@ -383,7 +379,6 @@ export default function Game() {
         : Math.max(0, ids.indexOf(roundOpenerId(currentGame, round1)));
       const openerId = ids[openerIdxInit];
       const opener = { ...selectedOpening, playerIndex: openerIdxInit };
-      // DATINANDRO nesorina — tsy fandresena intsony.
       let board: Placed[] = [];
       let nextId = openerId;
       if (opener.forced) {
@@ -526,6 +521,23 @@ export default function Game() {
       serverResult?.instant_win ?? (targetReached || fortySolo || fortyRound || doubleSixOut || dateWin),
     );
 
+    // Asehoy avy hatrany ny score naverin'ny backend. Tsy miandry realtime na
+    // polling ny tableau, ka ilay isa tena voakajy avy amin'ny vato sisa no hita.
+    setServerGame((previous: any) => ({
+      ...(previous ?? liveGame),
+      score_p1: newScoreP1,
+      score_p2: newScoreP2,
+      score_p3: newScoreP3,
+      last_reason: serverResult?.reason ?? previous?.last_reason,
+      pending_winner_id: instantWin ? winnerId : null,
+      current_turn: null,
+      turn_started_at: null,
+      reveal_until: instantWin ? new Date().toISOString() : previous?.reveal_until,
+      status: instantWin ? "finished" : (previous?.status ?? liveGame.status),
+      winner_id: instantWin ? winnerId : previous?.winner_id,
+      updated_at: new Date().toISOString(),
+    }));
+
     // Build a human-readable "porofo" of how this round was won, for the replay banner.
     const winnerName = (profileNames[winnerId] ?? "Mpandresy");
     // Anaran'ny mpilalao resy (raha mpilalao 2)
@@ -552,7 +564,7 @@ export default function Game() {
           winnerName,
           mode,
           winnerScore: wScore,
-          points,
+          points: safePoints,
           reasonOverride,
         });
     // `loserName` voatahiry ho an'ny famaharana hafa (raha tsy ampiasaina, tsy
@@ -569,11 +581,9 @@ export default function Game() {
     setOptimistic(null);
 
     setTimeout(async () => {
-      if (instantWin) {
-        // Aorian'ny reveal fohy dia avela hanidy sy handoa vola ny backend.
-        await supabase.rpc("settle_game", { _game_id: game.id, _winner: winnerId });
-        return;
-      }
+      // Ny backend dia efa manidy sy mandoa ny lalao ao anatin'ilay transaction
+      // domino_finish_round ihany. Tsy avela hisy tour vaovao intsony rehefa win.
+      if (instantWin) return;
       const nextRound = (game.round_number ?? 1) + 1;
       const seed = `${game.ticket_number || game.id}-r${nextRound}`;
       let h1: Tile[], h2: Tile[], h3: Tile[] = [], boneyard: Tile[];
@@ -587,7 +597,6 @@ export default function Game() {
       // Mihodina automatique makany ANKAVIA isaky ny tour.
       const hands = pc === 3 ? [h1, h2, h3] : [h1, h2];
       const nextId = roundOpenerId(game, nextRound);
-      // DATINANDRO nesorina — tsy fandresena intsony.
       const updateNext: any = {
         round_number: nextRound,
         player1_hand: hands[0],
@@ -638,7 +647,6 @@ export default function Game() {
       const nextId = roundOpenerId(game, nextRound);
       setRoundBanner(`Mitovy vato — tour vaovao`);
       setTimeout(() => setRoundBanner(null), 3500);
-      // DATINANDRO nesorina — tsy fandresena intsony.
       const updateNext: any = {
         round_number: nextRound,
         player1_hand: hands[0],

@@ -209,6 +209,7 @@ export default function CrashGame() {
   // --- Error guards: never let a failed request break the loop / crash the page ---
   const ticking = useRef(false);
   const alive = useRef(true);
+  const syncSamples = useRef<{ off: number; rtt: number }[]>([]);
   useEffect(() => () => { alive.current = false; }, []);
   const safe = async <T,>(fn: () => PromiseLike<T>): Promise<T | null> => {
     try { return await fn(); } catch (e) { console.warn("[crash]", e); return null; }

@@ -290,7 +290,7 @@ export default function CrashGame() {
   // refresh bet + balance when the round settles
   useEffect(() => {
     if (round?.status === "crashed" && round.id) {
-      if (lastCrashSound.current !== round.id) { lastCrashSound.current = round.id; playExplosion(); }
+      if (lastCrashSound.current !== round.id) { lastCrashSound.current = round.id; stopEngine(); playExplosion(); }
       loadMyBet(round.id);
       loadBalance();
       loadHistory();
@@ -309,6 +309,15 @@ export default function CrashGame() {
   const canBet = round?.status === "betting" && !myBet && betCountdown > 0.4;
   const canCashout = round?.status === "running" && myBet?.status === "placed";
 
+  // Engine sound while the plane climbs
+  useEffect(() => {
+    if (round?.status === "running" && !silent) startEngine();
+    else if (round?.status !== "running") stopEngine();
+    return () => { /* keep across ticks */ };
+  }, [round?.status, silent]);
+  useEffect(() => { if (round?.status === "running") engineRise(liveMult); }, [liveMult, round?.status]);
+  useEffect(() => () => stopEngine(), []);
+
   const placeBet = async () => {
     if (!canBet || busy) return;
     if (!Number.isFinite(amount) || amount < MIN_BET || amount > MAX_BET) {
@@ -322,7 +331,10 @@ export default function CrashGame() {
     setBusy(false);
     if (!res) { toast.error("Tsy tafita — jereo ny aterineto"); return; }
     if (res.error) { toast.error(errMsg(res.error.message)); return; }
-    toast.success(`Mise ${fmtAr(amount)} voaray`);
+    // Debit visible immediately
+    setBalance((b) => Math.max(0, b - amount));
+    setBetOk(true);
+    setTimeout(() => setBetOk(false), 1400);
     if (round) loadMyBet(round.id);
     loadBalance();
   };
@@ -335,15 +347,22 @@ export default function CrashGame() {
     if (!res) { toast.error("Tsy tafita — jereo ny aterineto"); return; }
     if (res.error) { toast.error(errMsg(res.error.message)); return; }
     const out = res.data as any;
-    if (out?.ok) toast.success(`Cashout ×${Number(out.multiplier).toFixed(2)} → ${fmtAr(out.payout)}`);
-    else toast.error("Tara loatra — crash!");
+    if (out?.ok) {
+      playWin();
+      setBalance((b) => b + Number(out.payout || 0));
+      setWinFx(`+${fmtAr(Number(out.payout || 0))} · ×${Number(out.multiplier).toFixed(2)}`);
+      setTimeout(() => setWinFx(null), 2200);
+    } else toast.error("Tara loatra — crash!");
     if (round) loadMyBet(round.id);
     loadBalance();
   };
 
-  const curve = useMemo(() => buildCurve(shownMult), [shownMult]);
-  const plane = useMemo(() => curveTip(shownMult), [shownMult]);
   const crashed = round?.status === "crashed";
+  const progress = round?.status === "running"
+    ? Math.min(1, 0.08 + 0.92 * (1 - Math.exp(-Math.max(elapsed, 0) / 7)))
+    : crashed ? 1 : 0.08;
+  const curve = useMemo(() => buildCurve(shownMult, progress), [shownMult, progress]);
+  const plane = useMemo(() => curveTip(shownMult, progress), [shownMult, progress]);
 
   if (!user) {
     return (

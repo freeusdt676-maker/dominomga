@@ -225,7 +225,7 @@ export default function CrashGame() {
   const loadHistory = useCallback(async () => {
     if (!user) return;
     const res = await safe(() => Promise.all([
-      supabase.from("crash_rounds").select("*").eq("status", "crashed").order("round_no", { ascending: false }).limit(24),
+      supabase.from("crash_rounds").select("*").eq("status", "crashed").order("round_no", { ascending: false }).limit(10),
       supabase.from("crash_bets").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
     ]));
     if (!res || !alive.current) return;
@@ -286,10 +286,27 @@ export default function CrashGame() {
       loadMyBet(r.id);
       loadHistory();
       loadBalance();
+    } else if (r.status === "running") {
+      // keep slots in sync so a server-side auto cashout shows up instantly
+      loadMyBet(r.id);
     }
   }, [loadMyBet, loadHistory, loadBalance]);
 
   useEffect(() => { if (user) { tick(); loadBalance(); loadHistory(); } }, [user, tick, loadBalance, loadHistory]);
+
+  // Celebrate server-side auto cashouts (win sound + balance refresh)
+  const seenCashed = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    for (const b of roundBets) {
+      if (b.status === "cashed" && !seenCashed.current.has(b.id)) {
+        seenCashed.current.add(b.id);
+        playWin();
+        setWinFx(`+${fmtAr(Number(b.payout || 0))} · ×${Number(b.cashout_multiplier).toFixed(2)}`);
+        setTimeout(() => setWinFx(null), 2200);
+        loadBalance();
+      }
+    }
+  }, [roundBets, loadBalance]);
 
   useEffect(() => {
     const poll = setInterval(() => { if (!document.hidden) tick(); }, 900);
@@ -395,6 +412,7 @@ export default function CrashGame() {
     if (res.error) { toast.error(errMsg(res.error.message)); return; }
     const out = res.data as any;
     if (out?.ok) {
+      seenCashed.current.add(betId);
       playWin();
       setBalance((b) => b + Number(out.payout || 0));
       setWinFx(`+${fmtAr(Number(out.payout || 0))} · ×${Number(out.multiplier).toFixed(2)}`);

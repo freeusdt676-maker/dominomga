@@ -362,6 +362,7 @@ export default function Home() {
           </Link>
 
           <Link to="/tournament" className="block luxe-card p-5 group transition hover:border-[hsl(var(--gold-1)/0.5)] ring-1 ring-[hsl(var(--gold-1)/0.35)]">
+            {null}
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-xl flex items-center justify-center bg-gradient-to-br from-[#8a6c10] to-[#3a2a04] border border-[hsl(var(--gold-1)/0.5)] overflow-hidden">
                 <img src={logoTournoi} alt="Tournoi" className="w-14 h-14 object-contain" width={56} height={56} loading="lazy" />

@@ -45,6 +45,7 @@ import {
   getDominoSoloThreshold,
   getBlockedRoundResult,
 } from "@/lib/dominoRules";
+import { buildDominoWinExplanation, getDominoWinKind } from "@/lib/dominoRules";
 
 type GameState = {
   player1_hand: Tile[];
@@ -292,6 +293,7 @@ export default function Game() {
   const [flippedHand, setFlippedHand] = useState<Record<number, boolean>>({});
   const [ticketBanner, setTicketBanner] = useState<string | null>(null);
   const [roundBanner, setRoundBanner] = useState<string | null>(null);
+  const [resultExplain, setResultExplain] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
   const [isAbandoning, setIsAbandoning] = useState(false);
   const [confirmAbandon, setConfirmAbandon] = useState(false);
@@ -553,21 +555,45 @@ export default function Game() {
     // Anisan'ny sokajy "MANDRESY NY LALAO" ireto efatra ireto ihany:
     //   • TARGET (D120/D80) • SOLO (60/40 irery) • DOUBLE 6 • DATINANDRO.
     // Ny ambin'ireo (lany vato, blocage, +N isa) dia tour ihany.
-    const reason = doubleSixOut
-      ? `MANDRESY NY LALAO — MIALA DOUBLE 6 • ${winnerName}`
-      : fortySolo
-      ? `MANDRESY NY LALAO — ${getDominoSoloThreshold(mode)} MANDEHA IRERY • ${winnerName}`
-      : fortyRound
-      ? `MANDRESY NY LALAO — 40 INDRAY MAKA • ${winnerName}`
-      : dateWin
-      ? `MANDRESY NY LALAO — DATINANDRO (${dayNum} isa) • ${winnerName}`
-      : getDominoRoundReason({
+    // Vato sisa isaky ny mpilalao resy (ilaina amin'ny fanazavana "40 indray maka")
+    const handOf = (id: string | null | undefined): Tile[] => {
+      if (!id) return [];
+      if (id === liveGame.player1_id) return (liveGame.player1_hand ?? []) as Tile[];
+      if (id === liveGame.player2_id) return (liveGame.player2_hand ?? []) as Tile[];
+      if (id === liveGame.player3_id) return (liveGame.player3_hand ?? []) as Tile[];
+      return [];
+    };
+    const opponentsDetail = loserIds
+      .filter((id): id is string => !!id)
+      .map((id) => ({ name: profileNames[id] ?? "Mpilalao", pips: pipsTotal(handOf(id)) }));
+
+    const winKind = getDominoWinKind({
+      doubleSix: doubleSixOut,
+      dateWin,
+      soloWin: fortySolo,
+      fortyRound,
+      targetReached,
+    });
+    const explanation = buildDominoWinExplanation({
+      kind: winKind,
+      winnerName,
+      mode,
+      points: safePoints,
+      winnerScore: wScore,
+      dayNum,
+      opponents: opponentsDetail,
+    });
+    setResultExplain(instantWin ? explanation : null);
+
+    const reason = winKind === "round"
+      ? getDominoRoundReason({
           winnerName,
           mode,
           winnerScore: wScore,
           points: safePoints,
           reasonOverride,
-        });
+        })
+      : `MANDRESY NY LALAO — ${explanation}`;
     // `loserName` voatahiry ho an'ny famaharana hafa (raha tsy ampiasaina, tsy
     // mamotika ny build satria mety ho diso interpretation ny linter).
     void loserName;
@@ -1940,6 +1966,7 @@ export default function Game() {
             stake={stake}
             winnerName={winnerName}
             reasonText={reasonText}
+            explainText={resultExplain ?? reasonText.replace(/^MANDRESY NY LALAO — /, "")}
             myScore={myScoreNow}
             onDone={() => nav("/lobby", { replace: true })}
           />
@@ -1950,10 +1977,10 @@ export default function Game() {
 }
 
 function DominoResultOverlay({
-  draw, iWon, netGain, pot, stake, winnerName, reasonText, myScore, onDone,
+  draw, iWon, netGain, pot, stake, winnerName, reasonText, explainText, myScore, onDone,
 }: {
   draw: boolean; iWon: boolean; netGain: number; pot: number; stake: number;
-  winnerName: string; reasonText: string; myScore: number; onDone: () => void;
+  winnerName: string; reasonText: string; explainText?: string; myScore: number; onDone: () => void;
 }) {
   const [count, setCount] = useState(10);
   useEffect(() => {
@@ -2019,6 +2046,11 @@ function DominoResultOverlay({
             <p className="font-display text-xl font-bold text-yellow-100 mt-3">
               Ianao no nahatratra ny isa <b className="text-yellow-200">{myScore}</b>
             </p>
+            {explainText && (
+              <p className="mt-3 font-display text-lg font-black text-green-200 domino-win-glow domino-explain-in leading-snug">
+                ✅ {explainText}
+              </p>
+            )}
             <div className="mt-4 inline-flex flex-col items-center rounded-2xl bg-black/30 px-5 py-3 border border-yellow-200/40">
               <p className="text-xs text-yellow-100/80">Gain</p>
               <p className="font-display text-3xl font-black text-yellow-200 drop-shadow-lg">+{fmtAr(netGain)}</p>
@@ -2029,12 +2061,17 @@ function DominoResultOverlay({
           <>
             <p className="text-6xl mb-2 sad-emoji">😢</p>
             <p className="font-display text-3xl font-black text-white sad-title">Resy ianao</p>
+            {explainText && (
+              <p className="mt-2 font-display text-base font-black text-red-300 domino-explain-in leading-snug">
+                😭 {explainText}
+              </p>
+            )}
             <p className="text-sm text-white/90 mt-2">
-              {reasonText
+              {!explainText && (reasonText
                 ? <>Resy ianao satria <b>{reasonText}</b></>
                 : winnerName
                   ? <>Resy ianao satria nandresy <b>{winnerName}</b></>
-                  : null}
+                  : null)}
             </p>
             <p className="font-display text-2xl font-black text-yellow-100 mt-3">-{fmtAr(stake)}</p>
             <p className="text-[11px] text-white/80">(very ny mise napetrakao)</p>

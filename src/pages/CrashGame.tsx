@@ -45,35 +45,139 @@ const MUTE_KEY = "crash_muted";
 let muted = localStorage.getItem(MUTE_KEY) === "1";
 export const setCrashMuted = (v: boolean) => { muted = v; localStorage.setItem(MUTE_KEY, v ? "1" : "0"); };
 const ac = () => (audioCtx ??= new (window.AudioContext || (window as any).webkitAudioContext)());
+
+// --- Airplane engine loop (soft turbine) ---
+let engine: { osc: OscillatorNode[]; gain: GainNode; noise: AudioBufferSourceNode } | null = null;
+function startEngine() {
+  try {
+    if (muted || engine) return;
+    const ctx = ac();
+    if (ctx.state === "suspended") ctx.resume();
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.16, ctx.currentTime + 0.8);
+    gain.connect(ctx.destination);
+    // turbine hiss
+    const dur = 2;
+    const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.5;
+    const noise = ctx.createBufferSource();
+    noise.buffer = buf; noise.loop = true;
+    const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 900; bp.Q.value = 0.8;
+    noise.connect(bp); bp.connect(gain); noise.start();
+    const osc: OscillatorNode[] = [];
+    [90, 136].forEach((f) => {
+      const o = ctx.createOscillator(); o.type = "sawtooth"; o.frequency.value = f;
+      const g = ctx.createGain(); g.gain.value = 0.18;
+      o.connect(g); g.connect(gain); o.start(); osc.push(o);
+    });
+    engine = { osc, gain, noise };
+  } catch { /* ignore */ }
+}
+function engineRise(mult: number) {
+  try {
+    if (!engine) return;
+    const ctx = ac();
+    const k = Math.min(1, Math.log(Math.max(mult, 1)) / 2.5);
+    engine.osc.forEach((o, i) => o.frequency.setTargetAtTime((i ? 136 : 90) * (1 + k * 1.6), ctx.currentTime, 0.3));
+  } catch { /* ignore */ }
+}
+function stopEngine() {
+  try {
+    if (!engine) return;
+    const ctx = ac();
+    const e = engine; engine = null;
+    e.gain.gain.cancelScheduledValues(ctx.currentTime);
+    e.gain.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.12);
+    setTimeout(() => { try { e.osc.forEach((o) => o.stop()); e.noise.stop(); } catch { /* ignore */ } }, 500);
+  } catch { /* ignore */ }
+}
+
+// --- Win jingle (cashout) ---
+function playWin() {
+  try {
+    if (muted) return;
+    const ctx = ac();
+    if (ctx.state === "suspended") ctx.resume();
+    [[880, 0], [1174, 0.11], [1568, 0.22], [2093, 0.34]].forEach(([f, t]) => {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = "triangle"; o.frequency.value = f as number;
+      const t0 = ctx.currentTime + (t as number);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.35, t0 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.35);
+      o.connect(g); g.connect(ctx.destination); o.start(t0); o.stop(t0 + 0.4);
+    });
+    if (navigator.vibrate) navigator.vibrate([25, 40, 25]);
+  } catch { /* ignore */ }
+}
+
 function playExplosion() {
   try {
     if (muted) return;
     const ctx = ac();
     if (ctx.state === "suspended") ctx.resume();
-    const dur = 1.1;
+    // Soft "fly away" descending whoosh — tsy manaitra be
+    const dur = 0.9;
     const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
     const d = buf.getChannelData(0);
     for (let i = 0; i < d.length; i++) {
       const t = i / d.length;
-      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 2.2);
+      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 1.4) * 0.5;
     }
     const src = ctx.createBufferSource(); src.buffer = buf;
-    const lp = ctx.createBiquadFilter(); lp.type = "lowpass";
-    lp.frequency.setValueAtTime(1800, ctx.currentTime);
-    lp.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + dur);
-    const g = ctx.createGain(); g.gain.setValueAtTime(0.9, ctx.currentTime);
+    const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.Q.value = 1.1;
+    bp.frequency.setValueAtTime(1400, ctx.currentTime);
+    bp.frequency.exponentialRampToValueAtTime(220, ctx.currentTime + dur);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.28, ctx.currentTime);
     g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
-    src.connect(lp); lp.connect(g); g.connect(ctx.destination);
-    src.start();
-    // low boom
+    src.connect(bp); bp.connect(g); g.connect(ctx.destination); src.start();
+    // gentle descending tone
     const o = ctx.createOscillator(); const og = ctx.createGain();
-    o.type = "sine"; o.frequency.setValueAtTime(160, ctx.currentTime);
-    o.frequency.exponentialRampToValueAtTime(35, ctx.currentTime + 0.7);
-    og.gain.setValueAtTime(0.7, ctx.currentTime);
-    og.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
-    o.connect(og); og.connect(ctx.destination); o.start(); o.stop(ctx.currentTime + 0.85);
-    if (navigator.vibrate) navigator.vibrate([60, 40, 120]);
+    o.type = "sine"; o.frequency.setValueAtTime(420, ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + 0.8);
+    og.gain.setValueAtTime(0.22, ctx.currentTime);
+    og.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.85);
+    o.connect(og); og.connect(ctx.destination); o.start(); o.stop(ctx.currentTime + 0.9);
+    if (navigator.vibrate) navigator.vibrate(40);
   } catch { /* ignore */ }
+}
+
+// 3D-looking airplane (SVG)
+function Plane3D({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 64 64" className={className} aria-hidden>
+      <defs>
+        <linearGradient id="bodyG" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="45%" stopColor="#dbe4ef" />
+          <stop offset="100%" stopColor="#7c8798" />
+        </linearGradient>
+        <linearGradient id="wingG" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#cfd8e6" />
+          <stop offset="100%" stopColor="#5b6675" />
+        </linearGradient>
+        <linearGradient id="finG" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#f59e0b" />
+          <stop offset="100%" stopColor="#b45309" />
+        </linearGradient>
+      </defs>
+      {/* rear wings */}
+      <path d="M28 34 L10 46 L20 47 L33 39 Z" fill="url(#wingG)" opacity="0.85" />
+      <path d="M30 26 L12 16 L22 15 L34 23 Z" fill="url(#wingG)" opacity="0.7" />
+      {/* tail fin */}
+      <path d="M14 32 L6 24 L9 34 L6 42 Z" fill="url(#finG)" />
+      {/* fuselage */}
+      <path d="M8 32 Q26 24 52 30 Q58 31.5 58 32 Q58 32.5 52 34 Q26 40 8 32 Z" fill="url(#bodyG)" stroke="#4b5563" strokeWidth="0.6" />
+      {/* windows */}
+      <circle cx="46" cy="31.4" r="1.3" fill="#0ea5e9" />
+      <circle cx="40" cy="31.2" r="1" fill="#38bdf8" opacity="0.8" />
+      <circle cx="35" cy="31.2" r="1" fill="#38bdf8" opacity="0.7" />
+      {/* engine */}
+      <ellipse cx="30" cy="35.5" rx="5" ry="2.4" fill="#94a3b8" stroke="#475569" strokeWidth="0.5" />
+    </svg>
+  );
 }
 
 export default function CrashGame() {
@@ -96,6 +200,8 @@ export default function CrashGame() {
   const [silent, setSilent] = useState(() => localStorage.getItem("crash_muted") === "1");
   const lastRoundId = useRef<string | null>(null);
   const lastCrashSound = useRef<string | null>(null);
+  const [betOk, setBetOk] = useState(false);
+  const [winFx, setWinFx] = useState<string | null>(null);
 
   const serverNow = () => now + offset;
 
@@ -184,7 +290,7 @@ export default function CrashGame() {
   // refresh bet + balance when the round settles
   useEffect(() => {
     if (round?.status === "crashed" && round.id) {
-      if (lastCrashSound.current !== round.id) { lastCrashSound.current = round.id; playExplosion(); }
+      if (lastCrashSound.current !== round.id) { lastCrashSound.current = round.id; stopEngine(); playExplosion(); }
       loadMyBet(round.id);
       loadBalance();
       loadHistory();
@@ -203,6 +309,15 @@ export default function CrashGame() {
   const canBet = round?.status === "betting" && !myBet && betCountdown > 0.4;
   const canCashout = round?.status === "running" && myBet?.status === "placed";
 
+  // Engine sound while the plane climbs
+  useEffect(() => {
+    if (round?.status === "running" && !silent) startEngine();
+    else if (round?.status !== "running") stopEngine();
+    return () => { /* keep across ticks */ };
+  }, [round?.status, silent]);
+  useEffect(() => { if (round?.status === "running") engineRise(liveMult); }, [liveMult, round?.status]);
+  useEffect(() => () => stopEngine(), []);
+
   const placeBet = async () => {
     if (!canBet || busy) return;
     if (!Number.isFinite(amount) || amount < MIN_BET || amount > MAX_BET) {
@@ -216,7 +331,10 @@ export default function CrashGame() {
     setBusy(false);
     if (!res) { toast.error("Tsy tafita — jereo ny aterineto"); return; }
     if (res.error) { toast.error(errMsg(res.error.message)); return; }
-    toast.success(`Mise ${fmtAr(amount)} voaray`);
+    // Debit visible immediately
+    setBalance((b) => Math.max(0, b - amount));
+    setBetOk(true);
+    setTimeout(() => setBetOk(false), 1400);
     if (round) loadMyBet(round.id);
     loadBalance();
   };
@@ -229,15 +347,22 @@ export default function CrashGame() {
     if (!res) { toast.error("Tsy tafita — jereo ny aterineto"); return; }
     if (res.error) { toast.error(errMsg(res.error.message)); return; }
     const out = res.data as any;
-    if (out?.ok) toast.success(`Cashout ×${Number(out.multiplier).toFixed(2)} → ${fmtAr(out.payout)}`);
-    else toast.error("Tara loatra — crash!");
+    if (out?.ok) {
+      playWin();
+      setBalance((b) => b + Number(out.payout || 0));
+      setWinFx(`+${fmtAr(Number(out.payout || 0))} · ×${Number(out.multiplier).toFixed(2)}`);
+      setTimeout(() => setWinFx(null), 2200);
+    } else toast.error("Tara loatra — crash!");
     if (round) loadMyBet(round.id);
     loadBalance();
   };
 
-  const curve = useMemo(() => buildCurve(shownMult), [shownMult]);
-  const plane = useMemo(() => curveTip(shownMult), [shownMult]);
   const crashed = round?.status === "crashed";
+  const progress = round?.status === "running"
+    ? Math.min(1, 0.08 + 0.92 * (1 - Math.exp(-Math.max(elapsed, 0) / 7)))
+    : crashed ? 1 : 0.08;
+  const curve = useMemo(() => buildCurve(shownMult, progress), [shownMult, progress]);
+  const plane = useMemo(() => curveTip(shownMult, progress), [shownMult, progress]);
 
   if (!user) {
     return (
@@ -286,25 +411,42 @@ export default function CrashGame() {
                 <stop offset="100%" stopColor="#7f1d1d" stopOpacity="0.55" />
               </linearGradient>
             </defs>
-            <path d={`${curve} L 300 170 L 0 170 Z`} fill="url(#cg)" />
-            <path d={curve} fill="none" stroke="#ef4444" strokeWidth="2.5" />
+            <path d={`${curve} L ${plane.x.toFixed(1)} 170 L 0 170 Z`} fill="url(#cg)" />
+            <path d={curve} fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" />
           </svg>
           {/* Airplane flying along the curve */}
           <div
-            className="absolute pointer-events-none transition-transform duration-100"
+            className="absolute pointer-events-none"
             style={{
               left: `${(plane.x / 300) * 100}%`,
               top: `${(plane.y / 170) * 100}%`,
-              transform: `translate(-50%,-50%) rotate(${-plane.angle}deg) ${crashed ? "scale(1.15)" : ""}`,
+              transform: `translate(-50%,-50%) rotate(${-plane.angle}deg) ${crashed ? "scale(0.9)" : ""}`,
+              transition: "left 120ms linear, top 120ms linear",
+              opacity: crashed ? 0.35 : 1,
             }}
           >
-            <span
-              className={crashed ? "block text-2xl animate-ping" : "block text-2xl"}
-              style={{ filter: "drop-shadow(0 0 8px #ef4444)" }}
-            >
-              {crashed ? "💥" : "✈️"}
-            </span>
+            <Plane3D
+              className="w-14 h-14 drop-shadow-[0_6px_10px_rgba(0,0,0,0.7)]"
+            />
           </div>
+
+          {/* Bet accepted flash */}
+          {betOk && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+              <div className="animate-scale-in rounded-2xl border-2 border-emerald-400 bg-emerald-500/95 px-6 py-4 text-center shadow-[0_0_40px_rgba(16,185,129,0.8)]">
+                <p className="text-2xl font-black text-black tracking-wide">Parie accepté</p>
+                <p className="text-sm font-bold text-black/70">-{fmtAr(amount)}</p>
+              </div>
+            </div>
+          )}
+          {winFx && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+              <div className="animate-scale-in rounded-2xl border-2 border-emerald-300 bg-black/80 px-6 py-4 text-center shadow-[0_0_40px_rgba(16,185,129,0.8)]">
+                <p className="text-3xl font-black text-emerald-400">{winFx}</p>
+                <p className="text-xs font-bold text-emerald-200/80">Fandresena!</p>
+              </div>
+            </div>
+          )}
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
             <span className={`font-mono font-black tabular-nums leading-none ${round?.status === "crashed" ? "text-red-500" : "text-white"}`}
               style={{ fontSize: "clamp(2.2rem, 13vw, 4rem)" }}>
@@ -482,22 +624,23 @@ function curveY(f: number, maxM: number) {
   return 170 - ((m - 1) / (maxM - 1 || 1)) * 150 - 8;
 }
 
-export function curveTip(mult: number) {
+export function curveTip(mult: number, prog = 1) {
   const maxM = Math.max(mult, 1.2);
-  const f = 0.94;
-  const y = curveY(f, maxM);
-  const yPrev = curveY(f - 0.05, maxM);
-  const angle = (Math.atan2(yPrev - y, 0.05 * 300) * 180) / Math.PI;
-  return { x: f * 300, y, angle };
+  const p = Math.max(0.06, Math.min(1, prog));
+  const y = curveY(1, maxM);
+  const yPrev = curveY(0.94, maxM);
+  const angle = (Math.atan2(yPrev - y, 0.06 * 300 * p) * 180) / Math.PI;
+  return { x: p * 300, y, angle };
 }
 
-function buildCurve(mult: number) {
+function buildCurve(mult: number, prog = 1) {
   const pts: string[] = [];
   const steps = 40;
   const maxM = Math.max(mult, 1.2);
+  const p = Math.max(0.06, Math.min(1, prog));
   for (let i = 0; i <= steps; i++) {
     const f = i / steps;
-    const x = f * 300;
+    const x = f * 300 * p;
     const y = curveY(f, maxM);
     pts.push(`${i === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`);
   }

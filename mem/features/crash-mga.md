@@ -1,6 +1,6 @@
 ---
 name: Crash MGA
-description: Server-authoritative crash game — rounds, bets, cashout, provably fair, house = admin wallet
+description: Server-authoritative crash game — rounds, bets, cashout, provably fair, no admin commission
 type: feature
 ---
 Route `/crash` (src/pages/CrashGame.tsx). Backend is fully server-authoritative:
@@ -11,4 +11,4 @@ Route `/crash` (src/pages/CrashGame.tsx). Backend is fully server-authoritative:
 - `crash_place_bet(_amount,_auto_cashout)`: 100–10 000 Ar, one bet per round, betting phase only, active account, respects `game_blocks('crash')`.
 - UI: airplane emoji flies along the curve, explosion emoji + Web Audio boom & vibration on crash.
 - `crash_cashout()`: server recomputes multiplier from `started_at`; too late ⇒ bet lost.
-- Money: bet debits wallet → credits admin_wallets (house is counterparty); payout debits admin_wallets → credits wallet. Total conserved. Never add other credit paths.
+- Money: Crash MGA NEVER touches `admin_wallets` (no 10% commission). Bet debits the player wallet only; payout credits the player wallet only. The 10% admin commission applies to Domino, Pétanque and Ludo only.

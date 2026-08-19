@@ -57,7 +57,7 @@ export default function Rules() {
                 <li>Raha tsy misy pièce mety, maka anatin'ny pioche mandra-pahitana ny mety.</li>
                 <li>Ny voalohany mahalany ny pièce-ny no <b>nandresy</b>.</li>
                 <li>Raha "bloc", ny manana pwen kely indrindra no mandresy ny tour ary mahazo ny fitambaran'ny pwen an'ny mpanohitra rehetra; tsy isaina ny pwen-ny.</li>
-                <li><b>40 Mandeha Irery</b>: raha mahazo 40 ilay mpilalao nefa mbola 0 ny adversaire rehetra dia mandresy match avy hatrany, na D80 na D120.</li>
+                <li><b>Mandeha Irery</b>: raha mbola 0 ny adversaire rehetra — <b>D80: 40 isa</b>, <b>D120: 60 isa</b> — dia mandresy match avy hatrany.</li>
                 <li><b>40 Indray Maka</b>: raha mahazo 40 na mihoatra ao anatin'ny tour iray dia mandresy match avy hatrany, na D80 na D120.</li>
                 <li><b>Miala DOUBLE 6</b>: raha [6|6] no vato farany navoaka, <b>mandresy ny MATCH avy hatrany</b> — tsy misy adihevitra, na D80 na D120.</li>
                 <li><b>Maty 120</b>: rehefa feno 120 pwen ny pwen-n'ny lalao iray, mipoitra ny mpandresy.</li>

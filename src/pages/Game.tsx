@@ -42,6 +42,7 @@ import {
   isDominoGameWin,
   isDominoFortyRound,
   isDominoSoloWin,
+  getDominoSoloThreshold,
   getBlockedRoundResult,
 } from "@/lib/dominoRules";
 
@@ -555,7 +556,7 @@ export default function Game() {
     const reason = doubleSixOut
       ? `MANDRESY NY LALAO — MIALA DOUBLE 6 • ${winnerName}`
       : fortySolo
-      ? `MANDRESY NY LALAO — 40 MANDEHA IRERY • ${winnerName}`
+      ? `MANDRESY NY LALAO — ${getDominoSoloThreshold(mode)} MANDEHA IRERY • ${winnerName}`
       : fortyRound
       ? `MANDRESY NY LALAO — 40 INDRAY MAKA • ${winnerName}`
       : dateWin

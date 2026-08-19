@@ -335,6 +335,12 @@ export default function CrashGame() {
   useEffect(() => { if (round?.status === "running") engineRise(liveMult); }, [liveMult, round?.status]);
   useEffect(() => () => stopEngine(), []);
 
+  const parseAuto = (slot: number): number | null => {
+    const raw = (autoCashouts[slot] ?? "").trim();
+    const parsed = raw ? Number(raw.replace(",", ".")) : NaN;
+    return Number.isFinite(parsed) && parsed >= 1.01 && parsed <= 999 ? parsed : null;
+  };
+
   const placeBet = async (slot: number) => {
     const amount = amounts[slot] ?? 0;
     if (!betOpen || roundBets[slot] || busy) return;
@@ -343,9 +349,7 @@ export default function CrashGame() {
     }
     if (amount > balance) { toast.error("Tsy ampy ny solde"); return; }
     setBusy(true);
-    const raw = (autoCashouts[slot] ?? "").trim();
-    const parsed = raw ? Number(raw.replace(",", ".")) : NaN;
-    const auto = Number.isFinite(parsed) && parsed >= 1.01 && parsed <= 999 ? parsed : null;
+    const auto = parseAuto(slot);
     const res = await safe(() => supabase.rpc("crash_place_bet", { _amount: amount, _auto_cashout: auto }));
     setBusy(false);
     if (!res) { toast.error("Tsy tafita — jereo ny aterineto"); return; }
@@ -353,6 +357,29 @@ export default function CrashGame() {
     // Debit visible immediately
     setBalance((b) => Math.max(0, b - amount));
     setLastAmount(amount);
+    setBetOk(true);
+    setTimeout(() => setBetOk(false), 1400);
+    if (round) loadMyBet(round.id);
+    loadBalance();
+  };
+
+  // Place slot 1 + slot 2 together in a single atomic server call
+  const placeBoth = async () => {
+    if (!betOpen || busy || roundBets.length > 0) return;
+    const a1 = amounts[0] ?? 0, a2 = amounts[1] ?? 0;
+    for (const a of [a1, a2]) {
+      if (!Number.isFinite(a) || a < MIN_BET || a > MAX_BET) { toast.error(`Mise ${MIN_BET} – ${MAX_BET} Ar`); return; }
+    }
+    if (a1 + a2 > balance) { toast.error("Tsy ampy ny solde"); return; }
+    setBusy(true);
+    const res = await safe(() => supabase.rpc("crash_place_bet_multi", {
+      _amount1: a1, _auto1: parseAuto(0), _amount2: a2, _auto2: parseAuto(1),
+    } as any));
+    setBusy(false);
+    if (!res) { toast.error("Tsy tafita — jereo ny aterineto"); return; }
+    if (res.error) { toast.error(errMsg(res.error.message)); return; }
+    setBalance((b) => Math.max(0, b - a1 - a2));
+    setLastAmount(a1);
     setBetOk(true);
     setTimeout(() => setBetOk(false), 1400);
     if (round) loadMyBet(round.id);

@@ -358,9 +358,12 @@ export default function CrashGame() {
   };
 
   const crashed = round?.status === "crashed";
+  // The aircraft starts fully outside the lower-left corner when the run begins.
+  // It reaches a safe point inside the upper-right edge after 9s, then remains
+  // there while the server-authoritative multiplier continues to increase.
   const progress = round?.status === "running"
-    ? Math.min(1, 0.08 + 0.92 * (1 - Math.exp(-Math.max(elapsed, 0) / 7)))
-    : crashed ? 1 : 0.08;
+    ? Math.min(1, Math.max(0, elapsed) / 9)
+    : crashed ? 1 : 0;
   const curve = useMemo(() => buildCurve(shownMult, progress), [shownMult, progress]);
   const plane = useMemo(() => curveTip(shownMult, progress), [shownMult, progress]);
 
@@ -411,24 +414,30 @@ export default function CrashGame() {
                 <stop offset="100%" stopColor="#7f1d1d" stopOpacity="0.55" />
               </linearGradient>
             </defs>
-            <path d={`${curve} L ${plane.x.toFixed(1)} 170 L 0 170 Z`} fill="url(#cg)" />
-            <path d={curve} fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" />
+            {round?.status !== "betting" && (
+              <>
+                <path d={`${curve} L ${plane.x.toFixed(1)} 170 L 0 170 Z`} fill="url(#cg)" />
+                <path d={curve} fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" />
+              </>
+            )}
           </svg>
           {/* Airplane flying along the curve */}
-          <div
-            className="absolute pointer-events-none"
-            style={{
-              left: `${(plane.x / 300) * 100}%`,
-              top: `${(plane.y / 170) * 100}%`,
-              transform: `translate(-50%,-50%) rotate(${-plane.angle}deg) ${crashed ? "scale(0.9)" : ""}`,
-              transition: "left 120ms linear, top 120ms linear",
-              opacity: crashed ? 0.35 : 1,
-            }}
-          >
-            <Plane3D
-              className="w-14 h-14 drop-shadow-[0_6px_10px_rgba(0,0,0,0.7)]"
-            />
-          </div>
+          {round?.status !== "betting" && (
+            <div
+              className="absolute pointer-events-none"
+              style={{
+                left: `${(plane.x / 300) * 100}%`,
+                top: `${(plane.y / 170) * 100}%`,
+                transform: `translate(-50%,-50%) rotate(${-plane.angle}deg) ${crashed ? "scale(0.9)" : ""}`,
+                transition: "left 120ms linear, top 120ms linear",
+                opacity: crashed ? 0.35 : 1,
+              }}
+            >
+              <Plane3D
+                className="w-14 h-14 drop-shadow-[0_6px_10px_rgba(0,0,0,0.7)]"
+              />
+            </div>
+          )}
 
           {/* Bet accepted flash */}
           {betOk && (
@@ -619,30 +628,29 @@ export default function CrashGame() {
   );
 }
 
-function curveY(f: number, maxM: number) {
-  // f = 0 -> exact bottom-left corner (170), f = 1 -> top of the frame
-  const m = 1 + (maxM - 1) * Math.pow(f, 1.15);
-  return 170 - ((m - 1) / (maxM - 1 || 1)) * 158;
+function curveY(f: number) {
+  // Keep both endpoints inside the graph: exact lower-left to visible upper-right.
+  const clamped = Math.max(0, Math.min(1, f));
+  return 170 - Math.pow(clamped, 1.08) * 150;
 }
 
 export function curveTip(mult: number, prog = 1) {
-  const maxM = Math.max(mult, 1.2);
-  const p = Math.max(0.06, Math.min(1, prog));
-  const y = curveY(1, maxM);
-  const yPrev = curveY(0.94, maxM);
-  const angle = (Math.atan2(yPrev - y, 0.06 * 300 * p) * 180) / Math.PI;
-  return { x: p * 300, y, angle };
+  const p = Math.max(0, Math.min(1, prog));
+  const previous = Math.max(0, p - 0.03);
+  const y = curveY(p);
+  const yPrev = curveY(previous);
+  const angle = (Math.atan2(yPrev - y, Math.max(1, (p - previous) * 280)) * 180) / Math.PI;
+  return { x: p * 280, y, angle };
 }
 
 function buildCurve(mult: number, prog = 1) {
   const pts: string[] = [];
   const steps = 40;
-  const maxM = Math.max(mult, 1.2);
-  const p = Math.max(0.06, Math.min(1, prog));
+  const p = Math.max(0, Math.min(1, prog));
   for (let i = 0; i <= steps; i++) {
-    const f = i / steps;
-    const x = f * 300 * p;
-    const y = curveY(f, maxM);
+    const f = (i / steps) * p;
+    const x = f * 280;
+    const y = curveY(f);
     pts.push(`${i === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`);
   }
   return pts.join(" ");

@@ -30,7 +30,42 @@ const GROWTH = 0.08;
 const multAt = (elapsedSec: number) =>
   Math.max(1, Math.floor(Math.exp(GROWTH * Math.max(elapsedSec, 0)) * 100) / 100);
 
-const AMOUNTS = [500, 1000, 2000, 5000, 10000];
+const AMOUNTS = [100, 500, 1000, 5000, 10000];
+const MIN_BET = 100;
+const MAX_BET = 10000;
+
+// --- Sound (Web Audio, no assets) ---
+let audioCtx: AudioContext | null = null;
+const ac = () => (audioCtx ??= new (window.AudioContext || (window as any).webkitAudioContext)());
+function playExplosion() {
+  try {
+    const ctx = ac();
+    if (ctx.state === "suspended") ctx.resume();
+    const dur = 1.1;
+    const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) {
+      const t = i / d.length;
+      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 2.2);
+    }
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const lp = ctx.createBiquadFilter(); lp.type = "lowpass";
+    lp.frequency.setValueAtTime(1800, ctx.currentTime);
+    lp.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + dur);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.9, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    src.connect(lp); lp.connect(g); g.connect(ctx.destination);
+    src.start();
+    // low boom
+    const o = ctx.createOscillator(); const og = ctx.createGain();
+    o.type = "sine"; o.frequency.setValueAtTime(160, ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(35, ctx.currentTime + 0.7);
+    og.gain.setValueAtTime(0.7, ctx.currentTime);
+    og.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+    o.connect(og); og.connect(ctx.destination); o.start(); o.stop(ctx.currentTime + 0.85);
+    if (navigator.vibrate) navigator.vibrate([60, 40, 120]);
+  } catch { /* ignore */ }
+}
 
 export default function CrashGame() {
   const { user } = useAuth();
@@ -47,6 +82,7 @@ export default function CrashGame() {
   const [myBets, setMyBets] = useState<Bet[]>([]);
   const [busy, setBusy] = useState(false);
   const lastRoundId = useRef<string | null>(null);
+  const lastCrashSound = useRef<string | null>(null);
 
   const serverNow = () => now + offset;
 
@@ -100,6 +136,7 @@ export default function CrashGame() {
   // refresh bet + balance when the round settles
   useEffect(() => {
     if (round?.status === "crashed" && round.id) {
+      if (lastCrashSound.current !== round.id) { lastCrashSound.current = round.id; playExplosion(); }
       loadMyBet(round.id);
       loadBalance();
       loadHistory();
@@ -145,6 +182,8 @@ export default function CrashGame() {
   };
 
   const curve = useMemo(() => buildCurve(shownMult), [shownMult]);
+  const plane = useMemo(() => curveTip(shownMult), [shownMult]);
+  const crashed = round?.status === "crashed";
 
   if (!user) {
     return (
@@ -182,6 +221,22 @@ export default function CrashGame() {
             <path d={`${curve} L 300 170 L 0 170 Z`} fill="url(#cg)" />
             <path d={curve} fill="none" stroke={round?.status === "crashed" ? "#ef4444" : "#22c55e"} strokeWidth="2.5" />
           </svg>
+          {/* Airplane flying along the curve */}
+          <div
+            className="absolute pointer-events-none transition-transform duration-100"
+            style={{
+              left: `${(plane.x / 300) * 100}%`,
+              top: `${(plane.y / 170) * 100}%`,
+              transform: `translate(-50%,-50%) rotate(${-plane.angle}deg) ${crashed ? "scale(1.15)" : ""}`,
+            }}
+          >
+            <span
+              className={crashed ? "block text-2xl animate-ping" : "block text-2xl"}
+              style={{ filter: crashed ? "drop-shadow(0 0 10px #ef4444)" : "drop-shadow(0 0 6px #22c55e)" }}
+            >
+              {crashed ? "💥" : "✈️"}
+            </span>
+          </div>
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
             <span className={`font-mono font-black tabular-nums leading-none ${round?.status === "crashed" ? "text-red-500" : "text-white"}`}
               style={{ fontSize: "clamp(2.2rem, 13vw, 4rem)" }}>
@@ -227,8 +282,8 @@ export default function CrashGame() {
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-[10px] text-white/50">Mise (Ar)</label>
-              <Input type="number" inputMode="numeric" min={100} max={100000} value={amount} disabled={!canBet}
-                onChange={(e) => setAmount(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+              <Input type="number" inputMode="numeric" min={MIN_BET} max={MAX_BET} value={amount} disabled={!canBet}
+                onChange={(e) => setAmount(Math.min(MAX_BET, Math.max(0, Math.floor(Number(e.target.value) || 0))))}
                 className="bg-black/40 border-white/15 text-white h-10" />
             </div>
             <div>
@@ -245,7 +300,7 @@ export default function CrashGame() {
               {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : `CASHOUT ×${liveMult.toFixed(2)} → ${fmtAr(Math.floor((myBet?.amount ?? 0) * liveMult))}`}
             </Button>
           ) : (
-            <Button onClick={placeBet} disabled={!canBet || busy || amount < 100}
+            <Button onClick={placeBet} disabled={!canBet || busy || amount < MIN_BET || amount > MAX_BET}
               className="w-full h-14 text-lg font-black bg-amber-500 hover:bg-amber-400 text-black disabled:opacity-50">
               {busy ? <Loader2 className="w-5 h-5 animate-spin" />
                 : myBet ? (myBet.status === "placed" ? "Mise voaray — miandry départ" : myBet.status === "cashed" ? `Nahazo ${fmtAr(myBet.payout)}` : "Very ny mise")
@@ -259,7 +314,8 @@ export default function CrashGame() {
           <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>
             Provably fair — hash: <span className="font-mono break-all">{round?.server_seed_hash?.slice(0, 24)}…</span>
-            <br />Multiplicateur ×1.00 → ×999.00, marge 1%.
+            <br />Multiplicateur ×1.00 → ×999.00. Mise 100 – 10 000 Ar.
+            <br />Vokatra kisendrasendra 100% (HMAC-SHA256) — tsy misy programme, tsy misy stratégie azo antoka. Tahan'ny fandresena: système 60% / mpilalao 40%.
           </span>
         </div>
 
@@ -284,15 +340,28 @@ export default function CrashGame() {
   );
 }
 
+function curveY(f: number, maxM: number) {
+  const m = 1 + (maxM - 1) * Math.pow(f, 1.9);
+  return 170 - ((m - 1) / (maxM - 1 || 1)) * 150 - 8;
+}
+
+export function curveTip(mult: number) {
+  const maxM = Math.max(mult, 1.2);
+  const f = 0.94;
+  const y = curveY(f, maxM);
+  const yPrev = curveY(f - 0.05, maxM);
+  const angle = (Math.atan2(yPrev - y, 0.05 * 300) * 180) / Math.PI;
+  return { x: f * 300, y, angle };
+}
+
 function buildCurve(mult: number) {
   const pts: string[] = [];
   const steps = 40;
   const maxM = Math.max(mult, 1.2);
   for (let i = 0; i <= steps; i++) {
     const f = i / steps;
-    const m = 1 + (maxM - 1) * Math.pow(f, 1.9);
     const x = f * 300;
-    const y = 170 - ((m - 1) / (maxM - 1 || 1)) * 150 - 8;
+    const y = curveY(f, maxM);
     pts.push(`${i === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`);
   }
   return pts.join(" ");
@@ -304,7 +373,7 @@ function errMsg(raw: string) {
   if (raw.includes("already_bet")) return "Efa nametraka mise ianao";
   if (raw.includes("game_blocked")) return "Voasakana ny lalao Crash";
   if (raw.includes("account_not_active")) return "Tsy mbola active ny compte-nao";
-  if (raw.includes("invalid_amount")) return "Mise tsy mety (100 – 100 000 Ar)";
+  if (raw.includes("invalid_amount")) return "Mise tsy mety (100 – 10 000 Ar)";
   if (raw.includes("not_running")) return "Tsy mandeha ny tour";
   return raw;
 }

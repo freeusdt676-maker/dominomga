@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { fmtAr } from "@/lib/constants";
-import { ArrowLeft, Loader2, Rocket, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Loader2, Rocket, ShieldCheck, Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 
 type Round = {
@@ -36,9 +36,13 @@ const MAX_BET = 10000;
 
 // --- Sound (Web Audio, no assets) ---
 let audioCtx: AudioContext | null = null;
+const MUTE_KEY = "crash_muted";
+let muted = localStorage.getItem(MUTE_KEY) === "1";
+export const setCrashMuted = (v: boolean) => { muted = v; localStorage.setItem(MUTE_KEY, v ? "1" : "0"); };
 const ac = () => (audioCtx ??= new (window.AudioContext || (window as any).webkitAudioContext)());
 function playExplosion() {
   try {
+    if (muted) return;
     const ctx = ac();
     if (ctx.state === "suspended") ctx.resume();
     const dur = 1.1;
@@ -81,6 +85,7 @@ export default function CrashGame() {
   const [history, setHistory] = useState<Round[]>([]);
   const [myBets, setMyBets] = useState<Bet[]>([]);
   const [busy, setBusy] = useState(false);
+  const [silent, setSilent] = useState(() => localStorage.getItem("crash_muted") === "1");
   const lastRoundId = useRef<string | null>(null);
   const lastCrashSound = useRef<string | null>(null);
 
@@ -206,7 +211,14 @@ export default function CrashGame() {
           <h1 className="text-xl font-bold flex items-center gap-2">
             <Rocket className="w-5 h-5 text-amber-400" /> Crash MGA
           </h1>
-          <span className="ml-auto text-sm font-semibold text-amber-300">{fmtAr(balance)}</span>
+          <Button
+            size="icon" variant="ghost" className="ml-auto"
+            aria-label={silent ? "Mamoha feo" : "Mode silence"}
+            onClick={() => { const v = !silent; setSilent(v); setCrashMuted(v); }}
+          >
+            {silent ? <VolumeX className="w-5 h-5 text-white/50" /> : <Volume2 className="w-5 h-5 text-amber-400" />}
+          </Button>
+          <span className="text-sm font-semibold text-amber-300">{fmtAr(balance)}</span>
         </div>
 
         {/* Graph */}
@@ -327,7 +339,7 @@ export default function CrashGame() {
           <span>
             Provably fair — hash: <span className="font-mono break-all">{round?.server_seed_hash?.slice(0, 24)}…</span>
             <br />Multiplicateur ×1.00 → ×999.00. Mise 100 – 10 000 Ar.
-            <br />Vokatra kisendrasendra 100% (HMAC-SHA256) — tsy misy programme, tsy misy stratégie azo antoka. Tahan'ny fandresena: système 60% / mpilalao 40%.
+            <br />Vokatra kisendrasendra 100% (HMAC-SHA256) — tsy misy programme, tsy misy stratégie azo antoka.
           </span>
         </div>
 

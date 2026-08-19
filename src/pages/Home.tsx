@@ -361,8 +361,21 @@ export default function Home() {
             </div>
           </Link>
 
+          <Link to="/crash" className="block luxe-card p-5 group transition hover:border-[hsl(var(--gold-1)/0.5)] relative">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-xl flex items-center justify-center bg-gradient-to-br from-[#7a1020] to-[#2a0510] border border-[hsl(var(--gold-1)/0.3)] text-3xl">
+                🚀
+              </div>
+              <div className="flex-1">
+                <p className="eyebrow">Live · Provably fair</p>
+                <h3 className="font-serif-luxe text-2xl gold-luxe-text leading-tight">Crash MGA</h3>
+                <p className="text-xs text-muted-foreground mt-1">×1.00 → ×999 — Cashout alohan'ny crash</p>
+              </div>
+              <span className="text-[hsl(var(--gold-1))] opacity-50 group-hover:opacity-100 transition text-xl">→</span>
+            </div>
+          </Link>
+
           <Link to="/tournament" className="block luxe-card p-5 group transition hover:border-[hsl(var(--gold-1)/0.5)] ring-1 ring-[hsl(var(--gold-1)/0.35)]">
-            {null}
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-xl flex items-center justify-center bg-gradient-to-br from-[#8a6c10] to-[#3a2a04] border border-[hsl(var(--gold-1)/0.5)] overflow-hidden">
                 <img src={logoTournoi} alt="Tournoi" className="w-14 h-14 object-contain" width={56} height={56} loading="lazy" />

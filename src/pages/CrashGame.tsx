@@ -209,6 +209,7 @@ export default function CrashGame() {
   // --- Error guards: never let a failed request break the loop / crash the page ---
   const ticking = useRef(false);
   const alive = useRef(true);
+  const syncSamples = useRef<{ off: number; rtt: number }[]>([]);
   useEffect(() => () => { alive.current = false; }, []);
   const safe = async <T,>(fn: () => PromiseLike<T>): Promise<T | null> => {
     try { return await fn(); } catch (e) { console.warn("[crash]", e); return null; }
@@ -256,13 +257,28 @@ export default function CrashGame() {
   const tick = useCallback(async () => {
     if (ticking.current) return;
     ticking.current = true;
+    const t0 = Date.now();
     const res = await safe(() => supabase.rpc("crash_tick"));
+    const t1 = Date.now();
     ticking.current = false;
     if (!res || res.error || !alive.current) return;
     const r = res.data as unknown as Round;
     if (!r?.id || !r.server_now) return;
     const srvMs = new Date(r.server_now).getTime();
-    if (Number.isFinite(srvMs)) setOffset(srvMs - Date.now());
+    if (Number.isFinite(srvMs)) {
+      // Latency-compensated clock sync (NTP style): the server timestamp is taken
+      // roughly mid-flight, so add half the round trip. Keep the median of the
+      // samples with the lowest RTT so slow Wi-Fi / data links converge to the
+      // very same server clock => identical live game on every device.
+      const rtt = t1 - t0;
+      const sample = srvMs + rtt / 2 - t1;
+      const arr = syncSamples.current;
+      arr.push({ off: sample, rtt });
+      if (arr.length > 12) arr.shift();
+      const best = [...arr].sort((a, b) => a.rtt - b.rtt).slice(0, 5).map((s) => s.off).sort((a, b) => a - b);
+      const median = best[Math.floor(best.length / 2)];
+      if (Number.isFinite(median)) setOffset(median);
+    }
     setRound(r);
     if (lastRoundId.current !== r.id) {
       lastRoundId.current = r.id;
@@ -319,6 +335,12 @@ export default function CrashGame() {
   useEffect(() => { if (round?.status === "running") engineRise(liveMult); }, [liveMult, round?.status]);
   useEffect(() => () => stopEngine(), []);
 
+  const parseAuto = (slot: number): number | null => {
+    const raw = (autoCashouts[slot] ?? "").trim();
+    const parsed = raw ? Number(raw.replace(",", ".")) : NaN;
+    return Number.isFinite(parsed) && parsed >= 1.01 && parsed <= 999 ? parsed : null;
+  };
+
   const placeBet = async (slot: number) => {
     const amount = amounts[slot] ?? 0;
     if (!betOpen || roundBets[slot] || busy) return;
@@ -327,9 +349,7 @@ export default function CrashGame() {
     }
     if (amount > balance) { toast.error("Tsy ampy ny solde"); return; }
     setBusy(true);
-    const raw = (autoCashouts[slot] ?? "").trim();
-    const parsed = raw ? Number(raw.replace(",", ".")) : NaN;
-    const auto = Number.isFinite(parsed) && parsed >= 1.01 && parsed <= 999 ? parsed : null;
+    const auto = parseAuto(slot);
     const res = await safe(() => supabase.rpc("crash_place_bet", { _amount: amount, _auto_cashout: auto }));
     setBusy(false);
     if (!res) { toast.error("Tsy tafita — jereo ny aterineto"); return; }
@@ -337,6 +357,29 @@ export default function CrashGame() {
     // Debit visible immediately
     setBalance((b) => Math.max(0, b - amount));
     setLastAmount(amount);
+    setBetOk(true);
+    setTimeout(() => setBetOk(false), 1400);
+    if (round) loadMyBet(round.id);
+    loadBalance();
+  };
+
+  // Place slot 1 + slot 2 together in a single atomic server call
+  const placeBoth = async () => {
+    if (!betOpen || busy || roundBets.length > 0) return;
+    const a1 = amounts[0] ?? 0, a2 = amounts[1] ?? 0;
+    for (const a of [a1, a2]) {
+      if (!Number.isFinite(a) || a < MIN_BET || a > MAX_BET) { toast.error(`Mise ${MIN_BET} – ${MAX_BET} Ar`); return; }
+    }
+    if (a1 + a2 > balance) { toast.error("Tsy ampy ny solde"); return; }
+    setBusy(true);
+    const res = await safe(() => supabase.rpc("crash_place_bet_multi", {
+      _amount1: a1, _auto1: parseAuto(0), _amount2: a2, _auto2: parseAuto(1),
+    } as any));
+    setBusy(false);
+    if (!res) { toast.error("Tsy tafita — jereo ny aterineto"); return; }
+    if (res.error) { toast.error(errMsg(res.error.message)); return; }
+    setBalance((b) => Math.max(0, b - a1 - a2));
+    setLastAmount(a1);
     setBetOk(true);
     setTimeout(() => setBetOk(false), 1400);
     if (round) loadMyBet(round.id);
@@ -556,6 +599,15 @@ export default function CrashGame() {
             </div>
           );
         })}
+
+        {/* Place both slots at once */}
+        {betOpen && roundBets.length === 0 && (
+          <Button onClick={placeBoth} disabled={busy}
+            className="w-full h-12 text-base font-black bg-sky-500 hover:bg-sky-400 text-black disabled:opacity-50">
+            {busy ? <Loader2 className="w-5 h-5 animate-spin" />
+              : `MISE 1 + 2 MIARAKA · ${fmtAr((amounts[0] ?? 0) + (amounts[1] ?? 0))}`}
+          </Button>
+        )}
 
         {/* Provably fair */}
         <div className="rounded-xl border border-white/10 bg-black/30 p-3 text-[11px] text-white/60 flex gap-2">

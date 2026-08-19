@@ -1501,6 +1501,15 @@ export type Database = {
         Args: { _amount: number; _auto_cashout?: number }
         Returns: Json
       }
+      crash_place_bet_multi: {
+        Args: {
+          _amount1: number
+          _amount2?: number
+          _auto1?: number
+          _auto2?: number
+        }
+        Returns: Json
+      }
       crash_point_calc: {
         Args: { _k: number; _nonce: number; _seed: string; _tail: number }
         Returns: number

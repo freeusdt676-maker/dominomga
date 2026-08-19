@@ -210,16 +210,23 @@ export default function CrashGame() {
         </div>
 
         {/* Graph */}
-        <div className="relative rounded-2xl border border-white/10 bg-black/50 overflow-hidden">
+        <div
+          className="relative rounded-2xl border border-white/10 overflow-hidden"
+          style={{
+            backgroundColor: "#050a14",
+            backgroundImage:
+              "radial-gradient(1px 1px at 12% 22%, #fff, transparent), radial-gradient(1px 1px at 28% 68%, #fff, transparent), radial-gradient(1px 1px at 47% 14%, #fff, transparent), radial-gradient(1px 1px at 63% 44%, #fff, transparent), radial-gradient(1px 1px at 78% 76%, #fff, transparent), radial-gradient(1px 1px at 88% 28%, #fff, transparent), radial-gradient(1px 1px at 36% 88%, #fff, transparent)",
+          }}
+        >
           <svg viewBox="0 0 300 170" className="w-full h-[38svh] max-h-[280px]" preserveAspectRatio="none">
             <defs>
               <linearGradient id="cg" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={round?.status === "crashed" ? "#ef4444" : "#22c55e"} stopOpacity="0.45" />
-                <stop offset="100%" stopColor="#000" stopOpacity="0" />
+                <stop offset="0%" stopColor="#dc2626" stopOpacity="0.95" />
+                <stop offset="100%" stopColor="#7f1d1d" stopOpacity="0.55" />
               </linearGradient>
             </defs>
             <path d={`${curve} L 300 170 L 0 170 Z`} fill="url(#cg)" />
-            <path d={curve} fill="none" stroke={round?.status === "crashed" ? "#ef4444" : "#22c55e"} strokeWidth="2.5" />
+            <path d={curve} fill="none" stroke="#ef4444" strokeWidth="2.5" />
           </svg>
           {/* Airplane flying along the curve */}
           <div
@@ -232,7 +239,7 @@ export default function CrashGame() {
           >
             <span
               className={crashed ? "block text-2xl animate-ping" : "block text-2xl"}
-              style={{ filter: crashed ? "drop-shadow(0 0 10px #ef4444)" : "drop-shadow(0 0 6px #22c55e)" }}
+              style={{ filter: "drop-shadow(0 0 8px #ef4444)" }}
             >
               {crashed ? "💥" : "✈️"}
             </span>

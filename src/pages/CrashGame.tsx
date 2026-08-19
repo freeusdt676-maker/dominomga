@@ -498,7 +498,7 @@ export default function CrashGame() {
               </div>
             </div>
           )}
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <div className="absolute inset-x-0 top-0 flex flex-col items-center justify-start pt-3 pointer-events-none">
             <span className={`font-mono font-black tabular-nums leading-none ${round?.status === "crashed" ? "text-red-500" : "text-white"}`}
               style={{ fontSize: "clamp(2.2rem, 13vw, 4rem)" }}>
               ×{shownMult.toFixed(2)}

@@ -1213,6 +1213,7 @@ export default function Game() {
     if (!botFastPath && elapsed < TURN_TIMEOUT_SEC) return;
     const key = `${game.id}-${game.turn_started_at}-${game.current_turn}`;
     if (autoActedRef.current === key) return;
+    if (playLockRef.current) return;
     autoActedRef.current = key;
 
     (async () => {

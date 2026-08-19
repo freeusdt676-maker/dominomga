@@ -1505,7 +1505,28 @@ export type Database = {
         Args: { _nonce: number; _seed: string }
         Returns: number
       }
+      crash_round_bets: {
+        Args: { _round_id?: string }
+        Returns: {
+          amount: number
+          bet_id: string
+          cashout_multiplier: number
+          masked_phone: string
+          payout: number
+          status: string
+        }[]
+      }
       crash_tick: { Args: never; Returns: Json }
+      crash_top_gains_today: {
+        Args: never
+        Returns: {
+          amount: number
+          bet_id: string
+          cashout_multiplier: number
+          masked_phone: string
+          payout: number
+        }[]
+      }
       domino_current_turn_hand: {
         Args: { _g: Database["public"]["Tables"]["games"]["Row"] }
         Returns: Json
@@ -1587,6 +1608,7 @@ export type Database = {
         }
         Returns: Json
       }
+      mask_phone: { Args: { _phone: string }; Returns: string }
       notify_push: {
         Args: {
           _audience: string

@@ -16,39 +16,92 @@ const SAFE = new Set([0, 8, 13, 21, 26, 34, 39, 47]);
 
 type PawnRec = { seat: number; idx: number; pos: number };
 
+const HOME_ENTRY = 51;
+const FINISH = 57;
+
 function outerIndex(seat: number, pos: number): number | null {
-  if (pos >= 1 && pos <= 51) return (ENTRY[seat] + pos - 1) % 52;
+  if (pos >= 1 && pos <= HOME_ENTRY) return (ENTRY[seat] + pos - 1) % 52;
   return null;
 }
 
-function legalMoves(pawns: PawnRec[], seat: number, dv: number): number[] {
-  const legal: number[] = [];
-  pawns.filter((p) => p.seat === seat).forEach((p) => {
-    if (p.pos === 0) { if (dv === 6) legal.push(p.idx); }
-    else if (p.pos < 57 && p.pos + dv <= 57) legal.push(p.idx);
-  });
-  return legal;
+/** Cells held by a block (2+ pawns of another seat) — impassable. */
+function blockedCellsFor(pawns: PawnRec[], seat: number): Set<number> {
+  const count = new Map<string, number>();
+  for (const p of pawns) {
+    if (p.seat === seat) continue;
+    const oi = outerIndex(p.seat, p.pos);
+    if (oi == null) continue;
+    const k = `${p.seat}:${oi}`;
+    count.set(k, (count.get(k) ?? 0) + 1);
+  }
+  const blocked = new Set<number>();
+  count.forEach((n, k) => { if (n >= 2) blocked.add(Number(k.split(":")[1])); });
+  return blocked;
 }
 
-function botChoose(pawns: PawnRec[], seat: number, dv: number): number | null {
-  const opts = legalMoves(pawns, seat, dv);
+function canMovePawn(pawns: PawnRec[], seat: number, idx: number, dice: number): boolean {
+  const pw = pawns.find((p) => p.seat === seat && p.idx === idx);
+  if (!pw || dice < 1 || dice > 6 || pw.pos >= FINISH) return false;
+  const blocked = blockedCellsFor(pawns, seat);
+  if (pw.pos === 0) {
+    if (dice !== 6) return false;
+    const entry = outerIndex(seat, 1);
+    return entry == null || !blocked.has(entry);
+  }
+  const target = pw.pos + dice;
+  if (target > FINISH) return false;
+  for (let step = pw.pos + 1; step <= Math.min(target, HOME_ENTRY); step++) {
+    const oi = outerIndex(seat, step);
+    if (oi != null && blocked.has(oi)) return false;
+  }
+  return true;
+}
+
+function legalMoves(pawns: PawnRec[], seat: number, dv: number): number[] {
+  return pawns.filter((p) => p.seat === seat && canMovePawn(pawns, seat, p.idx, dv)).map((p) => p.idx);
+}
+
+function applyMove(pawns: PawnRec[], seat: number, idx: number, dice: number) {
+  if (!canMovePawn(pawns, seat, idx, dice)) return null;
+  const next = pawns.map((p) => ({ ...p }));
+  const pw = next.find((p) => p.seat === seat && p.idx === idx)!;
+  pw.pos = pw.pos === 0 ? 1 : pw.pos + dice;
+  let captured = false;
+  const oi = outerIndex(seat, pw.pos);
+  if (oi != null && !SAFE.has(oi)) {
+    for (const op of next) {
+      if (op.seat === seat) continue;
+      if (outerIndex(op.seat, op.pos) === oi) { op.pos = 0; captured = true; }
+    }
+  }
+  const finished = pw.pos === FINISH;
+  const won = next.filter((p) => p.seat === seat).every((p) => p.pos === FINISH);
+  return { pawns: next, captured, finished, extraTurn: dice === 6 || captured || finished, won };
+}
+
+function botChoose(pawns: PawnRec[], seat: number, dice: number): number | null {
+  const opts = legalMoves(pawns, seat, dice);
   if (!opts.length) return null;
   let best = -Infinity, choice = opts[0];
   for (const i of opts) {
+    const res = applyMove(pawns, seat, i, dice);
+    if (!res) continue;
     const cur = pawns.find((p) => p.seat === seat && p.idx === i)!;
-    const nextProg = cur.pos === 0 ? 1 : cur.pos + dv;
-    let score = nextProg;
-    if (nextProg === 57) score += 100;
+    const after = res.pawns.find((p) => p.seat === seat && p.idx === i)!;
+    let score = after.pos;
+    if (res.captured) score += 90;
+    if (res.finished) score += 100;
+    if (after.pos > HOME_ENTRY) score += 40;
     if (cur.pos === 0) score += 25;
-    if (nextProg > 51) score += 40;
-    if (nextProg <= 51) {
-      const target = (ENTRY[seat] + nextProg - 1) % 52;
-      if (!SAFE.has(target)) {
-        for (const opw of pawns) {
-          if (opw.seat === seat) continue;
-          const ooi = outerIndex(opw.seat, opw.pos);
-          if (ooi === target) score += 90;
-        }
+    const oi = outerIndex(seat, after.pos);
+    if (oi != null && SAFE.has(oi)) score += 15;
+    if (oi != null && !SAFE.has(oi)) {
+      for (const op of res.pawns) {
+        if (op.seat === seat) continue;
+        const ooi = outerIndex(op.seat, op.pos);
+        if (ooi == null) continue;
+        const gap = (oi - ooi + 52) % 52;
+        if (gap >= 1 && gap <= 6) score -= 12;
       }
     }
     if (score > best) { best = score; choice = i; }
@@ -136,28 +189,22 @@ Deno.serve(async (req) => {
         results.push({ id: g.id, action: "no-legal-after-roll" });
         continue;
       }
-      const pw = pawns.find((p) => p.seat === seat && p.idx === pick)!;
-      const startProg = pw.pos;
-      pw.pos = startProg === 0 ? 1 : startProg + dice;
-      let didCapture = false;
-      const didFinish = pw.pos === 57;
-      const oi = outerIndex(seat, pw.pos);
-      if (oi != null && !SAFE.has(oi)) {
-        for (const op of pawns) {
-          if (op.seat === seat) continue;
-          const ooi = outerIndex(op.seat, op.pos);
-          if (ooi === oi) { op.pos = 0; didCapture = true; }
-        }
+      const res = applyMove(pawns, seat, pick, dice);
+      if (!res) {
+        await sb.rpc("ludo_update_state", {
+          _game_id: g.id, _dice_rolled: false, _consecutive_sixes: 0,
+          _current_turn_seat: nextSeat(seats, seat), _turn_started_at: new Date().toISOString(),
+        });
+        results.push({ id: g.id, action: "illegal-skip" });
+        continue;
       }
-      const iAmWinner = pawns.filter((p) => p.seat === seat).every((x) => x.pos === 57);
-      const extra = dice === 6 || didCapture || didFinish;
       await sb.rpc("ludo_update_state", {
-        _game_id: g.id, _pawns: pawns,
-        _current_turn_seat: extra ? seat : nextSeat(seats, seat),
-        _dice_rolled: false, _consecutive_sixes: extra ? cs : 0,
+        _game_id: g.id, _pawns: res.pawns, _last_dice: dice,
+        _current_turn_seat: res.extraTurn ? seat : nextSeat(seats, seat),
+        _dice_rolled: false, _consecutive_sixes: res.extraTurn && dice === 6 ? cs : 0,
         _turn_started_at: new Date().toISOString(),
       });
-      if (iAmWinner) {
+      if (res.won) {
         const uid = userIdBySeat(g, seat);
         if (uid) await sb.rpc("ludo_settle", { _game_id: g.id, _winner: uid });
       }

@@ -739,6 +739,22 @@ export default function Game() {
     return () => clearInterval(t);
   }, []);
 
+  // Ticker haingana (250ms) rehefa AHY ny tour: mahatonga ny compte à rebours
+  // 15s ho marina tsara ary ny Bot (raha ON) handeha avy hatrany.
+  useEffect(() => {
+    if (!game || game.status !== "in_progress") return;
+    if (!user || game.current_turn !== user.id) return;
+    const t = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(t);
+  }, [game?.status, game?.current_turn, game?.turn_started_at, user?.id]);
+
+  // Rehefa vao vonoina ON ny Bot dia esorina ny "efa nanao" flag mba handeha
+  // avy hatrany amin'ny tour mandeha ankehitriny.
+  useEffect(() => {
+    if (botActive) autoActedRef.current = null;
+    setNow(Date.now());
+  }, [botActive]);
+
   // Background tick worker — mampandeha ny timer na dia minimize/tab hafa aza
   // mba hahafahan'ny bot miasa tsara rehefa active.
   useEffect(() => {

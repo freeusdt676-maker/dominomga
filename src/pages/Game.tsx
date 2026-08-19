@@ -293,6 +293,7 @@ export default function Game() {
   const [flippedHand, setFlippedHand] = useState<Record<number, boolean>>({});
   const [ticketBanner, setTicketBanner] = useState<string | null>(null);
   const [roundBanner, setRoundBanner] = useState<string | null>(null);
+  const [resultExplain, setResultExplain] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
   const [isAbandoning, setIsAbandoning] = useState(false);
   const [confirmAbandon, setConfirmAbandon] = useState(false);

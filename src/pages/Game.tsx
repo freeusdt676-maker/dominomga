@@ -1861,19 +1861,19 @@ export default function Game() {
                 </div>
               )}
             </div>
-            <div className="grid grid-cols-7 justify-items-center gap-0.5 sm:gap-1 py-0.5 sm:py-1 px-0.5 sm:px-1 w-full">
+            <div className="domino-hand-grid py-0.5 sm:py-1 px-0.5 sm:px-1">
               {myHand.map((t, i) => {
                 const placeable = canPlace(board, t) !== null;
                 const isFlipped = !!flippedHand[i];
                 const showA = isFlipped ? t[1] : t[0];
                 const showB = isFlipped ? t[0] : t[1];
                 return (
-                  <div key={i} data-hand-index={i} style={{ touchAction: "none" }}>
+                  <div key={i} data-hand-index={i} className="domino-hand-slot" style={{ touchAction: "none" }}>
                   <DominoTile
                     a={showA}
                     b={showB}
                     size={handTileSize}
-                    fluid={!isMobile}
+                    fluid
                     onPointerDown={(e) => handleHandPointerDown(i, e)}
                     onPointerMove={(e) => handleHandPointerMove(i, e)}
                     onPointerEnter={() => handleHandPointerEnter(i)}

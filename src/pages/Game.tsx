@@ -1966,6 +1966,7 @@ export default function Game() {
             stake={stake}
             winnerName={winnerName}
             reasonText={reasonText}
+            explainText={resultExplain ?? reasonText.replace(/^MANDRESY NY LALAO — /, "")}
             myScore={myScoreNow}
             onDone={() => nav("/lobby", { replace: true })}
           />
@@ -1976,10 +1977,10 @@ export default function Game() {
 }
 
 function DominoResultOverlay({
-  draw, iWon, netGain, pot, stake, winnerName, reasonText, myScore, onDone,
+  draw, iWon, netGain, pot, stake, winnerName, reasonText, explainText, myScore, onDone,
 }: {
   draw: boolean; iWon: boolean; netGain: number; pot: number; stake: number;
-  winnerName: string; reasonText: string; myScore: number; onDone: () => void;
+  winnerName: string; reasonText: string; explainText?: string; myScore: number; onDone: () => void;
 }) {
   const [count, setCount] = useState(10);
   useEffect(() => {
@@ -2045,6 +2046,11 @@ function DominoResultOverlay({
             <p className="font-display text-xl font-bold text-yellow-100 mt-3">
               Ianao no nahatratra ny isa <b className="text-yellow-200">{myScore}</b>
             </p>
+            {explainText && (
+              <p className="mt-3 font-display text-lg font-black text-green-200 domino-win-glow domino-explain-in leading-snug">
+                ✅ {explainText}
+              </p>
+            )}
             <div className="mt-4 inline-flex flex-col items-center rounded-2xl bg-black/30 px-5 py-3 border border-yellow-200/40">
               <p className="text-xs text-yellow-100/80">Gain</p>
               <p className="font-display text-3xl font-black text-yellow-200 drop-shadow-lg">+{fmtAr(netGain)}</p>
@@ -2055,12 +2061,17 @@ function DominoResultOverlay({
           <>
             <p className="text-6xl mb-2 sad-emoji">😢</p>
             <p className="font-display text-3xl font-black text-white sad-title">Resy ianao</p>
+            {explainText && (
+              <p className="mt-2 font-display text-base font-black text-red-300 domino-explain-in leading-snug">
+                😭 {explainText}
+              </p>
+            )}
             <p className="text-sm text-white/90 mt-2">
-              {reasonText
+              {!explainText && (reasonText
                 ? <>Resy ianao satria <b>{reasonText}</b></>
                 : winnerName
                   ? <>Resy ianao satria nandresy <b>{winnerName}</b></>
-                  : null}
+                  : null)}
             </p>
             <p className="font-display text-2xl font-black text-yellow-100 mt-3">-{fmtAr(stake)}</p>
             <p className="text-[11px] text-white/80">(very ny mise napetrakao)</p>

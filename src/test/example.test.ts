@@ -33,9 +33,10 @@ describe("domino rules lock", () => {
 
   it("mandeha irery raha tratra ny seuil amin'ny total score ary mbola 0 ny adversaire", () => {
     expect(getDominoSoloThreshold("d80")).toBe(40);
-    expect(getDominoSoloThreshold("d120")).toBe(40);
+    expect(getDominoSoloThreshold("d120")).toBe(60);
     expect(isDominoSoloWin(40, "d80", [0])).toBe(true);
-    expect(isDominoSoloWin(40, "d120", [0, 0])).toBe(true);
+    expect(isDominoSoloWin(60, "d120", [0, 0])).toBe(true);
+    expect(isDominoSoloWin(59, "d120", [0, 0])).toBe(false);
     expect(isDominoSoloWin(39, "d80", [0])).toBe(false);
     expect(isDominoSoloWin(60, "d120", [0, 1])).toBe(false);
     expect(isDominoSoloWin(25, "d80", [0])).toBe(false);

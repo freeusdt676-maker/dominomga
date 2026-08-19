@@ -200,6 +200,8 @@ export default function CrashGame() {
   const [silent, setSilent] = useState(() => localStorage.getItem("crash_muted") === "1");
   const lastRoundId = useRef<string | null>(null);
   const lastCrashSound = useRef<string | null>(null);
+  const [betOk, setBetOk] = useState(false);
+  const [winFx, setWinFx] = useState<string | null>(null);
 
   const serverNow = () => now + offset;
 

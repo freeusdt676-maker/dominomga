@@ -411,25 +411,42 @@ export default function CrashGame() {
                 <stop offset="100%" stopColor="#7f1d1d" stopOpacity="0.55" />
               </linearGradient>
             </defs>
-            <path d={`${curve} L 300 170 L 0 170 Z`} fill="url(#cg)" />
-            <path d={curve} fill="none" stroke="#ef4444" strokeWidth="2.5" />
+            <path d={`${curve} L ${plane.x.toFixed(1)} 170 L 0 170 Z`} fill="url(#cg)" />
+            <path d={curve} fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" />
           </svg>
           {/* Airplane flying along the curve */}
           <div
-            className="absolute pointer-events-none transition-transform duration-100"
+            className="absolute pointer-events-none"
             style={{
               left: `${(plane.x / 300) * 100}%`,
               top: `${(plane.y / 170) * 100}%`,
-              transform: `translate(-50%,-50%) rotate(${-plane.angle}deg) ${crashed ? "scale(1.15)" : ""}`,
+              transform: `translate(-50%,-50%) rotate(${-plane.angle}deg) ${crashed ? "scale(0.9)" : ""}`,
+              transition: "left 120ms linear, top 120ms linear",
+              opacity: crashed ? 0.35 : 1,
             }}
           >
-            <span
-              className={crashed ? "block text-2xl animate-ping" : "block text-2xl"}
-              style={{ filter: "drop-shadow(0 0 8px #ef4444)" }}
-            >
-              {crashed ? "💥" : "✈️"}
-            </span>
+            <Plane3D
+              className="w-14 h-14 drop-shadow-[0_6px_10px_rgba(0,0,0,0.7)]"
+            />
           </div>
+
+          {/* Bet accepted flash */}
+          {betOk && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+              <div className="animate-scale-in rounded-2xl border-2 border-emerald-400 bg-emerald-500/95 px-6 py-4 text-center shadow-[0_0_40px_rgba(16,185,129,0.8)]">
+                <p className="text-2xl font-black text-black tracking-wide">Parie accepté</p>
+                <p className="text-sm font-bold text-black/70">-{fmtAr(amount)}</p>
+              </div>
+            </div>
+          )}
+          {winFx && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+              <div className="animate-scale-in rounded-2xl border-2 border-emerald-300 bg-black/80 px-6 py-4 text-center shadow-[0_0_40px_rgba(16,185,129,0.8)]">
+                <p className="text-3xl font-black text-emerald-400">{winFx}</p>
+                <p className="text-xs font-bold text-emerald-200/80">Fandresena!</p>
+              </div>
+            </div>
+          )}
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
             <span className={`font-mono font-black tabular-nums leading-none ${round?.status === "crashed" ? "text-red-500" : "text-white"}`}
               style={{ fontSize: "clamp(2.2rem, 13vw, 4rem)" }}>

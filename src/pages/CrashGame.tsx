@@ -412,6 +412,7 @@ export default function CrashGame() {
     if (res.error) { toast.error(errMsg(res.error.message)); return; }
     const out = res.data as any;
     if (out?.ok) {
+      seenCashed.current.add(betId);
       playWin();
       setBalance((b) => b + Number(out.payout || 0));
       setWinFx(`+${fmtAr(Number(out.payout || 0))} · ×${Number(out.multiplier).toFixed(2)}`);

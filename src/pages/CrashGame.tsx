@@ -380,29 +380,6 @@ export default function CrashGame() {
     loadBalance();
   };
 
-  // Place slot 1 + slot 2 together in a single atomic server call
-  const placeBoth = async () => {
-    if (!betOpen || busy || roundBets.length > 0) return;
-    const a1 = amounts[0] ?? 0, a2 = amounts[1] ?? 0;
-    for (const a of [a1, a2]) {
-      if (!Number.isFinite(a) || a < MIN_BET || a > MAX_BET) { toast.error(`Mise ${MIN_BET} – ${MAX_BET} Ar`); return; }
-    }
-    if (a1 + a2 > balance) { toast.error("Tsy ampy ny solde"); return; }
-    setBusy(true);
-    const res = await safe(() => supabase.rpc("crash_place_bet_multi", {
-      _amount1: a1, _auto1: parseAuto(0), _amount2: a2, _auto2: parseAuto(1),
-    } as any));
-    setBusy(false);
-    if (!res) { toast.error("Tsy tafita — jereo ny aterineto"); return; }
-    if (res.error) { toast.error(errMsg(res.error.message)); return; }
-    setBalance((b) => Math.max(0, b - a1 - a2));
-    setLastAmount(a1);
-    setBetOk(true);
-    setTimeout(() => setBetOk(false), 1400);
-    if (round) loadMyBet(round.id);
-    loadBalance();
-  };
-
   const cashout = async (betId: string) => {
     if (!running || busy) return;
     setBusy(true);
@@ -560,8 +537,8 @@ export default function CrashGame() {
           {history.length === 0 && <span className="text-xs text-white/40">Tsy mbola misy historique</span>}
         </div>
 
-        {/* Two independent bet slots */}
-        {[0, 1].map((slot) => {
+        {/* Single bet slot */}
+        {[0].map((slot) => {
           const bet = roundBets[slot];
           const amount = amounts[slot] ?? 0;
           const canBetSlot = betOpen && !bet;
@@ -571,7 +548,7 @@ export default function CrashGame() {
           return (
             <div key={slot} className="rounded-2xl border border-white/10 bg-white/5 p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-white/45">Mise {slot + 1}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-white/45">Mise</span>
                 {bet && (
                   <span className={`text-[10px] font-bold ${bet.status === "cashed" ? "text-emerald-400" : bet.status === "lost" ? "text-red-400" : "text-amber-300"}`}>
                     {bet.status === "cashed" ? `×${Number(bet.cashout_multiplier).toFixed(2)}` : bet.status === "lost" ? "Very" : "Active"}
@@ -617,15 +594,6 @@ export default function CrashGame() {
             </div>
           );
         })}
-
-        {/* Place both slots at once */}
-        {betOpen && roundBets.length === 0 && (
-          <Button onClick={placeBoth} disabled={busy}
-            className="w-full h-12 text-base font-black bg-sky-500 hover:bg-sky-400 text-black disabled:opacity-50">
-            {busy ? <Loader2 className="w-5 h-5 animate-spin" />
-              : `MISE 1 + 2 MIARAKA · ${fmtAr((amounts[0] ?? 0) + (amounts[1] ?? 0))}`}
-          </Button>
-        )}
 
         {/* Provably fair */}
         <div className="rounded-xl border border-white/10 bg-black/30 p-3 text-[11px] text-white/60 flex gap-2">

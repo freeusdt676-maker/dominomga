@@ -103,7 +103,7 @@ export default function CrashGame() {
   const ticking = useRef(false);
   const alive = useRef(true);
   useEffect(() => () => { alive.current = false; }, []);
-  const safe = async <T,>(fn: () => Promise<T>): Promise<T | null> => {
+  const safe = async <T,>(fn: () => PromiseLike<T>): Promise<T | null> => {
     try { return await fn(); } catch (e) { console.warn("[crash]", e); return null; }
   };
 

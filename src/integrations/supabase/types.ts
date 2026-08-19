@@ -886,6 +886,57 @@ export type Database = {
         }
         Relationships: []
       }
+      round_ledger: {
+        Row: {
+          amount: number
+          created_at: string
+          cumulative: number
+          game_id: string
+          game_kind: string
+          id: string
+          is_final: boolean
+          is_winner: boolean
+          player_id: string
+          points: number
+          reason: string | null
+          round_number: number
+          stake: number
+          ticket_number: string | null
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          cumulative?: number
+          game_id: string
+          game_kind: string
+          id?: string
+          is_final?: boolean
+          is_winner?: boolean
+          player_id: string
+          points?: number
+          reason?: string | null
+          round_number?: number
+          stake?: number
+          ticket_number?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          cumulative?: number
+          game_id?: string
+          game_kind?: string
+          id?: string
+          is_final?: boolean
+          is_winner?: boolean
+          player_id?: string
+          points?: number
+          reason?: string | null
+          round_number?: number
+          stake?: number
+          ticket_number?: string | null
+        }
+        Relationships: []
+      }
       tournament_matches: {
         Row: {
           created_at: string
@@ -1501,6 +1552,10 @@ export type Database = {
           _phone: string
         }
         Returns: Json
+      }
+      rl_payout: {
+        Args: { _is_winner: boolean; _players: number; _stake: number }
+        Returns: number
       }
       settle_game: {
         Args: { _game_id: string; _winner: string }

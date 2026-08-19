@@ -4,8 +4,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Trash2, Trophy, Copy, Medal, Dice5, Target } from "lucide-react";
+import { ArrowLeft, Trash2, Trophy, Copy, Medal, Dice5, Target, FileDown, Wallet as WalletIcon, ListOrdered } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import PlayerMoneyHistory from "@/components/PlayerMoneyHistory";
+import PlayerRoundHistory from "@/components/PlayerRoundHistory";
+import { downloadMyPlayerReport } from "@/lib/playerReport";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -31,6 +35,7 @@ export default function Profile() {
   const [hidden, setHidden] = useState<string[]>([]);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [confirmAll, setConfirmAll] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -132,11 +137,29 @@ export default function Profile() {
     navigator.clipboard.writeText(t).then(() => toast.success(`Voa-copie: ${t}`)).catch(() => toast.error("Tsy nety ny copie"));
   };
 
+  const exportPdf = async () => {
+    if (!profile) return;
+    setExporting(true);
+    try {
+      await downloadMyPlayerReport(profile, {
+        wins, losses, played: visible.length, net: totalGain,
+      });
+      toast.success("Rapport PDF voatsindry");
+    } catch {
+      toast.error("Tsy nety ny export PDF");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen felt-bg pb-24">
       <header className="p-4 flex items-center gap-3 border-b border-primary/20">
         <Button variant="ghost" size="icon" onClick={() => nav(-1 as any)}><ArrowLeft className="w-5 h-5" /></Button>
-        <h1 className="font-display gold-text text-xl font-bold">Profile</h1>
+        <h1 className="font-display gold-text text-xl font-bold flex-1">Profile PRO</h1>
+        <Button size="sm" variant="outline" className="gap-1" disabled={exporting} onClick={exportPdf}>
+          <FileDown className="w-4 h-4" /> PDF
+        </Button>
       </header>
 
       <div className="max-w-lg mx-auto p-4 space-y-4">
@@ -174,7 +197,15 @@ export default function Profile() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between mt-4">
+        <Tabs defaultValue="games" className="mt-4">
+          <TabsList className="grid grid-cols-3 w-full">
+            <TabsTrigger value="games" className="text-xs gap-1"><Trophy className="w-3.5 h-3.5" /> Lalao</TabsTrigger>
+            <TabsTrigger value="money" className="text-xs gap-1"><WalletIcon className="w-3.5 h-3.5" /> Vola</TabsTrigger>
+            <TabsTrigger value="rounds" className="text-xs gap-1"><ListOrdered className="w-3.5 h-3.5" /> Tour</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="games" className="space-y-2 mt-3">
+        <div className="flex items-center justify-between">
           <h3 className="font-display text-lg font-bold gold-text flex items-center gap-2">
             <Trophy className="w-5 h-5" /> Historique lalao
           </h3>
@@ -328,7 +359,18 @@ export default function Profile() {
             })}
           </div>
         )}
+          </TabsContent>
 
+          <TabsContent value="money" className="mt-3">
+            <h3 className="font-display text-lg font-bold gold-text mb-2">Mouvements vola</h3>
+            <PlayerMoneyHistory userId={user.id} />
+          </TabsContent>
+
+          <TabsContent value="rounds" className="mt-3">
+            <h3 className="font-display text-lg font-bold gold-text mb-2">Comptabilité isaky ny tour</h3>
+            <PlayerRoundHistory userId={user.id} />
+          </TabsContent>
+        </Tabs>
       </div>
 
       <AlertDialog open={!!confirmId} onOpenChange={(o) => !o && setConfirmId(null)}>

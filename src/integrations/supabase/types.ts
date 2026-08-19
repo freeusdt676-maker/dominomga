@@ -1501,6 +1501,10 @@ export type Database = {
         Args: { _amount: number; _auto_cashout?: number }
         Returns: Json
       }
+      crash_point_calc: {
+        Args: { _k: number; _nonce: number; _seed: string; _tail: number }
+        Returns: number
+      }
       crash_point_from: {
         Args: { _nonce: number; _seed: string }
         Returns: number

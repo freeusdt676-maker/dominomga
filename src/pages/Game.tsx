@@ -843,9 +843,7 @@ export default function Game() {
     if (!ids.length) return;
     (async () => {
       const { data } = await supabase
-        .from("profiles")
-        .select("user_id, mvola_name, selfie_url, avatar_url")
-        .in("user_id", ids);
+        .rpc("get_public_profiles" as any, { _ids: ids });
       const m: Record<string, string> = {};
       const ph: Record<string, string | null> = {};
       (data ?? []).forEach((p: any) => {

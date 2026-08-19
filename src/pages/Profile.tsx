@@ -137,11 +137,29 @@ export default function Profile() {
     navigator.clipboard.writeText(t).then(() => toast.success(`Voa-copie: ${t}`)).catch(() => toast.error("Tsy nety ny copie"));
   };
 
+  const exportPdf = async () => {
+    if (!profile) return;
+    setExporting(true);
+    try {
+      await downloadMyPlayerReport(profile, {
+        wins, losses, played: visible.length, net: totalGain,
+      });
+      toast.success("Rapport PDF voatsindry");
+    } catch {
+      toast.error("Tsy nety ny export PDF");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen felt-bg pb-24">
       <header className="p-4 flex items-center gap-3 border-b border-primary/20">
         <Button variant="ghost" size="icon" onClick={() => nav(-1 as any)}><ArrowLeft className="w-5 h-5" /></Button>
-        <h1 className="font-display gold-text text-xl font-bold">Profile</h1>
+        <h1 className="font-display gold-text text-xl font-bold flex-1">Profile PRO</h1>
+        <Button size="sm" variant="outline" className="gap-1" disabled={exporting} onClick={exportPdf}>
+          <FileDown className="w-4 h-4" /> PDF
+        </Button>
       </header>
 
       <div className="max-w-lg mx-auto p-4 space-y-4">

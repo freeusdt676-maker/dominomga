@@ -4,8 +4,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Trash2, Trophy, Copy, Medal, Dice5, Target } from "lucide-react";
+import { ArrowLeft, Trash2, Trophy, Copy, Medal, Dice5, Target, FileDown, Wallet as WalletIcon, ListOrdered } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import PlayerMoneyHistory from "@/components/PlayerMoneyHistory";
+import PlayerRoundHistory from "@/components/PlayerRoundHistory";
+import { downloadMyPlayerReport } from "@/lib/playerReport";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -31,6 +35,7 @@ export default function Profile() {
   const [hidden, setHidden] = useState<string[]>([]);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [confirmAll, setConfirmAll] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     if (!user) return;

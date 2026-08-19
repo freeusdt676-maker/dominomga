@@ -282,8 +282,8 @@ export default function CrashGame() {
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-[10px] text-white/50">Mise (Ar)</label>
-              <Input type="number" inputMode="numeric" min={100} max={100000} value={amount} disabled={!canBet}
-                onChange={(e) => setAmount(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+              <Input type="number" inputMode="numeric" min={MIN_BET} max={MAX_BET} value={amount} disabled={!canBet}
+                onChange={(e) => setAmount(Math.min(MAX_BET, Math.max(0, Math.floor(Number(e.target.value) || 0))))}
                 className="bg-black/40 border-white/15 text-white h-10" />
             </div>
             <div>
@@ -300,7 +300,7 @@ export default function CrashGame() {
               {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : `CASHOUT ×${liveMult.toFixed(2)} → ${fmtAr(Math.floor((myBet?.amount ?? 0) * liveMult))}`}
             </Button>
           ) : (
-            <Button onClick={placeBet} disabled={!canBet || busy || amount < 100}
+            <Button onClick={placeBet} disabled={!canBet || busy || amount < MIN_BET || amount > MAX_BET}
               className="w-full h-14 text-lg font-black bg-amber-500 hover:bg-amber-400 text-black disabled:opacity-50">
               {busy ? <Loader2 className="w-5 h-5 animate-spin" />
                 : myBet ? (myBet.status === "placed" ? "Mise voaray — miandry départ" : myBet.status === "cashed" ? `Nahazo ${fmtAr(myBet.payout)}` : "Very ny mise")
@@ -314,7 +314,8 @@ export default function CrashGame() {
           <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>
             Provably fair — hash: <span className="font-mono break-all">{round?.server_seed_hash?.slice(0, 24)}…</span>
-            <br />Multiplicateur ×1.00 → ×999.00, marge 1%.
+            <br />Multiplicateur ×1.00 → ×999.00. Mise 100 – 10 000 Ar.
+            <br />Vokatra kisendrasendra 100% (HMAC-SHA256) — tsy misy programme, tsy misy stratégie azo antoka. Tahan'ny fandresena: système 60% / mpilalao 40%.
           </span>
         </div>
 

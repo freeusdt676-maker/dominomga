@@ -85,6 +85,7 @@ export default function CrashGame() {
   const [history, setHistory] = useState<Round[]>([]);
   const [myBets, setMyBets] = useState<Bet[]>([]);
   const [busy, setBusy] = useState(false);
+  const [silent, setSilent] = useState(() => localStorage.getItem("crash_muted") === "1");
   const lastRoundId = useRef<string | null>(null);
   const lastCrashSound = useRef<string | null>(null);
 
@@ -210,7 +211,14 @@ export default function CrashGame() {
           <h1 className="text-xl font-bold flex items-center gap-2">
             <Rocket className="w-5 h-5 text-amber-400" /> Crash MGA
           </h1>
-          <span className="ml-auto text-sm font-semibold text-amber-300">{fmtAr(balance)}</span>
+          <Button
+            size="icon" variant="ghost" className="ml-auto"
+            aria-label={silent ? "Mamoha feo" : "Mode silence"}
+            onClick={() => { const v = !silent; setSilent(v); setCrashMuted(v); }}
+          >
+            {silent ? <VolumeX className="w-5 h-5 text-white/50" /> : <Volume2 className="w-5 h-5 text-amber-400" />}
+          </Button>
+          <span className="text-sm font-semibold text-amber-300">{fmtAr(balance)}</span>
         </div>
 
         {/* Graph */}

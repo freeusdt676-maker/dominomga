@@ -327,7 +327,7 @@ export default function CrashGame() {
           <span>
             Provably fair — hash: <span className="font-mono break-all">{round?.server_seed_hash?.slice(0, 24)}…</span>
             <br />Multiplicateur ×1.00 → ×999.00. Mise 100 – 10 000 Ar.
-            <br />Vokatra kisendrasendra 100% (HMAC-SHA256) — tsy misy programme, tsy misy stratégie azo antoka. Tahan'ny fandresena: système 60% / mpilalao 40%.
+            <br />Vokatra kisendrasendra 100% (HMAC-SHA256) — tsy misy programme, tsy misy stratégie azo antoka.
           </span>
         </div>
 

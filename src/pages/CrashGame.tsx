@@ -256,13 +256,28 @@ export default function CrashGame() {
   const tick = useCallback(async () => {
     if (ticking.current) return;
     ticking.current = true;
+    const t0 = Date.now();
     const res = await safe(() => supabase.rpc("crash_tick"));
+    const t1 = Date.now();
     ticking.current = false;
     if (!res || res.error || !alive.current) return;
     const r = res.data as unknown as Round;
     if (!r?.id || !r.server_now) return;
     const srvMs = new Date(r.server_now).getTime();
-    if (Number.isFinite(srvMs)) setOffset(srvMs - Date.now());
+    if (Number.isFinite(srvMs)) {
+      // Latency-compensated clock sync (NTP style): the server timestamp is taken
+      // roughly mid-flight, so add half the round trip. Keep the median of the
+      // samples with the lowest RTT so slow Wi-Fi / data links converge to the
+      // very same server clock => identical live game on every device.
+      const rtt = t1 - t0;
+      const sample = srvMs + rtt / 2 - t1;
+      const arr = syncSamples.current;
+      arr.push({ off: sample, rtt });
+      if (arr.length > 12) arr.shift();
+      const best = [...arr].sort((a, b) => a.rtt - b.rtt).slice(0, 5).map((s) => s.off).sort((a, b) => a - b);
+      const median = best[Math.floor(best.length / 2)];
+      if (Number.isFinite(median)) setOffset(median);
+    }
     setRound(r);
     if (lastRoundId.current !== r.id) {
       lastRoundId.current = r.id;

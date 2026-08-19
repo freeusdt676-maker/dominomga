@@ -30,7 +30,42 @@ const GROWTH = 0.08;
 const multAt = (elapsedSec: number) =>
   Math.max(1, Math.floor(Math.exp(GROWTH * Math.max(elapsedSec, 0)) * 100) / 100);
 
-const AMOUNTS = [500, 1000, 2000, 5000, 10000];
+const AMOUNTS = [100, 500, 1000, 5000, 10000];
+const MIN_BET = 100;
+const MAX_BET = 10000;
+
+// --- Sound (Web Audio, no assets) ---
+let audioCtx: AudioContext | null = null;
+const ac = () => (audioCtx ??= new (window.AudioContext || (window as any).webkitAudioContext)());
+function playExplosion() {
+  try {
+    const ctx = ac();
+    if (ctx.state === "suspended") ctx.resume();
+    const dur = 1.1;
+    const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) {
+      const t = i / d.length;
+      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 2.2);
+    }
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const lp = ctx.createBiquadFilter(); lp.type = "lowpass";
+    lp.frequency.setValueAtTime(1800, ctx.currentTime);
+    lp.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + dur);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.9, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    src.connect(lp); lp.connect(g); g.connect(ctx.destination);
+    src.start();
+    // low boom
+    const o = ctx.createOscillator(); const og = ctx.createGain();
+    o.type = "sine"; o.frequency.setValueAtTime(160, ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(35, ctx.currentTime + 0.7);
+    og.gain.setValueAtTime(0.7, ctx.currentTime);
+    og.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+    o.connect(og); og.connect(ctx.destination); o.start(); o.stop(ctx.currentTime + 0.85);
+    if (navigator.vibrate) navigator.vibrate([60, 40, 120]);
+  } catch { /* ignore */ }
+}
 
 export default function CrashGame() {
   const { user } = useAuth();
@@ -47,6 +82,7 @@ export default function CrashGame() {
   const [myBets, setMyBets] = useState<Bet[]>([]);
   const [busy, setBusy] = useState(false);
   const lastRoundId = useRef<string | null>(null);
+  const lastCrashSound = useRef<string | null>(null);
 
   const serverNow = () => now + offset;
 
@@ -100,6 +136,7 @@ export default function CrashGame() {
   // refresh bet + balance when the round settles
   useEffect(() => {
     if (round?.status === "crashed" && round.id) {
+      if (lastCrashSound.current !== round.id) { lastCrashSound.current = round.id; playExplosion(); }
       loadMyBet(round.id);
       loadBalance();
       loadHistory();
@@ -145,6 +182,8 @@ export default function CrashGame() {
   };
 
   const curve = useMemo(() => buildCurve(shownMult), [shownMult]);
+  const plane = useMemo(() => curveTip(shownMult), [shownMult]);
+  const crashed = round?.status === "crashed";
 
   if (!user) {
     return (

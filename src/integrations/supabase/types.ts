@@ -113,6 +113,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
+          {
+            foreignKeyName: "challenges_from_user_profile_fkey"
+            columns: ["from_user"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       chat_messages: {
@@ -1319,7 +1326,42 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      profiles_public: {
+        Row: {
+          account_status: Database["public"]["Enums"]["account_status"] | null
+          avatar_url: string | null
+          is_online: boolean | null
+          last_seen: string | null
+          mvola_name: string | null
+          phone_masked: string | null
+          player_number: number | null
+          selfie_url: string | null
+          user_id: string | null
+        }
+        Insert: {
+          account_status?: Database["public"]["Enums"]["account_status"] | null
+          avatar_url?: string | null
+          is_online?: boolean | null
+          last_seen?: string | null
+          mvola_name?: string | null
+          phone_masked?: never
+          player_number?: number | null
+          selfie_url?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          account_status?: Database["public"]["Enums"]["account_status"] | null
+          avatar_url?: string | null
+          is_online?: boolean | null
+          last_seen?: string | null
+          mvola_name?: string | null
+          phone_masked?: never
+          player_number?: number | null
+          selfie_url?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       accept_challenge_start_game: {

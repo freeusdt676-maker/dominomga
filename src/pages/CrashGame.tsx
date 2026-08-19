@@ -294,6 +294,20 @@ export default function CrashGame() {
 
   useEffect(() => { if (user) { tick(); loadBalance(); loadHistory(); } }, [user, tick, loadBalance, loadHistory]);
 
+  // Celebrate server-side auto cashouts (win sound + balance refresh)
+  const seenCashed = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    for (const b of roundBets) {
+      if (b.status === "cashed" && !seenCashed.current.has(b.id)) {
+        seenCashed.current.add(b.id);
+        playWin();
+        setWinFx(`+${fmtAr(Number(b.payout || 0))} · ×${Number(b.cashout_multiplier).toFixed(2)}`);
+        setTimeout(() => setWinFx(null), 2200);
+        loadBalance();
+      }
+    }
+  }, [roundBets, loadBalance]);
+
   useEffect(() => {
     const poll = setInterval(() => { if (!document.hidden) tick(); }, 900);
     const frame = setInterval(() => setNow(Date.now()), 60);

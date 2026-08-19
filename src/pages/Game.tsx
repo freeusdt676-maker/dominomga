@@ -314,6 +314,7 @@ export default function Game() {
   const turnAnchorRef = useRef<{ key: string; at: number }>({ key: "", at: 0 });
   const watchdogNudgeRef = useRef<string | null>(null);
   const initLockRef = useRef(false);
+  const playLockRef = useRef(false);
   const roundEndLockRef = useRef<string | null>(null);
   const revealCommitRef = useRef<string | null>(null);
   const isMobile = useIsMobile();

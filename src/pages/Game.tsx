@@ -983,9 +983,19 @@ export default function Game() {
 
   const tryPlay = async (idx: number, side?: "left" | "right") => {
     if (!isMyTurn || !game || !user) return;
+    if (playLockRef.current) return;
     const tile = myHand[idx];
     const possible = canPlace(board, tile);
     if (!possible) return;
+    // Fiarovana: raha efa misy io vato io eo ambony latabatra, aza apetraka indroa.
+    const onBoardAlready = board.some(
+      (p) =>
+        (p.tile[0] === tile[0] && p.tile[1] === tile[1]) ||
+        (p.tile[0] === tile[1] && p.tile[1] === tile[0]),
+    );
+    if (onBoardAlready) return;
+    playLockRef.current = true;
+    try {
     let chosenSide: "left" | "right" = side ?? (possible === "either" ? "right" : possible);
     if (possible !== "either" && side && side !== possible) {
       return;

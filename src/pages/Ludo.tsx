@@ -8,6 +8,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { fmtAr } from "@/lib/constants";
+import {
+  type PawnRec,
+  legalMovesFor,
+  applyMove,
+  chooseBestMove,
+} from "@/lib/ludoRules";
 
 /* =========================================================
    LUDO — offline solo vs 3 bots
@@ -318,45 +324,14 @@ function Board({ players, activeColor, onPickPawn, movable }: {
 }
 
 /* ==================== Game logic ==================== */
-function legalMoves(player: Player, dice: number): number[] {
-  const legal: number[] = [];
-  player.pawns.forEach((p, i) => {
-    if (p.progress === 0) {
-      if (dice === 6) legal.push(i);
-    } else if (p.progress < 57) {
-      if (p.progress + dice <= 57) legal.push(i);
-    }
-  });
-  return legal;
+/** Pawn records (seat-based) — ilain'ny fitsipika iraisana amin'ny serveur. */
+function toPawnRecs(players: Player[]): PawnRec[] {
+  const out: PawnRec[] = [];
+  players.forEach((pl) => pl.pawns.forEach((p, i) => out.push({ seat: pl.seat, idx: i, pos: p.progress })));
+  return out;
 }
-
-function botChoose(player: Player, dice: number, others: Player[]): number | null {
-  const opts = legalMoves(player, dice);
-  if (!opts.length) return null;
-  // Score: capture > finish > enter home column > leave yard > advance
-  let best = -Infinity, choice = opts[0];
-  for (const i of opts) {
-    const cur = player.pawns[i];
-    const nextProg = cur.progress === 0 ? 1 : cur.progress + dice;
-    let score = nextProg; // prefer advanced
-    if (nextProg === 57) score += 100;
-    if (cur.progress === 0) score += 25;
-    if (nextProg > 51) score += 40;
-    // capture?
-    if (nextProg <= 51) {
-      const targetIdx = (ENTRY[player.color] + nextProg - 1) % 52;
-      if (!SAFE.has(targetIdx)) {
-        for (const opp of others) {
-          for (const op of opp.pawns) {
-            const oi = outerIndex(opp.color, op.progress);
-            if (oi === targetIdx) score += 90;
-          }
-        }
-      }
-    }
-    if (score > best) { best = score; choice = i; }
-  }
-  return choice;
+function legalMoves(players: Player[], seat: number, dice: number): number[] {
+  return legalMovesFor(toPawnRecs(players), seat, dice);
 }
 
 function winnerOf(p: Player): boolean {
@@ -679,8 +654,19 @@ export default function LudoPage() {
     if (!row || !isMyTurn || !row.dice_rolled || row.winner_id) { setMovable(new Set()); return; }
     const me = players.find((p) => p.seat === mySeat);
     if (!me) return;
-    const legal = legalMoves(me, row.last_dice ?? 0);
+    const legal = legalMoves(players, me.seat, row.last_dice ?? 0);
     setMovable(new Set(legal));
+    // Tsy misy move azo atao (voatampin'ny block, na mihoatra ny 57) → mandalo ho azy.
+    if (legal.length === 0 && !rpcBusy.current) {
+      const dv = row.last_dice ?? 0;
+      rpcBusy.current = true;
+      void commit({
+        dice_rolled: false,
+        consecutive_sixes: dv === 6 ? Number(row.consecutive_sixes ?? 0) : 0,
+        current_turn_seat: dv === 6 ? me.seat : nextSeatOf(me.seat),
+        turn_started_at: new Date().toISOString(),
+      }).finally(() => { rpcBusy.current = false; });
+    }
   }, [row, isMyTurn, players, mySeat]);
 
   // Countdown driven by server turn_started_at
@@ -756,7 +742,7 @@ export default function LudoPage() {
       rpcBusy.current = false;
       return;
     }
-    const legal = legalMoves(current, v);
+    const legal = legalMoves(players, current.seat, v);
     if (legal.length === 0) {
       // No move — if it was a 6 keep the turn but let re-roll; otherwise pass
       if (v === 6) {
@@ -772,53 +758,50 @@ export default function LudoPage() {
     }
     // Legal moves exist — mark rolled, wait for pick
     await commit({ last_dice: v, dice_rolled: true, consecutive_sixes: newSix });
+    // Raha iray ihany ny safidy dia alefa avy hatrany (toy ny Ludo tena izy).
+    if (legal.length === 1) {
+      setTimeout(() => { void movePawnWith(legal[0], v, newSix); }, 350);
+    }
     rpcBusy.current = false;
+  };
+
+  /** Mampihatra ny move amin'ny fitsipika iraisana (capture, block, isa marina). */
+  const movePawnWith = async (pawnIdx: number, dv: number, sixes: number) => {
+    if (!row || !current || rpcBusy.current) return;
+    rpcBusy.current = true;
+    setMovable(new Set());
+    try {
+      const before = toPawnRecs(players);
+      const startProg = before.find((p) => p.seat === current.seat && p.idx === pawnIdx)?.pos ?? 0;
+      const res = applyMove(before, current.seat, pawnIdx, dv);
+      if (!res) { toast.error("Tsy azo alefa io pion io"); return; }
+      const landed = res.pawns.find((p) => p.seat === current.seat && p.idx === pawnIdx)!.pos;
+      if (startProg === 0) sfx.leave();
+      else if (landed === 52) sfx.enterHome();
+      else sfx.step();
+      if (res.captured) sfx.capture();
+      if (res.finished) sfx.home();
+      await commit({
+        pawns: res.pawns,
+        last_dice: dv,
+        current_turn_seat: res.extraTurn ? current.seat : nextSeatOf(current.seat),
+        dice_rolled: false,
+        consecutive_sixes: res.extraTurn && dv === 6 ? sixes : 0,
+        turn_started_at: new Date().toISOString(),
+      });
+      if (res.won && user) {
+        sfx.win();
+        await supabase.rpc("ludo_settle" as any, { _game_id: id, _winner: user.id });
+      }
+    } finally {
+      rpcBusy.current = false;
+    }
   };
 
   const movePawn = async (pawnIdx: number) => {
     if (!row || !current || !isMyTurn || !row.dice_rolled) return;
-    if (rpcBusy.current) return;
     if (!movable.has(pawnIdx)) return;
-    rpcBusy.current = true;
-    setMovable(new Set());
-    const dv = row.last_dice ?? 0;
-    // Compute new pawns state
-    const next = players.map((p) => ({ ...p, pawns: p.pawns.map((x) => ({ ...x })) }));
-    const me = next.find((p) => p.seat === current.seat)!;
-    const pw = me.pawns[pawnIdx];
-    const startProg = pw.progress;
-    pw.progress = startProg === 0 ? 1 : startProg + dv;
-    // Capture
-    let didCapture = false, didFinish = pw.progress === 57;
-    const oi = outerIndex(me.color, pw.progress);
-    if (oi != null && !SAFE.has(oi)) {
-      next.forEach((op) => {
-        if (op.seat === me.seat) return;
-        op.pawns.forEach((opw) => {
-          const ooi = outerIndex(op.color, opw.progress);
-          if (ooi === oi) { opw.progress = 0; didCapture = true; }
-        });
-      });
-    }
-    if (startProg === 0) sfx.leave();
-    else if (pw.progress === 52) sfx.enterHome();
-    else sfx.step();
-    if (didCapture) sfx.capture();
-    if (didFinish) sfx.home();
-    const pawnsJson = playersToPawnsJson(next);
-    const iAmWinner = me.pawns.every((x) => x.progress === 57);
-    const extra = dv === 6 || didCapture || didFinish;
-    const nextSeat = extra ? current.seat : nextSeatOf(current.seat);
-    await commit({
-      pawns: pawnsJson, current_turn_seat: nextSeat, dice_rolled: false,
-      consecutive_sixes: extra ? (row.consecutive_sixes ?? 0) : 0,
-      turn_started_at: new Date().toISOString(),
-    });
-    if (iAmWinner && user) {
-      sfx.win();
-      await supabase.rpc("ludo_settle" as any, { _game_id: id, _winner: user.id });
-    }
-    rpcBusy.current = false;
+    await movePawnWith(pawnIdx, row.last_dice ?? 0, Number(row.consecutive_sixes ?? 0));
   };
 
   const autoPlayExpiredTurn = async () => {
@@ -846,7 +829,7 @@ export default function LudoPage() {
           return;
         }
 
-        const legal = legalMoves(actingPlayer, dice);
+        const legal = legalMoves(players, actingPlayer.seat, dice);
         if (legal.length === 0) {
           await commit(dice === 6
             ? { last_dice: dice, dice_rolled: false, consecutive_sixes: consecutiveSixes, turn_started_at: new Date().toISOString() }
@@ -855,7 +838,8 @@ export default function LudoPage() {
         }
       }
 
-      const choice = botChoose(actingPlayer, dice, players.filter((p) => p.seat !== actingPlayer.seat));
+      const recs = toPawnRecs(players);
+      const choice = chooseBestMove(recs, actingPlayer.seat, dice);
       if (choice == null) {
         await commit({
           dice_rolled: false,
@@ -866,34 +850,17 @@ export default function LudoPage() {
         return;
       }
 
-      const next = players.map((p) => ({ ...p, pawns: p.pawns.map((x) => ({ ...x })) }));
-      const me = next.find((p) => p.seat === actingPlayer.seat)!;
-      const pw = me.pawns[choice];
-      pw.progress = pw.progress === 0 ? 1 : pw.progress + dice;
-
-      let didCapture = false;
-      const didFinish = pw.progress === 57;
-      const oi = outerIndex(me.color, pw.progress);
-      if (oi != null && !SAFE.has(oi)) {
-        next.forEach((op) => {
-          if (op.seat === me.seat) return;
-          op.pawns.forEach((opw) => {
-            if (outerIndex(op.color, opw.progress) === oi) { opw.progress = 0; didCapture = true; }
-          });
-        });
-      }
-
-      const iAmWinner = me.pawns.every((x) => x.progress === 57);
-      const extra = dice === 6 || didCapture || didFinish;
+      const res = applyMove(recs, actingPlayer.seat, choice, dice);
+      if (!res) return;
       await commit({
-        pawns: playersToPawnsJson(next),
+        pawns: res.pawns,
         last_dice: dice,
-        current_turn_seat: extra ? actingPlayer.seat : nextSeatOf(actingPlayer.seat),
+        current_turn_seat: res.extraTurn ? actingPlayer.seat : nextSeatOf(actingPlayer.seat),
         dice_rolled: false,
-        consecutive_sixes: extra ? consecutiveSixes : 0,
+        consecutive_sixes: res.extraTurn && dice === 6 ? consecutiveSixes : 0,
         turn_started_at: new Date().toISOString(),
       });
-      if (iAmWinner && actingPlayer.userId) {
+      if (res.won && actingPlayer.userId) {
         await supabase.rpc("ludo_settle" as any, { _game_id: id, _winner: actingPlayer.userId });
       }
     } finally {

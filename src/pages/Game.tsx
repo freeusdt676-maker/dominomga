@@ -1064,6 +1064,9 @@ export default function Game() {
       piece: { tile, flipped: chosenSide === "left" ? tile[1] !== (ends(board)?.left ?? tile[1]) : tile[0] !== (ends(board)?.right ?? tile[0]) },
       side: chosenSide,
     });
+    } finally {
+      playLockRef.current = false;
+    }
   };
 
   const handleTileTap = (idx: number) => {

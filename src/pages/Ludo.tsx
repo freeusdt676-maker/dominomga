@@ -662,7 +662,7 @@ export default function LudoPage() {
     if (!row || !isMyTurn || !row.dice_rolled || row.winner_id) { setMovable(new Set()); return; }
     const me = players.find((p) => p.seat === mySeat);
     if (!me) return;
-    const legal = legalMoves(me, row.last_dice ?? 0);
+    const legal = legalMoves(players, me.seat, row.last_dice ?? 0);
     setMovable(new Set(legal));
   }, [row, isMyTurn, players, mySeat]);
 

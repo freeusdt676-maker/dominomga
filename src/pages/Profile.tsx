@@ -197,7 +197,15 @@ export default function Profile() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between mt-4">
+        <Tabs defaultValue="games" className="mt-4">
+          <TabsList className="grid grid-cols-3 w-full">
+            <TabsTrigger value="games" className="text-xs gap-1"><Trophy className="w-3.5 h-3.5" /> Lalao</TabsTrigger>
+            <TabsTrigger value="money" className="text-xs gap-1"><WalletIcon className="w-3.5 h-3.5" /> Vola</TabsTrigger>
+            <TabsTrigger value="rounds" className="text-xs gap-1"><ListOrdered className="w-3.5 h-3.5" /> Tour</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="games" className="space-y-2 mt-3">
+        <div className="flex items-center justify-between">
           <h3 className="font-display text-lg font-bold gold-text flex items-center gap-2">
             <Trophy className="w-5 h-5" /> Historique lalao
           </h3>

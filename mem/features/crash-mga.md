@@ -12,3 +12,4 @@ Route `/crash` (src/pages/CrashGame.tsx). Backend is fully server-authoritative:
 - UI: airplane emoji flies along the curve, explosion emoji + Web Audio boom & vibration on crash.
 - `crash_cashout()`: server recomputes multiplier from `started_at`; too late ⇒ bet lost.
 - Money: Crash MGA NEVER touches `admin_wallets` (no 10% commission). Bet debits the player wallet only; payout credits the player wallet only. The 10% admin commission applies to Domino, Pétanque and Ludo only.
+- UI: never display the house/player win ratio in the app (user-mandated secret). Sound has a mute toggle (localStorage 'crash_muted').

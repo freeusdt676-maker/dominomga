@@ -113,13 +113,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
-          {
-            foreignKeyName: "challenges_from_user_profile_fkey"
-            columns: ["from_user"]
-            isOneToOne: false
-            referencedRelation: "profiles_public"
-            referencedColumns: ["user_id"]
-          },
         ]
       }
       chat_messages: {
@@ -1326,42 +1319,7 @@ export type Database = {
       }
     }
     Views: {
-      profiles_public: {
-        Row: {
-          account_status: Database["public"]["Enums"]["account_status"] | null
-          avatar_url: string | null
-          is_online: boolean | null
-          last_seen: string | null
-          mvola_name: string | null
-          phone_masked: string | null
-          player_number: number | null
-          selfie_url: string | null
-          user_id: string | null
-        }
-        Insert: {
-          account_status?: Database["public"]["Enums"]["account_status"] | null
-          avatar_url?: string | null
-          is_online?: boolean | null
-          last_seen?: string | null
-          mvola_name?: string | null
-          phone_masked?: never
-          player_number?: number | null
-          selfie_url?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          account_status?: Database["public"]["Enums"]["account_status"] | null
-          avatar_url?: string | null
-          is_online?: boolean | null
-          last_seen?: string | null
-          mvola_name?: string | null
-          phone_masked?: never
-          player_number?: number | null
-          selfie_url?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       accept_challenge_start_game: {
@@ -1622,6 +1580,19 @@ export type Database = {
       expire_stale_waiting_games: { Args: never; Returns: Json }
       game_blocked: { Args: { _game_type: string }; Returns: boolean }
       get_admin_id: { Args: never; Returns: string }
+      get_public_profiles: {
+        Args: { _ids: string[] }
+        Returns: {
+          avatar_url: string
+          is_online: boolean
+          last_seen: string
+          mvola_name: string
+          phone_masked: string
+          player_number: number
+          selfie_url: string
+          user_id: string
+        }[]
+      }
       get_recovery_status: {
         Args: { _phone: string; _request_id: string }
         Returns: Json

@@ -266,7 +266,7 @@ export default function CrashGame() {
     setRound(r);
     if (lastRoundId.current !== r.id) {
       lastRoundId.current = r.id;
-      setMyBet(null);
+      setRoundBets([]);
       loadMyBet(r.id);
       loadHistory();
       loadBalance();
@@ -307,8 +307,8 @@ export default function CrashGame() {
   const nextCountdown = round?.status === "crashed" && round.next_at
     ? Math.max(0, (new Date(round.next_at).getTime() - serverNow()) / 1000) : 0;
 
-  const canBet = round?.status === "betting" && !myBet && betCountdown > 0.4;
-  const canCashout = round?.status === "running" && myBet?.status === "placed";
+  const betOpen = round?.status === "betting" && betCountdown > 0.4;
+  const running = round?.status === "running";
 
   // Engine sound while the plane climbs
   useEffect(() => {
@@ -319,14 +319,16 @@ export default function CrashGame() {
   useEffect(() => { if (round?.status === "running") engineRise(liveMult); }, [liveMult, round?.status]);
   useEffect(() => () => stopEngine(), []);
 
-  const placeBet = async () => {
-    if (!canBet || busy) return;
+  const placeBet = async (slot: number) => {
+    const amount = amounts[slot] ?? 0;
+    if (!betOpen || roundBets[slot] || busy) return;
     if (!Number.isFinite(amount) || amount < MIN_BET || amount > MAX_BET) {
       toast.error(`Mise ${MIN_BET} – ${MAX_BET} Ar`); return;
     }
     if (amount > balance) { toast.error("Tsy ampy ny solde"); return; }
     setBusy(true);
-    const parsed = autoCashout.trim() ? Number(autoCashout.replace(",", ".")) : NaN;
+    const raw = (autoCashouts[slot] ?? "").trim();
+    const parsed = raw ? Number(raw.replace(",", ".")) : NaN;
     const auto = Number.isFinite(parsed) && parsed >= 1.01 && parsed <= 999 ? parsed : null;
     const res = await safe(() => supabase.rpc("crash_place_bet", { _amount: amount, _auto_cashout: auto }));
     setBusy(false);
@@ -334,16 +336,17 @@ export default function CrashGame() {
     if (res.error) { toast.error(errMsg(res.error.message)); return; }
     // Debit visible immediately
     setBalance((b) => Math.max(0, b - amount));
+    setLastAmount(amount);
     setBetOk(true);
     setTimeout(() => setBetOk(false), 1400);
     if (round) loadMyBet(round.id);
     loadBalance();
   };
 
-  const cashout = async () => {
-    if (!canCashout || busy) return;
+  const cashout = async (betId: string) => {
+    if (!running || busy) return;
     setBusy(true);
-    const res = await safe(() => supabase.rpc("crash_cashout"));
+    const res = await safe(() => supabase.rpc("crash_cashout", { _bet_id: betId } as any));
     setBusy(false);
     if (!res) { toast.error("Tsy tafita — jereo ny aterineto"); return; }
     if (res.error) { toast.error(errMsg(res.error.message)); return; }

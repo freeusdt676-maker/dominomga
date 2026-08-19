@@ -3,10 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Radio, Users, Coins, Hash, Loader2 } from "lucide-react";
+import { Radio, Users, Coins, Hash, Loader2, Plane } from "lucide-react";
 import { fmtAr } from "@/lib/constants";
 
 type GameType = "domino" | "ludo" | "petanque";
+type TabKey = GameType | "crash";
 
 type Row = {
   id: string;
@@ -33,6 +34,90 @@ const LABELS: Record<GameType, string> = {
 function shortTick(id: string, ticket: string | null) {
   if (ticket) return ticket;
   return id.replace(/-/g, "").slice(-6).toUpperCase();
+}
+
+/** LIVE Crash MGA — état du round + mises en cours */
+function CrashLive({ onOpen }: { onOpen: () => void }) {
+  const [round, setRound] = useState<any>(null);
+  const [bets, setBets] = useState<any[]>([]);
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      const [{ data: r }, { data: b }] = await Promise.all([
+        supabase.from("crash_rounds").select("*").order("round_no", { ascending: false }).limit(1).maybeSingle(),
+        (supabase.rpc as any)("crash_round_bets", { _round_id: null }),
+      ]);
+      if (!alive) return;
+      setRound(r ?? null);
+      setBets(Array.isArray(b) ? b : []);
+    };
+    load();
+    const id = window.setInterval(() => { if (document.visibilityState === "visible") load(); }, 3000);
+    const raf = window.setInterval(() => setNow(Date.now()), 100);
+    return () => { alive = false; window.clearInterval(id); window.clearInterval(raf); };
+  }, []);
+
+  if (!round) {
+    return (
+      <div className="flex items-center justify-center py-10 text-muted-foreground">
+        <Loader2 className="w-5 h-5 animate-spin" />
+      </div>
+    );
+  }
+
+  const status = round.status as string;
+  const live =
+    status === "running" && round.started_at
+      ? Math.max(1, Math.floor(Math.exp(0.08 * ((now - new Date(round.started_at).getTime()) / 1000)) * 100) / 100)
+      : null;
+  const shown =
+    status === "crashed" ? Number(round.crash_point ?? 1) : live;
+
+  return (
+    <div className="flex flex-col gap-3">
+      <button
+        type="button"
+        onClick={onOpen}
+        className="rounded-2xl p-4 border-2 border-red-500/40 bg-gradient-to-br from-red-500/10 to-transparent text-center active:scale-[0.98] transition"
+      >
+        <div className="flex items-center justify-center gap-2 text-xs font-bold text-muted-foreground">
+          <span className="inline-flex w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+          Round #{round.round_no} ·{" "}
+          {status === "betting" ? "MISE MISOKATRA" : status === "running" ? "MANIDINA" : "CRASHÉ"}
+        </div>
+        <div
+          className={`mt-1 font-display font-black text-4xl ${
+            status === "crashed" ? "text-red-500" : "text-emerald-400"
+          }`}
+        >
+          ×{(shown ?? 1).toFixed(2)}
+        </div>
+        <div className="mt-1 flex items-center justify-center gap-1 text-xs text-primary font-bold">
+          <Plane className="w-3.5 h-3.5" /> Hilalao Crash MGA
+        </div>
+      </button>
+
+      <div className="flex flex-col gap-1.5 max-h-[38vh] overflow-y-auto pr-1">
+        {bets.length === 0 && (
+          <div className="text-center py-6 text-sm text-muted-foreground italic">Tsy misy mise</div>
+        )}
+        {bets.map((b: any, i: number) => (
+          <div
+            key={b.id ?? i}
+            className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-primary/20 bg-card/40 text-xs"
+          >
+            <span className="font-mono text-muted-foreground truncate">{b.phone ?? b.masked_phone ?? "Mpilalao"}</span>
+            <span className="font-bold text-foreground">{fmtAr(Number(b.amount ?? 0))}</span>
+            <span className={`font-bold ${b.status === "cashed" ? "text-emerald-400" : b.status === "lost" ? "text-red-500" : "text-muted-foreground"}`}>
+              {b.status === "cashed" ? `×${Number(b.cashout_multiplier ?? 0).toFixed(2)}` : b.status === "lost" ? "✖" : "…"}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function GamesList({
@@ -121,7 +206,7 @@ export default function SpectatorHub({
   onOpenChange: (v: boolean) => void;
 }) {
   const nav = useNavigate();
-  const [tab, setTab] = useState<GameType>("domino");
+  const [tab, setTab] = useState<TabKey>("domino");
 
   const goSpectate = (id: string) => {
     onOpenChange(false);
@@ -138,13 +223,16 @@ export default function SpectatorHub({
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as GameType)}>
-          <TabsList className="grid grid-cols-3 w-full">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)}>
+          <TabsList className="grid grid-cols-4 w-full">
             {(Object.keys(LABELS) as GameType[]).map((t) => (
-              <TabsTrigger key={t} value={t} className="text-xs font-bold">
+              <TabsTrigger key={t} value={t} className="text-[10px] font-bold px-1">
                 {LABELS[t]}
               </TabsTrigger>
             ))}
+            <TabsTrigger value="crash" className="text-[10px] font-bold px-1">
+              CRASH
+            </TabsTrigger>
           </TabsList>
 
           {(Object.keys(LABELS) as GameType[]).map((t) => (
@@ -152,6 +240,15 @@ export default function SpectatorHub({
               <GamesList type={t} onPick={goSpectate} />
             </TabsContent>
           ))}
+
+          <TabsContent value="crash" className="mt-3">
+            <CrashLive
+              onOpen={() => {
+                onOpenChange(false);
+                nav("/crash");
+              }}
+            />
+          </TabsContent>
         </Tabs>
 
         <p className="text-[10px] text-center text-muted-foreground/70 mt-2 italic">

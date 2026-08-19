@@ -45,35 +45,139 @@ const MUTE_KEY = "crash_muted";
 let muted = localStorage.getItem(MUTE_KEY) === "1";
 export const setCrashMuted = (v: boolean) => { muted = v; localStorage.setItem(MUTE_KEY, v ? "1" : "0"); };
 const ac = () => (audioCtx ??= new (window.AudioContext || (window as any).webkitAudioContext)());
+
+// --- Airplane engine loop (soft turbine) ---
+let engine: { osc: OscillatorNode[]; gain: GainNode; noise: AudioBufferSourceNode } | null = null;
+function startEngine() {
+  try {
+    if (muted || engine) return;
+    const ctx = ac();
+    if (ctx.state === "suspended") ctx.resume();
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.16, ctx.currentTime + 0.8);
+    gain.connect(ctx.destination);
+    // turbine hiss
+    const dur = 2;
+    const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.5;
+    const noise = ctx.createBufferSource();
+    noise.buffer = buf; noise.loop = true;
+    const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 900; bp.Q.value = 0.8;
+    noise.connect(bp); bp.connect(gain); noise.start();
+    const osc: OscillatorNode[] = [];
+    [90, 136].forEach((f) => {
+      const o = ctx.createOscillator(); o.type = "sawtooth"; o.frequency.value = f;
+      const g = ctx.createGain(); g.gain.value = 0.18;
+      o.connect(g); g.connect(gain); o.start(); osc.push(o);
+    });
+    engine = { osc, gain, noise };
+  } catch { /* ignore */ }
+}
+function engineRise(mult: number) {
+  try {
+    if (!engine) return;
+    const ctx = ac();
+    const k = Math.min(1, Math.log(Math.max(mult, 1)) / 2.5);
+    engine.osc.forEach((o, i) => o.frequency.setTargetAtTime((i ? 136 : 90) * (1 + k * 1.6), ctx.currentTime, 0.3));
+  } catch { /* ignore */ }
+}
+function stopEngine() {
+  try {
+    if (!engine) return;
+    const ctx = ac();
+    const e = engine; engine = null;
+    e.gain.gain.cancelScheduledValues(ctx.currentTime);
+    e.gain.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.12);
+    setTimeout(() => { try { e.osc.forEach((o) => o.stop()); e.noise.stop(); } catch { /* ignore */ } }, 500);
+  } catch { /* ignore */ }
+}
+
+// --- Win jingle (cashout) ---
+function playWin() {
+  try {
+    if (muted) return;
+    const ctx = ac();
+    if (ctx.state === "suspended") ctx.resume();
+    [[880, 0], [1174, 0.11], [1568, 0.22], [2093, 0.34]].forEach(([f, t]) => {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = "triangle"; o.frequency.value = f as number;
+      const t0 = ctx.currentTime + (t as number);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.35, t0 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.35);
+      o.connect(g); g.connect(ctx.destination); o.start(t0); o.stop(t0 + 0.4);
+    });
+    if (navigator.vibrate) navigator.vibrate([25, 40, 25]);
+  } catch { /* ignore */ }
+}
+
 function playExplosion() {
   try {
     if (muted) return;
     const ctx = ac();
     if (ctx.state === "suspended") ctx.resume();
-    const dur = 1.1;
+    // Soft "fly away" descending whoosh — tsy manaitra be
+    const dur = 0.9;
     const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
     const d = buf.getChannelData(0);
     for (let i = 0; i < d.length; i++) {
       const t = i / d.length;
-      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 2.2);
+      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 1.4) * 0.5;
     }
     const src = ctx.createBufferSource(); src.buffer = buf;
-    const lp = ctx.createBiquadFilter(); lp.type = "lowpass";
-    lp.frequency.setValueAtTime(1800, ctx.currentTime);
-    lp.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + dur);
-    const g = ctx.createGain(); g.gain.setValueAtTime(0.9, ctx.currentTime);
+    const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.Q.value = 1.1;
+    bp.frequency.setValueAtTime(1400, ctx.currentTime);
+    bp.frequency.exponentialRampToValueAtTime(220, ctx.currentTime + dur);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.28, ctx.currentTime);
     g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
-    src.connect(lp); lp.connect(g); g.connect(ctx.destination);
-    src.start();
-    // low boom
+    src.connect(bp); bp.connect(g); g.connect(ctx.destination); src.start();
+    // gentle descending tone
     const o = ctx.createOscillator(); const og = ctx.createGain();
-    o.type = "sine"; o.frequency.setValueAtTime(160, ctx.currentTime);
-    o.frequency.exponentialRampToValueAtTime(35, ctx.currentTime + 0.7);
-    og.gain.setValueAtTime(0.7, ctx.currentTime);
-    og.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
-    o.connect(og); og.connect(ctx.destination); o.start(); o.stop(ctx.currentTime + 0.85);
-    if (navigator.vibrate) navigator.vibrate([60, 40, 120]);
+    o.type = "sine"; o.frequency.setValueAtTime(420, ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + 0.8);
+    og.gain.setValueAtTime(0.22, ctx.currentTime);
+    og.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.85);
+    o.connect(og); og.connect(ctx.destination); o.start(); o.stop(ctx.currentTime + 0.9);
+    if (navigator.vibrate) navigator.vibrate(40);
   } catch { /* ignore */ }
+}
+
+// 3D-looking airplane (SVG)
+function Plane3D({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 64 64" className={className} aria-hidden>
+      <defs>
+        <linearGradient id="bodyG" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="45%" stopColor="#dbe4ef" />
+          <stop offset="100%" stopColor="#7c8798" />
+        </linearGradient>
+        <linearGradient id="wingG" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#cfd8e6" />
+          <stop offset="100%" stopColor="#5b6675" />
+        </linearGradient>
+        <linearGradient id="finG" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#f59e0b" />
+          <stop offset="100%" stopColor="#b45309" />
+        </linearGradient>
+      </defs>
+      {/* rear wings */}
+      <path d="M28 34 L10 46 L20 47 L33 39 Z" fill="url(#wingG)" opacity="0.85" />
+      <path d="M30 26 L12 16 L22 15 L34 23 Z" fill="url(#wingG)" opacity="0.7" />
+      {/* tail fin */}
+      <path d="M14 32 L6 24 L9 34 L6 42 Z" fill="url(#finG)" />
+      {/* fuselage */}
+      <path d="M8 32 Q26 24 52 30 Q58 31.5 58 32 Q58 32.5 52 34 Q26 40 8 32 Z" fill="url(#bodyG)" stroke="#4b5563" strokeWidth="0.6" />
+      {/* windows */}
+      <circle cx="46" cy="31.4" r="1.3" fill="#0ea5e9" />
+      <circle cx="40" cy="31.2" r="1" fill="#38bdf8" opacity="0.8" />
+      <circle cx="35" cy="31.2" r="1" fill="#38bdf8" opacity="0.7" />
+      {/* engine */}
+      <ellipse cx="30" cy="35.5" rx="5" ry="2.4" fill="#94a3b8" stroke="#475569" strokeWidth="0.5" />
+    </svg>
+  );
 }
 
 export default function CrashGame() {

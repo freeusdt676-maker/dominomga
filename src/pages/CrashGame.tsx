@@ -339,15 +339,27 @@ export default function CrashGame() {
   );
 }
 
+function curveY(f: number, maxM: number) {
+  const m = 1 + (maxM - 1) * Math.pow(f, 1.9);
+  return 170 - ((m - 1) / (maxM - 1 || 1)) * 150 - 8;
+}
+
+export function curveTip(mult: number) {
+  const maxM = Math.max(mult, 1.2);
+  const y = curveY(1, maxM);
+  const yPrev = curveY(0.96, maxM);
+  const angle = (Math.atan2(yPrev - y, 300 - 288) * 180) / Math.PI;
+  return { x: 300, y, angle };
+}
+
 function buildCurve(mult: number) {
   const pts: string[] = [];
   const steps = 40;
   const maxM = Math.max(mult, 1.2);
   for (let i = 0; i <= steps; i++) {
     const f = i / steps;
-    const m = 1 + (maxM - 1) * Math.pow(f, 1.9);
     const x = f * 300;
-    const y = 170 - ((m - 1) / (maxM - 1 || 1)) * 150 - 8;
+    const y = curveY(f, maxM);
     pts.push(`${i === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`);
   }
   return pts.join(" ");
@@ -359,7 +371,7 @@ function errMsg(raw: string) {
   if (raw.includes("already_bet")) return "Efa nametraka mise ianao";
   if (raw.includes("game_blocked")) return "Voasakana ny lalao Crash";
   if (raw.includes("account_not_active")) return "Tsy mbola active ny compte-nao";
-  if (raw.includes("invalid_amount")) return "Mise tsy mety (100 – 100 000 Ar)";
+  if (raw.includes("invalid_amount")) return "Mise tsy mety (100 – 10 000 Ar)";
   if (raw.includes("not_running")) return "Tsy mandeha ny tour";
   return raw;
 }

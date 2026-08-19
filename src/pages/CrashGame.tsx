@@ -600,6 +600,15 @@ export default function CrashGame() {
           );
         })}
 
+        {/* Place both slots at once */}
+        {betOpen && roundBets.length === 0 && (
+          <Button onClick={placeBoth} disabled={busy}
+            className="w-full h-12 text-base font-black bg-sky-500 hover:bg-sky-400 text-black disabled:opacity-50">
+            {busy ? <Loader2 className="w-5 h-5 animate-spin" />
+              : `MISE 1 + 2 MIARAKA · ${fmtAr((amounts[0] ?? 0) + (amounts[1] ?? 0))}`}
+          </Button>
+        )}
+
         {/* Provably fair */}
         <div className="rounded-xl border border-white/10 bg-black/30 p-3 text-[11px] text-white/60 flex gap-2">
           <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />

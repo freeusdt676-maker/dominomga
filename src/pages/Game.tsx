@@ -1483,14 +1483,14 @@ export default function Game() {
 
   return (
     <div
-      className="h-[100svh] max-h-[100svh] overflow-hidden domino-scene-bg flex flex-col"
+      className="domino-screen overflow-hidden domino-scene-bg flex flex-col"
       style={{ backgroundImage: `url(${dominoSceneBg})` }}
     >
       {/* Permanent Bot toggle — bottom-left, always visible */}
       <button
         type="button"
         onClick={() => setBotActive((v) => !v)}
-        className={`fixed bottom-36 left-2 z-50 px-2 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-normal border transition active:scale-95 ${
+        className={`domino-bot-toggle fixed left-2 z-50 px-2 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-normal border transition active:scale-95 ${
           botActive
             ? "bg-emerald-500 text-black border-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.75)]"
             : "bg-black/55 text-muted-foreground border-muted-foreground/40 backdrop-blur"
@@ -1861,19 +1861,19 @@ export default function Game() {
                 </div>
               )}
             </div>
-            <div className="grid grid-cols-7 justify-items-center gap-0.5 sm:gap-1 py-0.5 sm:py-1 px-0.5 sm:px-1 w-full">
+            <div className="domino-hand-grid py-0.5 sm:py-1 px-0.5 sm:px-1">
               {myHand.map((t, i) => {
                 const placeable = canPlace(board, t) !== null;
                 const isFlipped = !!flippedHand[i];
                 const showA = isFlipped ? t[1] : t[0];
                 const showB = isFlipped ? t[0] : t[1];
                 return (
-                  <div key={i} data-hand-index={i} style={{ touchAction: "none" }}>
+                  <div key={i} data-hand-index={i} className="domino-hand-slot" style={{ touchAction: "none" }}>
                   <DominoTile
                     a={showA}
                     b={showB}
                     size={handTileSize}
-                    fluid={!isMobile}
+                    fluid
                     onPointerDown={(e) => handleHandPointerDown(i, e)}
                     onPointerMove={(e) => handleHandPointerMove(i, e)}
                     onPointerEnter={() => handleHandPointerEnter(i)}

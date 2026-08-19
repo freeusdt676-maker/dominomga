@@ -42,6 +42,7 @@ import {
   isDominoGameWin,
   isDominoFortyRound,
   isDominoSoloWin,
+  getDominoSoloThreshold,
   getBlockedRoundResult,
 } from "@/lib/dominoRules";
 

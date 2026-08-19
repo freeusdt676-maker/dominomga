@@ -607,22 +607,23 @@ function curveY(f: number, maxM: number) {
   return 170 - ((m - 1) / (maxM - 1 || 1)) * 150 - 8;
 }
 
-export function curveTip(mult: number) {
+export function curveTip(mult: number, prog = 1) {
   const maxM = Math.max(mult, 1.2);
-  const f = 0.94;
-  const y = curveY(f, maxM);
-  const yPrev = curveY(f - 0.05, maxM);
-  const angle = (Math.atan2(yPrev - y, 0.05 * 300) * 180) / Math.PI;
-  return { x: f * 300, y, angle };
+  const p = Math.max(0.06, Math.min(1, prog));
+  const y = curveY(1, maxM);
+  const yPrev = curveY(0.94, maxM);
+  const angle = (Math.atan2(yPrev - y, 0.06 * 300 * p) * 180) / Math.PI;
+  return { x: p * 300, y, angle };
 }
 
-function buildCurve(mult: number) {
+function buildCurve(mult: number, prog = 1) {
   const pts: string[] = [];
   const steps = 40;
   const maxM = Math.max(mult, 1.2);
+  const p = Math.max(0.06, Math.min(1, prog));
   for (let i = 0; i <= steps; i++) {
     const f = i / steps;
-    const x = f * 300;
+    const x = f * 300 * p;
     const y = curveY(f, maxM);
     pts.push(`${i === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`);
   }

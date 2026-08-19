@@ -221,6 +221,22 @@ export default function CrashGame() {
             <path d={`${curve} L 300 170 L 0 170 Z`} fill="url(#cg)" />
             <path d={curve} fill="none" stroke={round?.status === "crashed" ? "#ef4444" : "#22c55e"} strokeWidth="2.5" />
           </svg>
+          {/* Airplane flying along the curve */}
+          <div
+            className="absolute pointer-events-none transition-transform duration-100"
+            style={{
+              left: `${(plane.x / 300) * 100}%`,
+              top: `${(plane.y / 170) * 100}%`,
+              transform: `translate(-50%,-50%) rotate(${-plane.angle}deg) ${crashed ? "scale(1.15)" : ""}`,
+            }}
+          >
+            <span
+              className={crashed ? "block text-2xl animate-ping" : "block text-2xl"}
+              style={{ filter: crashed ? "drop-shadow(0 0 10px #ef4444)" : "drop-shadow(0 0 6px #22c55e)" }}
+            >
+              {crashed ? "💥" : "✈️"}
+            </span>
+          </div>
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
             <span className={`font-mono font-black tabular-nums leading-none ${round?.status === "crashed" ? "text-red-500" : "text-white"}`}
               style={{ fontSize: "clamp(2.2rem, 13vw, 4rem)" }}>

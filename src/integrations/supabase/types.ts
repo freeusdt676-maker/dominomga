@@ -1493,7 +1493,7 @@ export type Database = {
         Args: { _action: string; _max: number; _window_seconds: number }
         Returns: boolean
       }
-      crash_cashout: { Args: never; Returns: Json }
+      crash_cashout: { Args: { _bet_id?: string }; Returns: Json }
       crash_duration: { Args: { _crash: number }; Returns: number }
       crash_mult_at: { Args: { _elapsed: number }; Returns: number }
       crash_new_round: { Args: never; Returns: string }

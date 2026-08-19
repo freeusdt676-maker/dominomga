@@ -448,7 +448,7 @@ export default function CrashGame() {
             <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
               <div className="animate-scale-in rounded-2xl border-2 border-emerald-400 bg-emerald-500/95 px-6 py-4 text-center shadow-[0_0_40px_rgba(16,185,129,0.8)]">
                 <p className="text-2xl font-black text-black tracking-wide">Parie accepté</p>
-                <p className="text-sm font-bold text-black/70">-{fmtAr(amount)}</p>
+                <p className="text-sm font-bold text-black/70">-{fmtAr(lastAmount)}</p>
               </div>
             </div>
           )}
@@ -471,8 +471,10 @@ export default function CrashGame() {
             {round?.status === "crashed" && (
               <span className="mt-2 text-sm text-red-300">CRASH! Tour manaraka {nextCountdown.toFixed(0)}s</span>
             )}
-            {round?.status === "running" && myBet?.status === "cashed" && (
-              <span className="mt-2 text-sm text-emerald-400">Cashout ×{Number(myBet.cashout_multiplier).toFixed(2)} · {fmtAr(myBet.payout)}</span>
+            {round?.status === "running" && roundBets.some((b) => b.status === "cashed") && (
+              <span className="mt-2 text-sm text-emerald-400">
+                Cashout {fmtAr(roundBets.reduce((s, b) => s + Number(b.payout || 0), 0))}
+              </span>
             )}
           </div>
           <div className="absolute top-2 left-2 text-[10px] text-white/50">Tour #{round?.round_no ?? "—"}</div>
@@ -497,45 +499,63 @@ export default function CrashGame() {
           {history.length === 0 && <span className="text-xs text-white/40">Tsy mbola misy historique</span>}
         </div>
 
-        {/* Bet panel */}
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-3 space-y-3">
-          <div className="grid grid-cols-5 gap-1.5">
-            {AMOUNTS.map((a) => (
-              <button key={a} onClick={() => setAmount(a)} disabled={!canBet}
-                className={`rounded-lg py-2 text-[11px] font-bold transition ${amount === a ? "bg-amber-500 text-black" : "bg-white/10 text-white/80"} disabled:opacity-40`}>
-                {a / 1000 >= 1 ? `${a / 1000}K` : a}
-              </button>
-            ))}
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-[10px] text-white/50">Mise (Ar)</label>
-              <Input type="number" inputMode="numeric" min={MIN_BET} max={MAX_BET} value={amount} disabled={!canBet}
-                onChange={(e) => setAmount(Math.min(MAX_BET, Math.max(0, Math.floor(Number(e.target.value) || 0))))}
-                className="bg-black/40 border-white/15 text-white h-10" />
-            </div>
-            <div>
-              <label className="text-[10px] text-white/50">Auto cashout (×)</label>
-              <Input type="number" inputMode="decimal" step="0.01" min={1.01} placeholder="ex: 2.00" value={autoCashout}
-                disabled={!canBet} onChange={(e) => setAutoCashout(e.target.value)}
-                className="bg-black/40 border-white/15 text-white h-10" />
-            </div>
-          </div>
+        {/* Two independent bet slots */}
+        {[0, 1].map((slot) => {
+          const bet = roundBets[slot];
+          const amount = amounts[slot] ?? 0;
+          const canBetSlot = betOpen && !bet;
+          const canCashSlot = running && bet?.status === "placed";
+          const setAmt = (v: number) => setAmounts((a) => a.map((x, i) => (i === slot ? v : x)));
+          const setAuto = (v: string) => setAutoCashouts((a) => a.map((x, i) => (i === slot ? v : x)));
+          return (
+            <div key={slot} className="rounded-2xl border border-white/10 bg-white/5 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-white/45">Mise {slot + 1}</span>
+                {bet && (
+                  <span className={`text-[10px] font-bold ${bet.status === "cashed" ? "text-emerald-400" : bet.status === "lost" ? "text-red-400" : "text-amber-300"}`}>
+                    {bet.status === "cashed" ? `×${Number(bet.cashout_multiplier).toFixed(2)}` : bet.status === "lost" ? "Very" : "Active"}
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-5 gap-1.5">
+                {AMOUNTS.map((a) => (
+                  <button key={a} onClick={() => setAmt(a)} disabled={!canBetSlot}
+                    className={`rounded-lg py-2 text-[11px] font-bold transition ${amount === a ? "bg-amber-500 text-black" : "bg-white/10 text-white/80"} disabled:opacity-40`}>
+                    {a / 1000 >= 1 ? `${a / 1000}K` : a}
+                  </button>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] text-white/50">Mise (Ar)</label>
+                  <Input type="number" inputMode="numeric" min={MIN_BET} max={MAX_BET} value={amount} disabled={!canBetSlot}
+                    onChange={(e) => setAmt(Math.min(MAX_BET, Math.max(0, Math.floor(Number(e.target.value) || 0))))}
+                    className="bg-black/40 border-white/15 text-white h-10" />
+                </div>
+                <div>
+                  <label className="text-[10px] text-white/50">Auto cashout (×)</label>
+                  <Input type="number" inputMode="decimal" step="0.01" min={1.01} placeholder="ex: 2.00" value={autoCashouts[slot] ?? ""}
+                    disabled={!canBetSlot} onChange={(e) => setAuto(e.target.value)}
+                    className="bg-black/40 border-white/15 text-white h-10" />
+                </div>
+              </div>
 
-          {canCashout ? (
-            <Button onClick={cashout} disabled={busy}
-              className="w-full h-14 text-lg font-black bg-emerald-500 hover:bg-emerald-400 text-black">
-              {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : `CASHOUT ×${liveMult.toFixed(2)} → ${fmtAr(Math.floor((myBet?.amount ?? 0) * liveMult))}`}
-            </Button>
-          ) : (
-            <Button onClick={placeBet} disabled={!canBet || busy || amount < MIN_BET || amount > MAX_BET}
-              className="w-full h-14 text-lg font-black bg-amber-500 hover:bg-amber-400 text-black disabled:opacity-50">
-              {busy ? <Loader2 className="w-5 h-5 animate-spin" />
-                : myBet ? (myBet.status === "placed" ? "Mise voaray — miandry départ" : myBet.status === "cashed" ? `Nahazo ${fmtAr(myBet.payout)}` : "Very ny mise")
-                : round?.status === "betting" ? `MISE ${fmtAr(amount)}` : "Miandry tour vaovao…"}
-            </Button>
-          )}
-        </div>
+              {canCashSlot ? (
+                <Button onClick={() => cashout(bet.id)} disabled={busy}
+                  className="w-full h-12 text-base font-black bg-emerald-500 hover:bg-emerald-400 text-black">
+                  {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : `CASHOUT ×${liveMult.toFixed(2)} → ${fmtAr(Math.floor(Number(bet.amount) * liveMult))}`}
+                </Button>
+              ) : (
+                <Button onClick={() => placeBet(slot)} disabled={!canBetSlot || busy || amount < MIN_BET || amount > MAX_BET}
+                  className="w-full h-12 text-base font-black bg-amber-500 hover:bg-amber-400 text-black disabled:opacity-50">
+                  {busy ? <Loader2 className="w-5 h-5 animate-spin" />
+                    : bet ? (bet.status === "placed" ? "Mise voaray — miandry départ" : bet.status === "cashed" ? `Nahazo ${fmtAr(bet.payout)}` : "Very ny mise")
+                    : round?.status === "betting" ? `MISE ${fmtAr(amount)}` : "Miandry tour vaovao…"}
+                </Button>
+              )}
+            </div>
+          );
+        })}
 
         {/* Provably fair */}
         <div className="rounded-xl border border-white/10 bg-black/30 p-3 text-[11px] text-white/60 flex gap-2">

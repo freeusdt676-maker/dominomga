@@ -188,9 +188,10 @@ export default function CrashGame() {
   const [offset, setOffset] = useState(0); // serverNow - clientNow (ms)
   const [now, setNow] = useState(Date.now());
   const [balance, setBalance] = useState<number>(0);
-  const [amount, setAmount] = useState<number>(1000);
-  const [autoCashout, setAutoCashout] = useState<string>("");
-  const [myBet, setMyBet] = useState<Bet | null>(null);
+  const [amounts, setAmounts] = useState<number[]>([1000, 1000]);
+  const [autoCashouts, setAutoCashouts] = useState<string[]>(["", ""]);
+  const [roundBets, setRoundBets] = useState<Bet[]>([]);
+  const [lastAmount, setLastAmount] = useState<number>(1000);
   const [history, setHistory] = useState<Round[]>([]);
   const [myBets, setMyBets] = useState<Bet[]>([]);
   const [allBets, setAllBets] = useState<PublicBet[]>([]);
@@ -234,9 +235,9 @@ export default function CrashGame() {
 
   const loadMyBet = useCallback(async (roundId: string) => {
     if (!user || !roundId) return;
-    const res = await safe(() => supabase.from("crash_bets").select("*").eq("round_id", roundId).eq("user_id", user.id).maybeSingle());
+    const res = await safe(() => supabase.from("crash_bets").select("*").eq("round_id", roundId).eq("user_id", user.id).order("created_at", { ascending: true }));
     if (!res || res.error || !alive.current) return;
-    setMyBet((res.data ?? null) as unknown as Bet | null);
+    setRoundBets((res.data ?? []) as unknown as Bet[]);
   }, [user]);
 
   const loadPublic = useCallback(async () => {

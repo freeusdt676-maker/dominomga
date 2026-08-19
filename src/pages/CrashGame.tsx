@@ -26,6 +26,11 @@ type Bet = {
   cashout_multiplier: number | null; payout: number; status: string; created_at: string;
 };
 
+type PublicBet = {
+  bet_id: string; masked_phone: string; amount: number;
+  cashout_multiplier: number | null; payout: number; status?: string;
+};
+
 const GROWTH = 0.08;
 const multAt = (elapsedSec: number) =>
   Math.max(1, Math.floor(Math.exp(GROWTH * Math.max(elapsedSec, 0)) * 100) / 100);
@@ -84,6 +89,9 @@ export default function CrashGame() {
   const [myBet, setMyBet] = useState<Bet | null>(null);
   const [history, setHistory] = useState<Round[]>([]);
   const [myBets, setMyBets] = useState<Bet[]>([]);
+  const [allBets, setAllBets] = useState<PublicBet[]>([]);
+  const [topGains, setTopGains] = useState<PublicBet[]>([]);
+  const [tab, setTab] = useState<"all" | "mine" | "top">("all");
   const [busy, setBusy] = useState(false);
   const [silent, setSilent] = useState(() => localStorage.getItem("crash_muted") === "1");
   const lastRoundId = useRef<string | null>(null);
@@ -113,6 +121,16 @@ export default function CrashGame() {
     setMyBet((data ?? null) as unknown as Bet | null);
   }, [user]);
 
+  const loadPublic = useCallback(async () => {
+    if (!user) return;
+    const [{ data: all }, { data: top }] = await Promise.all([
+      supabase.rpc("crash_round_bets", { _round_id: null }),
+      supabase.rpc("crash_top_gains_today"),
+    ]);
+    setAllBets((all ?? []) as unknown as PublicBet[]);
+    setTopGains((top ?? []) as unknown as PublicBet[]);
+  }, [user]);
+
   // Drive + read the server state machine
   const tick = useCallback(async () => {
     const { data, error } = await supabase.rpc("crash_tick");
@@ -135,8 +153,10 @@ export default function CrashGame() {
   useEffect(() => {
     const poll = setInterval(tick, 900);
     const frame = setInterval(() => setNow(Date.now()), 60);
-    return () => { clearInterval(poll); clearInterval(frame); };
-  }, [tick]);
+    const pub = setInterval(loadPublic, 2500);
+    loadPublic();
+    return () => { clearInterval(poll); clearInterval(frame); clearInterval(pub); };
+  }, [tick, loadPublic]);
 
   // refresh bet + balance when the round settles
   useEffect(() => {
@@ -343,21 +363,85 @@ export default function CrashGame() {
           </span>
         </div>
 
-        {/* My bets */}
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-          <p className="text-xs font-bold mb-2 text-white/70">Historique ny misesiko</p>
-          <div className="space-y-1 max-h-56 overflow-y-auto">
-            {myBets.map((b) => (
-              <div key={b.id} className="flex items-center justify-between text-xs bg-black/30 rounded-lg px-2 py-1.5">
-                <span className="text-white/60">{new Date(b.created_at).toLocaleString("fr-FR")}</span>
-                <span>{fmtAr(b.amount)}</span>
-                <span className={b.status === "cashed" ? "text-emerald-400 font-bold" : b.status === "lost" ? "text-red-400" : "text-amber-300"}>
-                  {b.status === "cashed" ? `×${Number(b.cashout_multiplier).toFixed(2)} · ${fmtAr(b.payout)}` : b.status === "lost" ? "Very" : "En cours"}
+        {/* Bets tabs */}
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-2">
+          <div className="grid grid-cols-3 gap-1 rounded-xl bg-black/40 p-1">
+            {([
+              ["all", "Tous les paris"],
+              ["mine", "Mes paris"],
+              ["top", "Meilleurs gains"],
+            ] as const).map(([k, lbl]) => (
+              <button key={k} onClick={() => setTab(k)}
+                className={`rounded-lg py-2 text-[11px] font-bold transition ${tab === k ? "bg-white/15 text-white" : "text-white/55"}`}>
+                {lbl}
+              </button>
+            ))}
+          </div>
+
+          {tab !== "mine" && (
+            <>
+              <div className="flex items-center justify-between px-1 pt-2 pb-1 text-[10px] uppercase tracking-wide text-white/45">
+                <span>Joueur</span><span>Pari Ar ×</span><span>Gain Ar</span>
+              </div>
+              <div className="space-y-1 max-h-64 overflow-y-auto">
+                {(tab === "all" ? allBets : topGains).map((b) => (
+                  <div key={b.bet_id}
+                    className={`grid grid-cols-3 items-center text-xs rounded-lg px-2 py-1.5 ${b.payout > 0 ? "bg-emerald-500/10" : "bg-black/30"}`}>
+                    <span className="text-white/70 font-mono">{b.masked_phone}</span>
+                    <span className="text-center">
+                      {fmtAr(b.amount).replace(" Ar", "")}
+                      {b.cashout_multiplier ? (
+                        <span className="ml-1 rounded px-1 py-0.5 text-[10px] font-bold bg-emerald-500 text-black">
+                          {Number(b.cashout_multiplier).toFixed(2)}x
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className={`text-right font-semibold ${b.payout > 0 ? "text-emerald-400" : "text-white/35"}`}>
+                      {b.payout > 0 ? fmtAr(b.payout).replace(" Ar", "") : "—"}
+                    </span>
+                  </div>
+                ))}
+                {(tab === "all" ? allBets : topGains).length === 0 && (
+                  <p className="text-xs text-white/40 py-3 text-center">
+                    {tab === "all" ? "Tsy mbola misy mise amin'ity tour ity." : "Tsy mbola misy gain androany."}
+                  </p>
+                )}
+              </div>
+              <div className="mt-2 flex items-center justify-between border-t border-white/10 pt-2 text-[11px]">
+                <span className="text-white/50">
+                  {tab === "all" ? "Paris totaux" : "Meilleurs gains (androany)"}
+                  <br />
+                  <span className="font-bold text-white">
+                    {tab === "all"
+                      ? `${allBets.filter((b) => b.payout > 0).length}/${allBets.length}`
+                      : topGains.length}
+                  </span>
+                </span>
+                <span className="text-right text-white/50">
+                  Gain total
+                  <br />
+                  <span className="font-bold text-emerald-400">
+                    {fmtAr((tab === "all" ? allBets : topGains).reduce((s, b) => s + Number(b.payout || 0), 0))}
+                  </span>
                 </span>
               </div>
-            ))}
-            {myBets.length === 0 && <p className="text-xs text-white/40">Tsy mbola nisy mise.</p>}
-          </div>
+            </>
+          )}
+
+          {tab === "mine" && (
+            <div className="space-y-1 max-h-64 overflow-y-auto pt-2">
+              {myBets.map((b) => (
+                <div key={b.id} className="flex items-center justify-between text-xs bg-black/30 rounded-lg px-2 py-1.5">
+                  <span className="text-white/60">{new Date(b.created_at).toLocaleString("fr-FR")}</span>
+                  <span>{fmtAr(b.amount)}</span>
+                  <span className={b.status === "cashed" ? "text-emerald-400 font-bold" : b.status === "lost" ? "text-red-400" : "text-amber-300"}>
+                    {b.status === "cashed" ? `×${Number(b.cashout_multiplier).toFixed(2)} · ${fmtAr(b.payout)}` : b.status === "lost" ? "Very" : "En cours"}
+                  </span>
+                </div>
+              ))}
+              {myBets.length === 0 && <p className="text-xs text-white/40 py-3 text-center">Tsy mbola nisy mise.</p>}
+            </div>
+          )}
         </div>
       </div>
     </div>

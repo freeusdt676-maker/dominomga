@@ -99,45 +99,63 @@ export default function CrashGame() {
 
   const serverNow = () => now + offset;
 
+  // --- Error guards: never let a failed request break the loop / crash the page ---
+  const ticking = useRef(false);
+  const alive = useRef(true);
+  useEffect(() => () => { alive.current = false; }, []);
+  const safe = async <T,>(fn: () => PromiseLike<T>): Promise<T | null> => {
+    try { return await fn(); } catch (e) { console.warn("[crash]", e); return null; }
+  };
+
   const loadBalance = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase.from("wallets").select("balance").eq("user_id", user.id).maybeSingle();
-    setBalance(Number(data?.balance ?? 0));
+    const res = await safe(() => supabase.from("wallets").select("balance").eq("user_id", user.id).maybeSingle());
+    if (!res || res.error || !alive.current) return;
+    setBalance(Number(res.data?.balance ?? 0));
   }, [user]);
 
   const loadHistory = useCallback(async () => {
     if (!user) return;
-    const [{ data: rounds }, { data: bets }] = await Promise.all([
+    const res = await safe(() => Promise.all([
       supabase.from("crash_rounds").select("*").eq("status", "crashed").order("round_no", { ascending: false }).limit(24),
       supabase.from("crash_bets").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
-    ]);
+    ]));
+    if (!res || !alive.current) return;
+    const [{ data: rounds }, { data: bets }] = res;
     setHistory((rounds ?? []) as unknown as Round[]);
     setMyBets((bets ?? []) as unknown as Bet[]);
   }, [user]);
 
   const loadMyBet = useCallback(async (roundId: string) => {
-    if (!user) return;
-    const { data } = await supabase.from("crash_bets").select("*").eq("round_id", roundId).eq("user_id", user.id).maybeSingle();
-    setMyBet((data ?? null) as unknown as Bet | null);
+    if (!user || !roundId) return;
+    const res = await safe(() => supabase.from("crash_bets").select("*").eq("round_id", roundId).eq("user_id", user.id).maybeSingle());
+    if (!res || res.error || !alive.current) return;
+    setMyBet((res.data ?? null) as unknown as Bet | null);
   }, [user]);
 
   const loadPublic = useCallback(async () => {
     if (!user) return;
-    const [{ data: all }, { data: top }] = await Promise.all([
+    const res = await safe(() => Promise.all([
       supabase.rpc("crash_round_bets", { _round_id: null }),
       supabase.rpc("crash_top_gains_today"),
-    ]);
+    ]));
+    if (!res || !alive.current) return;
+    const [{ data: all }, { data: top }] = res;
     setAllBets((all ?? []) as unknown as PublicBet[]);
     setTopGains((top ?? []) as unknown as PublicBet[]);
   }, [user]);
 
   // Drive + read the server state machine
   const tick = useCallback(async () => {
-    const { data, error } = await supabase.rpc("crash_tick");
-    if (error) return;
-    const r = data as unknown as Round;
-    if (!r?.id) return;
-    setOffset(new Date(r.server_now).getTime() - Date.now());
+    if (ticking.current) return;
+    ticking.current = true;
+    const res = await safe(() => supabase.rpc("crash_tick"));
+    ticking.current = false;
+    if (!res || res.error || !alive.current) return;
+    const r = res.data as unknown as Round;
+    if (!r?.id || !r.server_now) return;
+    const srvMs = new Date(r.server_now).getTime();
+    if (Number.isFinite(srvMs)) setOffset(srvMs - Date.now());
     setRound(r);
     if (lastRoundId.current !== r.id) {
       lastRoundId.current = r.id;
@@ -151,11 +169,16 @@ export default function CrashGame() {
   useEffect(() => { if (user) { tick(); loadBalance(); loadHistory(); } }, [user, tick, loadBalance, loadHistory]);
 
   useEffect(() => {
-    const poll = setInterval(tick, 900);
+    const poll = setInterval(() => { if (!document.hidden) tick(); }, 900);
     const frame = setInterval(() => setNow(Date.now()), 60);
-    const pub = setInterval(loadPublic, 2500);
+    const pub = setInterval(() => { if (!document.hidden) loadPublic(); }, 2500);
+    const onVisible = () => { if (!document.hidden) { tick(); loadPublic(); } };
+    document.addEventListener("visibilitychange", onVisible);
     loadPublic();
-    return () => { clearInterval(poll); clearInterval(frame); clearInterval(pub); };
+    return () => {
+      clearInterval(poll); clearInterval(frame); clearInterval(pub);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [tick, loadPublic]);
 
   // refresh bet + balance when the round settles
@@ -182,12 +205,17 @@ export default function CrashGame() {
 
   const placeBet = async () => {
     if (!canBet || busy) return;
+    if (!Number.isFinite(amount) || amount < MIN_BET || amount > MAX_BET) {
+      toast.error(`Mise ${MIN_BET} – ${MAX_BET} Ar`); return;
+    }
     if (amount > balance) { toast.error("Tsy ampy ny solde"); return; }
     setBusy(true);
-    const auto = autoCashout.trim() ? Number(autoCashout.replace(",", ".")) : null;
-    const { error } = await supabase.rpc("crash_place_bet", { _amount: amount, _auto_cashout: auto && auto >= 1.01 ? auto : null });
+    const parsed = autoCashout.trim() ? Number(autoCashout.replace(",", ".")) : NaN;
+    const auto = Number.isFinite(parsed) && parsed >= 1.01 && parsed <= 999 ? parsed : null;
+    const res = await safe(() => supabase.rpc("crash_place_bet", { _amount: amount, _auto_cashout: auto }));
     setBusy(false);
-    if (error) { toast.error(errMsg(error.message)); return; }
+    if (!res) { toast.error("Tsy tafita — jereo ny aterineto"); return; }
+    if (res.error) { toast.error(errMsg(res.error.message)); return; }
     toast.success(`Mise ${fmtAr(amount)} voaray`);
     if (round) loadMyBet(round.id);
     loadBalance();
@@ -196,11 +224,12 @@ export default function CrashGame() {
   const cashout = async () => {
     if (!canCashout || busy) return;
     setBusy(true);
-    const { data, error } = await supabase.rpc("crash_cashout");
+    const res = await safe(() => supabase.rpc("crash_cashout"));
     setBusy(false);
-    if (error) { toast.error(errMsg(error.message)); return; }
-    const res = data as any;
-    if (res?.ok) toast.success(`Cashout ×${Number(res.multiplier).toFixed(2)} → ${fmtAr(res.payout)}`);
+    if (!res) { toast.error("Tsy tafita — jereo ny aterineto"); return; }
+    if (res.error) { toast.error(errMsg(res.error.message)); return; }
+    const out = res.data as any;
+    if (out?.ok) toast.success(`Cashout ×${Number(out.multiplier).toFixed(2)} → ${fmtAr(out.payout)}`);
     else toast.error("Tara loatra — crash!");
     if (round) loadMyBet(round.id);
     loadBalance();

@@ -1,0 +1,1 @@
+select cron.schedule('crash-tick-every-2s', '2 seconds', $$ select public.crash_tick(); $$);

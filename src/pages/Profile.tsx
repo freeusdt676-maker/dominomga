@@ -359,7 +359,18 @@ export default function Profile() {
             })}
           </div>
         )}
+          </TabsContent>
 
+          <TabsContent value="money" className="mt-3">
+            <h3 className="font-display text-lg font-bold gold-text mb-2">Mouvements vola</h3>
+            <PlayerMoneyHistory userId={user.id} />
+          </TabsContent>
+
+          <TabsContent value="rounds" className="mt-3">
+            <h3 className="font-display text-lg font-bold gold-text mb-2">Comptabilité isaky ny tour</h3>
+            <PlayerRoundHistory userId={user.id} />
+          </TabsContent>
+        </Tabs>
       </div>
 
       <AlertDialog open={!!confirmId} onOpenChange={(o) => !o && setConfirmId(null)}>

@@ -314,6 +314,7 @@ export default function Game() {
   const turnAnchorRef = useRef<{ key: string; at: number }>({ key: "", at: 0 });
   const watchdogNudgeRef = useRef<string | null>(null);
   const initLockRef = useRef(false);
+  const playLockRef = useRef(false);
   const roundEndLockRef = useRef<string | null>(null);
   const revealCommitRef = useRef<string | null>(null);
   const isMobile = useIsMobile();
@@ -982,9 +983,19 @@ export default function Game() {
 
   const tryPlay = async (idx: number, side?: "left" | "right") => {
     if (!isMyTurn || !game || !user) return;
+    if (playLockRef.current) return;
     const tile = myHand[idx];
     const possible = canPlace(board, tile);
     if (!possible) return;
+    // Fiarovana: raha efa misy io vato io eo ambony latabatra, aza apetraka indroa.
+    const onBoardAlready = board.some(
+      (p) =>
+        (p.tile[0] === tile[0] && p.tile[1] === tile[1]) ||
+        (p.tile[0] === tile[1] && p.tile[1] === tile[0]),
+    );
+    if (onBoardAlready) return;
+    playLockRef.current = true;
+    try {
     let chosenSide: "left" | "right" = side ?? (possible === "either" ? "right" : possible);
     if (possible !== "either" && side && side !== possible) {
       return;
@@ -1053,6 +1064,9 @@ export default function Game() {
       piece: { tile, flipped: chosenSide === "left" ? tile[1] !== (ends(board)?.left ?? tile[1]) : tile[0] !== (ends(board)?.right ?? tile[0]) },
       side: chosenSide,
     });
+    } finally {
+      playLockRef.current = false;
+    }
   };
 
   const handleTileTap = (idx: number) => {
@@ -1199,6 +1213,7 @@ export default function Game() {
     if (!botFastPath && elapsed < TURN_TIMEOUT_SEC) return;
     const key = `${game.id}-${game.turn_started_at}-${game.current_turn}`;
     if (autoActedRef.current === key) return;
+    if (playLockRef.current) return;
     autoActedRef.current = key;
 
     (async () => {

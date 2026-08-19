@@ -346,10 +346,11 @@ function curveY(f: number, maxM: number) {
 
 export function curveTip(mult: number) {
   const maxM = Math.max(mult, 1.2);
-  const y = curveY(1, maxM);
-  const yPrev = curveY(0.96, maxM);
-  const angle = (Math.atan2(yPrev - y, 300 - 288) * 180) / Math.PI;
-  return { x: 300, y, angle };
+  const f = 0.94;
+  const y = curveY(f, maxM);
+  const yPrev = curveY(f - 0.05, maxM);
+  const angle = (Math.atan2(yPrev - y, 0.05 * 300) * 180) / Math.PI;
+  return { x: f * 300, y, angle };
 }
 
 function buildCurve(mult: number) {

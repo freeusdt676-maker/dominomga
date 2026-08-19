@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { fmtAr } from "@/lib/constants";
-import { ArrowLeft, Loader2, Rocket, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Loader2, Rocket, ShieldCheck, Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 
 type Round = {
@@ -36,9 +36,13 @@ const MAX_BET = 10000;
 
 // --- Sound (Web Audio, no assets) ---
 let audioCtx: AudioContext | null = null;
+const MUTE_KEY = "crash_muted";
+let muted = localStorage.getItem(MUTE_KEY) === "1";
+export const setCrashMuted = (v: boolean) => { muted = v; localStorage.setItem(MUTE_KEY, v ? "1" : "0"); };
 const ac = () => (audioCtx ??= new (window.AudioContext || (window as any).webkitAudioContext)());
 function playExplosion() {
   try {
+    if (muted) return;
     const ctx = ac();
     if (ctx.state === "suspended") ctx.resume();
     const dur = 1.1;

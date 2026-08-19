@@ -13,8 +13,6 @@ import {
   legalMovesFor,
   applyMove,
   chooseBestMove,
-  SAFE_CELLS,
-  outerIdx as ruleOuterIdx,
 } from "@/lib/ludoRules";
 
 /* =========================================================
@@ -331,12 +329,6 @@ function toPawnRecs(players: Player[]): PawnRec[] {
   const out: PawnRec[] = [];
   players.forEach((pl) => pl.pawns.forEach((p, i) => out.push({ seat: pl.seat, idx: i, pos: p.progress })));
   return out;
-}
-function fromPawnRecs(players: Player[], recs: PawnRec[]): Player[] {
-  return players.map((pl) => ({
-    ...pl,
-    pawns: pl.pawns.map((_, i) => ({ progress: recs.find((r) => r.seat === pl.seat && r.idx === i)?.pos ?? 0 })),
-  }));
 }
 function legalMoves(players: Player[], seat: number, dice: number): number[] {
   return legalMovesFor(toPawnRecs(players), seat, dice);

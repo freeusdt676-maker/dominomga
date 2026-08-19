@@ -620,8 +620,9 @@ export default function CrashGame() {
 }
 
 function curveY(f: number, maxM: number) {
-  const m = 1 + (maxM - 1) * Math.pow(f, 1.9);
-  return 170 - ((m - 1) / (maxM - 1 || 1)) * 150 - 8;
+  // f = 0 -> exact bottom-left corner (170), f = 1 -> top of the frame
+  const m = 1 + (maxM - 1) * Math.pow(f, 1.15);
+  return 170 - ((m - 1) / (maxM - 1 || 1)) * 158;
 }
 
 export function curveTip(mult: number, prog = 1) {

@@ -17,8 +17,8 @@ export function isDominoGameWin(score: number, mode?: string | null): boolean {
   return Number(score ?? 0) >= getDominoTarget(mode);
 }
 
-export function getDominoSoloThreshold(_mode?: string | null): number {
-  return 40;
+export function getDominoSoloThreshold(mode?: string | null): number {
+  return mode === "d80" ? 40 : 60;
 }
 
 export function areDominoOpponentScoresZero(

@@ -656,6 +656,17 @@ export default function LudoPage() {
     if (!me) return;
     const legal = legalMoves(players, me.seat, row.last_dice ?? 0);
     setMovable(new Set(legal));
+    // Tsy misy move azo atao (voatampin'ny block, na mihoatra ny 57) → mandalo ho azy.
+    if (legal.length === 0 && !rpcBusy.current) {
+      const dv = row.last_dice ?? 0;
+      rpcBusy.current = true;
+      void commit({
+        dice_rolled: false,
+        consecutive_sixes: dv === 6 ? Number(row.consecutive_sixes ?? 0) : 0,
+        current_turn_seat: dv === 6 ? me.seat : nextSeatOf(me.seat),
+        turn_started_at: new Date().toISOString(),
+      }).finally(() => { rpcBusy.current = false; });
+    }
   }, [row, isMyTurn, players, mySeat]);
 
   // Countdown driven by server turn_started_at

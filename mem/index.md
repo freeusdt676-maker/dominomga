@@ -19,4 +19,5 @@ Toasts: top-center, 7s duration, richColors (Sonner) — configured in src/App.t
 - [Money immutable](mem://constraints/money-immutable) — Wallet/admin_wallets rows never deletable
 - [Money accounting](mem://constraints/money-accounting) — Invariant: wallet+admin+cash_pool conserved except deposits/withdrawals
 - [VAR replay](mem://features/var-replay) — Admin history dialog structure per game type
+- [Crash MGA](mem://features/crash-mga) — Route /crash, crash_tick state machine, provably fair, house = admin wallet
 - [Ludo server auto-play](mem://features/ludo-server-autoplay) — Backend cron auto-plays expired 10s turns even if all players offline

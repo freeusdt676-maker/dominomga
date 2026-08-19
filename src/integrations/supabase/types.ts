@@ -153,6 +153,124 @@ export type Database = {
           },
         ]
       }
+      crash_bets: {
+        Row: {
+          amount: number
+          auto_cashout: number | null
+          cashed_at: string | null
+          cashout_multiplier: number | null
+          created_at: string
+          id: string
+          payout: number
+          round_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          auto_cashout?: number | null
+          cashed_at?: string | null
+          cashout_multiplier?: number | null
+          created_at?: string
+          id?: string
+          payout?: number
+          round_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          auto_cashout?: number | null
+          cashed_at?: string | null
+          cashout_multiplier?: number | null
+          created_at?: string
+          id?: string
+          payout?: number
+          round_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crash_bets_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "crash_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crash_round_secrets: {
+        Row: {
+          crash_point: number
+          created_at: string
+          round_id: string
+          server_seed: string
+        }
+        Insert: {
+          crash_point: number
+          created_at?: string
+          round_id: string
+          server_seed: string
+        }
+        Update: {
+          crash_point?: number
+          created_at?: string
+          round_id?: string
+          server_seed?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crash_round_secrets_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: true
+            referencedRelation: "crash_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crash_rounds: {
+        Row: {
+          betting_ends_at: string
+          crash_point: number | null
+          crashed_at: string | null
+          created_at: string
+          id: string
+          next_at: string | null
+          nonce: number
+          round_no: number
+          server_seed_hash: string
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          betting_ends_at: string
+          crash_point?: number | null
+          crashed_at?: string | null
+          created_at?: string
+          id?: string
+          next_at?: string | null
+          nonce?: number
+          round_no?: number
+          server_seed_hash: string
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          betting_ends_at?: string
+          crash_point?: number | null
+          crashed_at?: string | null
+          created_at?: string
+          id?: string
+          next_at?: string | null
+          nonce?: number
+          round_no?: number
+          server_seed_hash?: string
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       fraud_alerts: {
         Row: {
           created_at: string
@@ -1375,6 +1493,19 @@ export type Database = {
         Args: { _action: string; _max: number; _window_seconds: number }
         Returns: boolean
       }
+      crash_cashout: { Args: never; Returns: Json }
+      crash_duration: { Args: { _crash: number }; Returns: number }
+      crash_mult_at: { Args: { _elapsed: number }; Returns: number }
+      crash_new_round: { Args: never; Returns: string }
+      crash_place_bet: {
+        Args: { _amount: number; _auto_cashout?: number }
+        Returns: Json
+      }
+      crash_point_from: {
+        Args: { _nonce: number; _seed: string }
+        Returns: number
+      }
+      crash_tick: { Args: never; Returns: Json }
       domino_current_turn_hand: {
         Args: { _g: Database["public"]["Tables"]["games"]["Row"] }
         Returns: Json

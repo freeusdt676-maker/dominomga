@@ -25,6 +25,7 @@ import TournamentHistory from "./pages/TournamentHistory";
 import TournamentLeaderboard from "./pages/TournamentLeaderboard";
 import Ludo from "./pages/Ludo";
 import LudoLobby from "./pages/LudoLobby";
+import CrashGame from "./pages/CrashGame";
 import { AuthProvider } from "./contexts/AuthContext";
 import BlockedOverlay from "./components/BlockedOverlay";
 import AppErrorBoundary from "./components/AppErrorBoundary";
@@ -64,6 +65,7 @@ const App = () => (
             <Route path="/tournament/leaderboard" element={<TournamentLeaderboard />} />
             <Route path="/ludo" element={<LudoLobby />} />
             <Route path="/ludo/:id" element={<Ludo />} />
+            <Route path="/crash" element={<CrashGame />} />
             <Route path="/spectate/ludo/:id" element={<Ludo />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

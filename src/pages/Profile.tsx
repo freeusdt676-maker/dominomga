@@ -77,7 +77,7 @@ export default function Profile() {
         [x.player1_id, x.player2_id, x.player3_id, x.player4_id].forEach((id) => id && ids.add(id));
       });
       if (ids.size) {
-        const { data: ps } = await supabase.from("profiles").select("user_id, mvola_name").in("user_id", Array.from(ids));
+        const { data: ps } = await supabase.rpc("get_public_profiles" as any, { _ids: Array.from(ids) });
         const m: Record<string, string> = {};
         (ps ?? []).forEach((p: any) => { m[p.user_id] = p.mvola_name ?? "Mpilalao"; });
         setNames(m);

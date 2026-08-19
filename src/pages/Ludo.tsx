@@ -542,9 +542,7 @@ export default function LudoPage() {
     const missing = uids.filter((u) => !names[u]);
     if (missing.length) {
       const { data } = await supabase
-        .from("profiles")
-        .select("user_id, mvola_name, avatar_url, phone")
-        .in("user_id", missing);
+        .rpc("get_public_profiles" as any, { _ids: missing });
       if (data) {
         setNames((prev) => {
           const nx = { ...prev };
@@ -558,7 +556,7 @@ export default function LudoPage() {
         });
         setPhones((prev) => {
           const nx = { ...prev };
-          (data as any[]).forEach((p) => { nx[p.user_id] = p.phone ?? null; });
+          (data as any[]).forEach((p) => { nx[p.user_id] = p.phone_masked ?? null; });
           return nx;
         });
       }

@@ -38,6 +38,24 @@ export type Database = {
         }
         Relationships: []
       }
+      app_internal_config: {
+        Row: {
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           action: string
@@ -1580,6 +1598,19 @@ export type Database = {
       expire_stale_waiting_games: { Args: never; Returns: Json }
       game_blocked: { Args: { _game_type: string }; Returns: boolean }
       get_admin_id: { Args: never; Returns: string }
+      get_public_profiles: {
+        Args: { _ids: string[] }
+        Returns: {
+          avatar_url: string
+          is_online: boolean
+          last_seen: string
+          mvola_name: string
+          phone_masked: string
+          player_number: number
+          selfie_url: string
+          user_id: string
+        }[]
+      }
       get_recovery_status: {
         Args: { _phone: string; _request_id: string }
         Returns: Json

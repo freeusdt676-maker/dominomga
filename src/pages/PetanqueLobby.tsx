@@ -66,7 +66,7 @@ export default function PetanqueLobby() {
     const ids = Array.from(new Set(others.map((g) => g.player1_id)));
     const nameMap: Record<string, string> = {};
     if (ids.length) {
-      const { data: ps } = await supabase.from("profiles").select("user_id, mvola_name").in("user_id", ids);
+      const { data: ps } = await supabase.rpc("get_public_profiles" as any, { _ids: ids });
       (ps ?? []).forEach((p: any) => { nameMap[p.user_id] = p.mvola_name; });
     }
     setWaiting(others.map((g) => ({ ...g, _name: nameMap[g.player1_id] ?? "Mpilalao" })));

@@ -580,7 +580,7 @@ export default function PetanqueGame() {
     if (!g) return;
     (async () => {
       const ids = [g.player1_id, g.player2_id].filter(Boolean) as string[];
-      const { data } = await supabase.from("profiles").select("user_id, mvola_name, avatar_url").in("user_id", ids);
+      const { data } = await supabase.rpc("get_public_profiles" as any, { _ids: ids });
       const m: Record<string, any> = {};
       (data ?? []).forEach((p: any) => { m[p.user_id] = p; });
       setP1Profile(m[g.player1_id]);

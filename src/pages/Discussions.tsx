@@ -28,7 +28,7 @@ export default function Discussions() {
     const ids = Array.from(new Set(list.map((m: any) => m.sender_id)));
     if (ids.length) {
       const { data: p } = await supabase
-        .from("profiles").select("user_id,mvola_name").in("user_id", ids);
+        .rpc("get_public_profiles" as any, { _ids: ids });
       const map: Record<string, string> = {};
       (p ?? []).forEach((pr: any) => { map[pr.user_id] = pr.mvola_name; });
       setProfiles(map);

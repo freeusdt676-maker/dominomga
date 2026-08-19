@@ -25,6 +25,28 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
     const { audience = "admins", user_id, title, body: text, url, tag } = body ?? {};
+
+    // --- AuthZ: internal DB hook secret, or an authenticated caller ---
+    const hookSecret = Deno.env.get("PUSH_HOOK_SECRET") ?? "";
+    const providedSecret = req.headers.get("x-push-secret") ?? "";
+    const internal = hookSecret.length > 0 && providedSecret === hookSecret;
+
+    if (!internal) {
+      const authHeader = req.headers.get("Authorization") ?? "";
+      if (!authHeader.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { ...cors, "content-type": "application/json" } });
+      }
+      const { data: userData } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
+      const caller = userData?.user;
+      if (!caller) {
+        return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { ...cors, "content-type": "application/json" } });
+      }
+      const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: caller.id, _role: "admin" });
+      const selfTarget = audience === "user" && user_id === caller.id;
+      if (!isAdmin && !selfTarget) {
+        return new Response(JSON.stringify({ error: "forbidden" }), { status: 403, headers: { ...cors, "content-type": "application/json" } });
+      }
+    }
     if (!title || !text) {
       return new Response(JSON.stringify({ error: "title/body required" }), { status: 400, headers: { ...cors, "content-type": "application/json" } });
     }

@@ -97,3 +97,69 @@ export function getDominoRoundReason(params: {
   if (points > 0) return `Tour vita — ${winnerName} nahazo +${points} isa`;
   return `Tour vita — ${winnerName}`;
 }
+
+// Fanazavana MAZAVA ho an'ny mpilalao: sokajy iray ihany no aseho, mifanaraka
+// tsara amin'ny antony tena nahafaty ny domy.
+export type DominoWinKind = "double6" | "date" | "solo" | "forty" | "target" | "round";
+
+export function getDominoWinKind(params: {
+  doubleSix: boolean;
+  dateWin: boolean;
+  soloWin: boolean;
+  fortyRound: boolean;
+  targetReached: boolean;
+}): DominoWinKind {
+  if (params.doubleSix) return "double6";
+  if (params.dateWin) return "date";
+  if (params.soloWin) return "solo";
+  if (params.fortyRound) return "forty";
+  if (params.targetReached) return "target";
+  return "round";
+}
+
+function formatMgDate(now: Date): string {
+  return new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "Indian/Antananarivo",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(now);
+}
+
+export function buildDominoWinExplanation(params: {
+  kind: DominoWinKind;
+  winnerName: string;
+  mode?: string | null;
+  points: number;
+  winnerScore: number;
+  dayNum?: number;
+  opponents?: Array<{ name: string; pips: number }>;
+  now?: Date;
+}): string {
+  const {
+    kind, winnerName, mode, points, winnerScore,
+    dayNum = getDominoDayNumber(params.now), opponents = [], now = new Date(),
+  } = params;
+  const target = getDominoTarget(mode);
+
+  switch (kind) {
+    case "double6":
+      return `Maty ny domy ${winnerName} doble (6) enina`;
+    case "date":
+      return `Maty ny domy ${winnerName} nahazo datinandro ${dayNum} androany ${formatMgDate(now)}`;
+    case "solo":
+      return `Maty ny domy ${winnerName} ${getDominoSoloThreshold(mode)} mandeha irery — vato azo ${points}`;
+    case "forty": {
+      const detail = opponents.length
+        ? `${opponents.map((o) => `${o.name} ${o.pips}`).join(" + ")} = ${points}`
+        : `${points}`;
+      return `Maty ny domy ${winnerName} 40 indray maka — ${detail}, noho izany mihoatra ny 40 indray maka`;
+    }
+    case "target":
+      return `Maty ny domy ${winnerName} nahazo ny isa ${winnerScore} — tratra ny tanjona ${target} (D${target})`;
+    default:
+      return points > 0
+        ? `Vita ny tour — ${winnerName} nahazo +${points} isa`
+        : `Vita ny tour — ${winnerName}`;
+  }
+}

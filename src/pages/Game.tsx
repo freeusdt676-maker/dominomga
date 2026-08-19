@@ -555,21 +555,45 @@ export default function Game() {
     // Anisan'ny sokajy "MANDRESY NY LALAO" ireto efatra ireto ihany:
     //   • TARGET (D120/D80) • SOLO (60/40 irery) • DOUBLE 6 • DATINANDRO.
     // Ny ambin'ireo (lany vato, blocage, +N isa) dia tour ihany.
-    const reason = doubleSixOut
-      ? `MANDRESY NY LALAO — MIALA DOUBLE 6 • ${winnerName}`
-      : fortySolo
-      ? `MANDRESY NY LALAO — ${getDominoSoloThreshold(mode)} MANDEHA IRERY • ${winnerName}`
-      : fortyRound
-      ? `MANDRESY NY LALAO — 40 INDRAY MAKA • ${winnerName}`
-      : dateWin
-      ? `MANDRESY NY LALAO — DATINANDRO (${dayNum} isa) • ${winnerName}`
-      : getDominoRoundReason({
+    // Vato sisa isaky ny mpilalao resy (ilaina amin'ny fanazavana "40 indray maka")
+    const handOf = (id: string | null | undefined): Tile[] => {
+      if (!id) return [];
+      if (id === liveGame.player1_id) return (liveGame.player1_hand ?? []) as Tile[];
+      if (id === liveGame.player2_id) return (liveGame.player2_hand ?? []) as Tile[];
+      if (id === liveGame.player3_id) return (liveGame.player3_hand ?? []) as Tile[];
+      return [];
+    };
+    const opponentsDetail = loserIds
+      .filter((id): id is string => !!id)
+      .map((id) => ({ name: profileNames[id] ?? "Mpilalao", pips: pipsTotal(handOf(id)) }));
+
+    const winKind = getDominoWinKind({
+      doubleSix: doubleSixOut,
+      dateWin,
+      soloWin: fortySolo,
+      fortyRound,
+      targetReached,
+    });
+    const explanation = buildDominoWinExplanation({
+      kind: winKind,
+      winnerName,
+      mode,
+      points: safePoints,
+      winnerScore: wScore,
+      dayNum,
+      opponents: opponentsDetail,
+    });
+    setResultExplain(instantWin ? explanation : null);
+
+    const reason = winKind === "round"
+      ? getDominoRoundReason({
           winnerName,
           mode,
           winnerScore: wScore,
           points: safePoints,
           reasonOverride,
-        });
+        })
+      : `MANDRESY NY LALAO — ${explanation}`;
     // `loserName` voatahiry ho an'ny famaharana hafa (raha tsy ampiasaina, tsy
     // mamotika ny build satria mety ho diso interpretation ny linter).
     void loserName;

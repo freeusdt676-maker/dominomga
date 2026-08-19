@@ -1540,6 +1540,10 @@ export type Database = {
           payout: number
         }[]
       }
+      crash_uniform: {
+        Args: { _nonce: number; _salt: string; _seed: string }
+        Returns: number
+      }
       domino_current_turn_hand: {
         Args: { _g: Database["public"]["Tables"]["games"]["Row"] }
         Returns: Json

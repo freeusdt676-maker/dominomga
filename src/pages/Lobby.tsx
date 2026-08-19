@@ -212,7 +212,7 @@ export default function Lobby() {
           <p className="text-sm font-bold gold-text mb-2">📜 Fitsipika vaovao — MANDRESY AVY HATRANY</p>
           <ul className="text-xs text-foreground/90 space-y-1 leading-snug">
             <li>• <b>Miala DOUBLE 6</b> — vato farany [6|6] → mandresy ny lalao.</li>
-            <li>• <b>40 MANDEHA IRERY</b> — 40 isa nefa 0 ny an'ny hafa (D120 sy D80).</li>
+            <li>• <b>MANDEHA IRERY</b> — 0 ny an'ny hafa: D80 = 40 isa, D120 = 60 isa.</li>
             <li>• <b>40 INDRAY MAKA</b> — 40 isa na mihoatra tao anatin'ny TOUR iray (D120 sy D80).</li>
             <li>• <b>DATINANDRO</b> — isa azo mitovy TSOTRA amin'ny andro ({new Date().toLocaleDateString("fr-FR", { timeZone: "Indian/Antananarivo", day: "numeric" })} androany).</li>
             <li>• Raha tsy misy ireo: mitohy ny tour ka <b>tonga 120 na 80</b> no mandresy.</li>

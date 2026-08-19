@@ -8,6 +8,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { fmtAr } from "@/lib/constants";
+import {
+  type PawnRec,
+  legalMovesFor,
+  applyMove,
+  chooseBestMove,
+  SAFE_CELLS,
+  outerIdx as ruleOuterIdx,
+} from "@/lib/ludoRules";
 
 /* =========================================================
    LUDO — offline solo vs 3 bots
@@ -318,45 +326,20 @@ function Board({ players, activeColor, onPickPawn, movable }: {
 }
 
 /* ==================== Game logic ==================== */
-function legalMoves(player: Player, dice: number): number[] {
-  const legal: number[] = [];
-  player.pawns.forEach((p, i) => {
-    if (p.progress === 0) {
-      if (dice === 6) legal.push(i);
-    } else if (p.progress < 57) {
-      if (p.progress + dice <= 57) legal.push(i);
-    }
-  });
-  return legal;
+/** Pawn records (seat-based) — ilain'ny fitsipika iraisana amin'ny serveur. */
+function toPawnRecs(players: Player[]): PawnRec[] {
+  const out: PawnRec[] = [];
+  players.forEach((pl) => pl.pawns.forEach((p, i) => out.push({ seat: pl.seat, idx: i, pos: p.progress })));
+  return out;
 }
-
-function botChoose(player: Player, dice: number, others: Player[]): number | null {
-  const opts = legalMoves(player, dice);
-  if (!opts.length) return null;
-  // Score: capture > finish > enter home column > leave yard > advance
-  let best = -Infinity, choice = opts[0];
-  for (const i of opts) {
-    const cur = player.pawns[i];
-    const nextProg = cur.progress === 0 ? 1 : cur.progress + dice;
-    let score = nextProg; // prefer advanced
-    if (nextProg === 57) score += 100;
-    if (cur.progress === 0) score += 25;
-    if (nextProg > 51) score += 40;
-    // capture?
-    if (nextProg <= 51) {
-      const targetIdx = (ENTRY[player.color] + nextProg - 1) % 52;
-      if (!SAFE.has(targetIdx)) {
-        for (const opp of others) {
-          for (const op of opp.pawns) {
-            const oi = outerIndex(opp.color, op.progress);
-            if (oi === targetIdx) score += 90;
-          }
-        }
-      }
-    }
-    if (score > best) { best = score; choice = i; }
-  }
-  return choice;
+function fromPawnRecs(players: Player[], recs: PawnRec[]): Player[] {
+  return players.map((pl) => ({
+    ...pl,
+    pawns: pl.pawns.map((_, i) => ({ progress: recs.find((r) => r.seat === pl.seat && r.idx === i)?.pos ?? 0 })),
+  }));
+}
+function legalMoves(players: Player[], seat: number, dice: number): number[] {
+  return legalMovesFor(toPawnRecs(players), seat, dice);
 }
 
 function winnerOf(p: Player): boolean {

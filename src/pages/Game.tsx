@@ -955,6 +955,20 @@ export default function Game() {
     !!(game as any)?.last_reason
   );
 
+  // Rehefa vita ny lalao: aseho 5s aloha ny vato sisa an'ny rehetra, vao mipoitra
+  // ny animation "Nandresy / Resy" — mba ho hita ny isa nahafeno ny 40+, sns.
+  const gameOver = game?.status === "finished" || game?.status === "blocked" || game?.status === "cancelled";
+  useEffect(() => {
+    if (!gameOver) { setEndRevealReady(false); setEndRevealSec(5); return; }
+    setEndRevealReady(false);
+    setEndRevealSec(5);
+    const tick = window.setInterval(() => setEndRevealSec((s) => Math.max(0, s - 1)), 1000);
+    const done = window.setTimeout(() => setEndRevealReady(true), 5000);
+    return () => { window.clearInterval(tick); window.clearTimeout(done); };
+  }, [gameOver, game?.id, game?.round_number]);
+  const endRevealing = gameOver && !endRevealReady;
+  const showAllHands = showOppHands || endRevealing;
+
   // Faharetan'ny Tour
   const turnStart = game?.turn_started_at ? new Date(game.turn_started_at).getTime() : 0;
   // Raha mbola tsy voarakitra ny turn_started_at (anelanelan'ny tour, reveal,

@@ -144,38 +144,61 @@ function playExplosion() {
   } catch { /* ignore */ }
 }
 
-// 3D-looking airplane (SVG)
+// Realistic night-flight airplane (SVG) with landing light + nav lights
 function Plane3D({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 64 64" className={className} aria-hidden>
       <defs>
         <linearGradient id="bodyG" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="45%" stopColor="#dbe4ef" />
-          <stop offset="100%" stopColor="#7c8798" />
+          <stop offset="0%" stopColor="#f8fbff" />
+          <stop offset="35%" stopColor="#c9d5e6" />
+          <stop offset="70%" stopColor="#8b97a8" />
+          <stop offset="100%" stopColor="#3f4855" />
         </linearGradient>
         <linearGradient id="wingG" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#cfd8e6" />
-          <stop offset="100%" stopColor="#5b6675" />
+          <stop offset="0%" stopColor="#dbe4f0" />
+          <stop offset="100%" stopColor="#4a5462" />
         </linearGradient>
         <linearGradient id="finG" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stopColor="#f59e0b" />
           <stop offset="100%" stopColor="#b45309" />
         </linearGradient>
+        <linearGradient id="beamG" x1="1" y1="0" x2="0" y2="0">
+          <stop offset="0%" stopColor="#fff7cc" stopOpacity="0" />
+          <stop offset="100%" stopColor="#fff3b0" stopOpacity="0.85" />
+        </linearGradient>
+        <radialGradient id="lampG">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="60%" stopColor="#fde68a" />
+          <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
+        </radialGradient>
       </defs>
+      {/* landing light beam ahead of the nose */}
+      <path d="M58 31.2 L64 26 L64 38 L58 32.8 Z" fill="url(#beamG)" opacity="0.9">
+        <animate attributeName="opacity" values="0.55;1;0.55" dur="1.6s" repeatCount="indefinite" />
+      </path>
       {/* rear wings */}
       <path d="M28 34 L10 46 L20 47 L33 39 Z" fill="url(#wingG)" opacity="0.85" />
       <path d="M30 26 L12 16 L22 15 L34 23 Z" fill="url(#wingG)" opacity="0.7" />
+      {/* nav lights: red left, green right */}
+      <circle cx="12" cy="16.5" r="1.5" fill="#ef4444">
+        <animate attributeName="opacity" values="1;0.15;1" dur="1.2s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="10.5" cy="46" r="1.5" fill="#22c55e">
+        <animate attributeName="opacity" values="0.15;1;0.15" dur="1.2s" repeatCount="indefinite" />
+      </circle>
       {/* tail fin */}
       <path d="M14 32 L6 24 L9 34 L6 42 Z" fill="url(#finG)" />
       {/* fuselage */}
       <path d="M8 32 Q26 24 52 30 Q58 31.5 58 32 Q58 32.5 52 34 Q26 40 8 32 Z" fill="url(#bodyG)" stroke="#4b5563" strokeWidth="0.6" />
       {/* windows */}
-      <circle cx="46" cy="31.4" r="1.3" fill="#0ea5e9" />
-      <circle cx="40" cy="31.2" r="1" fill="#38bdf8" opacity="0.8" />
-      <circle cx="35" cy="31.2" r="1" fill="#38bdf8" opacity="0.7" />
+      <circle cx="46" cy="31.4" r="1.3" fill="#7dd3fc" />
+      <circle cx="40" cy="31.2" r="1" fill="#bae6fd" opacity="0.9" />
+      <circle cx="35" cy="31.2" r="1" fill="#bae6fd" opacity="0.75" />
       {/* engine */}
       <ellipse cx="30" cy="35.5" rx="5" ry="2.4" fill="#94a3b8" stroke="#475569" strokeWidth="0.5" />
+      {/* nose lamp glow */}
+      <circle cx="58" cy="32" r="4" fill="url(#lampG)" opacity="0.9" />
     </svg>
   );
 }
@@ -400,12 +423,14 @@ export default function CrashGame() {
   };
 
   const crashed = round?.status === "crashed";
-  // The aircraft starts fully outside the lower-left corner when the run begins.
-  // It reaches a safe point inside the upper-right edge after 9s, then remains
-  // there while the server-authoritative multiplier continues to increase.
-  const progress = round?.status === "running"
-    ? Math.min(1, Math.max(0, elapsed) / 9)
-    : crashed ? 1 : 0;
+  // The aircraft starts fully outside the lower-left corner when the run begins
+  // and climbs along the curve. When the round crashes it explodes EXACTLY where
+  // it was on the line — it never jumps forward to the top.
+  const runProgress = Math.min(1, Math.max(0, elapsed) / 9);
+  const frozenProgress = useRef(0);
+  if (round?.status === "running") frozenProgress.current = runProgress;
+  if (round?.status === "betting") frozenProgress.current = 0;
+  const progress = round?.status === "running" ? runProgress : crashed ? frozenProgress.current : 0;
   const curve = useMemo(() => buildCurve(shownMult, progress), [shownMult, progress]);
   const plane = useMemo(() => curveTip(shownMult, progress), [shownMult, progress]);
 
@@ -446,7 +471,7 @@ export default function CrashGame() {
           style={{
             backgroundColor: "#050a14",
             backgroundImage:
-              "radial-gradient(1px 1px at 12% 22%, #fff, transparent), radial-gradient(1px 1px at 28% 68%, #fff, transparent), radial-gradient(1px 1px at 47% 14%, #fff, transparent), radial-gradient(1px 1px at 63% 44%, #fff, transparent), radial-gradient(1px 1px at 78% 76%, #fff, transparent), radial-gradient(1px 1px at 88% 28%, #fff, transparent), radial-gradient(1px 1px at 36% 88%, #fff, transparent)",
+              "radial-gradient(26px 26px at 84% 20%, rgba(255,251,214,0.95), rgba(255,251,214,0.15) 60%, transparent 70%), radial-gradient(1.4px 1.4px at 12% 22%, #fff, transparent), radial-gradient(1.4px 1.4px at 28% 68%, #fff, transparent), radial-gradient(1px 1px at 47% 14%, #fff, transparent), radial-gradient(1.4px 1.4px at 63% 44%, #dbeafe, transparent), radial-gradient(1px 1px at 78% 76%, #fff, transparent), radial-gradient(1px 1px at 20% 46%, #fff, transparent), radial-gradient(1.4px 1.4px at 55% 82%, #fff, transparent), radial-gradient(1px 1px at 70% 12%, #fff, transparent), radial-gradient(1px 1px at 36% 88%, #fff, transparent), linear-gradient(180deg, #0b1226 0%, #050a14 70%)",
           }}
         >
           <svg viewBox="0 0 300 170" className="w-full h-[38svh] max-h-[280px]" preserveAspectRatio="none">
@@ -478,6 +503,19 @@ export default function CrashGame() {
               <Plane3D
                 className="w-14 h-14 drop-shadow-[0_6px_10px_rgba(0,0,0,0.7)]"
               />
+            </div>
+          )}
+          {/* Explosion exactly on the line where the plane was */}
+          {crashed && (
+            <div
+              className="absolute pointer-events-none z-10 animate-scale-in"
+              style={{
+                left: `${(plane.x / 300) * 100}%`,
+                top: `${(plane.y / 170) * 100}%`,
+                transform: "translate(-50%,-50%)",
+              }}
+            >
+              <span className="block text-5xl drop-shadow-[0_0_18px_rgba(239,68,68,0.9)]">💥</span>
             </div>
           )}
 

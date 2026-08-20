@@ -289,6 +289,33 @@ export type Database = {
         }
         Relationships: []
       }
+      crash_schedule: {
+        Row: {
+          created_at: string
+          hi: number
+          lo: number
+          target_round: number
+          window_index: number
+          window_size: number
+        }
+        Insert: {
+          created_at?: string
+          hi: number
+          lo: number
+          target_round: number
+          window_index: number
+          window_size: number
+        }
+        Update: {
+          created_at?: string
+          hi?: number
+          lo?: number
+          target_round?: number
+          window_index?: number
+          window_size?: number
+        }
+        Relationships: []
+      }
       fraud_alerts: {
         Row: {
           created_at: string
@@ -1546,6 +1573,10 @@ export type Database = {
           payout: number
           status: string
         }[]
+      }
+      crash_schedule_hit: {
+        Args: { _hi: number; _lo: number; _round: number; _size: number }
+        Returns: boolean
       }
       crash_tick: { Args: never; Returns: Json }
       crash_top_gains_today: {

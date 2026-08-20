@@ -144,38 +144,61 @@ function playExplosion() {
   } catch { /* ignore */ }
 }
 
-// 3D-looking airplane (SVG)
+// Realistic night-flight airplane (SVG) with landing light + nav lights
 function Plane3D({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 64 64" className={className} aria-hidden>
       <defs>
         <linearGradient id="bodyG" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="45%" stopColor="#dbe4ef" />
-          <stop offset="100%" stopColor="#7c8798" />
+          <stop offset="0%" stopColor="#f8fbff" />
+          <stop offset="35%" stopColor="#c9d5e6" />
+          <stop offset="70%" stopColor="#8b97a8" />
+          <stop offset="100%" stopColor="#3f4855" />
         </linearGradient>
         <linearGradient id="wingG" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#cfd8e6" />
-          <stop offset="100%" stopColor="#5b6675" />
+          <stop offset="0%" stopColor="#dbe4f0" />
+          <stop offset="100%" stopColor="#4a5462" />
         </linearGradient>
         <linearGradient id="finG" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stopColor="#f59e0b" />
           <stop offset="100%" stopColor="#b45309" />
         </linearGradient>
+        <linearGradient id="beamG" x1="1" y1="0" x2="0" y2="0">
+          <stop offset="0%" stopColor="#fff7cc" stopOpacity="0" />
+          <stop offset="100%" stopColor="#fff3b0" stopOpacity="0.85" />
+        </linearGradient>
+        <radialGradient id="lampG">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="60%" stopColor="#fde68a" />
+          <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
+        </radialGradient>
       </defs>
+      {/* landing light beam ahead of the nose */}
+      <path d="M58 31.2 L64 26 L64 38 L58 32.8 Z" fill="url(#beamG)" opacity="0.9">
+        <animate attributeName="opacity" values="0.55;1;0.55" dur="1.6s" repeatCount="indefinite" />
+      </path>
       {/* rear wings */}
       <path d="M28 34 L10 46 L20 47 L33 39 Z" fill="url(#wingG)" opacity="0.85" />
       <path d="M30 26 L12 16 L22 15 L34 23 Z" fill="url(#wingG)" opacity="0.7" />
+      {/* nav lights: red left, green right */}
+      <circle cx="12" cy="16.5" r="1.5" fill="#ef4444">
+        <animate attributeName="opacity" values="1;0.15;1" dur="1.2s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="10.5" cy="46" r="1.5" fill="#22c55e">
+        <animate attributeName="opacity" values="0.15;1;0.15" dur="1.2s" repeatCount="indefinite" />
+      </circle>
       {/* tail fin */}
       <path d="M14 32 L6 24 L9 34 L6 42 Z" fill="url(#finG)" />
       {/* fuselage */}
       <path d="M8 32 Q26 24 52 30 Q58 31.5 58 32 Q58 32.5 52 34 Q26 40 8 32 Z" fill="url(#bodyG)" stroke="#4b5563" strokeWidth="0.6" />
       {/* windows */}
-      <circle cx="46" cy="31.4" r="1.3" fill="#0ea5e9" />
-      <circle cx="40" cy="31.2" r="1" fill="#38bdf8" opacity="0.8" />
-      <circle cx="35" cy="31.2" r="1" fill="#38bdf8" opacity="0.7" />
+      <circle cx="46" cy="31.4" r="1.3" fill="#7dd3fc" />
+      <circle cx="40" cy="31.2" r="1" fill="#bae6fd" opacity="0.9" />
+      <circle cx="35" cy="31.2" r="1" fill="#bae6fd" opacity="0.75" />
       {/* engine */}
       <ellipse cx="30" cy="35.5" rx="5" ry="2.4" fill="#94a3b8" stroke="#475569" strokeWidth="0.5" />
+      {/* nose lamp glow */}
+      <circle cx="58" cy="32" r="4" fill="url(#lampG)" opacity="0.9" />
     </svg>
   );
 }

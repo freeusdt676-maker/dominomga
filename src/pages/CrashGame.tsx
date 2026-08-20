@@ -471,7 +471,7 @@ export default function CrashGame() {
           style={{
             backgroundColor: "#050a14",
             backgroundImage:
-              "radial-gradient(1px 1px at 12% 22%, #fff, transparent), radial-gradient(1px 1px at 28% 68%, #fff, transparent), radial-gradient(1px 1px at 47% 14%, #fff, transparent), radial-gradient(1px 1px at 63% 44%, #fff, transparent), radial-gradient(1px 1px at 78% 76%, #fff, transparent), radial-gradient(1px 1px at 88% 28%, #fff, transparent), radial-gradient(1px 1px at 36% 88%, #fff, transparent)",
+              "radial-gradient(26px 26px at 84% 20%, rgba(255,251,214,0.95), rgba(255,251,214,0.15) 60%, transparent 70%), radial-gradient(1.4px 1.4px at 12% 22%, #fff, transparent), radial-gradient(1.4px 1.4px at 28% 68%, #fff, transparent), radial-gradient(1px 1px at 47% 14%, #fff, transparent), radial-gradient(1.4px 1.4px at 63% 44%, #dbeafe, transparent), radial-gradient(1px 1px at 78% 76%, #fff, transparent), radial-gradient(1px 1px at 20% 46%, #fff, transparent), radial-gradient(1.4px 1.4px at 55% 82%, #fff, transparent), radial-gradient(1px 1px at 70% 12%, #fff, transparent), radial-gradient(1px 1px at 36% 88%, #fff, transparent), linear-gradient(180deg, #0b1226 0%, #050a14 70%)",
           }}
         >
           <svg viewBox="0 0 300 170" className="w-full h-[38svh] max-h-[280px]" preserveAspectRatio="none">

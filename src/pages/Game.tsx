@@ -1978,7 +1978,17 @@ export default function Game() {
         </>
       )}
 
-      {(game.status === "finished" || game.status === "blocked" || game.status === "cancelled") && (() => {
+      {endRevealing && (
+        <div className="fixed inset-x-0 top-10 z-[60] flex justify-center px-2 pointer-events-none animate-in fade-in slide-in-from-top">
+          <div className="rounded-full border border-[#ffe27a]/80 bg-[linear-gradient(180deg,#0d3b22,#0a2818)] px-3 py-1 shadow">
+            <span className="text-[10px] font-extrabold text-[#ffe27a] tracking-wide">
+              👀 VATO SISA — jereo ny isa… {endRevealSec}s
+            </span>
+          </div>
+        </div>
+      )}
+
+      {gameOver && endRevealReady && (() => {
         const stake = Number(game.stake ?? 0);
         const pc = Number(game.players_count ?? 2);
         const commissionEach = Math.round(stake * 0.10);

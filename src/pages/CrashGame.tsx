@@ -423,12 +423,14 @@ export default function CrashGame() {
   };
 
   const crashed = round?.status === "crashed";
-  // The aircraft starts fully outside the lower-left corner when the run begins.
-  // It reaches a safe point inside the upper-right edge after 9s, then remains
-  // there while the server-authoritative multiplier continues to increase.
-  const progress = round?.status === "running"
-    ? Math.min(1, Math.max(0, elapsed) / 9)
-    : crashed ? 1 : 0;
+  // The aircraft starts fully outside the lower-left corner when the run begins
+  // and climbs along the curve. When the round crashes it explodes EXACTLY where
+  // it was on the line — it never jumps forward to the top.
+  const runProgress = Math.min(1, Math.max(0, elapsed) / 9);
+  const frozenProgress = useRef(0);
+  if (round?.status === "running") frozenProgress.current = runProgress;
+  if (round?.status === "betting") frozenProgress.current = 0;
+  const progress = round?.status === "running" ? runProgress : crashed ? frozenProgress.current : 0;
   const curve = useMemo(() => buildCurve(shownMult, progress), [shownMult, progress]);
   const plane = useMemo(() => curveTip(shownMult, progress), [shownMult, progress]);
 

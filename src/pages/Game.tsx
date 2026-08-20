@@ -1741,8 +1741,8 @@ export default function Game() {
                       </div>
                     )}
                     {opp && (
-                      <div className={`mt-1 flex justify-center flex-nowrap gap-0.5 max-w-full overflow-hidden ${showOppHands && opp.hand.length > 0 ? "p-0.5 rounded-md bg-black/70 border border-[#ffe27a]/70" : ""}`}>
-                        {showOppHands && opp.hand.length > 0
+                      <div className={`mt-1 flex justify-center flex-nowrap gap-0.5 max-w-full overflow-hidden ${showAllHands && opp.hand.length > 0 ? "p-0.5 rounded-md bg-black/70 border border-[#ffe27a]/70" : ""}`}>
+                        {showAllHands && opp.hand.length > 0
                           ? opp.hand.map((t, i) => (
                               <DominoTile key={i} a={t[0]} b={t[1]} size="xs" horizontal={false} variant="white" />
                             ))

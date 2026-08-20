@@ -324,6 +324,9 @@ export default function Game() {
   const pressStartXRef = useRef(0);
   const pressStartYRef = useRef(0);
   const pointerTileIndexRef = useRef<number | null>(null);
+  // Fisehoan'ny VATO SISA alohan'ny animation famaranana (5s).
+  const [endRevealReady, setEndRevealReady] = useState(false);
+  const [endRevealSec, setEndRevealSec] = useState(5);
 
   const getAbandonedGameId = () => sessionStorage.getItem(ABANDONED_GAME_KEY);
 
@@ -951,6 +954,20 @@ export default function Game() {
     !game?.current_turn &&
     !!(game as any)?.last_reason
   );
+
+  // Rehefa vita ny lalao: aseho 5s aloha ny vato sisa an'ny rehetra, vao mipoitra
+  // ny animation "Nandresy / Resy" — mba ho hita ny isa nahafeno ny 40+, sns.
+  const gameOver = game?.status === "finished" || game?.status === "blocked" || game?.status === "cancelled";
+  useEffect(() => {
+    if (!gameOver) { setEndRevealReady(false); setEndRevealSec(5); return; }
+    setEndRevealReady(false);
+    setEndRevealSec(5);
+    const tick = window.setInterval(() => setEndRevealSec((s) => Math.max(0, s - 1)), 1000);
+    const done = window.setTimeout(() => setEndRevealReady(true), 5000);
+    return () => { window.clearInterval(tick); window.clearTimeout(done); };
+  }, [gameOver, game?.id, game?.round_number]);
+  const endRevealing = gameOver && !endRevealReady;
+  const showAllHands = showOppHands || endRevealing;
 
   // Faharetan'ny Tour
   const turnStart = game?.turn_started_at ? new Date(game.turn_started_at).getTime() : 0;
@@ -1724,8 +1741,8 @@ export default function Game() {
                       </div>
                     )}
                     {opp && (
-                      <div className={`mt-1 flex justify-center flex-nowrap gap-0.5 max-w-full overflow-hidden ${showOppHands && opp.hand.length > 0 ? "p-0.5 rounded-md bg-black/70 border border-[#ffe27a]/70" : ""}`}>
-                        {showOppHands && opp.hand.length > 0
+                      <div className={`mt-1 flex justify-center flex-nowrap gap-0.5 max-w-full overflow-hidden ${showAllHands && opp.hand.length > 0 ? "p-0.5 rounded-md bg-black/70 border border-[#ffe27a]/70" : ""}`}>
+                        {showAllHands && opp.hand.length > 0
                           ? opp.hand.map((t, i) => (
                               <DominoTile key={i} a={t[0]} b={t[1]} size="xs" horizontal={false} variant="white" />
                             ))
@@ -1961,7 +1978,17 @@ export default function Game() {
         </>
       )}
 
-      {(game.status === "finished" || game.status === "blocked" || game.status === "cancelled") && (() => {
+      {endRevealing && (
+        <div className="fixed inset-x-0 top-10 z-[60] flex justify-center px-2 pointer-events-none animate-in fade-in slide-in-from-top">
+          <div className="rounded-full border border-[#ffe27a]/80 bg-[linear-gradient(180deg,#0d3b22,#0a2818)] px-3 py-1 shadow">
+            <span className="text-[10px] font-extrabold text-[#ffe27a] tracking-wide">
+              👀 VATO SISA — jereo ny isa… {endRevealSec}s
+            </span>
+          </div>
+        </div>
+      )}
+
+      {gameOver && endRevealReady && (() => {
         const stake = Number(game.stake ?? 0);
         const pc = Number(game.players_count ?? 2);
         const commissionEach = Math.round(stake * 0.10);

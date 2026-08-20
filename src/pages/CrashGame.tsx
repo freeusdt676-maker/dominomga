@@ -505,6 +505,19 @@ export default function CrashGame() {
               />
             </div>
           )}
+          {/* Explosion exactly on the line where the plane was */}
+          {crashed && (
+            <div
+              className="absolute pointer-events-none z-10 animate-scale-in"
+              style={{
+                left: `${(plane.x / 300) * 100}%`,
+                top: `${(plane.y / 170) * 100}%`,
+                transform: "translate(-50%,-50%)",
+              }}
+            >
+              <span className="block text-5xl drop-shadow-[0_0_18px_rgba(239,68,68,0.9)]">💥</span>
+            </div>
+          )}
 
           {/* Bet accepted flash */}
           {betOk && (

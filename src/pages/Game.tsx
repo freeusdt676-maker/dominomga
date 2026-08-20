@@ -324,6 +324,9 @@ export default function Game() {
   const pressStartXRef = useRef(0);
   const pressStartYRef = useRef(0);
   const pointerTileIndexRef = useRef<number | null>(null);
+  // Fisehoan'ny VATO SISA alohan'ny animation famaranana (5s).
+  const [endRevealReady, setEndRevealReady] = useState(false);
+  const [endRevealSec, setEndRevealSec] = useState(5);
 
   const getAbandonedGameId = () => sessionStorage.getItem(ABANDONED_GAME_KEY);
 

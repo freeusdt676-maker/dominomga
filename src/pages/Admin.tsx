@@ -685,8 +685,9 @@ export default function Admin() {
             />
           </div>
           <div className="grid grid-cols-3 gap-2">
-            {(["domino", "ludo", "petanque"] as const).map((g) => {
+            {(["domino", "ludo", "petanque", "crash"] as const).map((g) => {
               const blocked = !!gameBlocks[g];
+
               return (
                 <Button
                   key={g}

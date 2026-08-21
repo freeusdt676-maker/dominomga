@@ -77,7 +77,7 @@ export default function Admin() {
   const [claimNote, setClaimNote] = useState("Réclamation administratif");
   const [pendingProfileCount, setPendingProfileCount] = useState(0);
   const [onlineOpen, setOnlineOpen] = useState(false);
-  const [gameBlocks, setGameBlocks] = useState<Record<string, boolean>>({ domino: false, ludo: false, petanque: false });
+  const [gameBlocks, setGameBlocks] = useState<Record<string, boolean>>({ domino: false, ludo: false, petanque: false, crash: false });
   const [gameBlockPin, setGameBlockPin] = useState("");
   const adminId = user?.id;
   const normalizeTicket = (value: string) => value.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
@@ -407,7 +407,7 @@ export default function Admin() {
     setUnblockAllOpen(false); setUnblockAllPin(""); await load();
   };
 
-  const setGameBlock = async (gameType: "domino" | "ludo" | "petanque", blocked: boolean) => {
+  const setGameBlock = async (gameType: "domino" | "ludo" | "petanque" | "crash", blocked: boolean) => {
     if (!adminId) return toast.error("Mbola tsy vita ny fanamarinana admin");
     if (!gameBlockPin.trim()) return toast.error("Ampidiro ny code administratif");
     const { error } = await supabase.rpc("admin_set_game_block" as any, {
@@ -685,8 +685,9 @@ export default function Admin() {
             />
           </div>
           <div className="grid grid-cols-3 gap-2">
-            {(["domino", "ludo", "petanque"] as const).map((g) => {
+            {(["domino", "ludo", "petanque", "crash"] as const).map((g) => {
               const blocked = !!gameBlocks[g];
+
               return (
                 <Button
                   key={g}

@@ -1866,6 +1866,7 @@ export type Database = {
         Args: { _game_id: string; _kind: string }
         Returns: Json
       }
+      wallet_verify_pin: { Args: { _pin: string }; Returns: boolean }
     }
     Enums: {
       account_status: "pending" | "active" | "blocked"

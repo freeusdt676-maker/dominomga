@@ -1627,6 +1627,7 @@ export type Database = {
         Returns: boolean
       }
       expire_stale_waiting_games: { Args: never; Returns: Json }
+      expire_stale_withdrawals: { Args: never; Returns: number }
       game_blocked: { Args: { _game_type: string }; Returns: boolean }
       get_admin_id: { Args: never; Returns: string }
       get_public_profiles: {
@@ -1867,6 +1868,10 @@ export type Database = {
         Returns: Json
       }
       wallet_verify_pin: { Args: { _pin: string }; Returns: boolean }
+      withdraw_request: {
+        Args: { _amount: number; _label: string; _phone: string }
+        Returns: Json
+      }
     }
     Enums: {
       account_status: "pending" | "active" | "blocked"

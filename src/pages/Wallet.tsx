@@ -111,17 +111,19 @@ export default function Wallet() {
     if (pinError || pinOk !== true) return toast.error("PIN diso");
 
 
-    const { error } = await supabase.from("transactions").insert({
-      user_id: user.id,
-      type: "withdrawal",
-      amount: a,
-      mvola_phone: cleanPhone,
-      mvola_reference: `[${OP.label.toUpperCase()}] ${withdrawName.trim()}`,
-      status: "pending",
+    const { error } = await supabase.rpc("withdraw_request" as any, {
+      _amount: a,
+      _phone: cleanPhone,
+      _label: `[${OP.label.toUpperCase()}] ${withdrawName.trim()}`,
     });
-    if (error) return toast.error("Erreur: " + error.message);
+    if (error) {
+      const m = error.message.includes("insufficient_balance") ? "Solde tsy ampy"
+        : error.message.includes("pending_exists") ? "Mbola misy demande tsy mbola voavaha"
+        : error.message;
+      return toast.error("Erreur: " + m);
+    }
     await supabase.rpc("log_audit", { _action: "withdraw_request", _meta: { amount: a, mvola_phone: cleanPhone } });
-    toast.success("Demande retrait alefa");
+    toast.success("Demande retrait alefa — voatana ny vola (miverina raha tsy validé mandritra 1 ora)");
     setWithdrawAmount(""); setWithdrawPhone(""); setWithdrawName(""); setPin(""); load();
   };
 

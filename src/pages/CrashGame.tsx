@@ -556,24 +556,8 @@ export default function CrashGame() {
           <div className="absolute top-2 left-2 text-[10px] text-white/50">Tour #{round?.round_no ?? "—"}</div>
         </div>
 
-        {/* History strip */}
-        <div className="flex gap-1.5 overflow-x-auto pb-1">
-          {history.map((h) => {
-            const cp = Number(h.crash_point ?? 1);
-            const cls =
-              cp >= 100 ? "bg-red-500/15 text-red-400"
-              : cp >= 50 ? "bg-emerald-500/15 text-emerald-400"
-              : cp >= 2 ? "bg-fuchsia-500/15 text-fuchsia-400"
-              : "bg-sky-500/15 text-sky-400";
-            return (
-              <span key={h.id}
-                className={`shrink-0 rounded-full px-2 py-1 text-[11px] font-bold ${cls}`}>
-                {cp.toFixed(2)}
-              </span>
-            );
-          })}
-          {history.length === 0 && <span className="text-xs text-white/40">Tsy mbola misy historique</span>}
-        </div>
+        {/* Historique nesorina (tsy aseho intsony) */}
+
 
         {/* Single bet slot */}
         {[0].map((slot) => {

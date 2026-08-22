@@ -1978,15 +1978,48 @@ export default function Game() {
         </>
       )}
 
-      {endRevealing && (
-        <div className="fixed inset-x-0 top-10 z-[60] flex justify-center px-2 pointer-events-none animate-in fade-in slide-in-from-top">
-          <div className="rounded-full border border-[#ffe27a]/80 bg-[linear-gradient(180deg,#0d3b22,#0a2818)] px-3 py-1 shadow">
-            <span className="text-[10px] font-extrabold text-[#ffe27a] tracking-wide">
-              👀 VATO SISA — jereo ny isa… {endRevealSec}s
-            </span>
+      {endRevealing && (() => {
+        const rows = [
+          { id: user?.id ?? "me", name: myName, hand: myHand },
+          ...opponents.map((o) => ({ id: o.id, name: o.name, hand: o.hand })),
+        ];
+        const others = rows.filter((r) => r.id !== game.winner_id);
+        const sumOthers = others.reduce((s, r) => s + pipsTotal(r.hand), 0);
+        return (
+          <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center gap-2 bg-black/85 px-2 animate-in fade-in">
+            <div className="rounded-full border border-[#ffe27a]/80 bg-[linear-gradient(180deg,#0d3b22,#0a2818)] px-3 py-1 shadow">
+              <span className="text-[11px] font-extrabold text-[#ffe27a] tracking-wide">
+                👀 VATO SISA — jereo ny isa… {endRevealSec}s
+              </span>
+            </div>
+            <div className="w-full max-w-md space-y-2 max-h-[70vh] overflow-y-auto">
+              {rows.map((r) => (
+                <div key={r.id} className="rounded-xl border-2 border-[#ffe27a]/50 bg-[linear-gradient(180deg,rgba(0,0,0,0.7),rgba(0,0,0,0.5))] p-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[11px] font-extrabold uppercase tracking-wide text-white/95 truncate">
+                      {r.id === game.winner_id ? "🏆 " : ""}{r.name}
+                    </span>
+                    <span className="text-lg font-black gold-text tabular-nums">{pipsTotal(r.hand)}</span>
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-1">
+                    {r.hand.length === 0
+                      ? <span className="text-[10px] text-white/60 italic">Tsy misy vato sisa</span>
+                      : r.hand.map((t, i) => (
+                          <DominoTile key={i} a={t[0]} b={t[1]} size="xs" horizontal={false} variant="white" />
+                        ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="rounded-lg border border-[#ffe27a]/60 bg-black/70 px-3 py-1.5 text-center">
+              <span className="text-[12px] font-extrabold text-[#ffe27a] tabular-nums">
+                {others.map((r) => pipsTotal(r.hand)).join(" + ")} = {sumOthers}
+              </span>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
+
 
       {gameOver && endRevealReady && (() => {
         const stake = Number(game.stake ?? 0);

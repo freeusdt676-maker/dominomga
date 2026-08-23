@@ -249,15 +249,26 @@ export default function Lobby() {
             ))}
           </div>
 
-          <p className="text-sm text-muted-foreground mb-2">2. Mise</p>
-          <div className="grid grid-cols-5 gap-2 mb-4">
-            {STAKE_LEVELS.map((s) => (
-              <button key={s} onClick={() => { setStake(s); setConfirmed(false); }}
-                className={`py-2 rounded-lg text-xs font-semibold border ${stake === s ? "btn-gold border-primary" : "border-primary/30 text-foreground"}`}>
-                {s/1000}k
-              </button>
-            ))}
+          <p className="text-sm text-muted-foreground mb-2">2. Mise (200 – 100 000 Ar)</p>
+          <div className="mb-4">
+            <input
+              type="number"
+              inputMode="numeric"
+              min={MIN_STAKE}
+              max={MAX_STAKE}
+              step={100}
+              value={stakeInput}
+              onChange={(e) => { setStakeInput(e.target.value); setConfirmed(false); }}
+              placeholder="Ex: 500"
+              className="w-full rounded-lg border border-primary/40 bg-black/30 px-3 py-2 text-center text-lg font-bold gold-text outline-none focus:border-primary"
+            />
+            {!stakeValid && (
+              <p className="mt-1 text-[11px] text-destructive">
+                Mise tsy mety — soraty eo anelanelan'ny {fmtAr(MIN_STAKE)} sy {fmtAr(MAX_STAKE)}.
+              </p>
+            )}
           </div>
+
 
           <p className="text-sm text-muted-foreground mb-2">3. Karazana lalao</p>
           <div className="grid grid-cols-2 gap-2 mb-4">

@@ -144,6 +144,7 @@ export default function Lobby() {
 
   const placeMise = async () => {
     if (!user || placing) return;
+    if (!stakeValid) return toast.error(`Mise: ${fmtAr(MIN_STAKE)} – ${fmtAr(MAX_STAKE)}`);
     setPlacing(true);
     // Foanana aloha izay salao niandry efa tara loatra (3P tsy nahazo player3, sns.)
     // mba tsy hisakana ity mpilalao ity manao demande vaovao.

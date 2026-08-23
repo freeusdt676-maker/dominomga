@@ -3,7 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { STAKE_LEVELS, fmtAr } from "@/lib/constants";
+import { fmtAr } from "@/lib/constants";
+
+const MIN_STAKE = 200;
+const MAX_STAKE = 100000;
 import { ArrowLeft, Loader2, Coins, Users, X, Play } from "lucide-react";
 import { toast } from "sonner";
 import { useThemeClass } from "@/hooks/use-theme-class";
@@ -28,7 +31,9 @@ export default function Lobby() {
   useThemeClass("domino");
   const { user } = useAuth();
   const nav = useNavigate();
-  const [stake, setStake] = useState(STAKE_LEVELS[0]);
+  const [stakeInput, setStakeInput] = useState("200");
+  const stake = Number(stakeInput.replace(/\D/g, "")) || 0;
+  const stakeValid = Number.isFinite(stake) && stake >= MIN_STAKE && stake <= MAX_STAKE;
   const [mode, setMode] = useState<string>("d120");
   const [playersCount, setPlayersCount] = useState<2 | 3>(2);
   const [confirmed, setConfirmed] = useState(false);
@@ -139,6 +144,7 @@ export default function Lobby() {
 
   const placeMise = async () => {
     if (!user || placing) return;
+    if (!stakeValid) return toast.error(`Mise: ${fmtAr(MIN_STAKE)} – ${fmtAr(MAX_STAKE)}`);
     setPlacing(true);
     // Foanana aloha izay salao niandry efa tara loatra (3P tsy nahazo player3, sns.)
     // mba tsy hisakana ity mpilalao ity manao demande vaovao.
@@ -249,15 +255,26 @@ export default function Lobby() {
             ))}
           </div>
 
-          <p className="text-sm text-muted-foreground mb-2">2. Mise</p>
-          <div className="grid grid-cols-5 gap-2 mb-4">
-            {STAKE_LEVELS.map((s) => (
-              <button key={s} onClick={() => { setStake(s); setConfirmed(false); }}
-                className={`py-2 rounded-lg text-xs font-semibold border ${stake === s ? "btn-gold border-primary" : "border-primary/30 text-foreground"}`}>
-                {s/1000}k
-              </button>
-            ))}
+          <p className="text-sm text-muted-foreground mb-2">2. Mise (200 – 100 000 Ar)</p>
+          <div className="mb-4">
+            <input
+              type="number"
+              inputMode="numeric"
+              min={MIN_STAKE}
+              max={MAX_STAKE}
+              step={100}
+              value={stakeInput}
+              onChange={(e) => { setStakeInput(e.target.value); setConfirmed(false); }}
+              placeholder="Ex: 500"
+              className="w-full rounded-lg border border-primary/40 bg-black/30 px-3 py-2 text-center text-lg font-bold gold-text outline-none focus:border-primary"
+            />
+            {!stakeValid && (
+              <p className="mt-1 text-[11px] text-destructive">
+                Mise tsy mety — soraty eo anelanelan'ny {fmtAr(MIN_STAKE)} sy {fmtAr(MAX_STAKE)}.
+              </p>
+            )}
           </div>
+
 
           <p className="text-sm text-muted-foreground mb-2">3. Karazana lalao</p>
           <div className="grid grid-cols-2 gap-2 mb-4">
@@ -297,7 +314,7 @@ export default function Lobby() {
             <Button
               className="btn-gold w-full mt-3"
               onClick={placeMise}
-              disabled={placing}
+              disabled={placing || !stakeValid}
             >
               {placing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Coins className="w-4 h-4 mr-2" />}
               {placing ? "Andraso..." : `4. Confirmer le demande — ${fmtAr(stake)}`}

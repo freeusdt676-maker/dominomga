@@ -3,7 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { STAKE_LEVELS, fmtAr } from "@/lib/constants";
+import { fmtAr } from "@/lib/constants";
+
+const MIN_STAKE = 200;
+const MAX_STAKE = 100000;
 import { ArrowLeft, Loader2, Coins, Users, X, Play } from "lucide-react";
 import { toast } from "sonner";
 import { useThemeClass } from "@/hooks/use-theme-class";

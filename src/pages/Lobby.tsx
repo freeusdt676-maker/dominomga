@@ -314,7 +314,7 @@ export default function Lobby() {
             <Button
               className="btn-gold w-full mt-3"
               onClick={placeMise}
-              disabled={placing}
+              disabled={placing || !stakeValid}
             >
               {placing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Coins className="w-4 h-4 mr-2" />}
               {placing ? "Andraso..." : `4. Confirmer le demande — ${fmtAr(stake)}`}

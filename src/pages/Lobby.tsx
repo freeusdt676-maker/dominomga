@@ -28,7 +28,9 @@ export default function Lobby() {
   useThemeClass("domino");
   const { user } = useAuth();
   const nav = useNavigate();
-  const [stake, setStake] = useState(STAKE_LEVELS[0]);
+  const [stakeInput, setStakeInput] = useState("200");
+  const stake = Number(stakeInput.replace(/\D/g, "")) || 0;
+  const stakeValid = Number.isFinite(stake) && stake >= MIN_STAKE && stake <= MAX_STAKE;
   const [mode, setMode] = useState<string>("d120");
   const [playersCount, setPlayersCount] = useState<2 | 3>(2);
   const [confirmed, setConfirmed] = useState(false);

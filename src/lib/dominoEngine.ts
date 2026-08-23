@@ -91,32 +91,15 @@ export function deal3(seed?: string) {
   };
 }
 
-// Mode-aware opening:
-//  - d120: forced double; priority [0,1,2,3] (smallest blank first).
-//  - d80:  forced double; priority [6,5,4]   (largest first).
-//  - hand: NO forced double — opener (highest-pip player) plays any tile.
-// When no qualifying double exists in any hand, we also fall back to free-choice
-// opening by the player holding the highest pip tile. `forced` indicates
-// whether the returned tile must be played as the opener.
+// Opening (2026-08-23): NO forced tile. The round opener (rotation by round
+// number) plays whichever tile they want on the empty board.
 export function chooseOpening(
   hands: Tile[][],
-  mode: "d120" | "d80" | "hand",
+  _mode: "d120" | "d80" | "hand",
 ): { playerIndex: number; tile: Tile; forced: boolean } {
-  // Official opening: whoever holds [6|6] must open with it.
-  for (let i = 0; i < hands.length; i += 1) {
-    const doubleSix = hands[i].find((t) => t[0] === 6 && t[1] === 6);
-    if (doubleSix) return { playerIndex: i, tile: doubleSix, forced: true };
-  }
-  // Defensive fallback for malformed/imported deals without [6|6].
-  let best = { playerIndex: 0, tile: hands[0][0], score: -1 };
-  for (let i = 0; i < hands.length; i += 1) {
-    for (const t of hands[i]) {
-      const s = t[0] + t[1];
-      if (s > best.score) best = { playerIndex: i, tile: t, score: s };
-    }
-  }
-  return { playerIndex: best.playerIndex, tile: best.tile, forced: false };
+  return { playerIndex: 0, tile: hands[0][0], forced: false };
 }
+
 
 function tileRank([a, b]: Tile) {
   return a === b ? 100 + a : Math.max(a, b) * 10 + Math.min(a, b);

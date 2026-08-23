@@ -29,7 +29,7 @@ Frozen parameters (do not change without explicit prompt):
 ## Domino official rules (LOCKED — 2026-08-02)
 - **Match victory:** only when accumulated score reaches the selected target (D80=80, D120=120).
 - **Blocked round:** the player with the lowest remaining pip total wins the round. Their own pips are not counted; awarded points equal the sum of all opponents' remaining pips. A blocked round never bypasses the match target.
-- **Opening:** the holder of [6|6] must open with [6|6].
+- **Opening (revised 2026-08-23):** NO forced tile. The round opener (rotation by round number) plays any tile they choose on the empty board. The [6|6] forced opening is removed.
 - **40 prend tout:** a 40+ point round receives the full round points but does not bypass the 80/120 target.
 - **Ray sy Fotsy / [0|0]-[0|1] rule:** completely removed and must never be reintroduced.
 - Running out, Double 6 out, a block, or a tied block only end the round unless the resulting accumulated score reaches target.
@@ -61,3 +61,5 @@ Do not color every placed domino red. Only the left/vodiny endpoint tile is red,
 
 ## 15s autoplay/vibration invariant (2026-07-10)
 Domino turn deadline is 15s. At 0s the backend watchdog must auto-play a legal tile or pass if no legal tile exists, even when every player leaves or loses data. The 5s remaining vibration must run only on the device of the current-turn player, never on opponents' devices.
+## Domino stake range (2026-08-23)
+Domino mise is free input from 200 Ar to 100 000 Ar (fixed 1K/2K/3K/5K buttons removed). Admin commission stays 10%. Ludo/Petanque stakes unchanged.

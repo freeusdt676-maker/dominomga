@@ -349,7 +349,7 @@ export default function CrashGame() {
   useEffect(() => {
     // Client interpolates the curve locally (clock-synced), so state polling can
     // stay light: fewer API calls per player = far more concurrent players.
-    const poll = setInterval(() => { if (!document.hidden) tick(); }, 1400);
+    const poll = setInterval(() => { if (!document.hidden) tick(); }, 600);
     // 60 fps animation frame loop => perfectly smooth multiplier + plane motion
     let raf = 0;
     const loop = () => { setNow(Date.now()); raf = requestAnimationFrame(loop); };
@@ -523,7 +523,7 @@ export default function CrashGame() {
       })();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveMult, running, roundBets]);
+  }, [trueMult, running, roundBets]);
 
 
   const crashed = round?.status === "crashed";

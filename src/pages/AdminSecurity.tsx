@@ -47,12 +47,33 @@ export default function AdminSecurity() {
     return () => { supabase.removeChannel(ch); };
   }, [allowed]);
 
+  const toggleAlert = (id: string) =>
+    setSelAlerts((prev) => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+
+  const deleteSelectedAlerts = async () => {
+    if (selAlerts.size === 0) return;
+    if (!confirm(`Hamafa alertes ${selAlerts.size}?`)) return;
+    setBusy(true);
+    const ids = Array.from(selAlerts);
+    const { error } = await supabase.from("fraud_alerts").delete().in("id", ids);
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    setSelAlerts(new Set());
+    toast.success(`${ids.length} voafafa`);
+    load();
+  };
+
   const resolve = async (id: string) => {
     const { error } = await supabase.rpc("admin_resolve_fraud_alert", { _id: id });
     if (error) return toast.error(error.message);
     toast.success("Voavaha");
     load();
   };
+
 
   const block = async (uid: string) => {
     const { error } = await supabase.from("profiles").update({ account_status: "blocked" }).eq("user_id", uid);

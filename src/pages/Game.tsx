@@ -32,6 +32,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Tile, Placed, deal, deal3, ends, canPlace, place, pipsTotal, hasMove, chooseOpening,
 } from "@/lib/dominoEngine";
+import { bestExactMove } from "@/lib/dominoSolver";
 import { toast } from "sonner";
 import { sfx } from "@/lib/sfx";
 import {
@@ -1293,14 +1294,34 @@ export default function Game() {
             })
         : [];
       const perfectBoneyard: Tile[] = botActive ? (((fresh as any).boneyard as Tile[]) ?? []) : [];
-      const best = chooseBestBotMove(turnHand, liveBoard, {
-        opponentSizes: oppSizes,
-        boneyardSize,
-        opponentScores: oppScoresArr,
-        targetPts: targetPtsBot,
-        opponentHands: perfectOppHands,
-        boneyard: perfectBoneyard,
-      });
+
+      // Hands sorted in real turn rotation order (needed by the exact engine).
+      const orderedOppHands: Tile[][] = (() => {
+        if (!botActive) return [];
+        const out: Tile[][] = [];
+        let cur = nextTurnId(fresh, turnId);
+        for (let i = 0; i < pc - 1 && cur && cur !== turnId; i += 1) {
+          const k = getHandKey(fresh, cur);
+          out.push(k ? (((fresh as any)[k] as Tile[]) ?? []) : []);
+          cur = nextTurnId(fresh, cur);
+        }
+        return out;
+      })();
+
+      let best = botActive && orderedOppHands.length === pc - 1
+        ? bestExactMove(turnHand, orderedOppHands, liveBoard, Number(fresh.passes ?? 0))
+        : null;
+      if (!best) {
+        best = chooseBestBotMove(turnHand, liveBoard, {
+          opponentSizes: oppSizes,
+          boneyardSize,
+          opponentScores: oppScoresArr,
+          targetPts: targetPtsBot,
+          opponentHands: perfectOppHands,
+          boneyard: perfectBoneyard,
+        }) as any;
+      }
+
       if (best) {
         const { index: playableIdx, side: chosenSide } = best;
         const tile = turnHand[playableIdx];

@@ -226,6 +226,10 @@ export default function CrashGame() {
   const lastCrashSound = useRef<string | null>(null);
   const [betOk, setBetOk] = useState(false);
   const [winFx, setWinFx] = useState<string | null>(null);
+  const [online, setOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
+  const [connLost, setConnLost] = useState(false);
+  const [shake, setShake] = useState(false);
+  const [result, setResult] = useState<{ win: boolean; text: string; sub: string } | null>(null);
 
   const serverNow = () => now + offset;
 

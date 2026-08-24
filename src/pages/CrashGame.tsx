@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { fmtAr } from "@/lib/constants";
-import { ArrowLeft, Loader2, Rocket, ShieldCheck, Volume2, VolumeX } from "lucide-react";
+import { ArrowLeft, Copy, Loader2, Rocket, ShieldCheck, Volume2, VolumeX, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 
 type Round = {
@@ -226,6 +226,10 @@ export default function CrashGame() {
   const lastCrashSound = useRef<string | null>(null);
   const [betOk, setBetOk] = useState(false);
   const [winFx, setWinFx] = useState<string | null>(null);
+  const [online, setOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
+  const [connLost, setConnLost] = useState(false);
+  const [shake, setShake] = useState(false);
+  const [result, setResult] = useState<{ win: boolean; text: string; sub: string } | null>(null);
 
   const serverNow = () => now + offset;
 
@@ -248,7 +252,7 @@ export default function CrashGame() {
   const loadHistory = useCallback(async () => {
     if (!user) return;
     const res = await safe(() => Promise.all([
-      supabase.from("crash_rounds").select("*").eq("status", "crashed").order("round_no", { ascending: false }).limit(1),
+      supabase.from("crash_rounds").select("*").eq("status", "crashed").order("round_no", { ascending: false }).limit(12),
       supabase.from("crash_bets").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
     ]));
     if (!res || !alive.current) return;
@@ -277,6 +281,7 @@ export default function CrashGame() {
   }, [user]);
 
   // Drive + read the server state machine
+  const okAt = useRef(Date.now());
   const tick = useCallback(async () => {
     if (ticking.current) return;
     ticking.current = true;
@@ -284,7 +289,14 @@ export default function CrashGame() {
     const res = await safe(() => supabase.rpc("crash_tick"));
     const t1 = Date.now();
     ticking.current = false;
-    if (!res || res.error || !alive.current) return;
+    if (!alive.current) return;
+    if (!res || res.error) {
+      // connection / server issue → warn the player instead of freezing silently
+      if (Date.now() - okAt.current > 6000) setConnLost(true);
+      return;
+    }
+    okAt.current = Date.now();
+    setConnLost(false);
     const r = res.data as unknown as Round;
     if (!r?.id || !r.server_now) return;
     const srvMs = new Date(r.server_now).getTime();
@@ -335,27 +347,76 @@ export default function CrashGame() {
     // Client interpolates the curve locally (clock-synced), so state polling can
     // stay light: fewer API calls per player = far more concurrent players.
     const poll = setInterval(() => { if (!document.hidden) tick(); }, 1400);
-    const frame = setInterval(() => setNow(Date.now()), 60);
+    // 60 fps animation frame loop => perfectly smooth multiplier + plane motion
+    let raf = 0;
+    const loop = () => { setNow(Date.now()); raf = requestAnimationFrame(loop); };
+    raf = requestAnimationFrame(loop);
     const pub = setInterval(() => { if (!document.hidden) loadPublic(); }, 4000);
     const onVisible = () => { if (!document.hidden) { tick(); loadPublic(); } };
+    const onOnline = () => { setOnline(true); tick(); loadPublic(); };
+    const onOffline = () => setOnline(false);
     document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
     loadPublic();
     return () => {
-      clearInterval(poll); clearInterval(frame); clearInterval(pub);
+      clearInterval(poll); cancelAnimationFrame(raf); clearInterval(pub);
       document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
     };
   }, [tick, loadPublic]);
+
+  // Realtime round updates: every device flips to running / crashed at the same
+  // instant instead of waiting for its own polling window.
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel("crash-rounds-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "crash_rounds" }, () => { tick(); })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user, tick]);
 
   // refresh bet + balance when the round settles
   useEffect(() => {
     if (round?.status === "crashed" && round.id) {
-      if (lastCrashSound.current !== round.id) { lastCrashSound.current = round.id; stopEngine(); playExplosion(); }
+      if (lastCrashSound.current !== round.id) {
+        lastCrashSound.current = round.id;
+        stopEngine();
+        playExplosion();
+        setShake(true);
+        setTimeout(() => setShake(false), 700);
+      }
       loadMyBet(round.id);
       loadBalance();
       loadHistory();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [round?.status, round?.id]);
+
+  // Clear win/loss verdict for the round the player took part in
+  const verdictFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (round?.status !== "crashed" || !round.id) return;
+    if (verdictFor.current === round.id) return;
+    if (!roundBets.length) return;
+    verdictFor.current = round.id;
+    const won = roundBets.filter((b) => b.status === "cashed");
+    const staked = roundBets.reduce((s, b) => s + Number(b.amount || 0), 0);
+    if (won.length) {
+      const payout = won.reduce((s, b) => s + Number(b.payout || 0), 0);
+      setResult({
+        win: true,
+        text: `+${fmtAr(payout)}`,
+        sub: `Cashout ×${Number(won[0].cashout_multiplier ?? 0).toFixed(2)} · Crash ×${Number(round.crash_point ?? 0).toFixed(2)}`,
+      });
+    } else {
+      setResult({ win: false, text: `-${fmtAr(staked)}`, sub: `Crash ×${Number(round.crash_point ?? 0).toFixed(2)}` });
+    }
+    setTimeout(() => setResult(null), 3200);
+  }, [round?.status, round?.id, round?.crash_point, roundBets]);
+
 
   const elapsed = round?.started_at ? (serverNow() - new Date(round.started_at).getTime()) / 1000 : 0;
   const liveMult = round?.status === "running" ? multAt(elapsed) : 1;
@@ -424,6 +485,37 @@ export default function CrashGame() {
     loadBalance();
   };
 
+  // --- Auto-cashout safety net -------------------------------------------
+  // The server auto-cashes at the exact target inside crash_tick. This client
+  // watcher fires the same RPC the instant the synced multiplier reaches the
+  // target, so a slow server tick can never cost the player their cashout.
+  const autoFired = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!running) return;
+    for (const b of roundBets) {
+      const target = Number(b.auto_cashout ?? 0);
+      if (b.status !== "placed" || !target || target < 1.01) continue;
+      if (autoFired.current.has(b.id) || seenCashed.current.has(b.id)) continue;
+      if (liveMult + 0.001 < target) continue;
+      autoFired.current.add(b.id);
+      void (async () => {
+        const res = await safe(() => supabase.rpc("crash_cashout", { _bet_id: b.id } as any));
+        const out = res && !res.error ? (res.data as any) : null;
+        if (out?.ok && alive.current) {
+          seenCashed.current.add(b.id);
+          playWin();
+          setBalance((x) => x + Number(out.payout || 0));
+          setWinFx(`+${fmtAr(Number(out.payout || 0))} · ×${Number(out.multiplier).toFixed(2)}`);
+          setTimeout(() => setWinFx(null), 2200);
+          if (round) loadMyBet(round.id);
+          loadBalance();
+        }
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveMult, running, roundBets]);
+
+
   const crashed = round?.status === "crashed";
   // The aircraft starts fully outside the lower-left corner when the run begins
   // and climbs along the curve. When the round crashes it explodes EXACTLY where
@@ -467,9 +559,38 @@ export default function CrashGame() {
           <span className="text-sm font-semibold text-amber-300">{fmtAr(balance)}</span>
         </div>
 
+        {(!online || connLost) && (
+          <div className="flex items-center gap-2 rounded-xl border border-amber-400/40 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-200">
+            <WifiOff className="w-4 h-4 shrink-0" />
+            <span>
+              {online
+                ? "Tapaka ny fifandraisana amin'ny serveur — miandry… Ny mise efa napetraka dia voatahiry ao amin'ny serveur."
+                : "Tsy misy aterineto — miandry ny fiverenan'ny konektika."}
+            </span>
+          </div>
+        )}
+
+        {/* Recent rounds */}
+        {history.length > 0 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+            <span className="shrink-0 text-[10px] uppercase tracking-wider text-white/40">Tour teo</span>
+            {history.map((h) => {
+              const v = Number(h.crash_point ?? 1);
+              const cls = v >= 10 ? "bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-400/40"
+                : v >= 2 ? "bg-emerald-500/15 text-emerald-300 border-emerald-400/40"
+                : "bg-red-500/15 text-red-300 border-red-400/40";
+              return (
+                <span key={h.id} className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-bold tabular-nums ${cls}`}>
+                  ×{v.toFixed(2)}
+                </span>
+              );
+            })}
+          </div>
+        )}
+
         {/* Graph */}
         <div
-          className="relative rounded-2xl border border-white/10 overflow-hidden"
+          className={`relative rounded-2xl border border-white/10 overflow-hidden ${shake ? "animate-[crashShake_0.6s_ease-in-out]" : ""}`}
           style={{
             backgroundColor: "#050a14",
             backgroundImage:
@@ -520,6 +641,28 @@ export default function CrashGame() {
               <span className="block text-5xl drop-shadow-[0_0_18px_rgba(239,68,68,0.9)]">💥</span>
             </div>
           )}
+          {/* Dramatic crash flash */}
+          {shake && (
+            <div className="absolute inset-0 z-[5] pointer-events-none animate-[crashFlash_0.6s_ease-out] bg-red-600" />
+          )}
+          {/* Round verdict (win / loss) */}
+          {result && (
+            <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none px-4">
+              <div className={`animate-scale-in w-full max-w-[16rem] rounded-2xl border-2 px-4 py-3 text-center backdrop-blur-sm ${
+                result.win
+                  ? "border-emerald-400 bg-emerald-500/15 shadow-[0_0_40px_rgba(16,185,129,0.6)]"
+                  : "border-red-500 bg-red-600/15 shadow-[0_0_40px_rgba(239,68,68,0.6)]"
+              }`}>
+                <p className={`text-2xl font-black tabular-nums ${result.win ? "text-emerald-400" : "text-red-400"}`}>{result.text}</p>
+                <p className="text-[11px] font-bold text-white/70">{result.sub}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-white/45">
+                  {result.win ? "Nahazo ianao" : "Very ny mise"}
+                </p>
+              </div>
+            </div>
+          )}
+
+
 
           {/* Bet accepted flash */}
           {betOk && (
@@ -620,14 +763,50 @@ export default function CrashGame() {
         })}
 
         {/* Provably fair */}
-        <div className="rounded-xl border border-white/10 bg-black/30 p-3 text-[11px] text-white/60 flex gap-2">
-          <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-          <span>
-            Provably fair — hash: <span className="font-mono break-all">{round?.server_seed_hash?.slice(0, 24)}…</span>
-            <br />Multiplicateur ×1.00 → ×999.00. Mise 100 – 10 000 Ar.
-            <br />Vokatra kisendrasendra 100% (HMAC-SHA256) — tsy misy programme, tsy misy stratégie azo antoka.
-          </span>
+        <div className="rounded-xl border border-white/10 bg-black/30 p-3 text-[11px] text-white/60 space-y-2">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span className="font-bold text-white/80">Provably fair — Tour #{round?.round_no ?? "—"}</span>
+            <span className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-bold ${
+              round?.status === "crashed" ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300"
+            }`}>
+              {round?.status === "crashed" ? "Voaverina (révélé)" : "Hash mialoha"}
+            </span>
+          </div>
+          <div className="rounded-lg bg-black/50 p-2">
+            <div className="text-[10px] uppercase tracking-wider text-white/40">SHA-256 server seed hash</div>
+            <div className="flex items-start gap-2">
+              <span className="font-mono text-[10px] leading-tight break-all text-white/80">
+                {round?.server_seed_hash ?? "—"}
+              </span>
+              <button
+                type="button"
+                aria-label="Copier ny hash"
+                className="shrink-0 rounded-md bg-white/10 p-1.5 active:scale-95"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(round?.server_seed_hash ?? "");
+                    toast.success("Hash voadika");
+                  } catch { toast.error("Tsy voadika ny hash"); }
+                }}
+              >
+                <Copy className="w-3.5 h-3.5 text-white/70" />
+              </button>
+            </div>
+          </div>
+          {round?.status === "crashed" && (
+            <div className="rounded-lg bg-black/50 p-2 flex items-center justify-between">
+              <span className="text-[10px] uppercase tracking-wider text-white/40">Vokatra navoaka</span>
+              <span className="font-mono font-bold text-red-400">×{Number(round.crash_point ?? 0).toFixed(2)}</span>
+            </div>
+          )}
+          <p>
+            Ny hash aseho ALOHA ny tour; aorian'ny crash dia navoaka ny vokatra mba azo hamarinina.
+            Multiplicateur ×1.00 → ×999.00 · Mise {MIN_BET} – {MAX_BET} Ar.
+            <br />Vokatra HMAC-SHA256 (server seed + nonce) — tsy misy programme, tsy misy stratégie azo antoka.
+          </p>
         </div>
+
 
         {/* Bets tabs */}
         <div className="rounded-2xl border border-white/10 bg-white/5 p-2">

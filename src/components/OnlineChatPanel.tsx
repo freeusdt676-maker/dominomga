@@ -4,6 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { subscribeOnlineMembers, type PresenceMember } from "@/hooks/useGlobalPresence";
 import { Send, Trash2, Smile } from "lucide-react";
 import { toast } from "sonner";
+import LiveDominoRooms from "@/components/LiveDominoRooms";
+
 
 const EMOJIS = [
   "😀","😁","😂","🤣","😊","😍","😘","😎","🤩","🥳",

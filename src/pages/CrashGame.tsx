@@ -559,9 +559,38 @@ export default function CrashGame() {
           <span className="text-sm font-semibold text-amber-300">{fmtAr(balance)}</span>
         </div>
 
+        {(!online || connLost) && (
+          <div className="flex items-center gap-2 rounded-xl border border-amber-400/40 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-200">
+            <WifiOff className="w-4 h-4 shrink-0" />
+            <span>
+              {online
+                ? "Tapaka ny fifandraisana amin'ny serveur — miandry… Ny mise efa napetraka dia voatahiry ao amin'ny serveur."
+                : "Tsy misy aterineto — miandry ny fiverenan'ny konektika."}
+            </span>
+          </div>
+        )}
+
+        {/* Recent rounds */}
+        {history.length > 0 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+            <span className="shrink-0 text-[10px] uppercase tracking-wider text-white/40">Tour teo</span>
+            {history.map((h) => {
+              const v = Number(h.crash_point ?? 1);
+              const cls = v >= 10 ? "bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-400/40"
+                : v >= 2 ? "bg-emerald-500/15 text-emerald-300 border-emerald-400/40"
+                : "bg-red-500/15 text-red-300 border-red-400/40";
+              return (
+                <span key={h.id} className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-bold tabular-nums ${cls}`}>
+                  ×{v.toFixed(2)}
+                </span>
+              );
+            })}
+          </div>
+        )}
+
         {/* Graph */}
         <div
-          className="relative rounded-2xl border border-white/10 overflow-hidden"
+          className={`relative rounded-2xl border border-white/10 overflow-hidden ${shake ? "animate-[crashShake_0.6s_ease-in-out]" : ""}`}
           style={{
             backgroundColor: "#050a14",
             backgroundImage:

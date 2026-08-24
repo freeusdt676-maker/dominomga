@@ -354,9 +354,10 @@ export default function Lobby() {
                         <div className="text-left">
                           <p className="font-bold text-sm">{g._name}</p>
                           <p className="text-[11px] text-muted-foreground">
-                            <b className="gold-text">{pc}P</b> · mise <b className="gold-text">{fmtAr(g.stake)}</b> · <b className="text-primary">{gMode?.label ?? "Maty 120"}</b>
+                            <b className="gold-text">{pc}P {[g.player1_id, g.player2_id, g.player3_id].filter(Boolean).length}/{pc}</b> · mise <b className="gold-text">{fmtAr(g.stake)}</b> · <b className="text-primary">{gMode?.label ?? "Maty 120"}</b>
                             {pc === 3 && g.player2_id && !g.player3_id ? " · miandry pilalao 3" : ""}
                           </p>
+
                         </div>
                         {joining === g.id ? <Loader2 className="w-4 h-4 animate-spin" /> : (
                           <span className="text-xs font-bold text-primary">Hiditra ▶</span>

@@ -4,6 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { subscribeOnlineMembers, type PresenceMember } from "@/hooks/useGlobalPresence";
 import { Send, Trash2, Smile } from "lucide-react";
 import { toast } from "sonner";
+import LiveDominoRooms from "@/components/LiveDominoRooms";
+
 
 const EMOJIS = [
   "😀","😁","😂","🤣","😊","😍","😘","😎","🤩","🥳",
@@ -112,7 +114,11 @@ export default function OnlineChatPanel() {
         </div>
       </div>
 
+      {/* Salles vonona — mipoitra avy hatrany */}
+      <LiveDominoRooms />
+
       {/* Chat kely */}
+
       <div className="h-48 overflow-y-auto p-2.5 space-y-1 bg-[radial-gradient(120%_80%_at_50%_0%,rgba(255,255,255,0.035),transparent_70%)]">
         {messages.length === 0 && (
           <p className="text-center text-[11px] text-muted-foreground py-6">✍️ Manombohy resaka…</p>

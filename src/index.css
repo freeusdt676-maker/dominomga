@@ -1062,3 +1062,18 @@ button:active:not(:disabled), [role="button"]:active:not([aria-disabled="true"])
   0%, 100% { opacity: 1; }
   50% { opacity: 0.78; }
 }
+
+/* Crash MGA — dramatic crash effects */
+@keyframes crashShake {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  10% { transform: translate3d(-6px, 3px, 0) rotate(-0.5deg); }
+  25% { transform: translate3d(7px, -4px, 0) rotate(0.6deg); }
+  40% { transform: translate3d(-5px, 4px, 0) rotate(-0.4deg); }
+  55% { transform: translate3d(5px, -3px, 0) rotate(0.3deg); }
+  70% { transform: translate3d(-3px, 2px, 0); }
+  85% { transform: translate3d(2px, -1px, 0); }
+}
+@keyframes crashFlash {
+  0% { opacity: 0.55; }
+  100% { opacity: 0; }
+}

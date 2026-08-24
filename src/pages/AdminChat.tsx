@@ -133,13 +133,25 @@ export default function AdminChat() {
             : mine
               ? "btn-gold"
               : "bg-success/20 border border-success/40 text-foreground";
+          const canDel = mine || isAdmin;
           return (
-            <div key={m.id} className={`flex ${align} group`}>
-              <div className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm relative ${bubble}`}>
+            <div key={m.id} className={`flex ${align} group items-start gap-2`}>
+              {selMode && canDel && (
+                <input
+                  type="checkbox"
+                  className="mt-3 w-4 h-4 accent-destructive shrink-0"
+                  checked={selected.has(m.id)}
+                  onChange={() => toggleSel(m.id)}
+                />
+              )}
+              <div
+                onClick={() => { if (selMode && canDel) toggleSel(m.id); }}
+                className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm relative ${bubble} ${selMode && selected.has(m.id) ? "ring-2 ring-destructive" : ""}`}
+              >
                 {m.is_admin_broadcast && <p className="text-xs font-bold mb-1">📢 Annonce admin</p>}
                 {m.content}
                 <p className="text-[10px] opacity-70 mt-1">{new Date(m.created_at).toLocaleTimeString("fr-FR", { hour:"2-digit", minute:"2-digit"})}</p>
-                {(mine || isAdmin) && (
+                {canDel && !selMode && (
                   <button
                     onClick={() => remove(m)}
                     aria-label="Suprimer"
@@ -151,6 +163,7 @@ export default function AdminChat() {
               </div>
             </div>
           );
+
         })}
         <div ref={endRef} />
       </div>

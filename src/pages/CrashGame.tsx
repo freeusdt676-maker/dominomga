@@ -485,6 +485,37 @@ export default function CrashGame() {
     loadBalance();
   };
 
+  // --- Auto-cashout safety net -------------------------------------------
+  // The server auto-cashes at the exact target inside crash_tick. This client
+  // watcher fires the same RPC the instant the synced multiplier reaches the
+  // target, so a slow server tick can never cost the player their cashout.
+  const autoFired = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!running) return;
+    for (const b of roundBets) {
+      const target = Number(b.auto_cashout ?? 0);
+      if (b.status !== "placed" || !target || target < 1.01) continue;
+      if (autoFired.current.has(b.id) || seenCashed.current.has(b.id)) continue;
+      if (liveMult + 0.001 < target) continue;
+      autoFired.current.add(b.id);
+      void (async () => {
+        const res = await safe(() => supabase.rpc("crash_cashout", { _bet_id: b.id } as any));
+        const out = res && !res.error ? (res.data as any) : null;
+        if (out?.ok && alive.current) {
+          seenCashed.current.add(b.id);
+          playWin();
+          setBalance((x) => x + Number(out.payout || 0));
+          setWinFx(`+${fmtAr(Number(out.payout || 0))} · ×${Number(out.multiplier).toFixed(2)}`);
+          setTimeout(() => setWinFx(null), 2200);
+          if (round) loadMyBet(round.id);
+          loadBalance();
+        }
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveMult, running, roundBets]);
+
+
   const crashed = round?.status === "crashed";
   // The aircraft starts fully outside the lower-left corner when the run begins
   // and climbs along the curve. When the round crashes it explodes EXACTLY where

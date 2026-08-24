@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Send, Shield, Trash2 } from "lucide-react";
+import { ArrowLeft, Send, Shield, Trash2, CheckSquare } from "lucide-react";
 import { toast } from "sonner";
 import { sfx } from "@/lib/sfx";
 export default function AdminChat() {
@@ -13,8 +13,12 @@ export default function AdminChat() {
   const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState("");
   const [adminId, setAdminId] = useState<string | null>(null);
+  const [selMode, setSelMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const lastIdRef = useRef<string | null>(null);
+
 
   useEffect(() => {
     (async () => {

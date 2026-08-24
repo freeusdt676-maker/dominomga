@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.send-push]
 verify_jwt = false
+
+[functions.storage-cleanup]
+verify_jwt = false

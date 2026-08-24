@@ -1,23 +1,13 @@
 # Project Memory
 
 ## Core
-Domino is LOCKED — do not modify game logic, timers, UI, or parameters unless the user explicitly requests a Domino change.
-Ludo and Wallet are stable — only touch when explicitly requested.
-TURN_TIMEOUT_SEC=10 (Ludo), Pétanque turn=20s, Domino timer=15s, Lobby waiting expiry=2min. LOCKED — do not change.
-Ludo + Pétanque server autoplay (pg_cron every 5s → edge functions ludo-autoplay / petanque-autoplay) MUST keep advancing turns when timer expires even if every player left the screen. Do not disable or gate by online presence.
-Money is immutable: never add UI to delete wallets/admin_wallets. Mutations only via documented RPCs.
-Commission is enforced server-side: round(stake*0.10)*players_count for all 3 games via BEFORE UPDATE triggers.
-Wallet+admin+cash_pool total is conserved — only deposits add, withdrawals remove. NEVER add credit paths.
-Domino match win is target-only (80/120). Blocked rounds award the lowest-pip player the sum of every opponent's pips. Double 6 opens; 40+ is a round rule. Ray sy Fotsy is removed.
-Domino anti-skip LOCKED: backend/client watchdog must never pass a player who has any legal tile for the current board.
-Domino 3P rotation LOCKED: counter-clockwise P1→P2→P3→P1; only current player's client or backend watchdog may auto-act.
-Domino board colors: left/vodiny endpoint red, right/lohany endpoint green, middle tiles black.
-Toasts: top-center, 7s duration, richColors (Sonner) — configured in src/App.tsx.
+Money invariant: wallets + admin_wallets + cash_pool is conserved; never add credit paths without a matching debit.
+Retention jobs must never delete wallets, transactions, round_ledger, profiles, or active games.
 
 ## Memories
-- [Domino lock](mem://constraints/domino-locked) — Files frozen unless user prompts a Domino change
-- [Money immutable](mem://constraints/money-immutable) — Wallet/admin_wallets rows never deletable
-- [Money accounting](mem://constraints/money-accounting) — Invariant: wallet+admin+cash_pool conserved except deposits/withdrawals
-- [VAR replay](mem://features/var-replay) — Admin history dialog structure per game type
-- [Crash MGA](mem://features/crash-mga) — Route /crash, crash_tick state machine, provably fair, house = admin wallet
-- [Ludo server auto-play](mem://features/ludo-server-autoplay) — Backend cron auto-plays expired 10s turns even if all players offline
+- [Money accounting](mem://constraints/money-accounting) — wallet/admin/cash_pool invariant and allowed RPCs
+- [Money immutable](mem://constraints/money-immutable) — no destructive wallet UI, allowed money RPCs
+- [Domino locked](mem://constraints/domino-locked) — domino rules/stakes that must not change
+- [Crash MGA](mem://features/crash-mga) — crash multiplier scheduling and payout rules
+- [VAR replay](mem://features/var-replay) — replay feature notes
+- [Data retention](mem://features/data-retention) — automatic cleanup, game archiving, selfie storage purge

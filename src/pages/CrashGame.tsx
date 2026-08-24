@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { fmtAr } from "@/lib/constants";
-import { ArrowLeft, Loader2, Rocket, ShieldCheck, Volume2, VolumeX } from "lucide-react";
+import { ArrowLeft, Copy, Loader2, Rocket, ShieldCheck, Volume2, VolumeX, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 
 type Round = {

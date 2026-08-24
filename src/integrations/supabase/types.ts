@@ -575,6 +575,51 @@ export type Database = {
           },
         ]
       }
+      games_archive: {
+        Row: {
+          archived_at: string
+          commission: number
+          created_at: string
+          finished_at: string | null
+          game_kind: string
+          id: string
+          player_ids: string[]
+          snapshot: Json
+          stake: number
+          status: string
+          ticket_number: string | null
+          winner_id: string | null
+        }
+        Insert: {
+          archived_at?: string
+          commission?: number
+          created_at?: string
+          finished_at?: string | null
+          game_kind: string
+          id: string
+          player_ids?: string[]
+          snapshot?: Json
+          stake?: number
+          status: string
+          ticket_number?: string | null
+          winner_id?: string | null
+        }
+        Update: {
+          archived_at?: string
+          commission?: number
+          created_at?: string
+          finished_at?: string | null
+          game_kind?: string
+          id?: string
+          player_ids?: string[]
+          snapshot?: Json
+          stake?: number
+          status?: string
+          ticket_number?: string | null
+          winner_id?: string | null
+        }
+        Relationships: []
+      }
       lobby_messages: {
         Row: {
           content: string
@@ -704,6 +749,24 @@ export type Database = {
           turn_started_at?: string | null
           updated_at?: string
           winner_id?: string | null
+        }
+        Relationships: []
+      }
+      maintenance_log: {
+        Row: {
+          details: Json
+          id: string
+          ran_at: string
+        }
+        Insert: {
+          details?: Json
+          id?: string
+          ran_at?: string
+        }
+        Update: {
+          details?: Json
+          id?: string
+          ran_at?: string
         }
         Relationships: []
       }
@@ -1523,6 +1586,7 @@ export type Database = {
         Args: { _admin_id: string; _user_id: string }
         Returns: Json
       }
+      archive_old_games: { Args: { _days?: number }; Returns: Json }
       block_user: { Args: { _user_id: string }; Returns: Json }
       bot_start_stake: {
         Args: {
@@ -1538,6 +1602,7 @@ export type Database = {
         Args: { _action: string; _max: number; _window_seconds: number }
         Returns: boolean
       }
+      cleanup_old_data: { Args: never; Returns: Json }
       crash_cashout: { Args: { _bet_id?: string }; Returns: Json }
       crash_duration: { Args: { _crash: number }; Returns: number }
       crash_mult_at: { Args: { _elapsed: number }; Returns: number }

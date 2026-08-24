@@ -125,7 +125,7 @@ export default function Home() {
     loadActive();
     // Tsy mihaino ny fihetsiky ny lalaon'ny olona rehetra intsony; izany no
     // niteraka fanontaniana marobe tamin'ny Home rehefa be mpilalao.
-    const itv = setInterval(loadActive, 30000);
+    const itv = setInterval(() => { if (document.visibilityState === "visible") loadActive(); }, 30000);
     const refresh = () => { if (document.visibilityState === "visible") loadActive(); };
     window.addEventListener("online", loadActive);
     window.addEventListener("focus", refresh);

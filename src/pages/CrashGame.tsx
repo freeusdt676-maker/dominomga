@@ -641,6 +641,28 @@ export default function CrashGame() {
               <span className="block text-5xl drop-shadow-[0_0_18px_rgba(239,68,68,0.9)]">💥</span>
             </div>
           )}
+          {/* Dramatic crash flash */}
+          {shake && (
+            <div className="absolute inset-0 z-[5] pointer-events-none animate-[crashFlash_0.6s_ease-out] bg-red-600" />
+          )}
+          {/* Round verdict (win / loss) */}
+          {result && (
+            <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none px-4">
+              <div className={`animate-scale-in w-full max-w-[16rem] rounded-2xl border-2 px-4 py-3 text-center backdrop-blur-sm ${
+                result.win
+                  ? "border-emerald-400 bg-emerald-500/15 shadow-[0_0_40px_rgba(16,185,129,0.6)]"
+                  : "border-red-500 bg-red-600/15 shadow-[0_0_40px_rgba(239,68,68,0.6)]"
+              }`}>
+                <p className={`text-2xl font-black tabular-nums ${result.win ? "text-emerald-400" : "text-red-400"}`}>{result.text}</p>
+                <p className="text-[11px] font-bold text-white/70">{result.sub}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-white/45">
+                  {result.win ? "Nahazo ianao" : "Very ny mise"}
+                </p>
+              </div>
+            </div>
+          )}
+
+
 
           {/* Bet accepted flash */}
           {betOk && (

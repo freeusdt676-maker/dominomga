@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Send, Shield, Trash2 } from "lucide-react";
+import { ArrowLeft, Send, Shield, Trash2, CheckSquare } from "lucide-react";
 import { toast } from "sonner";
 import { sfx } from "@/lib/sfx";
 export default function AdminChat() {
@@ -13,8 +13,12 @@ export default function AdminChat() {
   const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState("");
   const [adminId, setAdminId] = useState<string | null>(null);
+  const [selMode, setSelMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const lastIdRef = useRef<string | null>(null);
+
 
   useEffect(() => {
     (async () => {
@@ -69,14 +73,61 @@ export default function AdminChat() {
     toast.success("Voafafa");
   };
 
+  const deletable = messages.filter((m) => m.sender_id === user?.id || isAdmin);
+
+  const toggleSel = (id: string) =>
+    setSelected((prev) => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+
+  const removeSelected = async () => {
+    if (!user || selected.size === 0) return;
+    if (!confirm(`Hamafa hafatra ${selected.size}?`)) return;
+    setBusy(true);
+    const ids = Array.from(selected);
+    const { error } = await supabase.from("chat_messages").delete().in("id", ids);
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    setMessages((prev) => prev.filter((x) => !selected.has(x.id)));
+    setSelected(new Set());
+    setSelMode(false);
+    toast.success(`${ids.length} voafafa`);
+  };
+
   return (
     <div className="min-h-screen felt-bg flex flex-col">
       <header className="p-4 flex items-center gap-3 border-b border-primary/20">
         <Button variant="ghost" size="icon" onClick={() => nav("/")}><ArrowLeft /></Button>
         <Shield className="text-primary" />
-        <h1 className="font-display text-xl font-bold gold-text">Chat Administratif</h1>
+        <h1 className="font-display text-xl font-bold gold-text flex-1">Chat Administratif</h1>
+        <Button
+          size="sm"
+          variant={selMode ? "secondary" : "outline"}
+          onClick={() => { setSelMode((v) => !v); setSelected(new Set()); }}
+        >
+          <CheckSquare className="w-4 h-4 mr-1" /> {selMode ? "Ajanona" : "Fantenana"}
+        </Button>
       </header>
+      {selMode && (
+        <div className="p-2 border-b border-primary/20 flex items-center justify-between gap-2 max-w-lg mx-auto w-full">
+          <label className="flex items-center gap-2 text-xs cursor-pointer">
+            <input
+              type="checkbox"
+              className="w-4 h-4 accent-destructive"
+              checked={selected.size > 0 && selected.size === deletable.length}
+              onChange={(e) => setSelected(e.target.checked ? new Set(deletable.map((m) => m.id)) : new Set())}
+            />
+            Fantenana daholo ({selected.size})
+          </label>
+          <Button size="sm" variant="destructive" disabled={selected.size === 0 || busy} onClick={removeSelected}>
+            <Trash2 className="w-3 h-3 mr-1" /> Mamafa voafantina
+          </Button>
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto p-4 space-y-2 max-w-lg mx-auto w-full">
+
         {messages.map((m) => {
           const mine = m.sender_id === user?.id;
           // Outgoing (mine) on the LEFT, incoming on the RIGHT
@@ -86,13 +137,25 @@ export default function AdminChat() {
             : mine
               ? "btn-gold"
               : "bg-success/20 border border-success/40 text-foreground";
+          const canDel = mine || isAdmin;
           return (
-            <div key={m.id} className={`flex ${align} group`}>
-              <div className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm relative ${bubble}`}>
+            <div key={m.id} className={`flex ${align} group items-start gap-2`}>
+              {selMode && canDel && (
+                <input
+                  type="checkbox"
+                  className="mt-3 w-4 h-4 accent-destructive shrink-0"
+                  checked={selected.has(m.id)}
+                  onChange={() => toggleSel(m.id)}
+                />
+              )}
+              <div
+                onClick={() => { if (selMode && canDel) toggleSel(m.id); }}
+                className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm relative ${bubble} ${selMode && selected.has(m.id) ? "ring-2 ring-destructive" : ""}`}
+              >
                 {m.is_admin_broadcast && <p className="text-xs font-bold mb-1">📢 Annonce admin</p>}
                 {m.content}
                 <p className="text-[10px] opacity-70 mt-1">{new Date(m.created_at).toLocaleTimeString("fr-FR", { hour:"2-digit", minute:"2-digit"})}</p>
-                {(mine || isAdmin) && (
+                {canDel && !selMode && (
                   <button
                     onClick={() => remove(m)}
                     aria-label="Suprimer"
@@ -104,6 +167,7 @@ export default function AdminChat() {
               </div>
             </div>
           );
+
         })}
         <div ref={endRef} />
       </div>

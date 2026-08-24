@@ -43,7 +43,8 @@ export default function LudoLobby() {
       .from("ludo_games")
       .select("id, player1_id, player2_id, player3_id, player4_id, stake, created_at, players_count, status")
       .eq("status", "waiting")
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: true })
+      .limit(60);
     const list = (gs ?? []) as WaitingGame[];
     const EXPIRY_MS = 2 * 60 * 1000;
     const nowMs = Date.now();

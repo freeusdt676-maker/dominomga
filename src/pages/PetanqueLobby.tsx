@@ -60,7 +60,8 @@ export default function PetanqueLobby() {
       .from("petanque_games" as any)
       .select("id, player1_id, player2_id, stake, created_at, status")
       .eq("status", "waiting")
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: true })
+      .limit(60);
     const list = ((gs ?? []) as unknown) as WaitingGame[];
     const others = list.filter((g) => g.player1_id !== user.id && !g.player2_id);
     const ids = Array.from(new Set(others.map((g) => g.player1_id)));

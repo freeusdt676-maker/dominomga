@@ -31,7 +31,7 @@ export default function Lobby() {
   useThemeClass("domino");
   const { user } = useAuth();
   const nav = useNavigate();
-  const [stakeInput, setStakeInput] = useState("200");
+  const [stakeInput, setStakeInput] = useState("2000");
   const stake = Number(stakeInput.replace(/\D/g, "")) || 0;
   const stakeValid = Number.isFinite(stake) && stake >= MIN_STAKE && stake <= MAX_STAKE;
   const [mode, setMode] = useState<string>("d120");
@@ -265,7 +265,7 @@ export default function Lobby() {
               step={100}
               value={stakeInput}
               onChange={(e) => { setStakeInput(e.target.value); setConfirmed(false); }}
-              placeholder="Ex: 500"
+              placeholder="Ex: 2000"
               className="w-full rounded-lg border border-primary/40 bg-black/30 px-3 py-2 text-center text-lg font-bold gold-text outline-none focus:border-primary"
             />
             {!stakeValid && (

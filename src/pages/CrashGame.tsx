@@ -32,6 +32,9 @@ type PublicBet = {
 };
 
 const GROWTH = 0.08;
+// Display safety lag (seconds): keeps the on-screen multiplier just behind the
+// server clock so the last number shown is never above the official crash point.
+const DISPLAY_LAG = 0.6;
 const multAt = (elapsedSec: number) =>
   Math.max(1, Math.floor(Math.exp(GROWTH * Math.max(elapsedSec, 0)) * 100) / 100);
 

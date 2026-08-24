@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, ShieldAlert, Activity, AlertTriangle, Users, LogIn } from "lucide-react";
+import { ArrowLeft, ShieldAlert, Activity, AlertTriangle, Users, LogIn, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 export default function AdminSecurity() {
   const { isAdmin } = useAuth();
@@ -15,6 +15,9 @@ export default function AdminSecurity() {
   const [logins, setLogins] = useState<any[]>([]);
   const [dupes, setDupes] = useState<any[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
+  const [selAlerts, setSelAlerts] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
+
 
   const load = async () => {
     const [{ data: a }, { data: l }, { data: la }, { data: d }] = await Promise.all([

@@ -1192,27 +1192,52 @@ export default function Game() {
   };
 
   const passTurn = async () => {
-    if (!isMyTurn || !game || !user) return;
-    if (myHand.length === 0 || hasMove(myHand, board)) return;
-    const expectedCurrentTurn = game.current_turn ?? null;
-    const expectedTurnStartedAt = game.turn_started_at ?? null;
-    const oppId = nextTurnId(game, game.current_turn ?? user.id);
-    const pc = Number(game.players_count ?? 2);
-    const passes = (game.passes ?? 0) + 1;
-    if (passes >= pc) {
-      await finishBlocked();
-      return;
+    if (!game || !user) return;
+    if (playLockRef.current) return;
+    playLockRef.current = true;
+    try {
+      // Mampiasa ny état FRESH avy amin'ny serveur mba tsy ho tapaka ny "Pass"
+      // rehefa efa niova kely ny tour (latence/réseau).
+      const { data: fresh } = await supabase.from("games").select("*").eq("id", game.id).single();
+      const g: any = fresh ?? game;
+      if (g.status !== "in_progress") return;
+      if (g.current_turn !== user.id) { toast.error("Tsy anao ny tour"); return; }
+      const liveBoard = (g.board_state ?? []) as Placed[];
+      const seat = g.player1_id === user.id ? 1 : g.player2_id === user.id ? 2 : 3;
+      const liveHand = (seat === 1 ? g.player1_hand : seat === 2 ? g.player2_hand : g.player3_hand) as Tile[] ?? [];
+      if (liveHand.length > 0 && hasMove(liveHand, liveBoard)) {
+        toast.error("Mbola manana vato azo apetraka ianao");
+        return;
+      }
+      const oppId = nextTurnId(g, g.current_turn ?? user.id);
+      const pc = Number(g.players_count ?? 2);
+      const passes = Number(g.passes ?? 0) + 1;
+      if (passes >= pc) {
+        await finishBlocked();
+        return;
+      }
+      const { error } = await updateGameState({
+        current_turn: oppId,
+        turn_started_at: new Date().toISOString(),
+        passes,
+      }, {
+        expectedCurrentTurn: g.current_turn ?? null,
+        expectedTurnStartedAt: g.turn_started_at ?? null,
+      });
+      if (error) {
+        // Fanandramana farany tsy misy guard (mety niova ny turn_started_at)
+        const retry = await updateGameState({
+          current_turn: oppId,
+          turn_started_at: new Date().toISOString(),
+          passes,
+        });
+        if (retry.error) toast.error("Tsy lasa ny Pass — andramo indray");
+      }
+    } finally {
+      playLockRef.current = false;
     }
-    const { error } = await updateGameState({
-      current_turn: oppId,
-      turn_started_at: new Date().toISOString(),
-      passes,
-    }, {
-      expectedCurrentTurn,
-      expectedTurnStartedAt,
-    });
-    if (error) return;
   };
+
 
   // Auto-action / Bot — rehefa lany ny 15s, mandeha ho azy ny lalao
   useEffect(() => {

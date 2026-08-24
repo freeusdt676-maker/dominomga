@@ -32,7 +32,7 @@ export default function Admin() {
     if (!allowed) return;
     const i = setInterval(() => {
       if (typeof window !== "undefined" && "Notification" in window) setNotifPerm(Notification.permission);
-    }, 1500);
+    }, 5000);
     return () => clearInterval(i);
   }, [allowed]);
   const [pending, setPending] = useState<any[]>([]);
@@ -120,25 +120,26 @@ export default function Admin() {
     }
     setUsers(profiles.map((p: any) => ({ ...p, _balance: walletMap[p.user_id] ?? 0 })));
 
-    // 3) Pending transactions + manual profile join
+    // 3) Pending transactions + manual profile join (paginated)
     const { data: p, error: pErr } = await supabase
       .from("transactions")
       .select("*")
       .eq("status", "pending")
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(200);
     if (pErr) console.error("tx load err", pErr);
     const profMap: Record<string, any> = {};
     profiles.forEach((pr: any) => { profMap[pr.user_id] = pr; });
     setPending((p ?? []).map((t: any) => ({ ...t, profiles: profMap[t.user_id] ?? null })));
 
-    // All processed transactions (approved/rejected) — anaty profil
+    // Processed transactions — page the most recent 300 only (older ones stay in DB)
     const { data: at } = await supabase
       .from("transactions")
       .select("*")
       .in("status", ["approved", "rejected"])
       .in("type", ["deposit", "withdrawal"])
       .order("processed_at", { ascending: false })
-      .limit(2000);
+      .range(0, 299);
     setAllTx(at ?? []);
 
     // Anaran'ny admin (processed_by)

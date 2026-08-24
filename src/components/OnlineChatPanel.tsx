@@ -113,48 +113,43 @@ export default function OnlineChatPanel() {
       </div>
 
       {/* Chat kely */}
-      <div className="h-48 overflow-y-auto p-2.5 space-y-2 bg-[radial-gradient(120%_80%_at_50%_0%,rgba(255,255,255,0.035),transparent_70%)]">
+      <div className="h-48 overflow-y-auto p-2.5 space-y-1 bg-[radial-gradient(120%_80%_at_50%_0%,rgba(255,255,255,0.035),transparent_70%)]">
         {messages.length === 0 && (
           <p className="text-center text-[11px] text-muted-foreground py-6">✍️ Manombohy resaka…</p>
         )}
         {messages.map((m) => {
           const mine = m.sender_id === user?.id;
-          const name = names[m.sender_id] ?? "Mpilalao";
+          const name = mine ? "Izaho" : names[m.sender_id] ?? "Mpilalao";
           return (
-            <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"} group`}>
-              <div
-                className={`max-w-[80%] rounded-2xl px-3 py-2 relative shadow-[0_6px_18px_-10px_rgba(0,0,0,0.9)] ${
-                  mine
-                    ? "bg-[hsl(var(--gold-1)/0.14)] border border-[hsl(var(--gold-1)/0.32)] rounded-br-md"
-                    : "bg-white/[0.05] border border-white/10 rounded-bl-md"
+            <div key={m.id} className="group flex items-baseline gap-1.5 px-1 py-0.5 rounded-md hover:bg-white/[0.04]">
+              <span
+                className={`font-display text-[12px] font-bold shrink-0 tracking-wide ${
+                  mine ? "gold-luxe-text" : "text-emerald-300"
                 }`}
               >
-                {!mine && (
-                  <p className="font-display text-[11px] font-bold leading-none mb-1 text-emerald-300 tracking-wide">
-                    {name}
-                  </p>
-                )}
-                <p className="text-[13px] leading-snug whitespace-pre-wrap break-words text-foreground/95">
-                  {m.content}
-                </p>
-                <p className="text-[9px] opacity-50 mt-1 text-right tabular-nums">
-                  {new Date(m.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
-                </p>
-                {(mine || isAdmin) && (
-                  <button
-                    onClick={() => remove(m)}
-                    aria-label="Mamafa hafatra"
-                    className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 flex items-center justify-center transition"
-                  >
-                    <Trash2 className="w-2.5 h-2.5" />
-                  </button>
-                )}
-              </div>
+                {name}:
+              </span>
+              <span className="text-[13px] leading-snug break-words min-w-0 flex-1 text-foreground/95">
+                {m.content}
+              </span>
+              <span className="text-[9px] opacity-40 tabular-nums shrink-0">
+                {new Date(m.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+              </span>
+              {(mine || isAdmin) && (
+                <button
+                  onClick={() => remove(m)}
+                  aria-label="Mamafa hafatra"
+                  className="shrink-0 w-4 h-4 rounded-full bg-destructive/80 text-destructive-foreground opacity-0 group-hover:opacity-100 flex items-center justify-center transition"
+                >
+                  <Trash2 className="w-2 h-2" />
+                </button>
+              )}
             </div>
           );
         })}
         <div ref={endRef} />
       </div>
+
 
       {/* Emoji picker */}
       {showEmoji && (

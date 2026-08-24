@@ -23,11 +23,37 @@ import { downloadAllPlayersInformation, downloadPlayerInformation } from "@/comp
 export default function Admin() {
   const { user, isAdmin } = useAuth();
   const nav = useNavigate();
-  const allowed = isAdmin;
+  // Fiarovana: fanamarinana ny role amin'ny serveur (tsy ny state client ihany)
+  const [roleOk, setRoleOk] = useState<boolean | null>(null);
+  const [unlocked, setUnlocked] = useState(() =>
+    typeof window !== "undefined" && sessionStorage.getItem("admin_unlocked") === "1",
+  );
+  const [gatePin, setGatePin] = useState("");
+  const [gateBusy, setGateBusy] = useState(false);
+  useEffect(() => {
+    let off = false;
+    (async () => {
+      if (!user) { setRoleOk(false); return; }
+      const { data, error } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      if (!off) setRoleOk(!error && data === true);
+    })();
+    return () => { off = true; };
+  }, [user]);
+  const allowed = isAdmin && roleOk === true && unlocked;
+  const unlock = async () => {
+    setGateBusy(true);
+    const { data, error } = await supabase.rpc("wallet_verify_pin", { _pin: gatePin });
+    setGateBusy(false);
+    if (error || data !== true) { setGatePin(""); return toast.error("Code PIN diso"); }
+    sessionStorage.setItem("admin_unlocked", "1");
+    setUnlocked(true);
+    setGatePin("");
+  };
   const [notifPerm, setNotifPerm] = useState<NotificationPermission>(
     typeof window !== "undefined" && "Notification" in window ? Notification.permission : "default",
   );
   useAdminNotifications(allowed);
+
   useEffect(() => {
     if (!allowed) return;
     const i = setInterval(() => {
@@ -278,7 +304,13 @@ export default function Admin() {
     return () => { supabase.removeChannel(ch); };
   }, [allowed]);
 
-  if (!allowed) return (
+  if (roleOk === null) return (
+    <div className="min-h-screen felt-bg flex items-center justify-center text-center p-6">
+      <p className="text-sm text-muted-foreground">Fanamarinana…</p>
+    </div>
+  );
+
+  if (!isAdmin || !roleOk) return (
     <div className="min-h-screen felt-bg flex items-center justify-center text-center p-6">
       <div className="card-felt p-6 rounded-2xl">
         <p className="text-destructive mb-2">Tsy mahazo miditra ianao</p>
@@ -286,6 +318,26 @@ export default function Admin() {
       </div>
     </div>
   );
+
+  if (!unlocked) return (
+    <div className="min-h-screen felt-bg flex items-center justify-center p-6">
+      <div className="card-felt p-6 rounded-2xl w-full max-w-xs space-y-3 text-center">
+        <p className="eyebrow">Sécurité admin</p>
+        <p className="text-sm text-muted-foreground">Ampidiro ny code PIN mba hidirana</p>
+        <PasswordInput
+          value={gatePin}
+          onChange={(e) => setGatePin(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && gatePin && unlock()}
+          placeholder="Code PIN"
+        />
+        <div className="flex gap-2">
+          <Button variant="ghost" className="flex-1" onClick={() => nav("/")}>Hiverina</Button>
+          <Button className="flex-1" onClick={unlock} disabled={!gatePin || gateBusy}>Hiditra</Button>
+        </div>
+      </div>
+    </div>
+  );
+
 
   const approveUser = async (uid: string) => {
     if (!adminId) return toast.error("Mbola tsy vita ny fanamarinana admin, andraso kely");

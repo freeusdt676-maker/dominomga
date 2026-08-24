@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import LiveSpectatorButton from "@/components/LiveSpectatorButton";
-import TournamentCountdown from "@/components/TournamentCountdown";
+import OnlineChatPanel from "@/components/OnlineChatPanel";
 
 const ABANDONED_GAME_KEY = "domino_abandoned_game_id";
 
@@ -247,10 +247,11 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Tournoi banner — eny ambony indrindra */}
+      {/* Statut en ligne + chat kely */}
       <div className="relative z-10 px-4 pt-2 max-w-lg mx-auto">
-        <TournamentCountdown />
+        <OnlineChatPanel />
       </div>
+
 
       <div className="relative z-10 px-4 pt-5 pb-32 space-y-5 max-w-lg mx-auto">
         {incoming.length > 0 && (

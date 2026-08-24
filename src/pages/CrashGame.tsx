@@ -32,6 +32,9 @@ type PublicBet = {
 };
 
 const GROWTH = 0.08;
+// Display safety lag (seconds): keeps the on-screen multiplier just behind the
+// server clock so the last number shown is never above the official crash point.
+const DISPLAY_LAG = 0.6;
 const multAt = (elapsedSec: number) =>
   Math.max(1, Math.floor(Math.exp(GROWTH * Math.max(elapsedSec, 0)) * 100) / 100);
 
@@ -346,7 +349,7 @@ export default function CrashGame() {
   useEffect(() => {
     // Client interpolates the curve locally (clock-synced), so state polling can
     // stay light: fewer API calls per player = far more concurrent players.
-    const poll = setInterval(() => { if (!document.hidden) tick(); }, 1400);
+    const poll = setInterval(() => { if (!document.hidden) tick(); }, 600);
     // 60 fps animation frame loop => perfectly smooth multiplier + plane motion
     let raf = 0;
     const loop = () => { setNow(Date.now()); raf = requestAnimationFrame(loop); };
@@ -419,8 +422,15 @@ export default function CrashGame() {
 
 
   const elapsed = round?.started_at ? (serverNow() - new Date(round.started_at).getTime()) / 1000 : 0;
-  const liveMult = round?.status === "running" ? multAt(elapsed) : 1;
+  // True (server) multiplier — used only for cashout logic, never displayed.
+  const trueMult = round?.status === "running" ? multAt(elapsed) : 1;
+  // Displayed multiplier runs a hair behind the server clock so the number the
+  // player sees can never overshoot the round's real crash point: the last
+  // value on screen is always <= the announced result, and the crash freezes
+  // exactly on the official crash point.
+  const liveMult = round?.status === "running" ? multAt(elapsed - DISPLAY_LAG) : 1;
   const shownMult = round?.status === "crashed" ? Number(round.crash_point ?? 1) : liveMult;
+
   const betCountdown = round?.status === "betting"
     ? Math.max(0, (new Date(round.betting_ends_at).getTime() - serverNow()) / 1000) : 0;
   const nextCountdown = round?.status === "crashed" && round.next_at
@@ -496,7 +506,7 @@ export default function CrashGame() {
       const target = Number(b.auto_cashout ?? 0);
       if (b.status !== "placed" || !target || target < 1.01) continue;
       if (autoFired.current.has(b.id) || seenCashed.current.has(b.id)) continue;
-      if (liveMult + 0.001 < target) continue;
+      if (trueMult + 0.001 < target) continue;
       autoFired.current.add(b.id);
       void (async () => {
         const res = await safe(() => supabase.rpc("crash_cashout", { _bet_id: b.id } as any));
@@ -513,7 +523,7 @@ export default function CrashGame() {
       })();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveMult, running, roundBets]);
+  }, [trueMult, running, roundBets]);
 
 
   const crashed = round?.status === "crashed";

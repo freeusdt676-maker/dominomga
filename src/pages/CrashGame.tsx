@@ -506,7 +506,7 @@ export default function CrashGame() {
       const target = Number(b.auto_cashout ?? 0);
       if (b.status !== "placed" || !target || target < 1.01) continue;
       if (autoFired.current.has(b.id) || seenCashed.current.has(b.id)) continue;
-      if (liveMult + 0.001 < target) continue;
+      if (trueMult + 0.001 < target) continue;
       autoFired.current.add(b.id);
       void (async () => {
         const res = await safe(() => supabase.rpc("crash_cashout", { _bet_id: b.id } as any));

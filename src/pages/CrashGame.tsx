@@ -281,6 +281,7 @@ export default function CrashGame() {
   }, [user]);
 
   // Drive + read the server state machine
+  const okAt = useRef(Date.now());
   const tick = useCallback(async () => {
     if (ticking.current) return;
     ticking.current = true;
@@ -288,7 +289,14 @@ export default function CrashGame() {
     const res = await safe(() => supabase.rpc("crash_tick"));
     const t1 = Date.now();
     ticking.current = false;
-    if (!res || res.error || !alive.current) return;
+    if (!alive.current) return;
+    if (!res || res.error) {
+      // connection / server issue → warn the player instead of freezing silently
+      if (Date.now() - okAt.current > 6000) setConnLost(true);
+      return;
+    }
+    okAt.current = Date.now();
+    setConnLost(false);
     const r = res.data as unknown as Round;
     if (!r?.id || !r.server_now) return;
     const srvMs = new Date(r.server_now).getTime();

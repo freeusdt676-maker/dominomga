@@ -252,7 +252,7 @@ export default function CrashGame() {
   const loadHistory = useCallback(async () => {
     if (!user) return;
     const res = await safe(() => Promise.all([
-      supabase.from("crash_rounds").select("*").eq("status", "crashed").order("round_no", { ascending: false }).limit(1),
+      supabase.from("crash_rounds").select("*").eq("status", "crashed").order("round_no", { ascending: false }).limit(12),
       supabase.from("crash_bets").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
     ]));
     if (!res || !alive.current) return;

@@ -66,7 +66,8 @@ export default function Lobby() {
       .from("games")
       .select("id, player1_id, player2_id, player3_id, stake, created_at, game_mode, players_count, status")
       .or("status.eq.waiting,and(status.eq.in_progress,player3_id.is.null)")
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: true })
+      .limit(60);
     const list = (gs ?? []) as WaitingGame[];
     // Fetra: 2 minitra. Raha tsy misy miditra ao anatin'ny 2 min,
     // dia foanana ny demande mba tsy hijanona ho "vovoka" ao amin'ny lobby.

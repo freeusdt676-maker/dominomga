@@ -2,12 +2,21 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { subscribeOnlineMembers, type PresenceMember } from "@/hooks/useGlobalPresence";
-import { Send, Trash2 } from "lucide-react";
+import { Send, Trash2, Smile } from "lucide-react";
 import { toast } from "sonner";
+
+const EMOJIS = [
+  "😀","😁","😂","🤣","😊","😍","😘","😎","🤩","🥳",
+  "😜","🤪","😏","😴","🤔","🤫","🙄","😤","😭","😱",
+  "😡","🤬","🤯","🥶","🤒","🤝","👏","🙌","👍","👎",
+  "💪","🙏","✌️","🤞","🔥","💥","⚡","✨","🌟","💎",
+  "💰","💸","🏆","🥇","🎯","🎲","🃏","♟️","🎰","🚀",
+  "❤️","💚","💛","💜","🖤","😈","👻","🤖","👑","🇲🇬",
+];
 
 /**
  * Cadre iray: statut "en ligne" (isa + anarana) sy chat kely iraisana.
- * Voafetra ny haavony — tsy mihoatra ny fenêtre mihitsy (scroll anatiny).
+ * Thème sombre luxe — miavaka tsara ny anarana sy ny hafatra.
  */
 export default function OnlineChatPanel() {
   const { user, isAdmin } = useAuth();
@@ -15,6 +24,7 @@ export default function OnlineChatPanel() {
   const [messages, setMessages] = useState<any[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
   const [text, setText] = useState("");
+  const [showEmoji, setShowEmoji] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => subscribeOnlineMembers(setMembers), []);
@@ -51,6 +61,7 @@ export default function OnlineChatPanel() {
     const t = text.trim();
     if (!t || !user) return;
     setText("");
+    setShowEmoji(false);
     const { error } = await supabase.from("lobby_messages").insert({ sender_id: user.id, content: t });
     if (error) toast.error(error.message);
   };
@@ -70,27 +81,30 @@ export default function OnlineChatPanel() {
   };
 
   return (
-    <div className="luxe-card overflow-hidden">
+    <div className="luxe-card overflow-hidden bg-black/55 backdrop-blur-xl border border-white/[0.06] shadow-[0_18px_50px_-20px_rgba(0,0,0,0.9)]">
       {/* Statut en ligne */}
-      <div className="p-3 hairline-b">
+      <div className="p-3 hairline-b bg-black/40">
         <div className="flex items-center justify-between gap-2">
-          <p className="eyebrow flex items-center gap-1.5">
-            <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            En ligne · Domino MGA
+          <p className="eyebrow flex items-center gap-1.5 tracking-[0.18em]">
+            <span className="relative inline-flex">
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-400" />
+              <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-70" />
+            </span>
+            💬 En ligne · Domino MGA
           </p>
-          <span className="text-[11px] font-bold gold-luxe-text">{members.length} olona</span>
+          <span className="text-[11px] font-extrabold gold-luxe-text tabular-nums">👥 {members.length}</span>
         </div>
         <div className="mt-2 max-h-16 overflow-y-auto">
           {members.length === 0 ? (
-            <p className="text-[11px] text-muted-foreground italic">Tsy misy olona en ligne</p>
+            <p className="text-[11px] text-muted-foreground italic">😴 Tsy misy olona en ligne</p>
           ) : (
             <ul className="flex flex-wrap gap-1">
               {members.map((m) => (
                 <li
                   key={m.user_id}
-                  className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 border border-emerald-400/25"
+                  className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide bg-emerald-500/[0.12] border border-emerald-400/30 text-emerald-200"
                 >
-                  {m.name}
+                  🟢 {m.name}
                 </li>
               ))}
             </ul>
@@ -99,26 +113,31 @@ export default function OnlineChatPanel() {
       </div>
 
       {/* Chat kely */}
-      <div className="h-44 overflow-y-auto p-2 space-y-1.5">
+      <div className="h-48 overflow-y-auto p-2.5 space-y-2 bg-[radial-gradient(120%_80%_at_50%_0%,rgba(255,255,255,0.035),transparent_70%)]">
         {messages.length === 0 && (
-          <p className="text-center text-[11px] text-muted-foreground py-6">Manombohy resaka…</p>
+          <p className="text-center text-[11px] text-muted-foreground py-6">✍️ Manombohy resaka…</p>
         )}
         {messages.map((m) => {
           const mine = m.sender_id === user?.id;
+          const name = names[m.sender_id] ?? "Mpilalao";
           return (
             <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"} group`}>
               <div
-                className={`max-w-[78%] rounded-2xl px-2.5 py-1.5 text-xs relative ${
+                className={`max-w-[80%] rounded-2xl px-3 py-2 relative shadow-[0_6px_18px_-10px_rgba(0,0,0,0.9)] ${
                   mine
-                    ? "bg-[hsl(var(--gold-1)/0.18)] border border-[hsl(var(--gold-1)/0.35)]"
-                    : "bg-emerald-500/10 border border-emerald-400/25"
+                    ? "bg-[hsl(var(--gold-1)/0.14)] border border-[hsl(var(--gold-1)/0.32)] rounded-br-md"
+                    : "bg-white/[0.05] border border-white/10 rounded-bl-md"
                 }`}
               >
                 {!mine && (
-                  <p className="text-[9px] font-bold opacity-80 mb-0.5">{names[m.sender_id] ?? "Mpilalao"}</p>
+                  <p className="font-display text-[11px] font-bold leading-none mb-1 text-emerald-300 tracking-wide">
+                    {name}
+                  </p>
                 )}
-                <p className="whitespace-pre-wrap break-words">{m.content}</p>
-                <p className="text-[9px] opacity-60 mt-0.5">
+                <p className="text-[13px] leading-snug whitespace-pre-wrap break-words text-foreground/95">
+                  {m.content}
+                </p>
+                <p className="text-[9px] opacity-50 mt-1 text-right tabular-nums">
                   {new Date(m.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
                 </p>
                 {(mine || isAdmin) && (
@@ -137,20 +156,48 @@ export default function OnlineChatPanel() {
         <div ref={endRef} />
       </div>
 
+      {/* Emoji picker */}
+      {showEmoji && (
+        <div className="px-2 pt-2 hairline-t bg-black/50">
+          <div className="grid grid-cols-10 gap-1 max-h-28 overflow-y-auto">
+            {EMOJIS.map((e) => (
+              <button
+                key={e}
+                onClick={() => setText((t) => (t + e).slice(0, 300))}
+                className="text-lg leading-none py-1 rounded-lg hover:bg-white/10 active:scale-90 transition"
+              >
+                {e}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Composer */}
-      <div className="p-2 hairline-t flex items-center gap-2">
+      <div className="p-2 hairline-t flex items-center gap-2 bg-black/45">
+        <button
+          onClick={() => setShowEmoji((v) => !v)}
+          aria-label="Emoji"
+          className={`w-9 h-9 shrink-0 rounded-full border flex items-center justify-center transition ${
+            showEmoji
+              ? "bg-emerald-500/20 border-emerald-400/40 text-emerald-300"
+              : "bg-white/[0.04] border-white/10 text-muted-foreground"
+          }`}
+        >
+          <Smile className="w-4 h-4" />
+        </button>
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send()}
           maxLength={300}
-          placeholder="Hafatra…"
-          className="flex-1 bg-black/25 border border-white/10 rounded-full px-3 py-2 text-xs outline-none focus:border-[hsl(var(--gold-1)/0.5)]"
+          placeholder="Hafatra… 😊"
+          className="flex-1 bg-black/45 border border-white/10 rounded-full px-3.5 py-2 text-[13px] outline-none focus:border-[hsl(var(--gold-1)/0.5)] placeholder:text-muted-foreground/60"
         />
         <button
           onClick={send}
           aria-label="Alefa"
-          className="w-9 h-9 shrink-0 rounded-full bg-[hsl(var(--gold-1)/0.2)] border border-[hsl(var(--gold-1)/0.4)] flex items-center justify-center"
+          className="w-9 h-9 shrink-0 rounded-full bg-[hsl(var(--gold-1)/0.22)] border border-[hsl(var(--gold-1)/0.45)] flex items-center justify-center active:scale-95 transition"
         >
           <Send className="w-4 h-4 gold-luxe-text" />
         </button>

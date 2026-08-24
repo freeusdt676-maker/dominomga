@@ -23,11 +23,37 @@ import { downloadAllPlayersInformation, downloadPlayerInformation } from "@/comp
 export default function Admin() {
   const { user, isAdmin } = useAuth();
   const nav = useNavigate();
-  const allowed = isAdmin;
+  // Fiarovana: fanamarinana ny role amin'ny serveur (tsy ny state client ihany)
+  const [roleOk, setRoleOk] = useState<boolean | null>(null);
+  const [unlocked, setUnlocked] = useState(() =>
+    typeof window !== "undefined" && sessionStorage.getItem("admin_unlocked") === "1",
+  );
+  const [gatePin, setGatePin] = useState("");
+  const [gateBusy, setGateBusy] = useState(false);
+  useEffect(() => {
+    let off = false;
+    (async () => {
+      if (!user) { setRoleOk(false); return; }
+      const { data, error } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      if (!off) setRoleOk(!error && data === true);
+    })();
+    return () => { off = true; };
+  }, [user]);
+  const allowed = isAdmin && roleOk === true && unlocked;
+  const unlock = async () => {
+    setGateBusy(true);
+    const { data, error } = await supabase.rpc("wallet_verify_pin", { _pin: gatePin });
+    setGateBusy(false);
+    if (error || data !== true) { setGatePin(""); return toast.error("Code PIN diso"); }
+    sessionStorage.setItem("admin_unlocked", "1");
+    setUnlocked(true);
+    setGatePin("");
+  };
   const [notifPerm, setNotifPerm] = useState<NotificationPermission>(
     typeof window !== "undefined" && "Notification" in window ? Notification.permission : "default",
   );
   useAdminNotifications(allowed);
+
   useEffect(() => {
     if (!allowed) return;
     const i = setInterval(() => {

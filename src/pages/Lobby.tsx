@@ -265,6 +265,10 @@ export default function Lobby() {
               step={100}
               value={stakeInput}
               onChange={(e) => { setStakeInput(e.target.value); setConfirmed(false); }}
+              onBlur={() => {
+                const v = Number(stakeInput.replace(/\D/g, ""));
+                if (!v || v < MIN_STAKE || v > MAX_STAKE) setStakeInput("2000");
+              }}
               placeholder="Ex: 2000"
               className="w-full rounded-lg border border-primary/40 bg-black/30 px-3 py-2 text-center text-lg font-bold gold-text outline-none focus:border-primary"
             />

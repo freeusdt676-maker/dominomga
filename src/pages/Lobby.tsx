@@ -111,36 +111,37 @@ export default function Lobby() {
     // Debounced reload: collapse bursts of events into a single fetch.
     let t: any = null;
     const debounced = () => { if (t) clearTimeout(t); t = setTimeout(load, 250); };
-    // Filter to waiting rooms only — drastically reduces event volume at scale.
-    const ch = supabase.channel("lobby-rt")
+    const onMine = (p: any) => {
+      if (p.new?.status === "in_progress" && p.new?.id) {
+        setActiveGame({
+          id: p.new.id,
+          stake: Number(p.new.stake ?? 0),
+          game_mode: p.new.game_mode ?? "d120",
+          players_count: Number(p.new.players_count ?? 2),
+        });
+      }
+      debounced();
+    };
+    // ONE channel per client (unique topic per user) — avoids duplicate
+    // websocket subscriptions when the page remounts.
+    const ch = supabase.channel(`lobby-rt-${user.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "games", filter: "status=eq.waiting" }, debounced)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "games", filter: `player1_id=eq.${user.id}` }, debounced)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "games", filter: `player1_id=eq.${user.id}` }, onMine)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "games", filter: `player2_id=eq.${user.id}` }, debounced)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "games", filter: `player3_id=eq.${user.id}` }, debounced)
       .subscribe();
-    const itv = setInterval(load, 20000);
-    return () => { supabase.removeChannel(ch); clearInterval(itv); if (t) clearTimeout(t); };
+    // Realtime already pushes changes; polling is only a safety net and is
+    // paused while the tab is hidden (no wasted API calls in background tabs).
+    const itv = setInterval(() => { if (document.visibilityState === "visible") load(); }, 30000);
+    const onVisible = () => { if (document.visibilityState === "visible") debounced(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      supabase.removeChannel(ch);
+      clearInterval(itv);
+      document.removeEventListener("visibilitychange", onVisible);
+      if (t) clearTimeout(t);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
-
-  // Raha misy mihantsy ny mise nataoko (player2 niditra) → tonga dia mankany amin'ny lalao
-  useEffect(() => {
-    if (!user) return;
-    const ch = supabase.channel("my-games-rt")
-      .on("postgres_changes",
-        { event: "UPDATE", schema: "public", table: "games", filter: `player1_id=eq.${user.id}` },
-        (p: any) => {
-          if (p.new?.status === "in_progress" && p.new?.id) {
-            setActiveGame({
-              id: p.new.id,
-              stake: Number(p.new.stake ?? 0),
-              game_mode: p.new.game_mode ?? "d120",
-              players_count: Number(p.new.players_count ?? 2),
-            });
-          }
-        })
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
   }, [user]);
 
   const placeMise = async () => {

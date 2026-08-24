@@ -108,10 +108,32 @@ export default function AdminSecurity() {
           </TabsList>
 
           <TabsContent value="alerts" className="space-y-2 mt-3">
+            {alerts.length > 0 && (
+              <div className="luxe-card p-2 flex items-center justify-between gap-2">
+                <label className="flex items-center gap-2 text-xs cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 accent-destructive"
+                    checked={selAlerts.size > 0 && selAlerts.size === alerts.length}
+                    onChange={(e) => setSelAlerts(e.target.checked ? new Set(alerts.map((a) => a.id)) : new Set())}
+                  />
+                  Fantenana daholo ({selAlerts.size})
+                </label>
+                <Button size="sm" variant="destructive" disabled={selAlerts.size === 0 || busy} onClick={deleteSelectedAlerts}>
+                  <Trash2 className="w-3 h-3 mr-1" /> Mamafa voafantina
+                </Button>
+              </div>
+            )}
             {alerts.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">Tsy misy alerte.</p>}
             {alerts.map(a => (
               <div key={a.id} className={`luxe-card p-3 ${a.resolved ? "opacity-50" : ""}`}>
                 <div className="flex items-start justify-between gap-2">
+                  <input
+                    type="checkbox"
+                    className="mt-1 w-4 h-4 accent-destructive shrink-0"
+                    checked={selAlerts.has(a.id)}
+                    onChange={() => toggleAlert(a.id)}
+                  />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${a.severity === "high" ? "bg-destructive/20 text-destructive" : "bg-amber-500/20 text-amber-500"}`}>{a.severity}</span>
@@ -128,6 +150,7 @@ export default function AdminSecurity() {
               </div>
             ))}
           </TabsContent>
+
 
           <TabsContent value="audit" className="space-y-1 mt-3">
             {logs.map(l => (

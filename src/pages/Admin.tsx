@@ -304,7 +304,13 @@ export default function Admin() {
     return () => { supabase.removeChannel(ch); };
   }, [allowed]);
 
-  if (!allowed) return (
+  if (roleOk === null) return (
+    <div className="min-h-screen felt-bg flex items-center justify-center text-center p-6">
+      <p className="text-sm text-muted-foreground">Fanamarinana…</p>
+    </div>
+  );
+
+  if (!isAdmin || !roleOk) return (
     <div className="min-h-screen felt-bg flex items-center justify-center text-center p-6">
       <div className="card-felt p-6 rounded-2xl">
         <p className="text-destructive mb-2">Tsy mahazo miditra ianao</p>
@@ -312,6 +318,26 @@ export default function Admin() {
       </div>
     </div>
   );
+
+  if (!unlocked) return (
+    <div className="min-h-screen felt-bg flex items-center justify-center p-6">
+      <div className="card-felt p-6 rounded-2xl w-full max-w-xs space-y-3 text-center">
+        <p className="eyebrow">Sécurité admin</p>
+        <p className="text-sm text-muted-foreground">Ampidiro ny code PIN mba hidirana</p>
+        <PasswordInput
+          value={gatePin}
+          onChange={(e) => setGatePin(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && gatePin && unlock()}
+          placeholder="Code PIN"
+        />
+        <div className="flex gap-2">
+          <Button variant="ghost" className="flex-1" onClick={() => nav("/")}>Hiverina</Button>
+          <Button className="flex-1" onClick={unlock} disabled={!gatePin || gateBusy}>Hiditra</Button>
+        </div>
+      </div>
+    </div>
+  );
+
 
   const approveUser = async (uid: string) => {
     if (!adminId) return toast.error("Mbola tsy vita ny fanamarinana admin, andraso kely");

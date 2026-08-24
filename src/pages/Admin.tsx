@@ -545,6 +545,41 @@ export default function Admin() {
     load();
   };
 
+  const deletableHistory = filteredHistory.filter(
+    (h: any) => h.status === "finished" || h.status === "cancelled",
+  );
+
+  const toggleHist = (id: string) =>
+    setSelHist((prev) => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+
+  const deleteSelectedGames = async () => {
+    if (!adminId) return toast.error("Andraso kely...");
+    const targets = deletableHistory.filter((h: any) => selHist.has(h.id));
+    if (targets.length === 0) return;
+    if (!confirm(`Hamafa lalao ${targets.length}? Tsy azo averina.`)) return;
+    setBulkBusy(true);
+    let ok = 0;
+    let fail = 0;
+    for (const h of targets) {
+      const rpc = h.game_kind === "ludo" ? "admin_delete_ludo_game"
+                : h.game_kind === "petanque" ? "admin_delete_petanque_game"
+                : "admin_delete_game";
+      const { error } = await supabase.rpc(rpc as any, { _game_id: h.id, _admin_id: adminId });
+      if (error) fail++; else ok++;
+    }
+    setBulkBusy(false);
+    setSelHist(new Set());
+    setHistSelMode(false);
+    if (ok) toast.success(`${ok} lalao voafafa`);
+    if (fail) toast.error(`${fail} tsy voafafa`);
+    load();
+  };
+
+
   const downloadPlayerPdf = async (player: any) => {
     try {
       await downloadPlayerInformation(player);

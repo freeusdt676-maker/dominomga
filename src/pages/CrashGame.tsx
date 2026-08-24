@@ -763,14 +763,50 @@ export default function CrashGame() {
         })}
 
         {/* Provably fair */}
-        <div className="rounded-xl border border-white/10 bg-black/30 p-3 text-[11px] text-white/60 flex gap-2">
-          <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-          <span>
-            Provably fair — hash: <span className="font-mono break-all">{round?.server_seed_hash?.slice(0, 24)}…</span>
-            <br />Multiplicateur ×1.00 → ×999.00. Mise 100 – 10 000 Ar.
-            <br />Vokatra kisendrasendra 100% (HMAC-SHA256) — tsy misy programme, tsy misy stratégie azo antoka.
-          </span>
+        <div className="rounded-xl border border-white/10 bg-black/30 p-3 text-[11px] text-white/60 space-y-2">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span className="font-bold text-white/80">Provably fair — Tour #{round?.round_no ?? "—"}</span>
+            <span className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-bold ${
+              round?.status === "crashed" ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300"
+            }`}>
+              {round?.status === "crashed" ? "Voaverina (révélé)" : "Hash mialoha"}
+            </span>
+          </div>
+          <div className="rounded-lg bg-black/50 p-2">
+            <div className="text-[10px] uppercase tracking-wider text-white/40">SHA-256 server seed hash</div>
+            <div className="flex items-start gap-2">
+              <span className="font-mono text-[10px] leading-tight break-all text-white/80">
+                {round?.server_seed_hash ?? "—"}
+              </span>
+              <button
+                type="button"
+                aria-label="Copier ny hash"
+                className="shrink-0 rounded-md bg-white/10 p-1.5 active:scale-95"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(round?.server_seed_hash ?? "");
+                    toast.success("Hash voadika");
+                  } catch { toast.error("Tsy voadika ny hash"); }
+                }}
+              >
+                <Copy className="w-3.5 h-3.5 text-white/70" />
+              </button>
+            </div>
+          </div>
+          {round?.status === "crashed" && (
+            <div className="rounded-lg bg-black/50 p-2 flex items-center justify-between">
+              <span className="text-[10px] uppercase tracking-wider text-white/40">Vokatra navoaka</span>
+              <span className="font-mono font-bold text-red-400">×{Number(round.crash_point ?? 0).toFixed(2)}</span>
+            </div>
+          )}
+          <p>
+            Ny hash aseho ALOHA ny tour; aorian'ny crash dia navoaka ny vokatra mba azo hamarinina.
+            Multiplicateur ×1.00 → ×999.00 · Mise {MIN_BET} – {MAX_BET} Ar.
+            <br />Vokatra HMAC-SHA256 (server seed + nonce) — tsy misy programme, tsy misy stratégie azo antoka.
+          </p>
         </div>
+
 
         {/* Bets tabs */}
         <div className="rounded-2xl border border-white/10 bg-white/5 p-2">

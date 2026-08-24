@@ -987,18 +987,49 @@ export default function Admin() {
                 className="pl-9"
               />
             </div>
-            <p className="text-[10px] text-muted-foreground">{filteredHistory.length} / {history.length} lalao</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[10px] text-muted-foreground">{filteredHistory.length} / {history.length} lalao</p>
+              <Button size="sm" variant={histSelMode ? "secondary" : "outline"} className="text-[10px] h-7" onClick={() => { setHistSelMode((v) => !v); setSelHist(new Set()); }}>
+                <CheckSquare className="w-3 h-3 mr-1" /> {histSelMode ? "Ajanona" : "Fantenana maro"}
+              </Button>
+            </div>
+            {histSelMode && (
+              <div className="card-felt rounded-xl p-2 flex items-center justify-between gap-2">
+                <label className="flex items-center gap-2 text-xs cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 accent-destructive"
+                    checked={selHist.size > 0 && selHist.size === deletableHistory.length}
+                    onChange={(e) => setSelHist(e.target.checked ? new Set(deletableHistory.map((h: any) => h.id)) : new Set())}
+                  />
+                  Fantenana daholo ({selHist.size})
+                </label>
+                <Button size="sm" variant="destructive" className="text-[10px] h-7" disabled={selHist.size === 0 || bulkBusy} onClick={deleteSelectedGames}>
+                  <Trash2 className="w-3 h-3 mr-1" /> Mamafa voafantina
+                </Button>
+              </div>
+            )}
             {filteredHistory.map((h) => {
               const start = h.turn_started_at ?? h.created_at;
               const isCancelable = ["waiting", "in_progress", "blocked"].includes(h.status);
+              const canDelete = h.status === "finished" || h.status === "cancelled";
               return (
-                <button
+                <div
                   key={h.id}
-                  onClick={() => openGameDetails(h)}
-                  className="w-full text-left card-felt rounded-xl p-3 text-xs space-y-1 hover:bg-primary/5 transition"
+                  onClick={() => { if (histSelMode) { if (canDelete) toggleHist(h.id); } else openGameDetails(h); }}
+                  className={`w-full text-left card-felt rounded-xl p-3 text-xs space-y-1 hover:bg-primary/5 transition cursor-pointer ${selHist.has(h.id) ? "ring-2 ring-destructive" : ""}`}
                 >
-                  <div className="flex justify-between items-start">
-                    <p className="font-mono font-bold gold-text uppercase">{h.game_kind} · Nº{h.ticket_number}</p>
+                  <div className="flex justify-between items-start gap-2">
+                    {histSelMode && canDelete && (
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 w-4 h-4 accent-destructive shrink-0"
+                        checked={selHist.has(h.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={() => toggleHist(h.id)}
+                      />
+                    )}
+                    <p className="font-mono font-bold gold-text uppercase flex-1">{h.game_kind} · Nº{h.ticket_number}</p>
                     <span className={`px-2 py-0.5 rounded text-[10px] ${h.status === "finished" ? "bg-success/20 text-success" : h.status === "blocked" ? "bg-destructive/20 text-destructive" : "bg-muted/40"}`}>
                       {h.status}
                     </span>
@@ -1010,22 +1041,25 @@ export default function Admin() {
                     Niatomboka: {new Date(start).toLocaleString()}<br />
                     {h.finished_at && <>Niafarany: {new Date(h.finished_at).toLocaleString()}</>}
                   </p>
-                  <p className="text-[10px] text-primary mt-1">▶ Tsindrio hijery filaharana...</p>
-                  <div className="pt-1" onClick={(e) => e.stopPropagation()}>
-                    {isCancelable && (
-                      <Button size="sm" variant="destructive" className="text-[10px] h-7" onClick={(e) => { e.stopPropagation(); setCancelTicketInput(h.ticket_number ?? ""); setCancelPin(""); setCancelOpen(true); }}>
-                        Annuler
-                      </Button>
-                    )}
-                    {(h.status === "finished" || h.status === "cancelled") && (
-                      <Button size="sm" variant="outline" className="text-[10px] h-7 ml-2 border-destructive/50 text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); deleteGame(h); }}>
-                        <Trash2 className="w-3 h-3 mr-1" /> Mamafa
-                      </Button>
-                    )}
-                  </div>
-                </button>
+                  {!histSelMode && <p className="text-[10px] text-primary mt-1">▶ Tsindrio hijery filaharana...</p>}
+                  {!histSelMode && (
+                    <div className="pt-1" onClick={(e) => e.stopPropagation()}>
+                      {isCancelable && (
+                        <Button size="sm" variant="destructive" className="text-[10px] h-7" onClick={(e) => { e.stopPropagation(); setCancelTicketInput(h.ticket_number ?? ""); setCancelPin(""); setCancelOpen(true); }}>
+                          Annuler
+                        </Button>
+                      )}
+                      {canDelete && (
+                        <Button size="sm" variant="outline" className="text-[10px] h-7 ml-2 border-destructive/50 text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); deleteGame(h); }}>
+                          <Trash2 className="w-3 h-3 mr-1" /> Mamafa
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
               );
             })}
+
             {filteredHistory.length === 0 && <p className="text-center text-muted-foreground py-6">Tsy misy historique</p>}
           </TabsContent>
 

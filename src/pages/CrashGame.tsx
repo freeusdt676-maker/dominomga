@@ -332,9 +332,11 @@ export default function CrashGame() {
   }, [roundBets, loadBalance]);
 
   useEffect(() => {
-    const poll = setInterval(() => { if (!document.hidden) tick(); }, 900);
+    // Client interpolates the curve locally (clock-synced), so state polling can
+    // stay light: fewer API calls per player = far more concurrent players.
+    const poll = setInterval(() => { if (!document.hidden) tick(); }, 1400);
     const frame = setInterval(() => setNow(Date.now()), 60);
-    const pub = setInterval(() => { if (!document.hidden) loadPublic(); }, 2500);
+    const pub = setInterval(() => { if (!document.hidden) loadPublic(); }, 4000);
     const onVisible = () => { if (!document.hidden) { tick(); loadPublic(); } };
     document.addEventListener("visibilitychange", onVisible);
     loadPublic();

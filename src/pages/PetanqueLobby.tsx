@@ -60,7 +60,8 @@ export default function PetanqueLobby() {
       .from("petanque_games" as any)
       .select("id, player1_id, player2_id, stake, created_at, status")
       .eq("status", "waiting")
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: true })
+      .limit(60);
     const list = ((gs ?? []) as unknown) as WaitingGame[];
     const others = list.filter((g) => g.player1_id !== user.id && !g.player2_id);
     const ids = Array.from(new Set(others.map((g) => g.player1_id)));
@@ -77,29 +78,23 @@ export default function PetanqueLobby() {
     load();
     let t: any = null;
     const debounced = () => { if (t) clearTimeout(t); t = setTimeout(load, 250); };
-    const ch = supabase.channel("petanque-lobby-rt")
-      .on("postgres_changes", { event: "*", schema: "public", table: "petanque_games" }, debounced)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "petanque_games", filter: `player1_id=eq.${user.id}` }, debounced)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "petanque_games", filter: `player2_id=eq.${user.id}` }, debounced)
+    const onMine = (p: any) => {
+      if (p.new?.status === "in_progress" && p.new?.id) {
+        setActiveGame({ id: p.new.id, stake: Number(p.new.stake ?? 0) });
+      }
+      debounced();
+    };
+    // ONE channel per user; waiting rooms + my rows only (no full-table stream).
+    const ch = supabase.channel(`petanque-lobby-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "petanque_games", filter: "status=eq.waiting" }, debounced)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "petanque_games", filter: `player1_id=eq.${user.id}` }, onMine)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "petanque_games", filter: `player2_id=eq.${user.id}` }, onMine)
       .subscribe();
-    const itv = setInterval(load, 5000);
+    // 5s polling was the heaviest API source on this page — realtime covers it.
+    const itv = setInterval(() => { if (document.visibilityState === "visible") load(); }, 30000);
     const tick = setInterval(() => setNowTs(Date.now()), 1000);
     return () => { supabase.removeChannel(ch); clearInterval(itv); clearInterval(tick); if (t) clearTimeout(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
-
-  useEffect(() => {
-    if (!user) return;
-    const ch = supabase.channel(`my-petanque-${user.id}`)
-      .on("postgres_changes",
-        { event: "UPDATE", schema: "public", table: "petanque_games", filter: `player1_id=eq.${user.id}` },
-        (p: any) => {
-          if (p.new?.status === "in_progress" && p.new?.id) {
-            setActiveGame({ id: p.new.id, stake: Number(p.new.stake ?? 0) });
-          }
-        })
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
   }, [user]);
 
   const placeMise = async () => {

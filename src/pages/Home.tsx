@@ -82,21 +82,21 @@ export default function Home() {
 
     redirectToActiveGame();
 
-    // Only listen to MY games (huge reduction in fanout at scale).
-    const ch1 = supabase.channel(`home-games-p1-${user.id}`)
+    // Only listen to MY games (huge reduction in fanout at scale) and keep it
+    // to a SINGLE channel/topic per user to avoid duplicate websocket joins.
+    const ch = supabase.channel(`home-games-${user.id}`)
       .on("postgres_changes",
         { event: "*", schema: "public", table: "games", filter: `player1_id=eq.${user.id}` },
         () => redirectToActiveGame())
-      .subscribe();
-    const ch2 = supabase.channel(`home-games-p2-${user.id}`)
       .on("postgres_changes",
         { event: "*", schema: "public", table: "games", filter: `player2_id=eq.${user.id}` },
         () => redirectToActiveGame())
       .subscribe();
-    const itv = setInterval(redirectToActiveGame, 30000);
+    const itv = setInterval(() => {
+      if (document.visibilityState === "visible") redirectToActiveGame();
+    }, 30000);
     return () => {
-      supabase.removeChannel(ch1);
-      supabase.removeChannel(ch2);
+      supabase.removeChannel(ch);
       clearInterval(itv);
     };
   }, [user, nav]);
@@ -125,7 +125,7 @@ export default function Home() {
     loadActive();
     // Tsy mihaino ny fihetsiky ny lalaon'ny olona rehetra intsony; izany no
     // niteraka fanontaniana marobe tamin'ny Home rehefa be mpilalao.
-    const itv = setInterval(loadActive, 30000);
+    const itv = setInterval(() => { if (document.visibilityState === "visible") loadActive(); }, 30000);
     const refresh = () => { if (document.visibilityState === "visible") loadActive(); };
     window.addEventListener("online", loadActive);
     window.addEventListener("focus", refresh);

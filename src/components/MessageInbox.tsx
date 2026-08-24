@@ -27,7 +27,7 @@ export default function MessageInbox() {
         .or(`recipient_id.eq.${user.id},is_admin_broadcast.eq.true`)
         .neq("sender_id", user.id)
         .order("created_at", { ascending: false })
-        .limit(200);
+        .limit(100);
       const read = getRead();
       const u = (data ?? []).filter((m) => !read.has(m.id)).length;
       setUnread(u);
@@ -38,7 +38,7 @@ export default function MessageInbox() {
       .channel("inbox-" + user.id)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages", filter: `recipient_id=eq.${user.id}` }, () => load())
       .subscribe();
-    const itv = setInterval(load, 20000);
+    const itv = setInterval(() => { if (document.visibilityState === "visible") load(); }, 60000);
     const onFocus = () => load();
     window.addEventListener("focus", onFocus);
     return () => { supabase.removeChannel(ch); clearInterval(itv); window.removeEventListener("focus", onFocus); };

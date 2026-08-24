@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import LiveSpectatorButton from "@/components/LiveSpectatorButton";
-import TournamentCountdown from "@/components/TournamentCountdown";
+import OnlineChatPanel from "@/components/OnlineChatPanel";
 
 const ABANDONED_GAME_KEY = "domino_abandoned_game_id";
 

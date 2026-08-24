@@ -347,27 +347,76 @@ export default function CrashGame() {
     // Client interpolates the curve locally (clock-synced), so state polling can
     // stay light: fewer API calls per player = far more concurrent players.
     const poll = setInterval(() => { if (!document.hidden) tick(); }, 1400);
-    const frame = setInterval(() => setNow(Date.now()), 60);
+    // 60 fps animation frame loop => perfectly smooth multiplier + plane motion
+    let raf = 0;
+    const loop = () => { setNow(Date.now()); raf = requestAnimationFrame(loop); };
+    raf = requestAnimationFrame(loop);
     const pub = setInterval(() => { if (!document.hidden) loadPublic(); }, 4000);
     const onVisible = () => { if (!document.hidden) { tick(); loadPublic(); } };
+    const onOnline = () => { setOnline(true); tick(); loadPublic(); };
+    const onOffline = () => setOnline(false);
     document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
     loadPublic();
     return () => {
-      clearInterval(poll); clearInterval(frame); clearInterval(pub);
+      clearInterval(poll); cancelAnimationFrame(raf); clearInterval(pub);
       document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
     };
   }, [tick, loadPublic]);
+
+  // Realtime round updates: every device flips to running / crashed at the same
+  // instant instead of waiting for its own polling window.
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel("crash-rounds-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "crash_rounds" }, () => { tick(); })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user, tick]);
 
   // refresh bet + balance when the round settles
   useEffect(() => {
     if (round?.status === "crashed" && round.id) {
-      if (lastCrashSound.current !== round.id) { lastCrashSound.current = round.id; stopEngine(); playExplosion(); }
+      if (lastCrashSound.current !== round.id) {
+        lastCrashSound.current = round.id;
+        stopEngine();
+        playExplosion();
+        setShake(true);
+        setTimeout(() => setShake(false), 700);
+      }
       loadMyBet(round.id);
       loadBalance();
       loadHistory();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [round?.status, round?.id]);
+
+  // Clear win/loss verdict for the round the player took part in
+  const verdictFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (round?.status !== "crashed" || !round.id) return;
+    if (verdictFor.current === round.id) return;
+    if (!roundBets.length) return;
+    verdictFor.current = round.id;
+    const won = roundBets.filter((b) => b.status === "cashed");
+    const staked = roundBets.reduce((s, b) => s + Number(b.amount || 0), 0);
+    if (won.length) {
+      const payout = won.reduce((s, b) => s + Number(b.payout || 0), 0);
+      setResult({
+        win: true,
+        text: `+${fmtAr(payout)}`,
+        sub: `Cashout ×${Number(won[0].cashout_multiplier ?? 0).toFixed(2)} · Crash ×${Number(round.crash_point ?? 0).toFixed(2)}`,
+      });
+    } else {
+      setResult({ win: false, text: `-${fmtAr(staked)}`, sub: `Crash ×${Number(round.crash_point ?? 0).toFixed(2)}` });
+    }
+    setTimeout(() => setResult(null), 3200);
+  }, [round?.status, round?.id, round?.crash_point, roundBets]);
+
 
   const elapsed = round?.started_at ? (serverNow() - new Date(round.started_at).getTime()) / 1000 : 0;
   const liveMult = round?.status === "running" ? multAt(elapsed) : 1;

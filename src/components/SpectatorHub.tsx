@@ -68,12 +68,15 @@ function CrashLive({ onOpen }: { onOpen: () => void }) {
   }
 
   const status = round.status as string;
+  // Same 0.6s display lag as the game page: the number shown never overshoots
+  // the official crash point, so live view and result always agree.
   const live =
     status === "running" && round.started_at
-      ? Math.max(1, Math.floor(Math.exp(0.08 * ((now - new Date(round.started_at).getTime()) / 1000)) * 100) / 100)
+      ? Math.max(1, Math.floor(Math.exp(0.08 * Math.max(0, (now - new Date(round.started_at).getTime()) / 1000 - 0.6)) * 100) / 100)
       : null;
   const shown =
     status === "crashed" ? Number(round.crash_point ?? 1) : live;
+
 
   return (
     <div className="flex flex-col gap-3">

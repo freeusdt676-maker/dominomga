@@ -69,28 +69,24 @@ export default function LudoLobby() {
     load();
     let t: any = null;
     const debounced = () => { if (t) clearTimeout(t); t = setTimeout(load, 250); };
-    const ch = supabase.channel("ludo-lobby-rt")
-      .on("postgres_changes", { event: "*", schema: "public", table: "ludo_games" }, debounced)
+    const onMine = (p: any) => {
+      const g = p.new;
+      if (g && [g.player1_id, g.player2_id, g.player3_id, g.player4_id].includes(user.id) && g.status === "in_progress") {
+        setActiveGame({ id: g.id, stake: Number(g.stake), players_count: Number(g.players_count) });
+      }
+      debounced();
+    };
+    // ONE channel per user; only waiting rooms + my own rows are streamed.
+    const ch = supabase.channel(`ludo-lobby-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "ludo_games", filter: "status=eq.waiting" }, debounced)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "ludo_games", filter: `player1_id=eq.${user.id}` }, onMine)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "ludo_games", filter: `player2_id=eq.${user.id}` }, onMine)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "ludo_games", filter: `player3_id=eq.${user.id}` }, onMine)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "ludo_games", filter: `player4_id=eq.${user.id}` }, onMine)
       .subscribe();
-    const itv = setInterval(load, 20000);
+    const itv = setInterval(() => { if (document.visibilityState === "visible") load(); }, 30000);
     return () => { supabase.removeChannel(ch); clearInterval(itv); if (t) clearTimeout(t); };
     // eslint-disable-next-line
-  }, [user]);
-
-  // Rehefa lasa in_progress ny room-ko → mankany amin'ny table
-  useEffect(() => {
-    if (!user) return;
-    const ch = supabase.channel("ludo-mine-rt")
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "ludo_games" }, (p: any) => {
-        const g = p.new;
-        if (!g) return;
-        const mine = [g.player1_id, g.player2_id, g.player3_id, g.player4_id].includes(user.id);
-        if (mine && g.status === "in_progress") {
-          setActiveGame({ id: g.id, stake: Number(g.stake), players_count: Number(g.players_count) });
-        }
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
   }, [user]);
 
   const placeMise = async () => {

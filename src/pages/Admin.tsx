@@ -55,6 +55,10 @@ export default function Admin() {
   const [allTx, setAllTx] = useState<any[]>([]);
   const [adminNames, setAdminNames] = useState<Record<string, string>>({});
   const [selectedGame, setSelectedGame] = useState<any | null>(null);
+  const [histSelMode, setHistSelMode] = useState(false);
+  const [selHist, setSelHist] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+
   const [gameMoves, setGameMoves] = useState<any[]>([]);
   const [resetTarget, setResetTarget] = useState<any | null>(null);
   const [resetPin, setResetPin] = useState("");

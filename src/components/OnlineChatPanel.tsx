@@ -5,6 +5,22 @@ import { subscribeOnlineMembers, type PresenceMember } from "@/hooks/useGlobalPr
 import { Send, Trash2, Smile } from "lucide-react";
 import { toast } from "sonner";
 import LiveDominoRooms from "@/components/LiveDominoRooms";
+import chatNotifySound from "@/assets/chat-notify.mp3.asset.json";
+
+// Feo notification chat — 50% volume
+let chatAudio: HTMLAudioElement | null = null;
+function playChatSound() {
+  try {
+    if (!chatAudio) {
+      chatAudio = new Audio(chatNotifySound.url);
+      chatAudio.preload = "auto";
+    }
+    chatAudio.volume = 0.5;
+    chatAudio.currentTime = 0;
+    void chatAudio.play().catch(() => {});
+  } catch {}
+}
+
 
 
 const EMOJIS = [
@@ -54,10 +70,16 @@ export default function OnlineChatPanel() {
     load();
     const ch = supabase
       .channel("home-lobby-chat")
-      .on("postgres_changes", { event: "*", schema: "public", table: "lobby_messages" }, () => load())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "lobby_messages" }, (payload: any) => {
+        if (payload?.new?.sender_id !== user.id) playChatSound();
+        load();
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "lobby_messages" }, () => load())
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "lobby_messages" }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user]);
+
 
   const send = async () => {
     const t = text.trim();

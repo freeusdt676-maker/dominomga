@@ -1251,9 +1251,12 @@ export default function Game() {
     // ny backend watchdog no milalao/passa légal aorian'ny deadline.
     const isMyTurnHere = game.current_turn === user.id;
     if (!isMyTurnHere) return;
-    const botFastPath = botActive;
+    // Tsy manana vato azo apetraka → PASS automatique avy hatrany (tsy miandry 15s).
+    const noMoveNow = myHand.length > 0 && !hasMove(myHand, board);
+    const botFastPath = botActive || noMoveNow;
     // Raha activé ny Bot eo amin'ny compte-ko ARY ahy ilay tour: tsy miandry 15s.
     if (!botFastPath && elapsed < TURN_TIMEOUT_SEC) return;
+
     const key = `${game.id}-${game.turn_started_at}-${game.current_turn}`;
     if (autoActedRef.current === key) return;
     if (playLockRef.current) return;
@@ -1269,7 +1272,7 @@ export default function Game() {
         autoActedRef.current = null;
         return;
       }
-      if (!botActive) {
+      if (!botActive && !noMoveNow) {
         const freshKey = `${fresh.id}-${fresh.turn_started_at}-${fresh.current_turn}`;
         const localAnchor = turnAnchorRef.current.key === freshKey ? turnAnchorRef.current.at : Date.now();
         const freshElapsedMs = Math.min(

@@ -47,15 +47,31 @@ export default function OnlineChatPanel() {
   const [text, setText] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => subscribeOnlineMembers(setMembers), []);
+
+  // Only play notification sound while the chat panel is visible in the viewport
+  useEffect(() => {
+    if (!panelRef.current) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          chatVisible = entry.isIntersecting;
+        });
+      },
+      { threshold: 0.25 }
+    );
+    obs.observe(panelRef.current);
+    return () => obs.disconnect();
+  }, []);
 
   const load = async () => {
     const { data } = await supabase
       .from("lobby_messages")
       .select("*")
       .order("created_at", { ascending: false })
-      .limit(40);
+      .limit(60);
     const list = (data ?? []).slice().reverse();
     setMessages(list);
     const ids = Array.from(new Set(list.map((m: any) => m.sender_id)));
@@ -82,6 +98,7 @@ export default function OnlineChatPanel() {
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user]);
+
 
 
   const send = async () => {

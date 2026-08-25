@@ -2,14 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { subscribeOnlineMembers, type PresenceMember } from "@/hooks/useGlobalPresence";
-import { Send, Trash2, Smile } from "lucide-react";
+import { Send, Trash2, Smile, Crown } from "lucide-react";
 import { toast } from "sonner";
 import LiveDominoRooms from "@/components/LiveDominoRooms";
 import chatNotifySound from "@/assets/chat-notify.mp3.asset.json";
 
-// Feo notification chat — 50% volume
+// Feo notification chat — 50% volume, only when the panel is visible on screen
 let chatAudio: HTMLAudioElement | null = null;
+let chatVisible = false;
 function playChatSound() {
+  if (!chatVisible) return;
   try {
     if (!chatAudio) {
       chatAudio = new Audio(chatNotifySound.url);
@@ -20,6 +22,7 @@ function playChatSound() {
     void chatAudio.play().catch(() => {});
   } catch {}
 }
+
 
 
 

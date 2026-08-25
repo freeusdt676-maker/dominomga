@@ -1272,7 +1272,7 @@ export default function Game() {
         autoActedRef.current = null;
         return;
       }
-      if (!botActive) {
+      if (!botActive && !noMoveNow) {
         const freshKey = `${fresh.id}-${fresh.turn_started_at}-${fresh.current_turn}`;
         const localAnchor = turnAnchorRef.current.key === freshKey ? turnAnchorRef.current.at : Date.now();
         const freshElapsedMs = Math.min(

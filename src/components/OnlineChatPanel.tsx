@@ -54,10 +54,16 @@ export default function OnlineChatPanel() {
     load();
     const ch = supabase
       .channel("home-lobby-chat")
-      .on("postgres_changes", { event: "*", schema: "public", table: "lobby_messages" }, () => load())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "lobby_messages" }, (payload: any) => {
+        if (payload?.new?.sender_id !== user.id) playChatSound();
+        load();
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "lobby_messages" }, () => load())
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "lobby_messages" }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user]);
+
 
   const send = async () => {
     const t = text.trim();

@@ -148,8 +148,10 @@ export default function Home() {
     })();
 
     const interval = setInterval(() => {
+      if (document.visibilityState !== "visible") return;
       supabase.from("profiles").update({ last_seen: new Date().toISOString(), is_online: true }).eq("user_id", user.id);
     }, 60_000);
+
 
     return () => {
       clearInterval(interval);
@@ -172,9 +174,10 @@ export default function Home() {
       .channel("home-pcr")
       .on("postgres_changes", { event: "*", schema: "public", table: "profile_change_requests" }, () => load())
       .subscribe();
-    const itv = setInterval(load, 60000);
+    const itv = setInterval(() => { if (document.visibilityState === "visible") load(); }, 60000);
     return () => { supabase.removeChannel(ch); clearInterval(itv); };
   }, [isAdmin]);
+
 
   // Mandray fanasana (challenges) miditra
   useEffect(() => {
@@ -191,7 +194,7 @@ export default function Home() {
     const ch = supabase.channel("ch-"+user.id)
       .on("postgres_changes",{event:"*",schema:"public",table:"challenges",filter:`to_user=eq.${user.id}`}, () => loadCh())
       .subscribe();
-    const itv = setInterval(loadCh, 30000);
+    const itv = setInterval(() => { if (document.visibilityState === "visible") loadCh(); }, 30000);
     return () => { supabase.removeChannel(ch); clearInterval(itv); };
   }, [user]);
 

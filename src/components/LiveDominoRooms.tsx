@@ -67,15 +67,25 @@ export default function LiveDominoRooms() {
     if (!user) return;
     load();
     let t: any = null;
-    const debounced = () => { if (t) clearTimeout(t); t = setTimeout(load, 250); };
+    let last = 0;
+    // Throttle + filtre: tsy mihaino ny UPDATE isaky ny vato apetraka amin'ny
+    // lalao rehetra intsony (izay no nampiraikitra ny app rehefa maro ny table).
+    const debounced = () => {
+      if (document.visibilityState !== "visible") return;
+      if (t) clearTimeout(t);
+      const wait = Math.max(400, 1500 - (Date.now() - last));
+      t = setTimeout(() => { last = Date.now(); load(); }, wait);
+    };
     const ch = supabase
       .channel(`live-rooms-${user.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "games" }, debounced)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "games" }, debounced)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "games", filter: "status=eq.waiting" }, debounced)
       .subscribe();
     const itv = setInterval(() => { if (document.visibilityState === "visible") load(); }, 20000);
     return () => { supabase.removeChannel(ch); clearInterval(itv); if (t) clearTimeout(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
 
   const join = async (g: Room) => {
     if (!user || joining) return;

@@ -45,11 +45,14 @@ export default function AdminChat() {
       setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
     };
     load();
+    let t: any = null;
+    const reload = () => { if (t) clearTimeout(t); t = setTimeout(load, 300); };
     const ch = supabase.channel("admin-chat-" + user.id)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages" }, () => load())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages" }, reload)
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => { supabase.removeChannel(ch); if (t) clearTimeout(t); };
   }, [user]);
+
 
   const send = async () => {
     if (!text.trim() || !user || !adminId) return;

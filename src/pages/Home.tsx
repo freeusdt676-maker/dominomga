@@ -194,7 +194,7 @@ export default function Home() {
     const ch = supabase.channel("ch-"+user.id)
       .on("postgres_changes",{event:"*",schema:"public",table:"challenges",filter:`to_user=eq.${user.id}`}, () => loadCh())
       .subscribe();
-    const itv = setInterval(loadCh, 30000);
+    const itv = setInterval(() => { if (document.visibilityState === "visible") loadCh(); }, 30000);
     return () => { supabase.removeChannel(ch); clearInterval(itv); };
   }, [user]);
 

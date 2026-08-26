@@ -130,10 +130,12 @@ export default function OnlineChatPanel() {
   return (
     <div
       ref={panelRef}
-      className="relative overflow-hidden rounded-2xl bg-black/60 backdrop-blur-2xl border border-[hsl(var(--gold-1)/0.18)] shadow-[0_24px_70px_-20px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.03)]"
+      className="relative overflow-hidden rounded-3xl bg-black/70 backdrop-blur-2xl border border-[hsl(var(--gold-1)/0.28)] shadow-[0_30px_90px_-24px_rgba(0,0,0,0.95),0_0_0_1px_hsl(var(--gold-1)/0.08),inset_0_1px_0_rgba(255,255,255,0.06)]"
     >
       {/* Ambient gold top glow */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(120%_60%_at_50%_0%,hsl(var(--gold-1)/0.18),transparent_60%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(120%_70%_at_50%_0%,hsl(var(--gold-1)/0.22),transparent_65%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[hsl(var(--gold-1)/0.7)] to-transparent" />
+
 
       {/* Statut en ligne */}
       <div className="relative p-3.5 border-b border-[hsl(var(--gold-1)/0.14)] bg-black/45">
@@ -173,31 +175,31 @@ export default function OnlineChatPanel() {
       {/* Salles vonona — mipoitra avy hatrany */}
       <LiveDominoRooms />
 
-      {/* Chat kely — premium height */}
-      <div className="relative h-56 overflow-y-auto p-3 space-y-1.5 bg-[radial-gradient(120%_80%_at_50%_0%,rgba(255,255,255,0.04),transparent_70%)]">
+      {/* Chat — premium height */}
+      <div className="relative h-[26rem] overflow-y-auto p-3.5 space-y-2 bg-[radial-gradient(130%_90%_at_50%_0%,rgba(255,255,255,0.05),transparent_70%)]">
         {messages.length === 0 && (
-          <p className="text-center text-[11px] text-muted-foreground/80 py-8">✍️ Manombohy resaka…</p>
+          <p className="text-center text-[12px] text-muted-foreground/80 py-14">✍️ Manombohy resaka…</p>
         )}
-        {messages.map((m, idx) => {
+        {messages.map((m) => {
           const mine = m.sender_id === user?.id;
           const name = mine ? "Izaho" : names[m.sender_id] ?? "Mpilalao";
           const isAdminSender = isAdmin && !mine;
           return (
             <div
               key={m.id}
-              className={`group flex items-baseline gap-2 px-2 py-1 rounded-lg transition hover:bg-white/[0.05] ${
-                idx % 2 === 0 ? "bg-white/[0.015]" : ""
+              className={`group flex items-baseline gap-2 px-2.5 py-1.5 rounded-xl transition border border-transparent hover:border-[hsl(var(--gold-1)/0.18)] hover:bg-white/[0.05] ${
+                mine ? "bg-[hsl(var(--gold-1)/0.06)]" : "bg-white/[0.02]"
               }`}
             >
               <span
-                className={`font-display text-[12px] font-bold shrink-0 tracking-wide flex items-center gap-1 ${
+                className={`font-display text-[13px] font-bold shrink-0 tracking-wide flex items-center gap-1 ${
                   mine ? "gold-luxe-text" : "text-emerald-300"
                 }`}
               >
                 {isAdminSender && <Crown className="w-3 h-3 text-amber-300" />}
                 {name}:
               </span>
-              <span className="text-[13px] leading-snug break-words min-w-0 flex-1 text-foreground/95">
+              <span className="text-[14px] leading-relaxed break-words min-w-0 flex-1 text-foreground/95">
                 {m.content}
               </span>
               <span className="text-[9px] opacity-40 tabular-nums shrink-0">
@@ -217,6 +219,7 @@ export default function OnlineChatPanel() {
         })}
         <div ref={endRef} />
       </div>
+
 
       {/* Emoji picker */}
       {showEmoji && (

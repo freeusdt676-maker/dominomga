@@ -148,8 +148,10 @@ export default function Home() {
     })();
 
     const interval = setInterval(() => {
+      if (document.visibilityState !== "visible") return;
       supabase.from("profiles").update({ last_seen: new Date().toISOString(), is_online: true }).eq("user_id", user.id);
     }, 60_000);
+
 
     return () => {
       clearInterval(interval);

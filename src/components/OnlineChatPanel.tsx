@@ -87,17 +87,20 @@ export default function OnlineChatPanel() {
   useEffect(() => {
     if (!user) return;
     load();
+    let t: any = null;
+    const reload = () => { if (t) clearTimeout(t); t = setTimeout(load, 250); };
     const ch = supabase
       .channel("home-lobby-chat")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "lobby_messages" }, (payload: any) => {
         if (payload?.new?.sender_id !== user.id) playChatSound();
-        load();
+        reload();
       })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "lobby_messages" }, () => load())
-      .on("postgres_changes", { event: "DELETE", schema: "public", table: "lobby_messages" }, () => load())
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "lobby_messages" }, reload)
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "lobby_messages" }, reload)
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => { supabase.removeChannel(ch); if (t) clearTimeout(t); };
   }, [user]);
+
 
 
 

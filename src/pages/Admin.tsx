@@ -291,18 +291,26 @@ export default function Admin() {
 
   useEffect(() => {
     if (!allowed) return;
+    // Debounce: ny table games/ludo/petanque dia manova matetika be rehefa maro
+    // ny lalao mandeha. Tsy maintsy atambatra ny reload mba tsy hiraikitra.
+    let t: any = null;
+    const reload = () => {
+      if (t) clearTimeout(t);
+      t = setTimeout(() => { if (document.visibilityState === "visible") load(); }, 1200);
+    };
     const ch = supabase
       .channel("admin-rt")
-      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "transactions" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "password_reset_requests" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "wallets" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "games" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "ludo_games" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "petanque_games" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, reload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "transactions" }, reload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "password_reset_requests" }, reload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "wallets" }, reload)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "games" }, reload)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "ludo_games" }, reload)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "petanque_games" }, reload)
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => { supabase.removeChannel(ch); if (t) clearTimeout(t); };
   }, [allowed]);
+
 
   if (roleOk === null) return (
     <div className="min-h-screen felt-bg flex items-center justify-center text-center p-6">

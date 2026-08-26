@@ -44,11 +44,14 @@ export default function AdminSecurity() {
   useEffect(() => {
     if (!allowed) return;
     load();
+    let t: any = null;
+    const reload = () => { if (t) clearTimeout(t); t = setTimeout(load, 800); };
     const ch = supabase.channel("admin-sec")
-      .on("postgres_changes", { event: "*", schema: "public", table: "fraud_alerts" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "fraud_alerts" }, reload)
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => { supabase.removeChannel(ch); if (t) clearTimeout(t); };
   }, [allowed]);
+
 
   const toggleAlert = (id: string) =>
     setSelAlerts((prev) => {

@@ -174,9 +174,10 @@ export default function Home() {
       .channel("home-pcr")
       .on("postgres_changes", { event: "*", schema: "public", table: "profile_change_requests" }, () => load())
       .subscribe();
-    const itv = setInterval(load, 60000);
+    const itv = setInterval(() => { if (document.visibilityState === "visible") load(); }, 60000);
     return () => { supabase.removeChannel(ch); clearInterval(itv); };
   }, [isAdmin]);
+
 
   // Mandray fanasana (challenges) miditra
   useEffect(() => {

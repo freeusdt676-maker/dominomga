@@ -138,7 +138,7 @@ export default function ForgotPasswordDialog({ open, onClose }: { open: boolean;
             <div>
               <Label>Numéro téléphone</Label>
               <Input value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                placeholder="034/038 XXXXXXX" inputMode="tel" maxLength={10} />
+                placeholder="032/033/034/035/037/038 XXXXXXX" inputMode="tel" maxLength={10} />
             </div>
             <Button className="w-full btn-gold" disabled={!phoneOk || !!cooldownLeft}
               onClick={() => setStep("name")}>Manohy</Button>

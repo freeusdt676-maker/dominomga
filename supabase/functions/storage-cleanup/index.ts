@@ -35,7 +35,9 @@ Deno.serve(async (req) => {
     }
 
     // 3) List bucket and delete orphans older than MAX_AGE_DAYS
-    const cutoff = Date.now() - MAX_AGE_DAYS * 86400_000;
+    // ?all=1 => fafana daholo ny sary (tsy mampiasa sary intsony ny profil)
+    const purgeAll = new URL(req.url).searchParams.get("all") === "1";
+    const cutoff = purgeAll ? Date.now() + 86400_000 : Date.now() - MAX_AGE_DAYS * 86400_000;
     const orphans: string[] = [];
     let offset = 0;
     while (true) {
@@ -45,7 +47,7 @@ Deno.serve(async (req) => {
       if (error) throw error;
       if (!files || files.length === 0) break;
       for (const f of files) {
-        if (!f.name || referenced.has(f.name)) continue;
+        if (!f.name || (!purgeAll && referenced.has(f.name))) continue;
         const created = new Date(f.created_at ?? f.updated_at ?? Date.now()).getTime();
         if (created < cutoff) orphans.push(f.name);
       }

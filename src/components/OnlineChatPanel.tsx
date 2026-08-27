@@ -52,13 +52,14 @@ export default function OnlineChatPanel() {
 
   useEffect(() => subscribeOnlineMembers(setMembers), []);
 
-  // Fantaro ny admin mba ho mena be ny hafany
+  // Fantaro ny admin mba ho mena be ny hafany — ho an'ny mpilalao REHETRA.
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.rpc("get_admin_id" as any);
-      if (data) setAdminId(data as string);
+      const { data } = await supabase.rpc("lobby_admin_sender_ids" as any);
+      if (Array.isArray(data) && data.length) setAdminId(String(data[0]));
     })();
-  }, []);
+  }, [messages.length]);
+
 
   // Only play notification sound while the chat panel is visible in the viewport
   useEffect(() => {

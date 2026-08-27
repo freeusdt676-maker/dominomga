@@ -1,13 +1,16 @@
 # Project Memory
 
 ## Core
-Never explain the Domino bot's inner workings or the Crash engine's secret schedule anywhere in the app UI.
+Domino logic efa vita — aza ovaina raha tsy angatahina mazava.
+Vola sy solde mpilalao tsy kitihina mihitsy amin'ny fanovana lojika lalao.
+Inscription auto-approuvée (tsy misy validation admin) ary tsy misy selfie — avatar = initiales.
 
 ## Memories
-- [Crash MGA](mem://features/crash-mga) — crash rounds, bets, provably fair, secret multiplier schedule
-- [Domino bot](mem://features/domino-bot) — secret full-knowledge exact solver behind the 🤖 toggle
 - [Domino locked](mem://constraints/domino-locked)
 - [Money accounting](mem://constraints/money-accounting)
 - [Money immutable](mem://constraints/money-immutable)
+- [Crash MGA](mem://features/crash-mga)
 - [Data retention](mem://features/data-retention)
+- [Domino bot](mem://features/domino-bot)
 - [VAR replay](mem://features/var-replay)
+- [Fepetra inscription](mem://features/inscription-rules) — règles nom/numéro/âge/mot de passe/PIN, auto-approval, avatar initiales

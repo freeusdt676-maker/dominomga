@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { PasswordInput } from "@/components/PasswordInput";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,11 +12,13 @@ import { toast } from "sonner";
 import logo from "@/assets/logo.png";
 import logoDomino from "@/assets/logo-domino.png";
 import logoPetanque from "@/assets/logo-petanque.png";
-import { Camera, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 import LiveSpectatorButton from "@/components/LiveSpectatorButton";
 import ForgotPasswordDialog from "@/components/ForgotPasswordDialog";
+
+const NAME_RE = /^[A-Za-zÀ-ÖØ-öø-ÿ]{2,10}(?:[ '-][A-Za-zÀ-ÖØ-öø-ÿ]{1,10})*$/;
+const MAX_BIRTH_DATE = "2008-12-31";
 
 const LOGIN_STEP_TIMEOUT_MS = 2500;
 const PASSWORD_LOGIN_TIMEOUT_MS = 8000;
@@ -344,7 +346,7 @@ export default function Auth() {
               <form onSubmit={handleSignup} className="space-y-3" noValidate>
                 <div className={err.phone ? "field-error" : ""}>
                   <Label className="text-xs font-bold uppercase tracking-wide">Numéro téléphone</Label>
-                  <Input value={sPhone} onChange={(e) => { setSPhone(e.target.value.replace(/\D/g, "").slice(0, 10)); clearErr("phone"); }}
+                  <Input id="signup-phone" value={sPhone} onChange={(e) => { setSPhone(e.target.value.replace(/\D/g, "").slice(0, 10)); clearErr("phone"); }}
                     placeholder="032/033/034/035/037/038 XXXXXXX" inputMode="tel" maxLength={10} />
                   <p className="text-[10px] text-muted-foreground mt-1">
                     <b>Telma</b>: 034 · 038 &nbsp;·&nbsp; <b>Orange</b>: 032 · 037 &nbsp;·&nbsp; <b>Airtel</b>: 033 · 035 — 10 chiffres
@@ -353,12 +355,12 @@ export default function Auth() {
                 </div>
                 <div className={err.name ? "field-error" : ""}>
                   <Label className="text-xs font-bold uppercase tracking-wide">Nom profil (litera ihany, ≤ 10)</Label>
-                  <Input value={sName} onChange={(e) => { setSName(e.target.value.slice(0, 10)); clearErr("name"); }} placeholder="Jean" maxLength={10} />
+                  <Input id="signup-name" value={sName} onChange={(e) => { setSName(e.target.value.slice(0, 10)); clearErr("name"); }} placeholder="Jean" maxLength={10} />
                   {err.name && <p className="text-[10px] text-destructive font-bold mt-1">{err.name}</p>}
                 </div>
                 <div className={err.birth ? "field-error" : ""}>
                   <Label className="text-xs font-bold uppercase tracking-wide">Daty nahaterahana (18 taona +)</Label>
-                  <Input type="date" max={MAX_BIRTH_DATE} value={sBirth} onChange={(e) => { setSBirth(e.target.value); clearErr("birth"); }} />
+                  <Input id="signup-birth" type="date" max={MAX_BIRTH_DATE} value={sBirth} onChange={(e) => { setSBirth(e.target.value); clearErr("birth"); }} />
                   {err.birth && <p className="text-[10px] text-destructive font-bold mt-1">{err.birth}</p>}
                 </div>
                 <div>
@@ -374,12 +376,12 @@ export default function Auth() {
                 </div>
                 <div className={err.pwd ? "field-error" : ""}>
                   <Label className="text-xs font-bold uppercase tracking-wide">Mot de passe (litera + chiffre, ≥ 6)</Label>
-                  <PasswordInput value={sPwd} onChange={(e) => { setSPwd(e.target.value); clearErr("pwd"); }} placeholder="domino24" />
+                  <PasswordInput id="signup-pwd" value={sPwd} onChange={(e) => { setSPwd(e.target.value); clearErr("pwd"); }} placeholder="domino24" />
                   {err.pwd && <p className="text-[10px] text-destructive font-bold mt-1">{err.pwd}</p>}
                 </div>
                 <div className={err.pin ? "field-error" : ""}>
                   <Label className="text-xs font-bold uppercase tracking-wide">PIN (4 chiffres)</Label>
-                  <PasswordInput inputMode="numeric" maxLength={4} value={sPin}
+                  <PasswordInput id="signup-pin" inputMode="numeric" maxLength={4} value={sPin}
                     onChange={(e) => { setSPin(e.target.value.replace(/\D/g, "").slice(0, 4)); clearErr("pin"); }} placeholder="1234" />
                   {err.pin && <p className="text-[10px] text-destructive font-bold mt-1">{err.pin}</p>}
                 </div>

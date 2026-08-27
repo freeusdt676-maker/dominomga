@@ -983,12 +983,14 @@ export default function LudoPage() {
                   </div>
                 </div>
                 <Dice
-                  value={isActive && row.dice_rolled ? diceDisplay : 1}
+                  value={diceBySeat[pl.seat] ?? 1}
                   rolling={isActive && rolling}
                   disabled={!(iAmThisCell && canRoll) || rolling}
                   onRoll={rollDice}
                   color={c}
+                  active={isActive && !winner}
                 />
+
                 {isActive && !winner && (
                   <div
                     className={`font-black tabular-nums px-2 py-0.5 rounded-md ${urgent ? "text-lg animate-pulse" : "text-[11px]"}`}

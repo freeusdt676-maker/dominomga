@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import InitialsAvatar from "@/components/InitialsAvatar";
 import { PasswordInput } from "@/components/PasswordInput";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,13 +7,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Camera, Loader2, Send } from "lucide-react";
+import { ArrowLeft, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
 
 export default function ProfileEdit() {
   const { user } = useAuth();
   const nav = useNavigate();
-  const fileRef = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState<any>(null);
   const [pending, setPending] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -21,8 +21,6 @@ export default function ProfileEdit() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [pin, setPin] = useState("");
-  const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
-  const [selfieFile, setSelfieFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -50,17 +48,6 @@ export default function ProfileEdit() {
     })();
   }, [user]);
 
-  const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    if (!f.type.startsWith("image/")) {
-      toast.error("Sary fotsiny no azo alefa");
-      return;
-    }
-    setSelfieFile(f);
-    setSelfiePreview(URL.createObjectURL(f));
-  };
-
   const submit = async () => {
     if (!user) return;
     // Considérer un champ comme "changement" uniquement s'il diffère de la valeur actuelle.
@@ -68,25 +55,14 @@ export default function ProfileEdit() {
     const diffPhone = phone && phone !== (profile?.phone ?? "");
     const diffPwd = password.length > 0;
     const diffPin = pin.length > 0;
-    const hasChange = diffName || diffPhone || diffPwd || diffPin || selfieFile;
+    const hasChange = diffName || diffPhone || diffPwd || diffPin;
     if (!hasChange) {
       toast.error("Tsy nisy fanovana");
       return;
     }
     setSubmitting(true);
     try {
-      let selfieUrl: string | null = null;
-      if (selfieFile) {
-        const ext = (selfieFile.name.split(".").pop() ?? "jpg").toLowerCase();
-        const path = `${user.id}/selfie-${Date.now()}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("selfies").upload(path, selfieFile, {
-          contentType: selfieFile.type,
-          upsert: true,
-        });
-        if (upErr) throw upErr;
-        const { data: pub } = supabase.storage.from("selfies").getPublicUrl(path);
-        selfieUrl = pub.publicUrl;
-      }
+      const selfieUrl: string | null = null;
       const { error } = await supabase.rpc("submit_profile_change_request" as any, {
         _mvola_name: diffName ? mvolaName : null,
         _phone: diffPhone ? phone : null,
@@ -131,11 +107,7 @@ export default function ProfileEdit() {
           <p className="eyebrow">Mombamomba ankehitriny</p>
           <div className="flex items-center gap-3">
             <div className="w-16 h-16 rounded-full overflow-hidden border border-[hsl(var(--gold-1)/0.4)] bg-black/40 flex items-center justify-center">
-              {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-xl">👤</span>
-              )}
+              <InitialsAvatar name={profile?.mvola_name} className="w-full h-full text-base" />
             </div>
             <div className="text-xs">
               <p className="font-bold">{profile?.mvola_name}</p>
@@ -165,34 +137,6 @@ export default function ProfileEdit() {
             <PasswordInput value={pin} onChange={(e) => setPin(e.target.value)} maxLength={4} inputMode="numeric" placeholder="••••" />
           </div>
 
-          <div>
-            <Label className="text-xs flex items-center gap-1"><Camera className="w-3 h-3" /> Selfie vaovao (camera ihany)</Label>
-            <p className="text-[10px] text-muted-foreground mb-2">
-              Tsy maintsy maka sary mivantana amin'ny camera. Tsy azo alaina avy amin'ny galerie.
-            </p>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              capture="user"
-              onChange={onPick}
-              className="hidden"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => fileRef.current?.click()}
-              className="w-full"
-            >
-              <Camera className="w-4 h-4 mr-2" />
-              {selfiePreview ? "Maka sary hafa" : "Maka selfie"}
-            </Button>
-            {selfiePreview && (
-              <div className="mt-2 flex justify-center">
-                <img src={selfiePreview} alt="preview" className="w-32 h-32 rounded-xl object-cover border border-[hsl(var(--gold-1)/0.4)]" />
-              </div>
-            )}
-          </div>
         </div>
 
         <Button

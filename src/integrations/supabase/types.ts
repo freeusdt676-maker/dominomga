@@ -1727,6 +1727,7 @@ export type Database = {
         Args: { _game_id: string; _player2: string }
         Returns: Json
       }
+      lobby_admin_sender_ids: { Args: never; Returns: string[] }
       log_audit: { Args: { _action: string; _meta?: Json }; Returns: undefined }
       ludo_cancel_waiting: { Args: { _game_id: string }; Returns: Json }
       ludo_initial_pawns: { Args: { _n: number }; Returns: Json }

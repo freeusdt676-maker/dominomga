@@ -48,8 +48,17 @@ export default function OnlineChatPanel() {
   const [showEmoji, setShowEmoji] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const [adminId, setAdminId] = useState<string | null>(null);
 
   useEffect(() => subscribeOnlineMembers(setMembers), []);
+
+  // Fantaro ny admin mba ho mena be ny hafany
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.rpc("get_admin_id" as any);
+      if (data) setAdminId(data as string);
+    })();
+  }, []);
 
   // Only play notification sound while the chat panel is visible in the viewport
   useEffect(() => {
@@ -137,8 +146,8 @@ export default function OnlineChatPanel() {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[hsl(var(--gold-1)/0.7)] to-transparent" />
 
 
-      {/* Statut en ligne */}
-      <div className="relative p-3.5 border-b border-[hsl(var(--gold-1)/0.14)] bg-black/45">
+      {/* ---- 1. STATUT EN LIGNE ---- */}
+      <div className="relative p-3.5 border-b-2 border-emerald-400/25 bg-black/55">
         <div className="flex items-center justify-between gap-2">
           <p className="eyebrow flex items-center gap-2 tracking-[0.2em] uppercase">
             <span className="relative inline-flex">
@@ -172,10 +181,15 @@ export default function OnlineChatPanel() {
         </div>
       </div>
 
-      {/* Salles vonona — mipoitra avy hatrany */}
-      <LiveDominoRooms />
+      {/* ---- 2. SALLES VONONA ---- */}
+      <div className="border-y-2 border-red-500/25 bg-black/40">
+        <LiveDominoRooms />
+      </div>
 
-      {/* Chat — premium height */}
+      {/* ---- 3. RESAKA ---- */}
+      <div className="px-3.5 pt-2.5 pb-1.5 bg-black/35 border-b border-[hsl(var(--gold-1)/0.14)]">
+        <p className="eyebrow tracking-[0.2em] uppercase gold-luxe-text text-[10px]">💬 Resaka — Tchat</p>
+      </div>
       <div className="relative h-[26rem] overflow-y-auto p-3.5 space-y-2 bg-[radial-gradient(130%_90%_at_50%_0%,rgba(255,255,255,0.05),transparent_70%)]">
         {messages.length === 0 && (
           <p className="text-center text-[12px] text-muted-foreground/80 py-14">✍️ Manombohy resaka…</p>
@@ -183,23 +197,29 @@ export default function OnlineChatPanel() {
         {messages.map((m) => {
           const mine = m.sender_id === user?.id;
           const name = mine ? "Izaho" : names[m.sender_id] ?? "Mpilalao";
-          const isAdminSender = isAdmin && !mine;
+          const isAdminSender = !!adminId && m.sender_id === adminId;
           return (
             <div
               key={m.id}
-              className={`group flex items-baseline gap-2 px-2.5 py-1.5 rounded-xl transition border border-transparent hover:border-[hsl(var(--gold-1)/0.18)] hover:bg-white/[0.05] ${
-                mine ? "bg-[hsl(var(--gold-1)/0.06)]" : "bg-white/[0.02]"
+              className={`group flex items-baseline gap-2 px-2.5 py-1.5 rounded-xl transition border hover:bg-white/[0.05] ${
+                isAdminSender
+                  ? "border-red-500/50 bg-red-600/15"
+                  : mine
+                    ? "border-transparent bg-[hsl(var(--gold-1)/0.06)]"
+                    : "border-transparent bg-white/[0.02]"
               }`}
             >
               <span
                 className={`font-display text-[13px] font-bold shrink-0 tracking-wide flex items-center gap-1 ${
-                  mine ? "gold-luxe-text" : "text-emerald-300"
+                  isAdminSender ? "text-red-400 font-extrabold" : mine ? "gold-luxe-text" : "text-emerald-300"
                 }`}
               >
-                {isAdminSender && <Crown className="w-3 h-3 text-amber-300" />}
+                {isAdminSender && <Crown className="w-3 h-3 text-red-400" />}
                 {name}:
               </span>
-              <span className="text-[14px] leading-relaxed break-words min-w-0 flex-1 text-foreground/95">
+              <span className={`text-[14px] leading-relaxed break-words min-w-0 flex-1 ${
+                isAdminSender ? "text-red-400 font-extrabold" : "text-foreground/95"
+              }`}>
                 {m.content}
               </span>
               <span className="text-[9px] opacity-40 tabular-nums shrink-0">

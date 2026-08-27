@@ -116,16 +116,14 @@ export default function Auth() {
   const [sGender, setSGender] = useState<"male"|"female"|"other">("male");
   const [sPhone, setSPhone] = useState("");
   const [sPwd, setSPwd] = useState("");
-  const [sPwd2, setSPwd2] = useState("");
   const [sPin, setSPin] = useState("");
-  const [sPin2, setSPin2] = useState("");
-  const [sSelfie, setSSelfie] = useState<string | null>(null);
   const [acceptRules, setAcceptRules] = useState(false);
-  const [camOpen, setCamOpen] = useState(false);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const [err, setErr] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
+
+  const clearErr = (k: string) => setErr((p) => (p[k] ? { ...p, [k]: "" } : p));
+
 
 
   const handleLogin = async (e: React.FormEvent) => {

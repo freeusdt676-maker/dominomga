@@ -139,8 +139,8 @@ const sfx = {
 };
 
 /* ==================== Dice component ==================== */
-function Dice({ value, rolling, disabled, onRoll, color }: {
-  value: number; rolling: boolean; disabled: boolean; onRoll: () => void; color: ColorKey;
+function Dice({ value, rolling, disabled, onRoll, color, active }: {
+  value: number; rolling: boolean; disabled: boolean; onRoll: () => void; color: ColorKey; active?: boolean;
 }) {
   const pip = (cx: number, cy: number) => (
     <circle cx={cx} cy={cy} r={5.5} fill="#111" />
@@ -157,11 +157,17 @@ function Dice({ value, rolling, disabled, onRoll, color }: {
     <button
       onClick={onRoll}
       disabled={disabled}
-      className={`relative w-16 h-16 rounded-xl shadow-xl transition-transform ${rolling ? "animate-[spin_0.55s_ease-in-out]" : "hover:scale-105"} ${disabled ? "opacity-70 cursor-not-allowed" : "cursor-pointer"}`}
+      className={`relative w-16 h-16 rounded-xl shadow-xl transition-all ${rolling ? "animate-[spin_0.35s_linear_infinite]" : active ? "hover:scale-105" : ""} ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}
       style={{
-        background: "linear-gradient(135deg,#fff 0%,#f0f0f0 55%,#d6d6d6 100%)",
-        boxShadow: `0 6px 0 ${HEX[color].ring}, 0 10px 22px rgba(0,0,0,0.45), inset 0 2px 0 #fff, inset 0 -2px 0 rgba(0,0,0,0.15)`,
-        border: `2px solid ${HEX[color].dark}`,
+        background: active
+          ? "linear-gradient(135deg,#ffffff 0%,#eafff0 55%,#cdebd6 100%)"
+          : "linear-gradient(135deg,#8f9296 0%,#7b7e82 55%,#5e6165 100%)",
+        boxShadow: active
+          ? "0 0 0 3px #22c55e, 0 0 18px 6px rgba(34,197,94,0.85), 0 8px 18px rgba(0,0,0,0.5)"
+          : "0 4px 10px rgba(0,0,0,0.45)",
+        border: `2px solid ${active ? "#16a34a" : HEX[color].dark}`,
+        opacity: active ? 1 : 0.55,
+        filter: active ? "none" : "saturate(0.4)",
       }}
       aria-label="Roll dice"
     >
@@ -169,6 +175,7 @@ function Dice({ value, rolling, disabled, onRoll, color }: {
     </button>
   );
 }
+
 
 /* ==================== Board (SVG) ==================== */
 function Board({ players, activeColor, onPickPawn, movable }: {
@@ -270,12 +277,17 @@ function Board({ players, activeColor, onPickPawn, movable }: {
              transform: `translate(${x}px, ${y}px) scale(${SCALE})`,
              transition: "transform 140ms linear",
              transformBox: "fill-box",
+             touchAction: "manipulation",
+             pointerEvents: active ? "auto" : "none",
            }}
-           onClick={() => active && onPickPawn(p.color, p.pIdx)}>
+           onPointerDown={(e) => { if (active) { e.preventDefault(); e.stopPropagation(); onPickPawn(p.color, p.pIdx); } }}>
+          {/* Zone de touche élargie — kitika indray mandeha dia mandeha */}
+          {active && <circle cx={0} cy={2} r={20} fill="transparent" style={{ pointerEvents: "all" }} />}
           {/* GPS localisation pin — teardrop head with center hole + ripple base */}
           {/* Soft ground shadow */}
           <ellipse cx={0} cy={17} rx={8} ry={2.2} fill="rgba(0,0,0,0.28)"/>
           <ellipse cx={0} cy={16.5} rx={5} ry={1.3} fill={HEX[p.color].dark} opacity={0.7}/>
+
           {/* Teardrop pin body: round top, pointed bottom */}
           <path d={`M 0 16
                     C -3 10, -10 6, -10 -4
@@ -530,6 +542,10 @@ export default function LudoPage() {
   const [phones, setPhones] = useState<Record<string, string | null>>({});
   const [rolling, setRolling] = useState(false);
   const [diceDisplay, setDiceDisplay] = useState(1);
+  // Isa farany hita isaky ny seat — mitoetra eo mandra-pikitika manaraka.
+  const [diceBySeat, setDiceBySeat] = useState<Record<number, number>>({});
+  const rollAnimRef = useRef<{ key: string; timer: number | null }>({ key: "", timer: null });
+
   const [movable, setMovable] = useState<Set<number>>(new Set());
   const [message, setMessage] = useState<string>("Miandry lalao…");
   const [countdown, setCountdown] = useState<number>(TURN_TIMEOUT_S);
@@ -562,11 +578,8 @@ export default function LudoPage() {
       }
     }
     setRow(r as ServerRow);
-    // Ny isa dés dia aseho MANDRITRA ny fotoana andrasana move ihany.
-    // Rehefa vita ny move (dice_rolled=false) dia mifafa (miverina 1) ny dés.
-    if (r.dice_rolled && typeof r.last_dice === "number") setDiceDisplay(r.last_dice || 1);
-    else setDiceDisplay(1);
   }, [names]);
+
 
   useEffect(() => {
     if (!id || !user) return;
@@ -650,6 +663,33 @@ export default function LudoPage() {
   const isMyTurn = !!row && row.status === "in_progress" && currentSeat === mySeat && !row.winner_id;
   const canRoll = isMyTurn && row?.dice_rolled === false;
 
+  // Animation dés IRAISANA — ny mpilalao rehetra mahita ny isa mivadibadika
+  // mandritra ~1s dia mijanona amin'ny isa nomen'ny algorithme. Mitoetra eo
+  // io isa io mandra-pikitika manaraka.
+  useEffect(() => {
+    if (!row || typeof row.last_dice !== "number" || !row.last_dice) return;
+    const seat = row.current_turn_seat ?? 0;
+    const key = `${seat}:${row.last_dice}:${row.dice_rolled}:${row.turn_started_at ?? ""}`;
+    if (rollAnimRef.current.key === key) return;
+    rollAnimRef.current.key = key;
+    const final = row.last_dice as number;
+    setRolling(true);
+    try { sfx.dice(); } catch {}
+    const iv = window.setInterval(() => {
+      const v = 1 + Math.floor(Math.random() * 6);
+      setDiceDisplay(v);
+      setDiceBySeat((prev) => ({ ...prev, [seat]: v }));
+    }, 90);
+    const stop = window.setTimeout(() => {
+      clearInterval(iv);
+      setRolling(false);
+      setDiceDisplay(final);
+      setDiceBySeat((prev) => ({ ...prev, [seat]: final }));
+    }, 1000);
+    rollAnimRef.current.timer = stop;
+    return () => { clearInterval(iv); clearTimeout(stop); };
+  }, [row?.last_dice, row?.dice_rolled, row?.turn_started_at, row?.current_turn_seat]);
+
   // Legal moves once dice is rolled and it's my turn
   useEffect(() => {
     if (!row || !isMyTurn || !row.dice_rolled || row.winner_id) { setMovable(new Set()); return; }
@@ -722,49 +762,38 @@ export default function LudoPage() {
   const rollDice = async () => {
     if (!canRoll || rolling || rpcBusy.current || !row || !current) return;
     rpcBusy.current = true;
-    setRolling(true);
-    sfx.dice();
+    // Ny algorithme no manapaka ny isa — tsy azo vinavinaina.
     const v = 1 + Math.floor(Math.random() * 6);
-    let frames = 0;
-    await new Promise<void>((res) => {
-      const iv = setInterval(() => {
-        setDiceDisplay(1 + Math.floor(Math.random() * 6));
-        if (++frames > 6) { clearInterval(iv); setDiceDisplay(v); res(); }
-      }, 70);
-    });
-    setRolling(false);
     const newSix = v === 6 ? (row.consecutive_sixes ?? 0) + 1 : 0;
-    // 3 sixes → skip
-    if (newSix >= 3) {
-      await commit({
-        last_dice: v, dice_rolled: false, consecutive_sixes: 0,
-        current_turn_seat: nextSeatOf(current.seat), turn_started_at: new Date().toISOString(),
-      });
-      rpcBusy.current = false;
-      return;
-    }
-    const legal = legalMoves(players, current.seat, v);
-    if (legal.length === 0) {
-      // No move — if it was a 6 keep the turn but let re-roll; otherwise pass
-      if (v === 6) {
-        await commit({ last_dice: v, dice_rolled: false, consecutive_sixes: newSix, turn_started_at: new Date().toISOString() });
-      } else {
+    try {
+      // 3 sixes → skip
+      if (newSix >= 3) {
         await commit({
           last_dice: v, dice_rolled: false, consecutive_sixes: 0,
           current_turn_seat: nextSeatOf(current.seat), turn_started_at: new Date().toISOString(),
         });
+        return;
       }
+      const legal = legalMoves(players, current.seat, v);
+      if (legal.length === 0) {
+        // No move — if it was a 6 keep the turn but let re-roll; otherwise pass
+        if (v === 6) {
+          await commit({ last_dice: v, dice_rolled: false, consecutive_sixes: newSix, turn_started_at: new Date().toISOString() });
+        } else {
+          await commit({
+            last_dice: v, dice_rolled: false, consecutive_sixes: 0,
+            current_turn_seat: nextSeatOf(current.seat), turn_started_at: new Date().toISOString(),
+          });
+        }
+        return;
+      }
+      // Legal moves exist — miandry ny pion hokitihin'ny mpilalao (na 10s → watchdog).
+      await commit({ last_dice: v, dice_rolled: true, consecutive_sixes: newSix });
+    } finally {
       rpcBusy.current = false;
-      return;
     }
-    // Legal moves exist — mark rolled, wait for pick
-    await commit({ last_dice: v, dice_rolled: true, consecutive_sixes: newSix });
-    // Raha iray ihany ny safidy dia alefa avy hatrany (toy ny Ludo tena izy).
-    if (legal.length === 1) {
-      setTimeout(() => { void movePawnWith(legal[0], v, newSix); }, 350);
-    }
-    rpcBusy.current = false;
   };
+
 
   /** Mampihatra ny move amin'ny fitsipika iraisana (capture, block, isa marina). */
   const movePawnWith = async (pawnIdx: number, dv: number, sixes: number) => {
@@ -954,12 +983,14 @@ export default function LudoPage() {
                   </div>
                 </div>
                 <Dice
-                  value={isActive && row.dice_rolled ? diceDisplay : 1}
+                  value={diceBySeat[pl.seat] ?? 1}
                   rolling={isActive && rolling}
                   disabled={!(iAmThisCell && canRoll) || rolling}
                   onRoll={rollDice}
                   color={c}
+                  active={isActive && !winner}
                 />
+
                 {isActive && !winner && (
                   <div
                     className={`font-black tabular-nums px-2 py-0.5 rounded-md ${urgent ? "text-lg animate-pulse" : "text-[11px]"}`}

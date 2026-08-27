@@ -48,17 +48,18 @@ export default function OnlineChatPanel() {
   const [showEmoji, setShowEmoji] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const [adminId, setAdminId] = useState<string | null>(null);
+  const [adminIds, setAdminIds] = useState<Set<string>>(new Set());
 
   useEffect(() => subscribeOnlineMembers(setMembers), []);
 
-  // Fantaro ny admin mba ho mena be ny hafany
+  // Fantaro ny admin mba ho mena be ny hafany — ho an'ny mpilalao REHETRA.
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.rpc("get_admin_id" as any);
-      if (data) setAdminId(data as string);
+      const { data } = await supabase.rpc("lobby_admin_sender_ids" as any);
+      if (Array.isArray(data)) setAdminIds(new Set((data as any[]).map((x: any) => String(x?.lobby_admin_sender_ids ?? x))));
     })();
-  }, []);
+  }, [messages.length]);
+
 
   // Only play notification sound while the chat panel is visible in the viewport
   useEffect(() => {
@@ -197,7 +198,7 @@ export default function OnlineChatPanel() {
         {messages.map((m) => {
           const mine = m.sender_id === user?.id;
           const name = mine ? "Izaho" : names[m.sender_id] ?? "Mpilalao";
-          const isAdminSender = !!adminId && m.sender_id === adminId;
+          const isAdminSender = adminIds.has(m.sender_id);
           return (
             <div
               key={m.id}

@@ -48,7 +48,7 @@ export default function OnlineChatPanel() {
   const [showEmoji, setShowEmoji] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const [adminId, setAdminId] = useState<string | null>(null);
+  const [adminIds, setAdminIds] = useState<Set<string>>(new Set());
 
   useEffect(() => subscribeOnlineMembers(setMembers), []);
 
@@ -56,7 +56,7 @@ export default function OnlineChatPanel() {
   useEffect(() => {
     (async () => {
       const { data } = await supabase.rpc("lobby_admin_sender_ids" as any);
-      if (Array.isArray(data) && data.length) setAdminId(String(data[0]));
+      if (Array.isArray(data)) setAdminIds(new Set((data as any[]).map((x: any) => String(x?.lobby_admin_sender_ids ?? x))));
     })();
   }, [messages.length]);
 
@@ -198,7 +198,7 @@ export default function OnlineChatPanel() {
         {messages.map((m) => {
           const mine = m.sender_id === user?.id;
           const name = mine ? "Izaho" : names[m.sender_id] ?? "Mpilalao";
-          const isAdminSender = !!adminId && m.sender_id === adminId;
+          const isAdminSender = adminIds.has(m.sender_id);
           return (
             <div
               key={m.id}

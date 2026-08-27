@@ -355,24 +355,27 @@ export default function Auth() {
 
             <TabsContent value="signup">
               <div className="mvola-banner mb-3 text-sm">
-                💛❤️ INSCRIPTION MVola / Airtel Money — Fenoy daholo ireto mba ho ankatoavin'ny ADMINISTRATIF
+                💛❤️ INSCRIPTION haingana — fenoy tsara dia tafiditra avy hatrany ianao
               </div>
-              <form onSubmit={handleSignup} className="space-y-3">
-                <div>
+              <form onSubmit={handleSignup} className="space-y-3" noValidate>
+                <div className={err.phone ? "field-error" : ""}>
                   <Label className="text-xs font-bold uppercase tracking-wide">Numéro téléphone</Label>
-                  <Input value={sPhone} onChange={(e) => setSPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                  <Input value={sPhone} onChange={(e) => { setSPhone(e.target.value.replace(/\D/g, "").slice(0, 10)); clearErr("phone"); }}
                     placeholder="032/033/034/035/037/038 XXXXXXX" inputMode="tel" maxLength={10} />
                   <p className="text-[10px] text-muted-foreground mt-1">
-                    <b>Yas/MVola</b>: 034 · 038 &nbsp;·&nbsp; <b>Airtel Money</b>: 033 · 035 &nbsp;·&nbsp; <b>Orange Money</b>: 032 · 037
+                    <b>Telma</b>: 034 · 038 &nbsp;·&nbsp; <b>Orange</b>: 032 · 037 &nbsp;·&nbsp; <b>Airtel</b>: 033 · 035 — 10 chiffres
                   </p>
+                  {err.phone && <p className="text-[10px] text-destructive font-bold mt-1">{err.phone}</p>}
                 </div>
-                <div>
-                  <Label className="text-xs font-bold uppercase tracking-wide">Anarana certifié Mobile Money</Label>
-                  <Input value={sName} onChange={(e) => setSName(e.target.value)} placeholder="Jean Claude" />
+                <div className={err.name ? "field-error" : ""}>
+                  <Label className="text-xs font-bold uppercase tracking-wide">Nom profil (litera ihany, ≤ 10)</Label>
+                  <Input value={sName} onChange={(e) => { setSName(e.target.value.slice(0, 10)); clearErr("name"); }} placeholder="Jean" maxLength={10} />
+                  {err.name && <p className="text-[10px] text-destructive font-bold mt-1">{err.name}</p>}
                 </div>
-                <div>
-                  <Label className="text-xs font-bold uppercase tracking-wide">Daty nahaterahana (YYYY/MM/JJ)</Label>
-                  <Input type="date" value={sBirth} onChange={(e) => setSBirth(e.target.value)} />
+                <div className={err.birth ? "field-error" : ""}>
+                  <Label className="text-xs font-bold uppercase tracking-wide">Daty nahaterahana (18 taona +)</Label>
+                  <Input type="date" max={MAX_BIRTH_DATE} value={sBirth} onChange={(e) => { setSBirth(e.target.value); clearErr("birth"); }} />
+                  {err.birth && <p className="text-[10px] text-destructive font-bold mt-1">{err.birth}</p>}
                 </div>
                 <div>
                   <Label className="text-xs font-bold uppercase tracking-wide">Sexe (LAHY/VAVY/HAFA)</Label>
@@ -385,54 +388,34 @@ export default function Auth() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label className="text-xs font-bold uppercase tracking-wide">Mot de passe</Label>
-                  <PasswordInput value={sPwd} onChange={(e) => setSPwd(e.target.value)} placeholder="DE4erStv." />
+                <div className={err.pwd ? "field-error" : ""}>
+                  <Label className="text-xs font-bold uppercase tracking-wide">Mot de passe (litera + chiffre, ≥ 6)</Label>
+                  <PasswordInput value={sPwd} onChange={(e) => { setSPwd(e.target.value); clearErr("pwd"); }} placeholder="domino24" />
+                  {err.pwd && <p className="text-[10px] text-destructive font-bold mt-1">{err.pwd}</p>}
                 </div>
-                <div>
-                  <Label className="text-xs font-bold uppercase tracking-wide">Confirmer mot de passe</Label>
-                  <PasswordInput value={sPwd2} onChange={(e) => setSPwd2(e.target.value)} placeholder="DE4erStv." />
-                </div>
-                <div>
-                  <Label className="text-xs font-bold uppercase tracking-wide">PIN</Label>
+                <div className={err.pin ? "field-error" : ""}>
+                  <Label className="text-xs font-bold uppercase tracking-wide">PIN (4 chiffres)</Label>
                   <PasswordInput inputMode="numeric" maxLength={4} value={sPin}
-                    onChange={(e) => setSPin(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="1234" />
-                </div>
-                <div>
-                  <Label className="text-xs font-bold uppercase tracking-wide">Confirmer PIN</Label>
-                  <PasswordInput inputMode="numeric" maxLength={4} value={sPin2}
-                    onChange={(e) => setSPin2(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="1234" />
-                </div>
-                <div>
-                  <Label className="text-xs font-bold uppercase tracking-wide">Selfie (sary tava)</Label>
-                  {sSelfie ? (
-                    <div className="relative inline-block mt-1">
-                      <img src={sSelfie} alt="selfie" className="w-32 h-32 rounded-xl object-cover border-2 border-[#f7971e]" />
-                      <button type="button" onClick={() => setSSelfie(null)}
-                        className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-1">
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ) : (
-                    <Button type="button" onClick={() => setCamOpen(true)} className="w-full btn-mvola mt-1">
-                      <Camera className="w-4 h-4 mr-2" /> MAKA SARY
-                    </Button>
-                  )}
+                    onChange={(e) => { setSPin(e.target.value.replace(/\D/g, "").slice(0, 4)); clearErr("pin"); }} placeholder="1234" />
+                  {err.pin && <p className="text-[10px] text-destructive font-bold mt-1">{err.pin}</p>}
                 </div>
                 <Button type="submit" disabled={loading} className="w-full btn-mvola text-base py-6">
                   {loading ? "Andraso..." : "HISORATRA ANARANA"}
                 </Button>
-                <div className="flex items-start gap-2 pt-2 border-t border-primary/10">
-                  <Checkbox id="accept" checked={acceptRules} onCheckedChange={(v) => setAcceptRules(!!v)} className="mt-1" />
+                <div className={`flex items-start gap-2 pt-2 border-t border-primary/10 ${err.rules ? "field-error" : ""}`}>
+                  <div className="field-box rounded mt-1 border border-transparent">
+                    <Checkbox id="accept" checked={acceptRules} onCheckedChange={(v) => { setAcceptRules(!!v); clearErr("rules"); }} />
+                  </div>
                   <label htmlFor="accept" className="text-xs leading-relaxed cursor-pointer">
-                    Manaiky aho ny <Link to="/rules" target="_blank" className="text-primary underline font-bold">Fitsipika sy Règle du jeu</Link>: fitondran-tena mendrika, fahamatorana, anarana MVOLA marina, 18 taona+, compte tokana, fanajana ny ADMINISTRATIF.
+                    Manaiky aho ny <Link to="/rules" target="_blank" className="text-primary underline font-bold">Fitsipika sy Règle du jeu</Link>: fitondran-tena mendrika, fahamatorana, 18 taona+, compte tokana, fanajana ny ADMINISTRATIF.
                   </label>
                 </div>
                 <p className="text-[11px] text-muted-foreground text-center mt-2">
-                  Aorian'ny fanindriana, miandry validation amin'ny ADMINISTRATIF. Raha misy diso na banga, tsy ho tafiditra ny compte.
+                  Raha marina daholo ny mombamomba anao dia tafiditra avy hatrany ianao — tsy mila miandry validation.
                 </p>
               </form>
             </TabsContent>
+
           </Tabs>
         </div>
       </div>

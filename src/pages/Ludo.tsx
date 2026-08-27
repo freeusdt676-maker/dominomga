@@ -663,6 +663,33 @@ export default function LudoPage() {
   const isMyTurn = !!row && row.status === "in_progress" && currentSeat === mySeat && !row.winner_id;
   const canRoll = isMyTurn && row?.dice_rolled === false;
 
+  // Animation dés IRAISANA — ny mpilalao rehetra mahita ny isa mivadibadika
+  // mandritra ~1s dia mijanona amin'ny isa nomen'ny algorithme. Mitoetra eo
+  // io isa io mandra-pikitika manaraka.
+  useEffect(() => {
+    if (!row || typeof row.last_dice !== "number" || !row.last_dice) return;
+    const seat = row.current_turn_seat ?? 0;
+    const key = `${seat}:${row.last_dice}:${row.dice_rolled}:${row.turn_started_at ?? ""}`;
+    if (rollAnimRef.current.key === key) return;
+    rollAnimRef.current.key = key;
+    const final = row.last_dice as number;
+    setRolling(true);
+    try { sfx.dice(); } catch {}
+    const iv = window.setInterval(() => {
+      const v = 1 + Math.floor(Math.random() * 6);
+      setDiceDisplay(v);
+      setDiceBySeat((prev) => ({ ...prev, [seat]: v }));
+    }, 90);
+    const stop = window.setTimeout(() => {
+      clearInterval(iv);
+      setRolling(false);
+      setDiceDisplay(final);
+      setDiceBySeat((prev) => ({ ...prev, [seat]: final }));
+    }, 1000);
+    rollAnimRef.current.timer = stop;
+    return () => { clearInterval(iv); clearTimeout(stop); };
+  }, [row?.last_dice, row?.dice_rolled, row?.turn_started_at, row?.current_turn_seat]);
+
   // Legal moves once dice is rolled and it's my turn
   useEffect(() => {
     if (!row || !isMyTurn || !row.dice_rolled || row.winner_id) { setMovable(new Set()); return; }

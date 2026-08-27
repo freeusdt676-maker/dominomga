@@ -32,7 +32,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Tile, Placed, deal, deal3, ends, canPlace, place, pipsTotal, hasMove, chooseOpening,
 } from "@/lib/dominoEngine";
-import { bestExactMove } from "@/lib/dominoSolver";
 import { toast } from "sonner";
 import { sfx } from "@/lib/sfx";
 import {
@@ -1312,43 +1311,36 @@ export default function Game() {
           return 0;
         });
       const targetPtsBot = Number((fresh as any).target_points ?? (Number(fresh.players_count ?? 2) === 3 ? 120 : 80));
-      // Bot ON → perfect information: alefa amin'ny bot ny vaton'ny mpanohitra rehetra + boneyard.
-      const perfectOppHands: Tile[][] = botActive
-        ? getPlayerIds(fresh)
-            .filter((pid) => pid !== turnId)
-            .map((pid) => {
-              const k = getHandKey(fresh, pid);
-              return k ? (((fresh as any)[k] as Tile[]) ?? []) : [];
-            })
-        : [];
-      const perfectBoneyard: Tile[] = botActive ? (((fresh as any).boneyard as Tile[]) ?? []) : [];
+      // Bot niverina ho mpilalao tsotra: tsy mahita ny vaton'ny hafa intsony,
+      // ary manao safidy tsy tonga lafatra indraindray (favori ny olombelona).
+      const perfectOppHands: Tile[][] = [];
+      const perfectBoneyard: Tile[] = [];
 
-      // Hands sorted in real turn rotation order (needed by the exact engine).
-      const orderedOppHands: Tile[][] = (() => {
-        if (!botActive) return [];
-        const out: Tile[][] = [];
-        let cur = nextTurnId(fresh, turnId);
-        for (let i = 0; i < pc - 1 && cur && cur !== turnId; i += 1) {
-          const k = getHandKey(fresh, cur);
-          out.push(k ? (((fresh as any)[k] as Tile[]) ?? []) : []);
-          cur = nextTurnId(fresh, cur);
+      let best = chooseBestBotMove(turnHand, liveBoard, {
+        opponentSizes: oppSizes,
+        boneyardSize,
+        opponentScores: oppScoresArr,
+        targetPts: targetPtsBot,
+        opponentHands: perfectOppHands,
+        boneyard: perfectBoneyard,
+      }) as any;
+
+      // ~35% n'ny fotoana: mifidy vato mety hafa an-kisendrasendra (fahadisoana).
+      if (best && Math.random() < 0.35) {
+        const alt: { index: number; side: "left" | "right" }[] = [];
+        for (let i = 0; i < turnHand.length; i += 1) {
+          const can = canPlace(liveBoard, turnHand[i]);
+          if (can === null) continue;
+          if (can === "either") { alt.push({ index: i, side: "left" }); alt.push({ index: i, side: "right" }); }
+          else alt.push({ index: i, side: can });
         }
-        return out;
-      })();
-
-      let best = botActive && orderedOppHands.length === pc - 1
-        ? bestExactMove(turnHand, orderedOppHands, liveBoard, Number(fresh.passes ?? 0))
-        : null;
-      if (!best) {
-        best = chooseBestBotMove(turnHand, liveBoard, {
-          opponentSizes: oppSizes,
-          boneyardSize,
-          opponentScores: oppScoresArr,
-          targetPts: targetPtsBot,
-          opponentHands: perfectOppHands,
-          boneyard: perfectBoneyard,
-        }) as any;
+        if (alt.length > 1) {
+          const pick = alt[Math.floor(Math.random() * alt.length)];
+          // Aza manary fandresena azo antoka (raha 1 sisa ny vato)
+          if (turnHand.length > 1) best = pick;
+        }
       }
+
 
       if (best) {
         const { index: playableIdx, side: chosenSide } = best;

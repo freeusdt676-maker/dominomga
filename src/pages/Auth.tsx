@@ -437,19 +437,8 @@ export default function Auth() {
         </div>
       </div>
 
-      {/* Camera modal */}
-      {camOpen && (
-        <div className="fixed inset-0 z-[70] bg-black/90 flex items-center justify-center p-4" onClick={() => setCamOpen(false)}>
-          <div className="bg-card rounded-2xl p-4 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-bold mb-2 mvola-gradient-text text-center">MAKA SARY TAVA</h3>
-            <video ref={videoRef} className="w-full rounded-xl bg-black" style={{ transform: "scaleX(-1)" }} playsInline muted />
-            <div className="grid grid-cols-2 gap-2 mt-3">
-              <Button variant="outline" onClick={() => setCamOpen(false)}>Aoka</Button>
-              <Button className="btn-mvola" onClick={captureSelfie}><Camera className="w-4 h-4 mr-2" /> Maka</Button>
-            </div>
-          </div>
-        </div>
-      )}
+
+
 
       <LiveSpectatorButton position="auth" />
 

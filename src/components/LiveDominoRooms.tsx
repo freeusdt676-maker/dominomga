@@ -108,7 +108,7 @@ export default function LiveDominoRooms() {
   if (!user || rooms.length === 0) return null;
 
   return (
-    <div className="px-2.5 py-2 hairline-b bg-black/40">
+    <div className="px-2.5 py-2 hairline-b bg-gradient-to-b from-black/60 to-black/30">
       <p className="eyebrow flex items-center gap-1.5 tracking-[0.18em] mb-1.5">
         <span className="relative inline-flex">
           <span className="inline-block w-2 h-2 rounded-full bg-red-500" />
@@ -116,27 +116,41 @@ export default function LiveDominoRooms() {
         </span>
         🎲 Salles vonona ({rooms.length})
       </p>
-      <div className="space-y-1 max-h-24 overflow-y-auto">
+      <div className="space-y-1.5 max-h-28 overflow-y-auto pr-0.5">
         {rooms.map((g) => {
           const { total, filled } = seatsOf(g);
           const mode = (g.game_mode ?? "d120") === "d80" ? "Maty 80" : "Maty 120";
+          // 3P 1/3 → mavo (fanairana) ; hafa rehetra (2P 1/2, 3P 2/3) → mena midorehitra
+          const warm = total === 3 && filled === 1;
+          const shell = warm
+            ? "border-amber-400/60 bg-amber-500/15 hover:bg-amber-500/25 shadow-[0_0_16px_rgba(245,158,11,0.35)]"
+            : "border-red-500/70 bg-red-600/25 hover:bg-red-600/35 shadow-[0_0_22px_rgba(239,68,68,0.6)]";
+          const nameCls = warm ? "text-amber-100" : "text-red-100";
+          const metaCls = warm ? "text-amber-100/85" : "text-red-100/90";
+          const dot = warm ? "bg-amber-400" : "bg-red-500";
           return (
             <button
               key={g.id}
               onClick={() => join(g)}
               disabled={joining === g.id}
-              className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl border border-red-500/45 bg-red-600/15 hover:bg-red-600/25 animate-pulse shadow-[0_0_14px_rgba(239,68,68,0.35)] transition active:scale-[0.98]"
+              className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl border animate-pulse transition active:scale-[0.98] ${shell}`}
             >
-              <span className="flex items-baseline gap-1.5 min-w-0">
-                <span className="font-display text-[12px] font-extrabold text-red-200 truncate">{g._name}</span>
-                <span className="text-[10px] font-bold text-red-100/80 tabular-nums shrink-0">
-                  {total}P {filled}/{total} · {Number(g.stake).toLocaleString("fr-FR")} Ar · {mode}
+              <span className="flex items-center gap-2 min-w-0">
+                <span className="relative inline-flex shrink-0">
+                  <span className={`inline-block w-2 h-2 rounded-full ${dot}`} />
+                  <span className={`absolute inset-0 rounded-full ${dot} animate-ping opacity-80`} />
+                </span>
+                <span className="flex items-baseline gap-1.5 min-w-0">
+                  <span className={`font-display text-[12.5px] font-extrabold truncate ${nameCls}`}>{g._name}</span>
+                  <span className={`text-[10px] font-bold tabular-nums shrink-0 ${metaCls}`}>
+                    {total}P {filled}/{total} · {Number(g.stake).toLocaleString("fr-FR")} Ar · {mode}
+                  </span>
                 </span>
               </span>
               {joining === g.id ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-red-200 shrink-0" />
+                <Loader2 className={`w-3.5 h-3.5 animate-spin shrink-0 ${nameCls}`} />
               ) : (
-                <span className="text-[10px] font-extrabold text-red-100 shrink-0">Hiditra ▶</span>
+                <span className={`text-[10px] font-extrabold shrink-0 ${nameCls}`}>Hiditra ▶</span>
               )}
             </button>
           );
@@ -145,3 +159,4 @@ export default function LiveDominoRooms() {
     </div>
   );
 }
+

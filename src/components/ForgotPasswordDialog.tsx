@@ -109,7 +109,7 @@ export default function ForgotPasswordDialog({ open, onClose }: { open: boolean;
     catch { toast.error("Tsy afaka nikopia"); }
   };
 
-  const phoneOk = /^0(34|38)\d{7}$/.test(phone.replace(/\s/g, ""));
+  const phoneOk = /^0(32|33|34|35|37|38)\d{7}$/.test(phone.replace(/\D/g, ""));
   const norm = (s: string) =>
     s.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const genderOk = ["lahy", "vavy", "hafa", "male", "female", "other"].includes(norm(genderText));

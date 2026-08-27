@@ -23,8 +23,8 @@ type ResumeGame = { id: string; stake: number; game_mode?: string; players_count
 const ABANDONED_GAME_KEY = "domino_abandoned_game_id";
 
 const MODES: { value: string; label: string; short: string }[] = [
-  { value: "d120", label: "Maty 120", short: "120" },
   { value: "d80", label: "Maty 80", short: "80" },
+  { value: "d120", label: "Maty 120", short: "120" },
 ];
 
 export default function Lobby() {

@@ -32,7 +32,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Tile, Placed, deal, deal3, ends, canPlace, place, pipsTotal, hasMove, chooseOpening,
 } from "@/lib/dominoEngine";
-import { bestExactMove } from "@/lib/dominoSolver";
 import { toast } from "sonner";
 import { sfx } from "@/lib/sfx";
 import {

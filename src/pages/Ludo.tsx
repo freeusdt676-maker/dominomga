@@ -542,6 +542,10 @@ export default function LudoPage() {
   const [phones, setPhones] = useState<Record<string, string | null>>({});
   const [rolling, setRolling] = useState(false);
   const [diceDisplay, setDiceDisplay] = useState(1);
+  // Isa farany hita isaky ny seat — mitoetra eo mandra-pikitika manaraka.
+  const [diceBySeat, setDiceBySeat] = useState<Record<number, number>>({});
+  const rollAnimRef = useRef<{ key: string; timer: number | null }>({ key: "", timer: null });
+
   const [movable, setMovable] = useState<Set<number>>(new Set());
   const [message, setMessage] = useState<string>("Miandry lalao…");
   const [countdown, setCountdown] = useState<number>(TURN_TIMEOUT_S);

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import InitialsAvatar from "@/components/InitialsAvatar";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -164,13 +165,8 @@ export default function Profile() {
 
       <div className="max-w-lg mx-auto p-4 space-y-4">
         <div className="card-felt rounded-2xl p-5 text-center">
-          {profile?.selfie_url || profile?.avatar_url ? (
-            <img src={profile.selfie_url ?? profile.avatar_url} alt="" className="w-24 h-24 rounded-full object-cover mx-auto border-4 border-primary/60 shadow-lg" />
-          ) : (
-            <div className="w-24 h-24 rounded-full bg-primary/20 mx-auto flex items-center justify-center text-3xl font-bold gold-text border-4 border-primary/60">
-              {(profile?.mvola_name?.[0] ?? "?").toUpperCase()}
-            </div>
-          )}
+          <InitialsAvatar name={profile?.mvola_name} className="w-24 h-24 rounded-full mx-auto text-3xl border-4 border-primary/60 shadow-lg" />
+
           <h2 className="font-display text-2xl font-bold mt-3">{profile?.mvola_name ?? "..."}</h2>
           <p className="text-xs text-muted-foreground">{profile?.phone}</p>
           {profile?.player_number != null && (

@@ -35,23 +35,37 @@ Deno.serve(async (req) => {
     }
 
     // 3) List bucket and delete orphans older than MAX_AGE_DAYS
-    const cutoff = Date.now() - MAX_AGE_DAYS * 86400_000;
+    // ?all=1 => fafana daholo ny sary (tsy mampiasa sary intsony ny profil)
+    const purgeAll = new URL(req.url).searchParams.get("all") === "1";
+    const cutoff = purgeAll ? Date.now() + 86400_000 : Date.now() - MAX_AGE_DAYS * 86400_000;
     const orphans: string[] = [];
-    let offset = 0;
-    while (true) {
-      const { data: files, error } = await admin.storage
-        .from(BUCKET)
-        .list("", { limit: 1000, offset, sortBy: { column: "name", order: "asc" } });
-      if (error) throw error;
-      if (!files || files.length === 0) break;
-      for (const f of files) {
-        if (!f.name || referenced.has(f.name)) continue;
-        const created = new Date(f.created_at ?? f.updated_at ?? Date.now()).getTime();
-        if (created < cutoff) orphans.push(f.name);
+
+    const scan = async (prefix: string) => {
+      let offset = 0;
+      while (true) {
+        const { data: files, error } = await admin.storage
+          .from(BUCKET)
+          .list(prefix, { limit: 1000, offset, sortBy: { column: "name", order: "asc" } });
+        if (error) throw error;
+        if (!files || files.length === 0) break;
+        for (const f of files) {
+          if (!f.name) continue;
+          const full = prefix ? `${prefix}/${f.name}` : f.name;
+          // Dossier (tsy misy id) => midina ao anatiny
+          if (!(f as any).id) {
+            await scan(full);
+            continue;
+          }
+          if (!purgeAll && referenced.has(full)) continue;
+          const created = new Date(f.created_at ?? f.updated_at ?? Date.now()).getTime();
+          if (created < cutoff) orphans.push(full);
+        }
+        if (files.length < 1000) break;
+        offset += files.length;
       }
-      if (files.length < 1000) break;
-      offset += files.length;
-    }
+    };
+    await scan("");
+
 
     let removed = 0;
     for (let i = 0; i < orphans.length; i += 100) {

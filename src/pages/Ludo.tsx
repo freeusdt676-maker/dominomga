@@ -578,11 +578,8 @@ export default function LudoPage() {
       }
     }
     setRow(r as ServerRow);
-    // Ny isa dés dia aseho MANDRITRA ny fotoana andrasana move ihany.
-    // Rehefa vita ny move (dice_rolled=false) dia mifafa (miverina 1) ny dés.
-    if (r.dice_rolled && typeof r.last_dice === "number") setDiceDisplay(r.last_dice || 1);
-    else setDiceDisplay(1);
   }, [names]);
+
 
   useEffect(() => {
     if (!id || !user) return;

@@ -515,12 +515,9 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-3 mb-3">
             <div className="w-16 h-16 rounded-full overflow-hidden border border-[hsl(var(--gold-1)/0.4)] bg-black/40 flex items-center justify-center">
-              {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="selfie" className="w-full h-full object-cover" />
-              ) : (
-                <UserIcon className="w-7 h-7 text-[hsl(var(--gold-1))]" />
-              )}
+              <InitialsAvatar name={profile?.mvola_name} className="w-full h-full text-lg" />
             </div>
+
             <div className="text-xs flex-1 min-w-0 space-y-0.5">
               <p><span className="text-muted-foreground">Nom:</span> <b>{profile?.mvola_name ?? "—"}</b></p>
               <p><span className="text-muted-foreground">Tel:</span> {profile?.phone ?? "—"}</p>

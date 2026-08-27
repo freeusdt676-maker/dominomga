@@ -123,17 +123,17 @@ export default function LiveDominoRooms() {
           // 3P 1/3 → mavo (fanairana) ; hafa rehetra (2P 1/2, 3P 2/3) → mena midorehitra
           const warm = total === 3 && filled === 1;
           const shell = warm
-            ? "border-amber-400/60 bg-amber-500/15 hover:bg-amber-500/25 shadow-[0_0_16px_rgba(245,158,11,0.35)]"
-            : "border-red-500/70 bg-red-600/25 hover:bg-red-600/35 shadow-[0_0_22px_rgba(239,68,68,0.6)]";
-          const nameCls = warm ? "text-amber-100" : "text-red-100";
+            ? "room-blaze-amber border-2 border-amber-300 bg-gradient-to-r from-amber-500/30 via-yellow-500/20 to-amber-500/30 hover:from-amber-500/40"
+            : "room-blaze-red border-2 border-red-400 bg-gradient-to-r from-red-600/45 via-red-500/30 to-red-600/45 hover:from-red-600/60";
+          const nameCls = warm ? "text-amber-50" : "text-red-50";
           const metaCls = warm ? "text-amber-100/85" : "text-red-100/90";
-          const dot = warm ? "bg-amber-400" : "bg-red-500";
+          const dot = warm ? "bg-amber-300" : "bg-red-400";
           return (
             <button
               key={g.id}
               onClick={() => join(g)}
               disabled={joining === g.id}
-              className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl border animate-pulse transition active:scale-[0.98] ${shell}`}
+              className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl transition active:scale-[0.98] ${shell}`}
             >
               <span className="flex items-center gap-2 min-w-0">
                 <span className="relative inline-flex shrink-0">

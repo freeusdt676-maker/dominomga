@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
     // Approbation automatique
     await admin
       .from("profiles")
-      .update({ account_status: "approved", approved_at: new Date().toISOString(), selfie_url: null, avatar_url: null })
+      .update({ account_status: "active", approved_at: new Date().toISOString(), selfie_url: null, avatar_url: null })
       .eq("user_id", created.user.id);
 
     // Hash PIN dia tehirizo ao amin'ny wallet

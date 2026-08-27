@@ -277,12 +277,17 @@ function Board({ players, activeColor, onPickPawn, movable }: {
              transform: `translate(${x}px, ${y}px) scale(${SCALE})`,
              transition: "transform 140ms linear",
              transformBox: "fill-box",
+             touchAction: "manipulation",
+             pointerEvents: active ? "auto" : "none",
            }}
-           onClick={() => active && onPickPawn(p.color, p.pIdx)}>
+           onPointerDown={(e) => { if (active) { e.preventDefault(); e.stopPropagation(); onPickPawn(p.color, p.pIdx); } }}>
+          {/* Zone de touche élargie — kitika indray mandeha dia mandeha */}
+          {active && <circle cx={0} cy={2} r={20} fill="transparent" style={{ pointerEvents: "all" }} />}
           {/* GPS localisation pin — teardrop head with center hole + ripple base */}
           {/* Soft ground shadow */}
           <ellipse cx={0} cy={17} rx={8} ry={2.2} fill="rgba(0,0,0,0.28)"/>
           <ellipse cx={0} cy={16.5} rx={5} ry={1.3} fill={HEX[p.color].dark} opacity={0.7}/>
+
           {/* Teardrop pin body: round top, pointed bottom */}
           <path d={`M 0 16
                     C -3 10, -10 6, -10 -4

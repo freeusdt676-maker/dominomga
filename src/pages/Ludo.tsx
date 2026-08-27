@@ -562,7 +562,10 @@ export default function LudoPage() {
       }
     }
     setRow(r as ServerRow);
-    if (typeof r.last_dice === "number") setDiceDisplay(r.last_dice || 1);
+    // Ny isa dés dia aseho MANDRITRA ny fotoana andrasana move ihany.
+    // Rehefa vita ny move (dice_rolled=false) dia mifafa (miverina 1) ny dés.
+    if (r.dice_rolled && typeof r.last_dice === "number") setDiceDisplay(r.last_dice || 1);
+    else setDiceDisplay(1);
   }, [names]);
 
   useEffect(() => {
@@ -951,7 +954,7 @@ export default function LudoPage() {
                   </div>
                 </div>
                 <Dice
-                  value={isActive ? diceDisplay : (pl.pawns.length ? (row.last_dice && current?.color === c ? row.last_dice : 1) : 1)}
+                  value={isActive && row.dice_rolled ? diceDisplay : 1}
                   rolling={isActive && rolling}
                   disabled={!(iAmThisCell && canRoll) || rolling}
                   onRoll={rollDice}

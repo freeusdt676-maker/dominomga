@@ -201,12 +201,8 @@ export default function OnlineChatPanel() {
           return (
             <div
               key={m.id}
-              className={`group flex items-baseline gap-2 px-2.5 py-1.5 rounded-xl transition border hover:bg-white/[0.05] ${
-                isAdminSender
-                  ? "border-red-500/50 bg-red-600/15"
-                  : mine
-                    ? "border-transparent bg-[hsl(var(--gold-1)/0.06)]"
-                    : "border-transparent bg-white/[0.02]"
+              className={`group flex items-baseline gap-2 px-2.5 py-1.5 rounded-xl transition border border-transparent hover:bg-white/[0.05] ${
+                mine && !isAdminSender ? "bg-[hsl(var(--gold-1)/0.06)]" : "bg-white/[0.02]"
               }`}
             >
               <span

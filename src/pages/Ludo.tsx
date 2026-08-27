@@ -139,8 +139,8 @@ const sfx = {
 };
 
 /* ==================== Dice component ==================== */
-function Dice({ value, rolling, disabled, onRoll, color }: {
-  value: number; rolling: boolean; disabled: boolean; onRoll: () => void; color: ColorKey;
+function Dice({ value, rolling, disabled, onRoll, color, active }: {
+  value: number; rolling: boolean; disabled: boolean; onRoll: () => void; color: ColorKey; active?: boolean;
 }) {
   const pip = (cx: number, cy: number) => (
     <circle cx={cx} cy={cy} r={5.5} fill="#111" />
@@ -157,11 +157,17 @@ function Dice({ value, rolling, disabled, onRoll, color }: {
     <button
       onClick={onRoll}
       disabled={disabled}
-      className={`relative w-16 h-16 rounded-xl shadow-xl transition-transform ${rolling ? "animate-[spin_0.55s_ease-in-out]" : "hover:scale-105"} ${disabled ? "opacity-70 cursor-not-allowed" : "cursor-pointer"}`}
+      className={`relative w-16 h-16 rounded-xl shadow-xl transition-all ${rolling ? "animate-[spin_0.35s_linear_infinite]" : active ? "hover:scale-105" : ""} ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}
       style={{
-        background: "linear-gradient(135deg,#fff 0%,#f0f0f0 55%,#d6d6d6 100%)",
-        boxShadow: `0 6px 0 ${HEX[color].ring}, 0 10px 22px rgba(0,0,0,0.45), inset 0 2px 0 #fff, inset 0 -2px 0 rgba(0,0,0,0.15)`,
-        border: `2px solid ${HEX[color].dark}`,
+        background: active
+          ? "linear-gradient(135deg,#ffffff 0%,#eafff0 55%,#cdebd6 100%)"
+          : "linear-gradient(135deg,#8f9296 0%,#7b7e82 55%,#5e6165 100%)",
+        boxShadow: active
+          ? "0 0 0 3px #22c55e, 0 0 18px 6px rgba(34,197,94,0.85), 0 8px 18px rgba(0,0,0,0.5)"
+          : "0 4px 10px rgba(0,0,0,0.45)",
+        border: `2px solid ${active ? "#16a34a" : HEX[color].dark}`,
+        opacity: active ? 1 : 0.55,
+        filter: active ? "none" : "saturate(0.4)",
       }}
       aria-label="Roll dice"
     >
@@ -169,6 +175,7 @@ function Dice({ value, rolling, disabled, onRoll, color }: {
     </button>
   );
 }
+
 
 /* ==================== Board (SVG) ==================== */
 function Board({ players, activeColor, onPickPawn, movable }: {

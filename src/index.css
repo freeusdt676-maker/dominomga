@@ -1077,3 +1077,22 @@ button:active:not(:disabled), [role="button"]:active:not([aria-disabled="true"])
   0% { opacity: 0.55; }
   100% { opacity: 0; }
 }
+
+/* ===== Inscription: fanamarihana ny saha diso ===== */
+@keyframes field-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+.field-error {
+  animation: field-shake 0.4s ease-in-out;
+}
+.field-error input,
+.field-error button[role="combobox"],
+.field-error .field-box {
+  border-color: hsl(0 84% 60%) !important;
+  box-shadow: 0 0 0 2px hsl(0 84% 60% / 0.35), 0 0 14px hsl(0 84% 60% / 0.45) !important;
+  background-color: hsl(0 84% 60% / 0.08) !important;
+}

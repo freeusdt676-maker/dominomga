@@ -762,49 +762,38 @@ export default function LudoPage() {
   const rollDice = async () => {
     if (!canRoll || rolling || rpcBusy.current || !row || !current) return;
     rpcBusy.current = true;
-    setRolling(true);
-    sfx.dice();
+    // Ny algorithme no manapaka ny isa — tsy azo vinavinaina.
     const v = 1 + Math.floor(Math.random() * 6);
-    let frames = 0;
-    await new Promise<void>((res) => {
-      const iv = setInterval(() => {
-        setDiceDisplay(1 + Math.floor(Math.random() * 6));
-        if (++frames > 6) { clearInterval(iv); setDiceDisplay(v); res(); }
-      }, 70);
-    });
-    setRolling(false);
     const newSix = v === 6 ? (row.consecutive_sixes ?? 0) + 1 : 0;
-    // 3 sixes → skip
-    if (newSix >= 3) {
-      await commit({
-        last_dice: v, dice_rolled: false, consecutive_sixes: 0,
-        current_turn_seat: nextSeatOf(current.seat), turn_started_at: new Date().toISOString(),
-      });
-      rpcBusy.current = false;
-      return;
-    }
-    const legal = legalMoves(players, current.seat, v);
-    if (legal.length === 0) {
-      // No move — if it was a 6 keep the turn but let re-roll; otherwise pass
-      if (v === 6) {
-        await commit({ last_dice: v, dice_rolled: false, consecutive_sixes: newSix, turn_started_at: new Date().toISOString() });
-      } else {
+    try {
+      // 3 sixes → skip
+      if (newSix >= 3) {
         await commit({
           last_dice: v, dice_rolled: false, consecutive_sixes: 0,
           current_turn_seat: nextSeatOf(current.seat), turn_started_at: new Date().toISOString(),
         });
+        return;
       }
+      const legal = legalMoves(players, current.seat, v);
+      if (legal.length === 0) {
+        // No move — if it was a 6 keep the turn but let re-roll; otherwise pass
+        if (v === 6) {
+          await commit({ last_dice: v, dice_rolled: false, consecutive_sixes: newSix, turn_started_at: new Date().toISOString() });
+        } else {
+          await commit({
+            last_dice: v, dice_rolled: false, consecutive_sixes: 0,
+            current_turn_seat: nextSeatOf(current.seat), turn_started_at: new Date().toISOString(),
+          });
+        }
+        return;
+      }
+      // Legal moves exist — miandry ny pion hokitihin'ny mpilalao (na 10s → watchdog).
+      await commit({ last_dice: v, dice_rolled: true, consecutive_sixes: newSix });
+    } finally {
       rpcBusy.current = false;
-      return;
     }
-    // Legal moves exist — mark rolled, wait for pick
-    await commit({ last_dice: v, dice_rolled: true, consecutive_sixes: newSix });
-    // Raha iray ihany ny safidy dia alefa avy hatrany (toy ny Ludo tena izy).
-    if (legal.length === 1) {
-      setTimeout(() => { void movePawnWith(legal[0], v, newSix); }, 350);
-    }
-    rpcBusy.current = false;
   };
+
 
   /** Mampihatra ny move amin'ny fitsipika iraisana (capture, block, isa marina). */
   const movePawnWith = async (pawnIdx: number, dv: number, sixes: number) => {

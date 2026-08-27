@@ -50,6 +50,16 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    // Numéro iray = compte iray
+    const { data: dup } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("phone", String(phone))
+      .maybeSingle();
+    if (dup) {
+      return new Response(JSON.stringify({ error: "Efa misy compte amin'io numéro io — numéro iray = compte iray" }), { status: 400, headers: corsHeaders });
+    }
+
     // Create user (auto-confirmed)
     const { data: created, error: cerr } = await admin.auth.admin.createUser({
       email,

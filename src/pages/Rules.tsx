@@ -25,19 +25,19 @@ export default function Rules() {
           <TabsContent value="discipline">
             <div className="card-felt rounded-2xl p-5 text-sm space-y-3 leading-relaxed">
               <h2 className="font-display text-lg gold-text flex items-center gap-2"><Shield className="w-5 h-5"/> Fitsipika sy Discipline</h2>
-              <p className="text-muted-foreground">Mba ho matotra sy hahatokisana ny app, **tsy maintsy hajaina** ireto fitsipika ireto:</p>
+              <p className="text-muted-foreground">Mba ho matotra sy hahatokisana ny app, <b>tsy maintsy hajaina</b> ireto fitsipika ireto:</p>
               <ol className="list-decimal pl-5 space-y-2">
-                <li><b>Fitondran-tena mendrika</b>: tsy azo atao ny manompa, manaratsy, na maneso mpilalao hafa ao amin'ny chat na lalao.</li>
-                <li><b>Fahamatorana eo am-pilalaovana</b>: aza atao mihintsy ny manakorontana ny lalao (manala wifi, mamela mandeha tour, sns) — voasakana avy hatrany ny compte raha tratra.</li>
-                <li><b>Famakiana ny règle du jeu</b>: tsy maintsy vakianao tsara ny règle alohan'ny hilalao. Tsy raisina ny fitarainana raha tsy fantatra ny règle.</li>
-                <li><b>Anarana sy MVOLA marina</b>: ny anarana sy numéro ampidirinao dia <b>tsy maintsy mifanaraka amin'ny MVOLA</b> anao. Tsy ho voarainareo ny dépôt/retrait raha tsy mifanaraka.</li>
-                <li><b>Compte tokana</b>: olona iray = compte iray ihany. Voafafa daholo ny compte raha hita fa misy <b>doublons</b>.</li>
-                <li><b>Selfie marina</b>: ilay sary tava alefanao dia tsy maintsy <b>ianao tena izy</b>. Tsy ekena ny sary nalain-tahaka.</li>
-                <li><b>18 taona miakatra</b>: voarara ho an'ny zaza latsaky ny 18 taona ny app.</li>
-                <li><b>Tsy mamadika</b>: aza miezaka manaikitra ny solde, manodina ny lalao, na manakorontana ny système. Voasakana mandrakizay raha tratra.</li>
-                <li><b>Mise sy Gain</b>: ny vola napetraka dia tsy azo averina raha tsy resy/nandresy ny lalao. Ny gain dia mety mandeha amin'ny wallet anao.</li>
-                <li><b>Chat madio</b>: ny chat dia ho an'ny resaka mahasoa fotsiny. Ny hafatra ratsy dia hofafan'ny ADMINISTRATIF ary ho voasakana ilay namoaka azy.</li>
-                <li><b>Fanajana ny ADMINISTRATIF</b>: ny fanapahan-kevitr'ny ADMINISTRATIF dia farany. Ny fanaratsiana ny Admin = sakana mandrakizay.</li>
+                <li><b>Numéro iray = compte iray</b>: tsy azo atao ny manao compte maromaro amina numéro iray. Voasakana ny système raha misy doublon.</li>
+                <li><b>Inscription automatique</b>: tsy mila validation admin intsony. Fenoy marina: <b>Nom profil</b> (litera ihany, ≤10), <b>Numéro</b> (Telma 034/038 · Orange 032/037 · Airtel 033/035, 10 chiffres), <b>Date naissance 18 taona miakatra</b>, <b>Mot de passe 6+ misy litera sy chiffre</b>, <b>PIN 4 chiffres</b>.</li>
+                <li><b>Tsy misy selfie intsony</b>: ny profil dia <b>avatar initiales</b> (oh. Jean Rolland → JR).</li>
+                <li><b>Anarana sy MVOLA marina</b>: ny numéro sy anarana ampiasaina amin'ny dépôt/retrait dia tsy maintsy mifanaraka amin'ny MVOLA anao.</li>
+                <li><b>PIN 4 chiffres</b>: ilaina amin'ny retrait. Aza zaraina amin'olona ny PIN sy mot de passe.</li>
+                <li><b>Fitondran-tena mendrika</b>: tsy azo atao ny manompa na maneso ao amin'ny chat na lalao.</li>
+                <li><b>Fahamatorana</b>: aza manakorontana ny lalao (manala data, mamela mandeha ny tour...). Misy <b>autoplay serveur</b> ka mitohy ihany ny lalao.</li>
+                <li><b>18 taona miakatra</b> ihany no mahazo mampiasa ny app.</li>
+                <li><b>Tsy mamadika</b>: voasakana mandrakizay izay miezaka manodina ny système na ny solde.</li>
+                <li><b>Mise sy Gain</b>: ny mise dia tsy azo averina rehefa nanomboka ny lalao. Ny gain miditra automatique ao amin'ny wallet.</li>
+                <li><b>Fanajana ny ADMINISTRATIF</b>: farany ny fanapahan-keviny.</li>
               </ol>
               <div className="mvola-banner mt-3 text-xs">
                 ⚠️ Manaiky ireo fitsipika ireo daholo ny olona rehetra manao inscription. Raha tsy ekenao, aza misoratra anarana.
@@ -49,26 +49,32 @@ export default function Rules() {
             <div className="card-felt rounded-2xl p-5 text-sm space-y-3 leading-relaxed">
               <h2 className="font-display text-lg gold-text">Règle du jeu — Domino</h2>
               <ol className="list-decimal pl-5 space-y-2">
-                <li>Mametraka mise alohan'ny lalao. Mise: <b>1 000 Ar</b> ka hatramin'ny <b>10 000 Ar</b>.</li>
-                <li>Lalao 28 pièces. Pièce iray = roa fizarana (0–6 pwen).</li>
-                <li>Mpilalao tsirairay = 7 pièces eo am-piandohana. Ny sisa = pioche.</li>
-                <li>Ilay manana ny <b>Double 6</b> no manomboka ary mametraka azy.</li>
-                <li>Ny tour mihodina <b>miankavia</b> isaky ny tour vaovao.</li>
-                <li>Raha tsy misy pièce mety, maka anatin'ny pioche mandra-pahitana ny mety.</li>
-                <li>Ny voalohany mahalany ny pièce-ny no <b>nandresy</b>.</li>
-                <li>Raha "bloc", ny manana pwen kely indrindra no mandresy ny tour ary mahazo ny fitambaran'ny pwen an'ny mpanohitra rehetra; tsy isaina ny pwen-ny.</li>
-                <li><b>Mandeha Irery</b>: raha mbola 0 ny adversaire rehetra — <b>D80: 40 isa</b>, <b>D120: 60 isa</b> — dia mandresy match avy hatrany.</li>
-                <li><b>40 Indray Maka</b>: raha mahazo 40 na mihoatra ao anatin'ny tour iray dia mandresy match avy hatrany, na D80 na D120.</li>
-                <li><b>Miala DOUBLE 6</b>: raha [6|6] no vato farany navoaka, <b>mandresy ny MATCH avy hatrany</b> — tsy misy adihevitra, na D80 na D120.</li>
-                <li><b>Maty 120</b>: rehefa feno 120 pwen ny pwen-n'ny lalao iray, mipoitra ny mpandresy.</li>
-                <li><b>Maty 80</b>: rehefa feno 80 pwen, mipoitra ny mpandresy.</li>
-                <li>Tour iray = <b>15 segondra</b>; rehefa lany ihany vao mandeha automatique ny coup.</li>
-                <li>Ny gain = (Mise − 10% commission) × isan'ny mpilalao.</li>
-                <li>Voarara ny milalao amina latabatra maro miaraka.</li>
+                <li>Mise <b>saisie libre: 200 Ar → 100 000 Ar</b> (2P na 3P).</li>
+                <li>Lalao 28 pièces. Pièce iray = roa fizarana (0–6 pwen). Mpilalao tsirairay = 7 pièces.</li>
+                <li><b>Lohavato</b>: tsy voatery Double 6 — <b>izay vato tian'ny mpilalao manomboka</b> no apetraka.</li>
+                <li>Ny tour mihodina <b>miankavia</b>.</li>
+                <li>Raha tsy misy pièce mety dia <b>Pass automatique</b> avy hatrany.</li>
+                <li>Ny voalohany mahalany ny pièce-ny no mandresy ny tour.</li>
+                <li><b>Bloc</b>: izay manana pwen kely indrindra no mandresy ny tour; <b>tsy isaina ny pwen-ny</b> fa ny <b>fitambaran'ny pwen an'ny mpanohitra rehetra</b> no azony.</li>
+                <li><b>Mandeha Irery</b>: raha mbola 0 ny adversaire rehetra — <b>D80: 40 isa</b>, <b>D120: 60 isa</b> — mandresy match avy hatrany.</li>
+                <li><b>40 Indray Maka</b>: raha mahazo <b>40 na mihoatra ao anatin'ny tour iray</b> dia mandresy match avy hatrany (39 tsy ekena).</li>
+                <li><b>Miala DOUBLE 6</b>: raha [6|6] no vato farany navoaka dia <b>mandresy ny MATCH avy hatrany</b>.</li>
+                <li><b>Maty 80 / Maty 120</b>: rehefa feno 80 na 120 pwen dia mipoitra ny mpandresy.</li>
+                <li>Tour iray = <b>15 segondra</b>; rehefa lany dia mandeha automatique ny coup (serveur).</li>
+                <li><b>Bot 🤖</b>: raha ON dia mandeha avy hatrany ny coup; raha OFF dia miandry ny 15s.</li>
+                <li>Commission ADMINISTRATIF = <b>10%</b>. Gain = (Mise − 10%) × isan'ny mpilalao.</li>
                 <li>Lalao tsy maintsy vita anatin'ny <b>7 andro</b>, raha tsy izany resy automatique.</li>
               </ol>
+              <h3 className="font-display text-primary mt-4">Lalao hafa</h3>
+              <ul className="list-disc pl-5 space-y-1 text-xs">
+                <li><b>Ludo</b>: 2P/3P/4P, délai <b>10s</b> isaky ny tour, autoplay serveur.</li>
+                <li><b>Pétanque</b>: délai <b>20s</b>, autoplay serveur.</li>
+                <li><b>Crash MGA</b>: 10s fametrahana mise, provably fair (server seed + hash), auto-cashout serveur, multiplicateur ×1.00 → ×25.00.</li>
+                <li><b>Tournoi</b>: alahady, fandraisana anjara <b>1 000 Ar</b>, misokatra indray isaky ny alatsinainy 00:00.</li>
+              </ul>
             </div>
           </TabsContent>
+
 
           <TabsContent value="play">
             <div className="card-felt rounded-2xl p-5 text-sm space-y-4 leading-relaxed">

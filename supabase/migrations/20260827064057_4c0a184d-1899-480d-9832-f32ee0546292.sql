@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS profiles_phone_unique ON public.profiles (phone);

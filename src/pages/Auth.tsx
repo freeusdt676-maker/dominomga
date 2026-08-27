@@ -210,54 +210,6 @@ export default function Auth() {
     }
   };
 
-  // Camera lifecycle
-  useEffect(() => {
-    if (!camOpen) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user", width: { ideal: 720 }, height: { ideal: 720 } },
-          audio: false,
-        });
-        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play().catch(() => {});
-        }
-      } catch (e: any) {
-        toast.error("Tsy nahazo fahazoan'ny camera. Avelao ny accès.");
-        setCamOpen(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(t => t.stop());
-        streamRef.current = null;
-      }
-    };
-  }, [camOpen]);
-
-  const captureSelfie = () => {
-    const v = videoRef.current;
-    if (!v) return;
-    const size = Math.min(v.videoWidth, v.videoHeight) || 480;
-    const c = document.createElement("canvas");
-    c.width = size; c.height = size;
-    const ctx = c.getContext("2d");
-    if (!ctx) return;
-    const sx = (v.videoWidth - size) / 2;
-    const sy = (v.videoHeight - size) / 2;
-    // miroir mba mitovy amin'ny preview
-    ctx.translate(size, 0); ctx.scale(-1, 1);
-    ctx.drawImage(v, sx, sy, size, size, 0, 0, size, size);
-    const data = c.toDataURL("image/jpeg", 0.85);
-    setSSelfie(data);
-    setCamOpen(false);
-  };
-
   const ageOK = (iso: string) => {
     if (!iso) return false;
     const d = new Date(iso);
@@ -269,49 +221,83 @@ export default function Auth() {
     return age >= 18;
   };
 
+  const focusErr = (key: string) => {
+    const map: Record<string, string> = {
+      phone: "signup-phone", name: "signup-name", birth: "signup-birth",
+      pwd: "signup-pwd", pin: "signup-pin",
+    };
+    const el = document.getElementById(map[key] ?? "");
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanPhoneIn = sPhone.replace(/\s/g, "");
-    if (!/^0(32|33|34|35|37|38)\d{7}$/.test(cleanPhoneIn))
-      return toast.error("Numéro téléphone diso (Yas/MVola: 034/038 · Airtel: 033/035 · Orange: 032/037 — XXXXXXX)");
-    if (sName.trim().length < 3) return toast.error("Anarana certifié Mobile Money tsy ampy");
-    if (!sBirth || !ageOK(sBirth)) return toast.error("Daty nahaterahana tsy mety na tsy ampy 18 taona");
-    if (sPwd.length < 6) return toast.error("Mot de passe ≥ 6 caractères");
-    if (sPwd !== sPwd2) return toast.error("Mot de passe tsy mitovy");
-    if (!/^\d{4}$/.test(sPin)) return toast.error("PIN: 4 chiffres");
-    if (sPin !== sPin2) return toast.error("PIN tsy mitovy");
-    if (!sSelfie) return toast.error("Maka sary selfie aloha azafady");
-    if (!acceptRules) return toast.error("Tsy maintsy ekenao ny fitsipika sy règle du jeu");
+    const cleanPhone = sPhone.replace(/\D/g, "");
+    const name = sName.trim();
+    const next: Record<string, string> = {};
+
+    if (!/^0(32|33|34|35|37|38)\d{7}$/.test(cleanPhone))
+      next.phone = "Numéro tsy mety: Telma 034/038 · Orange 032/037 · Airtel 033/035 (10 chiffres)";
+    if (!NAME_RE.test(name))
+      next.name = "Anarana: litera ihany (tsy misy chiffre, symbole na emoji), 2–10 litera";
+    if (!sBirth || !ageOK(sBirth) || Number(sBirth.slice(0, 4)) > 2008)
+      next.birth = "Tsy maintsy 18 taona no ho miakatra (taona ≤ 2008)";
+    if (sPwd.length < 6 || !/[A-Za-z]/.test(sPwd) || !/\d/.test(sPwd))
+      next.pwd = "Mot de passe: 6 farafahakeliny, misy litera sy chiffre mifangaro";
+    if (!/^\d{4}$/.test(sPin)) next.pin = "PIN: 4 chiffres";
+    if (!acceptRules) next.rules = "Tsy maintsy ekena ny fitsipika";
+
+    setErr(next);
+    const keys = Object.keys(next);
+    if (keys.length) {
+      focusErr(keys[0]);
+      toast.error(next[keys[0]]);
+      return;
+    }
 
     setLoading(true);
-    const cleanPhone = cleanPhoneIn;
     try {
-      // Mampiasa ny edge function signup-kyc mba hampidirina ny selfie + auto-confirm
+      const email = phoneToEmail(cleanPhone);
       const { data, error } = await supabase.functions.invoke("signup-kyc", {
         body: {
-          email: phoneToEmail(cleanPhone),
+          email,
           password: sPwd.trim(),
-          mvola_name: sName.trim(),
+          mvola_name: name,
           phone: cleanPhone,
           birth_date: sBirth,
           gender: sGender,
-          selfie_base64: sSelfie,
           pin: sPin,
         },
       });
-      setLoading(false);
       const errMsg = (data as any)?.error || (error as any)?.message;
-      if (errMsg) return toast.error(errMsg);
-      toast.success("Inscription vita! Miandry validation amin'ny ADMINISTRATIF.");
-      setTab("login");
-      setSName(""); setSBirth(""); setSPhone(""); setSPwd(""); setSPwd2("");
-      setSPin(""); setSPin2(""); setSSelfie(null);
-      setAcceptRules(false);
-    } catch (err: any) {
+      if (errMsg) {
+        setLoading(false);
+        setErr({ phone: String(errMsg) });
+        return toast.error(String(errMsg));
+      }
+
+      toast.success("Vita ny fisoratana anarana! Tafiditra ianao.");
+      // Connexion automatique
+      const login = await withTimeout(supabase.auth.signInWithPassword({ email, password: sPwd.trim() }), 8000);
+      let session = login?.data?.session ?? null;
+      if (!session) {
+        const fallback = await directPasswordLogin(email, sPwd.trim());
+        session = fallback.data?.session ?? null;
+      }
       setLoading(false);
-      toast.error(String(err?.message ?? err));
+      if (!session) {
+        setTab("login");
+        setPhone(cleanPhone);
+        return toast.info("Midira amin'ny numéro sy mot de passe vaovao.");
+      }
+      setSName(""); setSBirth(""); setSPhone(""); setSPwd(""); setSPin(""); setAcceptRules(false);
+      nav("/", { replace: true });
+    } catch (err2: any) {
+      setLoading(false);
+      toast.error(String(err2?.message ?? err2));
     }
   };
+
 
   return (
     <div className="min-h-screen felt-bg flex items-center justify-center p-4">

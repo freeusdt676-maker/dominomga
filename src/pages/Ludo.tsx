@@ -114,9 +114,18 @@ function outerIndex(color: ColorKey, progress: number): number | null {
 
 // ==== Sound helpers ====
 const audioCtxRef: { c?: AudioContext } = {};
+let MUTED: boolean = (() => {
+  try { return localStorage.getItem("ludo_muted") === "1"; } catch { return false; }
+})();
+function setMutedGlobal(v: boolean) {
+  MUTED = v;
+  try { localStorage.setItem("ludo_muted", v ? "1" : "0"); } catch {}
+}
 function beep(freq: number, dur: number, type: OscillatorType = "sine", vol = 0.15) {
+  if (MUTED) return;
   try {
     const ctx = (audioCtxRef.c ||= new (window.AudioContext || (window as any).webkitAudioContext)());
+
     const o = ctx.createOscillator();
     const g = ctx.createGain();
     o.type = type;

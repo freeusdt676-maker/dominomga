@@ -79,6 +79,32 @@ function applyMove(pawns: PawnRec[], seat: number, idx: number, dice: number) {
   return { pawns: next, captured, finished, extraTurn: dice === 6 || captured || finished, won };
 }
 
+/** Dés MIFANDANJA — mitovy ny tahan'ny fandresena na 2P/3P/4P. */
+function rollBalancedDice(pawns: PawnRec[], seat: number, seats: number[]): number {
+  const w = [1, 1, 1, 1, 1, 1];
+  const mine = pawns.filter((p) => p.seat === seat);
+  const myOut = mine.filter((p) => p.pos > 0).length;
+  const myProgress = mine.reduce((a, p) => a + p.pos, 0);
+  const others = seats.filter((s) => s !== seat);
+  const otherProgress = others.map((s) => pawns.filter((p) => p.seat === s).reduce((a, p) => a + p.pos, 0));
+  const avgOther = otherProgress.length ? otherProgress.reduce((a, b) => a + b, 0) / otherProgress.length : 0;
+  const bestOther = otherProgress.length ? Math.max(...otherProgress) : 0;
+  const allOutOthers = others.every((s) => pawns.filter((p) => p.seat === s).every((p) => p.pos > 0));
+  if (myOut === 0) w[5] += allOutOthers ? 2.6 : 1.6;
+  else if (myOut === 1 && mine.length - myOut >= 2) w[5] += 0.7;
+  const gap = bestOther - myProgress;
+  if (gap > 25) { w[5] += 0.8; w[4] += 0.5; w[3] += 0.3; }
+  else if (gap > 10) { w[5] += 0.35; w[4] += 0.2; }
+  else if (myProgress - avgOther > 25) {
+    w[5] = Math.max(0.45, w[5] - 0.45);
+    w[4] = Math.max(0.6, w[4] - 0.25);
+  }
+  const total = w.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < w.length; i++) { r -= w[i]; if (r <= 0) return i + 1; }
+  return 6;
+}
+
 function botChoose(pawns: PawnRec[], seat: number, dice: number): number | null {
   const opts = legalMoves(pawns, seat, dice);
   if (!opts.length) return null;
@@ -144,7 +170,7 @@ Deno.serve(async (req) => {
       const cs = Number(g.consecutive_sixes ?? 0);
 
       if (!g.dice_rolled) {
-        dice = 1 + Math.floor(Math.random() * 6);
+        dice = rollBalancedDice(pawns, seat, seats);
         const newSix = dice === 6 ? cs + 1 : 0;
         if (newSix >= 3) {
           await sb.rpc("ludo_update_state", {

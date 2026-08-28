@@ -810,34 +810,17 @@ export default function LudoPage() {
     return true;
   };
 
-  /** Animation dés eo an-toerana (raha tsy misy move → tsy mandalo amin'ny state). */
-  const localSpin = (seat: number, final: number) => new Promise<void>((resolve) => {
-    setRolling(true);
-    try { sfx.dice(); } catch {}
-    const iv = window.setInterval(() => {
-      const v = 1 + Math.floor(Math.random() * 6);
-      setDiceBySeat((prev) => ({ ...prev, [seat]: v }));
-    }, 90);
-    window.setTimeout(() => {
-      clearInterval(iv);
-      setDiceDisplay(final);
-      setDiceBySeat((prev) => ({ ...prev, [seat]: final }));
-      setRolling(false);
-      resolve();
-    }, 1000);
-  });
-
   const rollDice = async () => {
     if (!canRoll || rolling || rpcBusy.current || !row || !current) return;
     rpcBusy.current = true;
-    // Ny algorithme no manapaka ny isa — tsy azo vinavinaina.
-    const v = 1 + Math.floor(Math.random() * 6);
+    // Algorithme MIFANDANJA — mitovy ny tahan'ny fandresena na 2P/3P/4P.
+    const seats = row.seat_assignment ?? players.map((p) => p.seat);
+    const v = rollBalancedDice(toPawnRecs(players), current.seat, seats);
     const newSix = v === 6 ? (row.consecutive_sixes ?? 0) + 1 : 0;
     const seatNow = current.seat;
     try {
-      // 3 sixes → skip (miandry ny fihodinan'ny dés vao mifindra ny tour)
+      // 3 sixes → skip (ny animation iraisana no maneho ny isa amin'ny rehetra)
       if (newSix >= 3) {
-        await localSpin(seatNow, v);
         await commit({
           last_dice: v, dice_rolled: false, consecutive_sixes: 0,
           current_turn_seat: nextSeatOf(seatNow), turn_started_at: new Date().toISOString(),
@@ -846,7 +829,7 @@ export default function LudoPage() {
       }
       const legal = legalMoves(players, seatNow, v);
       if (legal.length === 0) {
-        await localSpin(seatNow, v);
+
         // No move — if it was a 6 keep the turn but let re-roll; otherwise pass
         if (v === 6) {
           await commit({ last_dice: v, dice_rolled: false, consecutive_sixes: newSix, turn_started_at: new Date().toISOString() });

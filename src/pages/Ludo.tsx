@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Volume2, VolumeX } from "lucide-react";
 import { RadioPlayer } from "@/components/RadioPlayer";
 import { MessageCircle, Send, X } from "lucide-react";
 import LudoVoiceChat from "@/components/LudoVoiceChat";
@@ -13,6 +13,7 @@ import {
   legalMovesFor,
   applyMove,
   chooseBestMove,
+  rollBalancedDice,
 } from "@/lib/ludoRules";
 
 /* =========================================================
@@ -412,6 +413,7 @@ function LudoChat() {
   const [floaters, setFloaters] = useState<{ id: string; content: string }[]>([]);
 
   const beep = (f: number, d = 0.1) => {
+    if (MUTED) return;
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
       const o = ctx.createOscillator(); const g = ctx.createGain();
@@ -909,7 +911,7 @@ export default function LudoPage() {
       let consecutiveSixes = Number(row.consecutive_sixes ?? 0);
 
       if (!row.dice_rolled) {
-        dice = 1 + Math.floor(Math.random() * 6);
+        dice = rollBalancedDice(toPawnRecs(players), actingPlayer.seat, row.seat_assignment ?? players.map((p) => p.seat));
         consecutiveSixes = dice === 6 ? consecutiveSixes + 1 : 0;
         setDiceDisplay(dice);
 
@@ -1006,6 +1008,16 @@ export default function LudoPage() {
         </Link>
         <h1 className="text-xl font-bold tracking-wide">LUDO · {fmtAr(Number(row.stake))}</h1>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => { const v = !muted; setMuted(v); setMutedGlobal(v); }}
+            title={muted ? "Mode silencieux ON" : "Feo ON"}
+            aria-label="Mode silencieux"
+            className={`w-9 h-9 rounded-full flex items-center justify-center border transition ${
+              muted ? "bg-red-500/20 border-red-400/60 text-red-300" : "bg-white/10 border-white/20 text-white/80 hover:text-white"
+            }`}
+          >
+            {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </button>
           <LudoVoiceChat gameId={id} />
           <RadioPlayer />
         </div>

@@ -854,7 +854,7 @@ export default function LudoPage() {
   };
 
   const movePawn = async (pawnIdx: number) => {
-    if (!row || !current || !isMyTurn || !row.dice_rolled) return;
+    if (!row || !current || !isMyTurn || !row.dice_rolled || rolling) return;
     if (!movable.has(pawnIdx)) return;
     await movePawnWith(pawnIdx, row.last_dice ?? 0, Number(row.consecutive_sixes ?? 0));
   };

@@ -712,7 +712,7 @@ export default function LudoPage() {
       }).finally(() => { rpcBusy.current = false; });
     }
 
-  }, [row, isMyTurn, players, mySeat]);
+  }, [row, isMyTurn, players, mySeat, rolling]);
 
   // Countdown driven by server turn_started_at
   useEffect(() => {

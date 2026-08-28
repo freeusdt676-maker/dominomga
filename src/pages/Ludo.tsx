@@ -702,14 +702,15 @@ export default function LudoPage() {
   const isMyTurn = !!row && row.status === "in_progress" && currentSeat === mySeat && !row.winner_id;
   const canRoll = isMyTurn && row?.dice_rolled === false;
 
-  // Animation dés IRAISANA — mihodina ~1s ho an'ny topon'ny tour IHANY
-  // (dice_rolled = true), dia mijanona amin'ny isa nomen'ny algorithme ary
-  // mitoetra eo mandra-pikitika manaraka. Tsy mihodina intsony ny dés hafa.
+  // Animation dés IRAISANA — HITAN'NY MPILALAO REHETRA.
+  // Isaky ny miova ny last_dice (na dia mandalo aza ny tour satria tsy misy
+  // move), dia mihodina 1s ny dés eo amin'ny toeran'ilay nanipy, dia mijanona
+  // amin'ny isa azony ary mitoetra eo mandra-pikitika manaraka.
   useEffect(() => {
-    if (!row || row.dice_rolled !== true) return;
+    if (!row) return;
     if (typeof row.last_dice !== "number" || !row.last_dice) return;
-    const seat = row.current_turn_seat ?? 0;
-    const key = `${seat}:${row.last_dice}:${row.turn_started_at ?? ""}`;
+    const seat = (row.dice_rolled ? row.current_turn_seat : (prevSeatRef.current || row.current_turn_seat)) ?? 0;
+    const key = `${seat}:${row.last_dice}:${row.turn_started_at ?? ""}:${row.dice_rolled}`;
     if (rollAnimRef.current.key === key) return;
     rollAnimRef.current.key = key;
     const final = row.last_dice as number;
@@ -729,6 +730,13 @@ export default function LudoPage() {
     rollAnimRef.current.timer = stop;
     return () => { clearInterval(iv); clearTimeout(stop); setRolling(false); };
   }, [row?.last_dice, row?.dice_rolled, row?.turn_started_at, row?.current_turn_seat]);
+
+  // Tazomina ny seat teo aloha mba ho fantatra iza no nanipy ny dés
+  // rehefa mifindra avy hatrany ny tour (tsy misy move).
+  useEffect(() => {
+    if (row?.current_turn_seat) prevSeatRef.current = row.current_turn_seat;
+  }, [row?.current_turn_seat]);
+
 
 
   // Legal moves once dice is rolled and it's my turn

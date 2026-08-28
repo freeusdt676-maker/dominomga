@@ -137,3 +137,63 @@ export function nextSeatOf(seats: number[], seat: number): number {
   if (i < 0) return seats[0];
   return seats[(i + 1) % seats.length];
 }
+
+/* =========================================================
+   Dés MIFANDANJA (2P / 3P / 4P)
+   Mitovy ny tahan'ny fandresena — tsy misy mpilalao mijanona
+   ela be ao an-trano noho ny tsy fahazoana 6.
+   ========================================================= */
+
+function weightedPick(w: number[]): number {
+  const total = w.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < w.length; i++) {
+    r -= w[i];
+    if (r <= 0) return i + 1;
+  }
+  return 6;
+}
+
+/** Isa (1..6) mifandanja arakaraka ny toe-javatra misy ny mpilalao. */
+export function rollBalancedDice(pawns: PawnRec[], seat: number, seats: number[]): number {
+  const w = [1, 1, 1, 1, 1, 1]; // uniform base
+
+  const mine = pawns.filter((p) => p.seat === seat);
+  const myOut = mine.filter((p) => p.pos > 0).length;
+  const myProgress = mine.reduce((a, p) => a + p.pos, 0);
+
+  const others = seats.filter((s) => s !== seat);
+  const otherProgress = others.map((s) =>
+    pawns.filter((p) => p.seat === s).reduce((a, p) => a + p.pos, 0),
+  );
+  const avgOther = otherProgress.length
+    ? otherProgress.reduce((a, b) => a + b, 0) / otherProgress.length
+    : 0;
+  const bestOther = otherProgress.length ? Math.max(...otherProgress) : 0;
+  const allOutOthers = others.every((s) =>
+    pawns.filter((p) => p.seat === s).every((p) => p.pos > 0),
+  );
+
+  // 1) Tsy misy pion mivoaka mihitsy → tokony ho azo mora ny 6.
+  if (myOut === 0) {
+    w[5] += allOutOthers ? 2.6 : 1.6;
+  } else if (myOut === 1 && mine.length - myOut >= 2) {
+    w[5] += 0.7;
+  }
+
+  // 2) Fandanjana arakaraka ny elanelana (mitovy ny fomba fiasa na 2P/3P/4P).
+  const gap = bestOther - myProgress;
+  if (gap > 25) {
+    // Tara be → isa avo matetika kokoa.
+    w[5] += 0.8; w[4] += 0.5; w[3] += 0.3;
+  } else if (gap > 10) {
+    w[5] += 0.35; w[4] += 0.2;
+  } else if (myProgress - avgOther > 25) {
+    // Mialoha be → ahena kely ny 6 mba hifandanja ny lalao.
+    w[5] = Math.max(0.45, w[5] - 0.45);
+    w[4] = Math.max(0.6, w[4] - 0.25);
+  }
+
+  return weightedPick(w);
+}
+

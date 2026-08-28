@@ -663,13 +663,14 @@ export default function LudoPage() {
   const isMyTurn = !!row && row.status === "in_progress" && currentSeat === mySeat && !row.winner_id;
   const canRoll = isMyTurn && row?.dice_rolled === false;
 
-  // Animation dés IRAISANA — ny mpilalao rehetra mahita ny isa mivadibadika
-  // mandritra ~1s dia mijanona amin'ny isa nomen'ny algorithme. Mitoetra eo
-  // io isa io mandra-pikitika manaraka.
+  // Animation dés IRAISANA — mihodina ~1s ho an'ny topon'ny tour IHANY
+  // (dice_rolled = true), dia mijanona amin'ny isa nomen'ny algorithme ary
+  // mitoetra eo mandra-pikitika manaraka. Tsy mihodina intsony ny dés hafa.
   useEffect(() => {
-    if (!row || typeof row.last_dice !== "number" || !row.last_dice) return;
+    if (!row || row.dice_rolled !== true) return;
+    if (typeof row.last_dice !== "number" || !row.last_dice) return;
     const seat = row.current_turn_seat ?? 0;
-    const key = `${seat}:${row.last_dice}:${row.dice_rolled}:${row.turn_started_at ?? ""}`;
+    const key = `${seat}:${row.last_dice}:${row.turn_started_at ?? ""}`;
     if (rollAnimRef.current.key === key) return;
     rollAnimRef.current.key = key;
     const final = row.last_dice as number;
@@ -687,8 +688,9 @@ export default function LudoPage() {
       setDiceBySeat((prev) => ({ ...prev, [seat]: final }));
     }, 1000);
     rollAnimRef.current.timer = stop;
-    return () => { clearInterval(iv); clearTimeout(stop); };
+    return () => { clearInterval(iv); clearTimeout(stop); setRolling(false); };
   }, [row?.last_dice, row?.dice_rolled, row?.turn_started_at, row?.current_turn_seat]);
+
 
   // Legal moves once dice is rolled and it's my turn
   useEffect(() => {

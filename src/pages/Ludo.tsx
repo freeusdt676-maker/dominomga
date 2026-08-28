@@ -196,35 +196,65 @@ function Board({ players, activeColor, onPickPawn, movable }: {
   const N = 15;
   const size = S * N;
 
-  // Yard corner (6x6) rendering
+  // Yard corner (6x6) rendering — mitovy amin'ny table ludo klasika:
+  // efitra miloko, boaty fotsy anatiny, ary boribory 4 miloko ho an'ny pion.
   const yard = (row: number, col: number, c: ColorKey) => (
     <g key={`yard-${c}`}>
       <rect x={col*S} y={row*S} width={6*S} height={6*S} fill={HEX[c].base} stroke="#111" strokeWidth={2} />
-      {/* White inner area */}
-      <rect x={col*S+S*0.6} y={row*S+S*0.6} width={4.8*S} height={4.8*S}
-            fill="#ffffff"
-            stroke={HEX[c].dark} strokeWidth={1.5} rx={6}/>
+      <rect x={col*S+S*0.75} y={row*S+S*0.75} width={4.5*S} height={4.5*S}
+            fill="#ffffff" stroke={HEX[c].dark} strokeWidth={2} rx={4}/>
+      {YARD_SLOTS[c].map(([sr, sc], i) => (
+        <circle key={`slot-${c}-${i}`}
+                cx={sc*S + S/2} cy={sr*S + S/2} r={S*0.42}
+                fill={HEX[c].base} stroke={HEX[c].dark} strokeWidth={2} opacity={0.95}/>
+      ))}
     </g>
   );
+
+  // Safe star owner: entry+8 → color; entry cells get the color + arrow
+  const STAR_OWNER: Record<number, ColorKey> = {
+    [(ENTRY.red + 8) % 52]: "red",
+    [(ENTRY.green + 8) % 52]: "green",
+    [(ENTRY.yellow + 8) % 52]: "yellow",
+    [(ENTRY.blue + 8) % 52]: "blue",
+  };
+  const ENTRY_OWNER: Record<number, ColorKey> = {
+    [ENTRY.red]: "red", [ENTRY.green]: "green", [ENTRY.yellow]: "yellow", [ENTRY.blue]: "blue",
+  };
+  const ARROW_DIR: Record<ColorKey, string> = { red: "right", green: "down", yellow: "left", blue: "up" };
+  const arrowPath = (r: number, c: number, dir: string) => {
+    const x = c*S + S/2, y = r*S + S/2, a = S*0.26;
+    switch (dir) {
+      case "right": return `${x-a},${y-a} ${x+a},${y} ${x-a},${y+a}`;
+      case "left":  return `${x+a},${y-a} ${x-a},${y} ${x+a},${y+a}`;
+      case "down":  return `${x-a},${y-a} ${x+a},${y-a} ${x},${y+a}`;
+      default:      return `${x-a},${y+a} ${x+a},${y+a} ${x},${y-a}`;
+    }
+  };
 
   // Track cells
   const trackCells: JSX.Element[] = [];
   TRACK.forEach(([r, c], idx) => {
-    let fill = "#fff";
-    // Color the entry cells and home column entries
-    if (idx === ENTRY.red) fill = HEX.red.light;
-    if (idx === ENTRY.green) fill = HEX.green.light;
-    if (idx === ENTRY.yellow) fill = HEX.yellow.light;
-    if (idx === ENTRY.blue) fill = HEX.blue.light;
+    const entryOwner = ENTRY_OWNER[idx];
+    const starOwner = STAR_OWNER[idx];
+    const fill = entryOwner ? HEX[entryOwner].base : "#fff";
     trackCells.push(
       <g key={`t-${idx}`}>
         <rect x={c*S} y={r*S} width={S} height={S} fill={fill} stroke="#111" strokeWidth={1} />
-        {SAFE.has(idx) && (
-          <text x={c*S+S/2} y={r*S+S/2+7} textAnchor="middle" fontSize={22} fontWeight={900} fill="#0a0a0a" style={{ pointerEvents: "none" }}>★</text>
+        {entryOwner && (
+          <polygon points={arrowPath(r, c, ARROW_DIR[entryOwner])}
+                   fill="#ffffff" stroke={HEX[entryOwner].dark} strokeWidth={1}
+                   style={{ pointerEvents: "none" }} />
+        )}
+        {!entryOwner && starOwner && (
+          <text x={c*S+S/2} y={r*S+S/2+8} textAnchor="middle" fontSize={24} fontWeight={900}
+                fill={HEX[starOwner].base} stroke={HEX[starOwner].dark} strokeWidth={0.8}
+                style={{ pointerEvents: "none" }}>★</text>
         )}
       </g>
     );
   });
+
 
   // Home column cells (colored)
   const homeCells: JSX.Element[] = [];

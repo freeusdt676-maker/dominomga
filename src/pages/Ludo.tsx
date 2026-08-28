@@ -712,8 +712,14 @@ export default function LudoPage() {
     const seat = (row.dice_rolled ? row.current_turn_seat : (prevSeatRef.current || row.current_turn_seat)) ?? 0;
     const key = `${seat}:${row.last_dice}:${row.turn_started_at ?? ""}:${row.dice_rolled}`;
     if (rollAnimRef.current.key === key) return;
+    // Raha niova ny pion dia move io fa tsy fanipazana dés vaovao → tsy manao animation.
+    const sig = JSON.stringify(row.pawns ?? []);
+    const isMove = pawnsSigRef.current !== null && pawnsSigRef.current !== sig;
+    pawnsSigRef.current = sig;
     rollAnimRef.current.key = key;
+    if (isMove) return;
     const final = row.last_dice as number;
+
     setRolling(true);
     try { sfx.dice(); } catch {}
     const iv = window.setInterval(() => {

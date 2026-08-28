@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Volume2, VolumeX } from "lucide-react";
 import { RadioPlayer } from "@/components/RadioPlayer";
 import { MessageCircle, Send, X } from "lucide-react";
 import LudoVoiceChat from "@/components/LudoVoiceChat";
@@ -13,6 +13,7 @@ import {
   legalMovesFor,
   applyMove,
   chooseBestMove,
+  rollBalancedDice,
 } from "@/lib/ludoRules";
 
 /* =========================================================
@@ -114,9 +115,18 @@ function outerIndex(color: ColorKey, progress: number): number | null {
 
 // ==== Sound helpers ====
 const audioCtxRef: { c?: AudioContext } = {};
+let MUTED: boolean = (() => {
+  try { return localStorage.getItem("ludo_muted") === "1"; } catch { return false; }
+})();
+function setMutedGlobal(v: boolean) {
+  MUTED = v;
+  try { localStorage.setItem("ludo_muted", v ? "1" : "0"); } catch {}
+}
 function beep(freq: number, dur: number, type: OscillatorType = "sine", vol = 0.15) {
+  if (MUTED) return;
   try {
     const ctx = (audioCtxRef.c ||= new (window.AudioContext || (window as any).webkitAudioContext)());
+
     const o = ctx.createOscillator();
     const g = ctx.createGain();
     o.type = type;
@@ -187,35 +197,65 @@ function Board({ players, activeColor, onPickPawn, movable }: {
   const N = 15;
   const size = S * N;
 
-  // Yard corner (6x6) rendering
+  // Yard corner (6x6) rendering — mitovy amin'ny table ludo klasika:
+  // efitra miloko, boaty fotsy anatiny, ary boribory 4 miloko ho an'ny pion.
   const yard = (row: number, col: number, c: ColorKey) => (
     <g key={`yard-${c}`}>
       <rect x={col*S} y={row*S} width={6*S} height={6*S} fill={HEX[c].base} stroke="#111" strokeWidth={2} />
-      {/* White inner area */}
-      <rect x={col*S+S*0.6} y={row*S+S*0.6} width={4.8*S} height={4.8*S}
-            fill="#ffffff"
-            stroke={HEX[c].dark} strokeWidth={1.5} rx={6}/>
+      <rect x={col*S+S*0.75} y={row*S+S*0.75} width={4.5*S} height={4.5*S}
+            fill="#ffffff" stroke={HEX[c].dark} strokeWidth={2} rx={4}/>
+      {YARD_SLOTS[c].map(([sr, sc], i) => (
+        <circle key={`slot-${c}-${i}`}
+                cx={sc*S + S/2} cy={sr*S + S/2} r={S*0.42}
+                fill={HEX[c].base} stroke={HEX[c].dark} strokeWidth={2} opacity={0.95}/>
+      ))}
     </g>
   );
+
+  // Safe star owner: entry+8 → color; entry cells get the color + arrow
+  const STAR_OWNER: Record<number, ColorKey> = {
+    [(ENTRY.red + 8) % 52]: "red",
+    [(ENTRY.green + 8) % 52]: "green",
+    [(ENTRY.yellow + 8) % 52]: "yellow",
+    [(ENTRY.blue + 8) % 52]: "blue",
+  };
+  const ENTRY_OWNER: Record<number, ColorKey> = {
+    [ENTRY.red]: "red", [ENTRY.green]: "green", [ENTRY.yellow]: "yellow", [ENTRY.blue]: "blue",
+  };
+  const ARROW_DIR: Record<ColorKey, string> = { red: "right", green: "down", yellow: "left", blue: "up" };
+  const arrowPath = (r: number, c: number, dir: string) => {
+    const x = c*S + S/2, y = r*S + S/2, a = S*0.26;
+    switch (dir) {
+      case "right": return `${x-a},${y-a} ${x+a},${y} ${x-a},${y+a}`;
+      case "left":  return `${x+a},${y-a} ${x-a},${y} ${x+a},${y+a}`;
+      case "down":  return `${x-a},${y-a} ${x+a},${y-a} ${x},${y+a}`;
+      default:      return `${x-a},${y+a} ${x+a},${y+a} ${x},${y-a}`;
+    }
+  };
 
   // Track cells
   const trackCells: JSX.Element[] = [];
   TRACK.forEach(([r, c], idx) => {
-    let fill = "#fff";
-    // Color the entry cells and home column entries
-    if (idx === ENTRY.red) fill = HEX.red.light;
-    if (idx === ENTRY.green) fill = HEX.green.light;
-    if (idx === ENTRY.yellow) fill = HEX.yellow.light;
-    if (idx === ENTRY.blue) fill = HEX.blue.light;
+    const entryOwner = ENTRY_OWNER[idx];
+    const starOwner = STAR_OWNER[idx];
+    const fill = entryOwner ? HEX[entryOwner].base : "#fff";
     trackCells.push(
       <g key={`t-${idx}`}>
         <rect x={c*S} y={r*S} width={S} height={S} fill={fill} stroke="#111" strokeWidth={1} />
-        {SAFE.has(idx) && (
-          <text x={c*S+S/2} y={r*S+S/2+7} textAnchor="middle" fontSize={22} fontWeight={900} fill="#0a0a0a" style={{ pointerEvents: "none" }}>★</text>
+        {entryOwner && (
+          <polygon points={arrowPath(r, c, ARROW_DIR[entryOwner])}
+                   fill="#ffffff" stroke={HEX[entryOwner].dark} strokeWidth={1}
+                   style={{ pointerEvents: "none" }} />
+        )}
+        {!entryOwner && starOwner && (
+          <text x={c*S+S/2} y={r*S+S/2+8} textAnchor="middle" fontSize={24} fontWeight={900}
+                fill={HEX[starOwner].base} stroke={HEX[starOwner].dark} strokeWidth={0.8}
+                style={{ pointerEvents: "none" }}>★</text>
         )}
       </g>
     );
   });
+
 
   // Home column cells (colored)
   const homeCells: JSX.Element[] = [];
@@ -373,6 +413,7 @@ function LudoChat() {
   const [floaters, setFloaters] = useState<{ id: string; content: string }[]>([]);
 
   const beep = (f: number, d = 0.1) => {
+    if (MUTED) return;
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
       const o = ctx.createOscillator(); const g = ctx.createGain();
@@ -545,6 +586,10 @@ export default function LudoPage() {
   // Isa farany hita isaky ny seat — mitoetra eo mandra-pikitika manaraka.
   const [diceBySeat, setDiceBySeat] = useState<Record<number, number>>({});
   const rollAnimRef = useRef<{ key: string; timer: number | null }>({ key: "", timer: null });
+  const prevSeatRef = useRef<number>(0);
+  const pawnsSigRef = useRef<string | null>(null);
+  const [muted, setMuted] = useState<boolean>(MUTED);
+
 
   const [movable, setMovable] = useState<Set<number>>(new Set());
   const [message, setMessage] = useState<string>("Miandry lalao…");
@@ -663,17 +708,24 @@ export default function LudoPage() {
   const isMyTurn = !!row && row.status === "in_progress" && currentSeat === mySeat && !row.winner_id;
   const canRoll = isMyTurn && row?.dice_rolled === false;
 
-  // Animation dés IRAISANA — mihodina ~1s ho an'ny topon'ny tour IHANY
-  // (dice_rolled = true), dia mijanona amin'ny isa nomen'ny algorithme ary
-  // mitoetra eo mandra-pikitika manaraka. Tsy mihodina intsony ny dés hafa.
+  // Animation dés IRAISANA — HITAN'NY MPILALAO REHETRA.
+  // Isaky ny miova ny last_dice (na dia mandalo aza ny tour satria tsy misy
+  // move), dia mihodina 1s ny dés eo amin'ny toeran'ilay nanipy, dia mijanona
+  // amin'ny isa azony ary mitoetra eo mandra-pikitika manaraka.
   useEffect(() => {
-    if (!row || row.dice_rolled !== true) return;
+    if (!row) return;
     if (typeof row.last_dice !== "number" || !row.last_dice) return;
-    const seat = row.current_turn_seat ?? 0;
-    const key = `${seat}:${row.last_dice}:${row.turn_started_at ?? ""}`;
+    const seat = (row.dice_rolled ? row.current_turn_seat : (prevSeatRef.current || row.current_turn_seat)) ?? 0;
+    const key = `${seat}:${row.last_dice}:${row.turn_started_at ?? ""}:${row.dice_rolled}`;
     if (rollAnimRef.current.key === key) return;
+    // Raha niova ny pion dia move io fa tsy fanipazana dés vaovao → tsy manao animation.
+    const sig = JSON.stringify(row.pawns ?? []);
+    const isMove = pawnsSigRef.current !== null && pawnsSigRef.current !== sig;
+    pawnsSigRef.current = sig;
     rollAnimRef.current.key = key;
+    if (isMove) return;
     const final = row.last_dice as number;
+
     setRolling(true);
     try { sfx.dice(); } catch {}
     const iv = window.setInterval(() => {
@@ -690,6 +742,13 @@ export default function LudoPage() {
     rollAnimRef.current.timer = stop;
     return () => { clearInterval(iv); clearTimeout(stop); setRolling(false); };
   }, [row?.last_dice, row?.dice_rolled, row?.turn_started_at, row?.current_turn_seat]);
+
+  // Tazomina ny seat teo aloha mba ho fantatra iza no nanipy ny dés
+  // rehefa mifindra avy hatrany ny tour (tsy misy move).
+  useEffect(() => {
+    if (row?.current_turn_seat) prevSeatRef.current = row.current_turn_seat;
+  }, [row?.current_turn_seat]);
+
 
 
   // Legal moves once dice is rolled and it's my turn
@@ -763,34 +822,17 @@ export default function LudoPage() {
     return true;
   };
 
-  /** Animation dés eo an-toerana (raha tsy misy move → tsy mandalo amin'ny state). */
-  const localSpin = (seat: number, final: number) => new Promise<void>((resolve) => {
-    setRolling(true);
-    try { sfx.dice(); } catch {}
-    const iv = window.setInterval(() => {
-      const v = 1 + Math.floor(Math.random() * 6);
-      setDiceBySeat((prev) => ({ ...prev, [seat]: v }));
-    }, 90);
-    window.setTimeout(() => {
-      clearInterval(iv);
-      setDiceDisplay(final);
-      setDiceBySeat((prev) => ({ ...prev, [seat]: final }));
-      setRolling(false);
-      resolve();
-    }, 1000);
-  });
-
   const rollDice = async () => {
     if (!canRoll || rolling || rpcBusy.current || !row || !current) return;
     rpcBusy.current = true;
-    // Ny algorithme no manapaka ny isa — tsy azo vinavinaina.
-    const v = 1 + Math.floor(Math.random() * 6);
+    // Algorithme MIFANDANJA — mitovy ny tahan'ny fandresena na 2P/3P/4P.
+    const seats = row.seat_assignment ?? players.map((p) => p.seat);
+    const v = rollBalancedDice(toPawnRecs(players), current.seat, seats);
     const newSix = v === 6 ? (row.consecutive_sixes ?? 0) + 1 : 0;
     const seatNow = current.seat;
     try {
-      // 3 sixes → skip (miandry ny fihodinan'ny dés vao mifindra ny tour)
+      // 3 sixes → skip (ny animation iraisana no maneho ny isa amin'ny rehetra)
       if (newSix >= 3) {
-        await localSpin(seatNow, v);
         await commit({
           last_dice: v, dice_rolled: false, consecutive_sixes: 0,
           current_turn_seat: nextSeatOf(seatNow), turn_started_at: new Date().toISOString(),
@@ -799,7 +841,7 @@ export default function LudoPage() {
       }
       const legal = legalMoves(players, seatNow, v);
       if (legal.length === 0) {
-        await localSpin(seatNow, v);
+
         // No move — if it was a 6 keep the turn but let re-roll; otherwise pass
         if (v === 6) {
           await commit({ last_dice: v, dice_rolled: false, consecutive_sixes: newSix, turn_started_at: new Date().toISOString() });
@@ -869,7 +911,7 @@ export default function LudoPage() {
       let consecutiveSixes = Number(row.consecutive_sixes ?? 0);
 
       if (!row.dice_rolled) {
-        dice = 1 + Math.floor(Math.random() * 6);
+        dice = rollBalancedDice(toPawnRecs(players), actingPlayer.seat, row.seat_assignment ?? players.map((p) => p.seat));
         consecutiveSixes = dice === 6 ? consecutiveSixes + 1 : 0;
         setDiceDisplay(dice);
 
@@ -966,6 +1008,16 @@ export default function LudoPage() {
         </Link>
         <h1 className="text-xl font-bold tracking-wide">LUDO · {fmtAr(Number(row.stake))}</h1>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => { const v = !muted; setMuted(v); setMutedGlobal(v); }}
+            title={muted ? "Mode silencieux ON" : "Feo ON"}
+            aria-label="Mode silencieux"
+            className={`w-9 h-9 rounded-full flex items-center justify-center border transition ${
+              muted ? "bg-red-500/20 border-red-400/60 text-red-300" : "bg-white/10 border-white/20 text-white/80 hover:text-white"
+            }`}
+          >
+            {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </button>
           <LudoVoiceChat gameId={id} />
           <RadioPlayer />
         </div>

@@ -695,6 +695,7 @@ export default function LudoPage() {
   // Legal moves once dice is rolled and it's my turn
   useEffect(() => {
     if (!row || !isMyTurn || !row.dice_rolled || row.winner_id) { setMovable(new Set()); return; }
+    if (rolling) { setMovable(new Set()); return; } // miandry ny dés hijanona
     const me = players.find((p) => p.seat === mySeat);
     if (!me) return;
     const legal = legalMoves(players, me.seat, row.last_dice ?? 0);
@@ -710,6 +711,7 @@ export default function LudoPage() {
         turn_started_at: new Date().toISOString(),
       }).finally(() => { rpcBusy.current = false; });
     }
+
   }, [row, isMyTurn, players, mySeat]);
 
   // Countdown driven by server turn_started_at

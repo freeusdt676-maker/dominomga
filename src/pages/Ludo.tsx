@@ -728,21 +728,22 @@ export default function LudoPage() {
     if (isMove) return;
     const final = row.last_dice as number;
 
-    setRolling(true);
+    setRollingSeat(seat);
     try { sfx.dice(); } catch {}
     const iv = window.setInterval(() => {
       const v = 1 + Math.floor(Math.random() * 6);
       setDiceDisplay(v);
+      // Ny dés an'io seat io ihany no mihetsika — tsy mikasika ny hafa.
       setDiceBySeat((prev) => ({ ...prev, [seat]: v }));
     }, 90);
     const stop = window.setTimeout(() => {
       clearInterval(iv);
-      setRolling(false);
+      setRollingSeat(null);
       setDiceDisplay(final);
       setDiceBySeat((prev) => ({ ...prev, [seat]: final }));
     }, 1000);
     rollAnimRef.current.timer = stop;
-    return () => { clearInterval(iv); clearTimeout(stop); setRolling(false); };
+    return () => { clearInterval(iv); clearTimeout(stop); setRollingSeat(null); };
   }, [row?.last_dice, row?.dice_rolled, row?.turn_started_at, row?.current_turn_seat]);
 
   // Tazomina ny seat teo aloha mba ho fantatra iza no nanipy ny dés

@@ -581,7 +581,9 @@ export default function LudoPage() {
   const [names, setNames] = useState<Record<string, string>>({});
   const [avatars, setAvatars] = useState<Record<string, string | null>>({});
   const [phones, setPhones] = useState<Record<string, string | null>>({});
-  const [rolling, setRolling] = useState(false);
+  // Seat izay mihodina ny dés-ny ankehitriny (null = tsy misy mihodina).
+  const [rollingSeat, setRollingSeat] = useState<number | null>(null);
+  const rolling = rollingSeat !== null;
   const [diceDisplay, setDiceDisplay] = useState(1);
   // Isa farany hita isaky ny seat — mitoetra eo mandra-pikitika manaraka.
   const [diceBySeat, setDiceBySeat] = useState<Record<number, number>>({});

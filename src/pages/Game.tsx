@@ -46,6 +46,7 @@ import {
   getBlockedRoundResult,
 } from "@/lib/dominoRules";
 import { buildDominoWinExplanation, getDominoWinKind } from "@/lib/dominoRules";
+import { bestExactMove } from "@/lib/dominoSolver";
 
 type GameState = {
   player1_hand: Tile[];

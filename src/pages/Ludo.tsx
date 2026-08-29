@@ -96,17 +96,19 @@ function pawnCell(color: ColorKey, progress: number, slotIdx: number): [number, 
   if (progress < 57) {
     return HOME_COL[color][progress - 52];
   }
-  // Finished — sit inside this color's own triangle within the center square,
-  // so each color has its own "home" instead of stacking on top of one another.
-  const spread = (slotIdx - 1.5) * 0.42;
+  // Finished — mipetraka TSARA ao anatin'ny telozoro misy ny lokony ihany
+  // (tsy mihoatra any amin'ny loko hafa). Centroid isaky ny telozoro + 2x2 kely.
+  const dr = (slotIdx % 2 === 0 ? -0.2 : 0.2);
+  const dc = (slotIdx < 2 ? -0.2 : 0.2);
   switch (color) {
-    case "red":    return [7 + spread, 6.35];
-    case "green":  return [6.35, 7 + spread];
-    case "yellow": return [7 + spread, 7.65];
-    case "blue":   return [7.65, 7 + spread];
+    case "red":    return [7 + dr * 0.9, 6.05 + dc * 0.5];
+    case "green":  return [6.05 + dr * 0.5, 7 + dc * 0.9];
+    case "yellow": return [7 + dr * 0.9, 7.95 + dc * 0.5];
+    case "blue":   return [7.95 + dr * 0.5, 7 + dc * 0.9];
   }
   return [7, 7];
 }
+
 
 function outerIndex(color: ColorKey, progress: number): number | null {
   if (progress >= 1 && progress <= 51) return (ENTRY[color] + progress - 1) % 52;

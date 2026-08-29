@@ -1064,7 +1064,7 @@ export default function LudoPage() {
                 </div>
                 <Dice
                   value={diceBySeat[pl.seat] ?? 1}
-                  rolling={isActive && rolling}
+                  rolling={rollingSeat === pl.seat}
                   disabled={!(iAmThisCell && canRoll) || rolling}
                   onRoll={rollDice}
                   color={c}

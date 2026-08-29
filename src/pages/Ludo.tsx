@@ -190,11 +190,14 @@ function Dice({ value, rolling, disabled, onRoll, color, active }: {
 
 
 /* ==================== Board (SVG) ==================== */
-function Board({ players, activeColor, onPickPawn, movable }: {
+function Board({ players, activeColor, onPickPawn, movable, hits = [] }: {
   players: Player[]; activeColor: ColorKey;
   onPickPawn: (color: ColorKey, pawnIdx: number) => void;
   movable: Set<number>;
+  /** Fikapohana hita maso: toerana nisy pion voakapoka (mbola eo aloha). */
+  hits?: { id: number; color: ColorKey; progress: number; slot: number }[];
 }) {
+
   const S = 40; // cell size px
   const N = 15;
   const size = S * N;

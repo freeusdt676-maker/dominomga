@@ -96,17 +96,19 @@ function pawnCell(color: ColorKey, progress: number, slotIdx: number): [number, 
   if (progress < 57) {
     return HOME_COL[color][progress - 52];
   }
-  // Finished — sit inside this color's own triangle within the center square,
-  // so each color has its own "home" instead of stacking on top of one another.
-  const spread = (slotIdx - 1.5) * 0.42;
+  // Finished — mipetraka TSARA ao anatin'ny telozoro misy ny lokony ihany
+  // (tsy mihoatra any amin'ny loko hafa). Centroid isaky ny telozoro + 2x2 kely.
+  const dr = (slotIdx % 2 === 0 ? -0.2 : 0.2);
+  const dc = (slotIdx < 2 ? -0.2 : 0.2);
   switch (color) {
-    case "red":    return [7 + spread, 6.35];
-    case "green":  return [6.35, 7 + spread];
-    case "yellow": return [7 + spread, 7.65];
-    case "blue":   return [7.65, 7 + spread];
+    case "red":    return [7 + dr * 0.9, 6.05 + dc * 0.5];
+    case "green":  return [6.05 + dr * 0.5, 7 + dc * 0.9];
+    case "yellow": return [7 + dr * 0.9, 7.95 + dc * 0.5];
+    case "blue":   return [7.95 + dr * 0.5, 7 + dc * 0.9];
   }
   return [7, 7];
 }
+
 
 function outerIndex(color: ColorKey, progress: number): number | null {
   if (progress >= 1 && progress <= 51) return (ENTRY[color] + progress - 1) % 52;
@@ -188,11 +190,14 @@ function Dice({ value, rolling, disabled, onRoll, color, active }: {
 
 
 /* ==================== Board (SVG) ==================== */
-function Board({ players, activeColor, onPickPawn, movable }: {
+function Board({ players, activeColor, onPickPawn, movable, hits = [] }: {
   players: Player[]; activeColor: ColorKey;
   onPickPawn: (color: ColorKey, pawnIdx: number) => void;
   movable: Set<number>;
+  /** Fikapohana hita maso: toerana nisy pion voakapoka (mbola eo aloha). */
+  hits?: { id: number; color: ColorKey; progress: number; slot: number }[];
 }) {
+
   const S = 40; // cell size px
   const N = 15;
   const size = S * N;
@@ -300,7 +305,8 @@ function Board({ players, activeColor, onPickPawn, movable }: {
     arr.forEach((p, i) => {
       // On-track pins must fit fully inside a 40px cell; yard pins can be larger.
       const inYard = p.progress === 0;
-      const SCALE = inYard ? 1.55 : 1.30;
+      const done = p.progress === 57;
+      const SCALE = done ? 0.72 : inYard ? 1.55 : 1.30;
       // Pin tip is at local y=+16, top at y=-14. Anchor the tip a hair below the
       // cell center so the pin visually stands INSIDE the case (fa tsy amin'ny tsipika).
       const offset = arr.length > 1 ? (i - (arr.length - 1) / 2) * (inYard ? 10 : 7) : 0;
@@ -308,8 +314,9 @@ function Board({ players, activeColor, onPickPawn, movable }: {
       const cellCy = p.r * S + S / 2;
       const x = cellCx;
       // Tip lands at cellCy + 2px (slightly below center) → pin body fills the cell.
-      const y = cellCy - 16 * SCALE + 2;
+      const y = done ? cellCy - 4 * SCALE : cellCy - 16 * SCALE + 2;
       const active = p.color === activeColor && movable.has(p.pIdx);
+
       pawnEls.push(
         <g key={`p-${p.color}-${p.pIdx}`}
            style={{
@@ -351,6 +358,22 @@ function Board({ players, activeColor, onPickPawn, movable }: {
     });
   });
 
+  // Fikapohana — poakaty mena/mavo eo amin'ny case nisy ilay pion voakapoka.
+  const hitEls = hits.map((h) => {
+    const [hr, hc] = pawnCell(h.color, h.progress, h.slot);
+    const hx = hc * S + S / 2, hy = hr * S + S / 2;
+    return (
+      <g key={`hit-${h.id}`} style={{ pointerEvents: "none" }}>
+        <circle cx={hx} cy={hy} r={6} fill="none" stroke="#ff3b30" strokeWidth={4} opacity={0.95}>
+          <animate attributeName="r" from="6" to="26" dur="0.7s" repeatCount="indefinite" />
+          <animate attributeName="opacity" from="0.95" to="0" dur="0.7s" repeatCount="indefinite" />
+        </circle>
+        <text x={hx} y={hy + 8} textAnchor="middle" fontSize={26} fontWeight={900}>💥</text>
+      </g>
+    );
+  });
+
+
   return (
     <svg viewBox={`0 0 ${size} ${size}`} className="w-full h-auto rounded-2xl shadow-2xl"
          style={{ background: "#fff", border: "4px solid #111" }}>
@@ -371,6 +394,8 @@ function Board({ players, activeColor, onPickPawn, movable }: {
       {homeCells}
       {center}
       {pawnEls}
+      {hitEls}
+
     </svg>
   );
 }
@@ -650,10 +675,22 @@ export default function LudoPage() {
   // Cell-by-cell walking animation — displayPlayers lags server players and
   // steps 1 cell at a time so pawns move milamina fa tsy mitsambikina.
   const [displayPawns, setDisplayPawns] = useState<Record<string, number>>({});
+  const displayRef = useRef<Record<string, number>>({});
   const stepTimer = useRef<number | null>(null);
+  // Fikapohana hita maso: ny pion voakapoka dia MIJANONA eo aloha 0.9s
+  // (miaraka amin'ny 💥) vao miverina an-trano.
+  const [hits, setHits] = useState<{ id: number; color: ColorKey; progress: number; slot: number }[]>([]);
+  const capturePend = useRef<Record<string, boolean>>({});
+  const applyDisplay = useCallback((updater: (prev: Record<string, number>) => Record<string, number>) => {
+    setDisplayPawns((prev) => {
+      const nx = updater(prev);
+      displayRef.current = nx;
+      return nx;
+    });
+  }, []);
   useEffect(() => {
     // Ensure every pawn has a display entry.
-    setDisplayPawns((prev) => {
+    applyDisplay((prev) => {
       const nx = { ...prev };
       players.forEach((pl) => pl.pawns.forEach((pw, i) => {
         const k = `${pl.seat}:${i}`;
@@ -661,38 +698,54 @@ export default function LudoPage() {
       }));
       return nx;
     });
-  }, [players]);
+  }, [players, applyDisplay]);
   useEffect(() => {
     if (stepTimer.current) return;
+    // Miandry ny dés hijanona (+0.2s) vao mihetsika ny pion — mba ho hita tsara
+    // ny isa azo alohan'ny fandehanan'ny vato.
+    if (rolling) return;
     const step = () => {
-      setDisplayPawns((prev) => {
-        const nx = { ...prev };
-        let changed = false;
-        players.forEach((pl) => pl.pawns.forEach((pw, i) => {
-          const k = `${pl.seat}:${i}`;
-          const cur = nx[k] ?? pw.progress;
-          if (cur === pw.progress) return;
-          // Instant jump when going back to yard (capture) — don't walk backwards.
-          if (pw.progress === 0 || Math.abs(pw.progress - cur) > 6) {
-            nx[k] = pw.progress; changed = true; return;
+      const cur0 = displayRef.current;
+      const next = { ...cur0 };
+      let changed = false;
+      const newHits: typeof hits = [];
+      players.forEach((pl) => pl.pawns.forEach((pw, i) => {
+        const k = `${pl.seat}:${i}`;
+        const cur = next[k] ?? pw.progress;
+        if (cur === pw.progress) return;
+        if (pw.progress === 0 && cur > 0) {
+          // Voakapoka — aseho aloha ny fikapohana eo amin'ny toerany.
+          if (!capturePend.current[k]) {
+            capturePend.current[k] = true;
+            const hid = Date.now() + Math.floor(Math.random() * 1000);
+            newHits.push({ id: hid, color: pl.color, progress: cur, slot: i });
+            window.setTimeout(() => {
+              setHits((h) => h.filter((x) => x.id !== hid));
+              capturePend.current[k] = false;
+              applyDisplay((p) => ({ ...p, [k]: 0 }));
+            }, 900);
           }
-          if (cur < pw.progress) {
-            nx[k] = cur + 1; changed = true;
-            try { sfx.step(); } catch {}
-          } else {
-            nx[k] = pw.progress; changed = true;
-          }
-        }));
-        if (changed) {
-          stepTimer.current = window.setTimeout(() => { stepTimer.current = null; step(); }, 150);
+          return;
         }
-        return nx;
-      });
+        if (Math.abs(pw.progress - cur) > 6) { next[k] = pw.progress; changed = true; return; }
+        if (cur < pw.progress) {
+          next[k] = cur + 1; changed = true;
+          try { sfx.step(); } catch {}
+        } else {
+          next[k] = pw.progress; changed = true;
+        }
+      }));
+      if (newHits.length) setHits((h) => [...h, ...newHits]);
+      if (changed) {
+        applyDisplay(() => next);
+        stepTimer.current = window.setTimeout(() => { stepTimer.current = null; step(); }, 150);
+      }
     };
     // Kick off if any diff exists
-    const hasDiff = players.some((pl) => pl.pawns.some((pw, i) => (displayPawns[`${pl.seat}:${i}`] ?? pw.progress) !== pw.progress));
+    const hasDiff = players.some((pl) => pl.pawns.some((pw, i) => (displayRef.current[`${pl.seat}:${i}`] ?? pw.progress) !== pw.progress));
     if (hasDiff) step();
     return () => { if (stepTimer.current) { clearTimeout(stepTimer.current); stepTimer.current = null; } };
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [players]);
   const displayPlayers = useMemo<Player[]>(() =>

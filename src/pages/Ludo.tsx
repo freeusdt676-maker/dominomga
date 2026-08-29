@@ -394,6 +394,8 @@ function Board({ players, activeColor, onPickPawn, movable, hits = [] }: {
       {homeCells}
       {center}
       {pawnEls}
+      {hitEls}
+
     </svg>
   );
 }

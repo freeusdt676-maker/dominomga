@@ -358,6 +358,22 @@ function Board({ players, activeColor, onPickPawn, movable, hits = [] }: {
     });
   });
 
+  // Fikapohana — poakaty mena/mavo eo amin'ny case nisy ilay pion voakapoka.
+  const hitEls = hits.map((h) => {
+    const [hr, hc] = pawnCell(h.color, h.progress, h.slot);
+    const hx = hc * S + S / 2, hy = hr * S + S / 2;
+    return (
+      <g key={`hit-${h.id}`} style={{ pointerEvents: "none" }}>
+        <circle cx={hx} cy={hy} r={6} fill="none" stroke="#ff3b30" strokeWidth={4} opacity={0.95}>
+          <animate attributeName="r" from="6" to="26" dur="0.7s" repeatCount="indefinite" />
+          <animate attributeName="opacity" from="0.95" to="0" dur="0.7s" repeatCount="indefinite" />
+        </circle>
+        <text x={hx} y={hy + 8} textAnchor="middle" fontSize={26} fontWeight={900}>💥</text>
+      </g>
+    );
+  });
+
+
   return (
     <svg viewBox={`0 0 ${size} ${size}`} className="w-full h-auto rounded-2xl shadow-2xl"
          style={{ background: "#fff", border: "4px solid #111" }}>

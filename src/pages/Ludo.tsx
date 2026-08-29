@@ -675,10 +675,22 @@ export default function LudoPage() {
   // Cell-by-cell walking animation — displayPlayers lags server players and
   // steps 1 cell at a time so pawns move milamina fa tsy mitsambikina.
   const [displayPawns, setDisplayPawns] = useState<Record<string, number>>({});
+  const displayRef = useRef<Record<string, number>>({});
   const stepTimer = useRef<number | null>(null);
+  // Fikapohana hita maso: ny pion voakapoka dia MIJANONA eo aloha 0.9s
+  // (miaraka amin'ny 💥) vao miverina an-trano.
+  const [hits, setHits] = useState<{ id: number; color: ColorKey; progress: number; slot: number }[]>([]);
+  const capturePend = useRef<Record<string, boolean>>({});
+  const applyDisplay = useCallback((updater: (prev: Record<string, number>) => Record<string, number>) => {
+    setDisplayPawns((prev) => {
+      const nx = updater(prev);
+      displayRef.current = nx;
+      return nx;
+    });
+  }, []);
   useEffect(() => {
     // Ensure every pawn has a display entry.
-    setDisplayPawns((prev) => {
+    applyDisplay((prev) => {
       const nx = { ...prev };
       players.forEach((pl) => pl.pawns.forEach((pw, i) => {
         const k = `${pl.seat}:${i}`;
@@ -686,38 +698,54 @@ export default function LudoPage() {
       }));
       return nx;
     });
-  }, [players]);
+  }, [players, applyDisplay]);
   useEffect(() => {
     if (stepTimer.current) return;
+    // Miandry ny dés hijanona (+0.2s) vao mihetsika ny pion — mba ho hita tsara
+    // ny isa azo alohan'ny fandehanan'ny vato.
+    if (rolling) return;
     const step = () => {
-      setDisplayPawns((prev) => {
-        const nx = { ...prev };
-        let changed = false;
-        players.forEach((pl) => pl.pawns.forEach((pw, i) => {
-          const k = `${pl.seat}:${i}`;
-          const cur = nx[k] ?? pw.progress;
-          if (cur === pw.progress) return;
-          // Instant jump when going back to yard (capture) — don't walk backwards.
-          if (pw.progress === 0 || Math.abs(pw.progress - cur) > 6) {
-            nx[k] = pw.progress; changed = true; return;
+      const cur0 = displayRef.current;
+      const next = { ...cur0 };
+      let changed = false;
+      const newHits: typeof hits = [];
+      players.forEach((pl) => pl.pawns.forEach((pw, i) => {
+        const k = `${pl.seat}:${i}`;
+        const cur = next[k] ?? pw.progress;
+        if (cur === pw.progress) return;
+        if (pw.progress === 0 && cur > 0) {
+          // Voakapoka — aseho aloha ny fikapohana eo amin'ny toerany.
+          if (!capturePend.current[k]) {
+            capturePend.current[k] = true;
+            const hid = Date.now() + Math.floor(Math.random() * 1000);
+            newHits.push({ id: hid, color: pl.color, progress: cur, slot: i });
+            window.setTimeout(() => {
+              setHits((h) => h.filter((x) => x.id !== hid));
+              capturePend.current[k] = false;
+              applyDisplay((p) => ({ ...p, [k]: 0 }));
+            }, 900);
           }
-          if (cur < pw.progress) {
-            nx[k] = cur + 1; changed = true;
-            try { sfx.step(); } catch {}
-          } else {
-            nx[k] = pw.progress; changed = true;
-          }
-        }));
-        if (changed) {
-          stepTimer.current = window.setTimeout(() => { stepTimer.current = null; step(); }, 150);
+          return;
         }
-        return nx;
-      });
+        if (Math.abs(pw.progress - cur) > 6) { next[k] = pw.progress; changed = true; return; }
+        if (cur < pw.progress) {
+          next[k] = cur + 1; changed = true;
+          try { sfx.step(); } catch {}
+        } else {
+          next[k] = pw.progress; changed = true;
+        }
+      }));
+      if (newHits.length) setHits((h) => [...h, ...newHits]);
+      if (changed) {
+        applyDisplay(() => next);
+        stepTimer.current = window.setTimeout(() => { stepTimer.current = null; step(); }, 150);
+      }
     };
     // Kick off if any diff exists
-    const hasDiff = players.some((pl) => pl.pawns.some((pw, i) => (displayPawns[`${pl.seat}:${i}`] ?? pw.progress) !== pw.progress));
+    const hasDiff = players.some((pl) => pl.pawns.some((pw, i) => (displayRef.current[`${pl.seat}:${i}`] ?? pw.progress) !== pw.progress));
     if (hasDiff) step();
     return () => { if (stepTimer.current) { clearTimeout(stepTimer.current); stepTimer.current = null; } };
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [players]);
   const displayPlayers = useMemo<Player[]>(() =>

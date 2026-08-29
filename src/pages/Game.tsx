@@ -46,6 +46,7 @@ import {
   getBlockedRoundResult,
 } from "@/lib/dominoRules";
 import { buildDominoWinExplanation, getDominoWinKind } from "@/lib/dominoRules";
+import { bestExactMove } from "@/lib/dominoSolver";
 
 type GameState = {
   player1_hand: Tile[];
@@ -1311,35 +1312,40 @@ export default function Game() {
           return 0;
         });
       const targetPtsBot = Number((fresh as any).target_points ?? (Number(fresh.players_count ?? 2) === 3 ? 120 : 80));
-      // Bot niverina ho mpilalao tsotra: tsy mahita ny vaton'ny hafa intsony,
-      // ary manao safidy tsy tonga lafatra indraindray (favori ny olombelona).
-      const perfectOppHands: Tile[][] = [];
-      const perfectBoneyard: Tile[] = [];
-
-      let best = chooseBestBotMove(turnHand, liveBoard, {
-        opponentSizes: oppSizes,
-        boneyardSize,
-        opponentScores: oppScoresArr,
-        targetPts: targetPtsBot,
-        opponentHands: perfectOppHands,
-        boneyard: perfectBoneyard,
-      }) as any;
-
-      // ~35% n'ny fotoana: mifidy vato mety hafa an-kisendrasendra (fahadisoana).
-      if (best && Math.random() < 0.35) {
-        const alt: { index: number; side: "left" | "right" }[] = [];
-        for (let i = 0; i < turnHand.length; i += 1) {
-          const can = canPlace(liveBoard, turnHand[i]);
-          if (can === null) continue;
-          if (can === "either") { alt.push({ index: i, side: "left" }); alt.push({ index: i, side: "right" }); }
-          else alt.push({ index: i, side: can });
-        }
-        if (alt.length > 1) {
-          const pick = alt[Math.floor(Math.random() * alt.length)];
-          // Aza manary fandresena azo antoka (raha 1 sisa ny vato)
-          if (turnHand.length > 1) best = pick;
-        }
+      // Bot GRAND-MAÎTRE: perfect information — mahafantatra ny vaton'ny
+      // mpilalao rehetra sy ny boneyard, ka milalao araka ny minimax solver
+      // (tsara lavitra noho ny olombelona).
+      const allIds = getPlayerIds(fresh);
+      const botIdx = allIds.indexOf(turnId);
+      const orderedOppHands: Tile[][] = [];
+      for (let k = 1; k < allIds.length; k += 1) {
+        const pid = allIds[(botIdx + k) % allIds.length];
+        const kKey = getHandKey(fresh, pid);
+        if (kKey) orderedOppHands.push(((fresh[kKey] as Tile[]) ?? []) as Tile[]);
       }
+      const perfectBoneyard: Tile[] = ((fresh.boneyard as Tile[]) ?? []) as Tile[];
+      const freshPasses = Number((fresh as any).passes ?? (fresh.board_state as any)?.passes ?? 0);
+
+      // 1) Exact minimax solver (full knowledge of every hand).
+      let best: { index: number; side: "left" | "right" } | null = null;
+      try {
+        const solved = bestExactMove(turnHand, orderedOppHands, liveBoard, freshPasses);
+        if (solved) best = { index: solved.index, side: solved.side };
+      } catch { /* fallback below */ }
+
+      // 2) Fallback: heuristic grand-master with perfect info.
+      if (!best) {
+        best = chooseBestBotMove(turnHand, liveBoard, {
+          opponentSizes: oppSizes,
+          boneyardSize,
+          opponentScores: oppScoresArr,
+          targetPts: targetPtsBot,
+          opponentHands: orderedOppHands,
+          boneyard: perfectBoneyard,
+        }) as any;
+      }
+
+
 
 
       if (best) {

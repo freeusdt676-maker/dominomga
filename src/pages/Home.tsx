@@ -28,6 +28,7 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import LiveSpectatorButton from "@/components/LiveSpectatorButton";
 import OnlineChatPanel from "@/components/OnlineChatPanel";
+import DepositTutorial from "@/components/DepositTutorial";
 
 const ABANDONED_GAME_KEY = "domino_abandoned_game_id";
 
@@ -290,23 +291,30 @@ export default function Home() {
 
           <div className="my-5 h-px bg-gradient-to-r from-transparent via-[hsl(var(--gold-1)/0.4)] to-transparent" />
 
-          <div className="flex items-end justify-between">
-            <div>
-              <p className="eyebrow">Solde WALLET</p>
-              <p className="font-serif-luxe text-[40px] leading-none gold-luxe-text mt-2">{fmtAr(balance)}</p>
+          <div className="flex items-end justify-between gap-3">
+            <div className="min-w-0">
+              <p className="eyebrow">Solde</p>
+              <p className="font-serif-luxe text-[40px] leading-none gold-luxe-text mt-2 truncate">{fmtAr(balance)}</p>
             </div>
-            <Link to="/wallet">
-              <button className="btn-luxe inline-flex items-center gap-2">
-                <Wallet className="w-3.5 h-3.5" />
-                <span>WALLET</span>
-                <span className="inline-flex items-center gap-0.5 text-[9px] font-black leading-none text-[hsl(var(--gold-1))]">
-                  <span className="rounded-full border border-[hsl(var(--gold-1)/0.5)] px-1">M</span>
-                  <span className="rounded-full border border-[hsl(var(--gold-1)/0.5)] px-1">A</span>
-                </span>
+            <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+              <button
+                onClick={() => setDepositTutorialOpen(true)}
+                className="inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-black tracking-wider uppercase bg-gradient-to-b from-emerald-400 to-emerald-700 text-white border border-emerald-300/60 shadow-[0_4px_18px_rgba(16,185,129,0.45)] hover:shadow-[0_4px_26px_rgba(16,185,129,0.7)] hover:brightness-110 active:scale-95 transition"
+              >
+                <ArrowDownToLine className="w-4 h-4" />
+                Dépôt
               </button>
-            </Link>
+              <button
+                onClick={() => nav("/wallet?tab=withdraw")}
+                className="inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-black tracking-wider uppercase bg-gradient-to-b from-amber-400 to-orange-600 text-white border border-amber-300/60 shadow-[0_4px_18px_rgba(245,158,11,0.45)] hover:shadow-[0_4px_26px_rgba(245,158,11,0.7)] hover:brightness-110 active:scale-95 transition"
+              >
+                <ArrowUpFromLine className="w-4 h-4" />
+                Retrait
+              </button>
+            </div>
           </div>
         </div>
+        <DepositTutorial open={depositTutorialOpen} onOpenChange={setDepositTutorialOpen} />
 
         <div className="crest-divider px-2">
           <span className="text-[10px] tracking-[0.4em] uppercase">— Salles —</span>

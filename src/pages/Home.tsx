@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { fmtAr } from "@/lib/constants";
 import { toast } from "sonner";
-import { Wallet, Users, Trophy, MessageCircle, LogOut, Shield, MessagesSquare, User as UserIcon, Download, FileEdit, RotateCcw, BookOpen, ArrowDownToLine } from "lucide-react";
+import { Wallet, Users, Trophy, MessageCircle, LogOut, Shield, MessagesSquare, User as UserIcon, Download, FileEdit, RotateCcw, BookOpen, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 import { Play } from "lucide-react";
 import CircleNavButton from "@/components/CircleNavButton";
 import logo from "@/assets/logo.png";

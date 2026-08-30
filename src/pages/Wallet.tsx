@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { PasswordInput } from "@/components/PasswordInput";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ import orangeLogo from "@/assets/orange-logo.png.asset.json";
 export default function Wallet() {
   const { user } = useAuth();
   const nav = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState<string>(searchParams.get("tab") === "withdraw" ? "withdraw" : "deposit");
   const [balance, setBalance] = useState(0);
   const [txs, setTxs] = useState<any[]>([]);
   const [amount, setAmount] = useState("");
@@ -183,7 +185,7 @@ export default function Wallet() {
           <p className="text-2xl sm:text-3xl font-display gold-text font-bold mt-1">{fmtAr(balance)}</p>
         </div>
 
-        <Tabs defaultValue="deposit" className="card-felt rounded-2xl p-4">
+        <Tabs value={tab} onValueChange={setTab} className="card-felt rounded-2xl p-4">
           <TabsList className="grid grid-cols-2 w-full">
             <TabsTrigger value="deposit"><ArrowDownToLine className="w-4 h-4 mr-2" />Dépôt</TabsTrigger>
             <TabsTrigger value="withdraw"><ArrowUpFromLine className="w-4 h-4 mr-2" />Retrait</TabsTrigger>

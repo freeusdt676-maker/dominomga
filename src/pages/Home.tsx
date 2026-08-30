@@ -44,6 +44,7 @@ export default function Home() {
   const [resetting, setResetting] = useState(false);
   const [activeLudoId, setActiveLudoId] = useState<string | null>(null);
   const [activePetanqueId, setActivePetanqueId] = useState<string | null>(null);
+  const [depositTutorialOpen, setDepositTutorialOpen] = useState(false);
 
   useEffect(() => {
     const onBip = (e: any) => { e.preventDefault(); setInstallPrompt(e); };

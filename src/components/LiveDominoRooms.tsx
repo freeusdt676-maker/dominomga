@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,8 +37,11 @@ export default function LiveDominoRooms() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [joining, setJoining] = useState<string | null>(null);
 
+  const busyRef = useRef(false);
   const load = async () => {
-    if (!user) return;
+    if (!user || busyRef.current) return;
+    busyRef.current = true;
+    try {
     const { data } = await supabase
       .from("games")
       .select("id, player1_id, player2_id, player3_id, stake, created_at, game_mode, players_count, status")
@@ -61,6 +64,9 @@ export default function LiveDominoRooms() {
       (ps ?? []).forEach((p: any) => { names[p.user_id] = p.mvola_name; });
     }
     setRooms(open.map((g) => ({ ...g, _name: names[g.player1_id] ?? "Mpilalao" })));
+    } finally {
+      busyRef.current = false;
+    }
   };
 
   useEffect(() => {

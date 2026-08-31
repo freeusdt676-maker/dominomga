@@ -43,6 +43,9 @@ const EMOJIS = [
 export default function OnlineChatPanel() {
   const { user, isAdmin } = useAuth();
   const [members, setMembers] = useState<PresenceMember[]>([]);
+  const botOnline = useVirtualOnlineCount();
+  const onlineTotal = members.length + botOnline;
+
   const [messages, setMessages] = useState<any[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
   const [text, setText] = useState("");

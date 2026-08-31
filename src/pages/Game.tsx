@@ -1312,38 +1312,30 @@ export default function Game() {
           return 0;
         });
       const targetPtsBot = Number((fresh as any).target_points ?? (Number(fresh.players_count ?? 2) === 3 ? 120 : 80));
-      // Bot GRAND-MAÎTRE: perfect information — mahafantatra ny vaton'ny
-      // mpilalao rehetra sy ny boneyard, ka milalao araka ny minimax solver
-      // (tsara lavitra noho ny olombelona).
-      const allIds = getPlayerIds(fresh);
-      const botIdx = allIds.indexOf(turnId);
-      const orderedOppHands: Tile[][] = [];
-      for (let k = 1; k < allIds.length; k += 1) {
-        const pid = allIds[(botIdx + k) % allIds.length];
-        const kKey = getHandKey(fresh, pid);
-        if (kKey) orderedOppHands.push(((fresh[kKey] as Tile[]) ?? []) as Tile[]);
-      }
-      const perfectBoneyard: Tile[] = ((fresh.boneyard as Tile[]) ?? []) as Tile[];
-      const freshPasses = Number((fresh as any).passes ?? (fresh.board_state as any)?.passes ?? 0);
-
-      // 1) Exact minimax solver (full knowledge of every hand).
+      // Bot MALEMY: milalao amin'ny fahalalana ara-drariny ihany (vatony sy
+      // ny latabatra), ary misafidy vato mora (isa kely) — mitondra any
+      // amin'ny faharesena fa tsy favori intsony.
+      void oppSizes; void boneyardSize; void oppScoresArr; void targetPtsBot;
       let best: { index: number; side: "left" | "right" } | null = null;
-      try {
-        const solved = bestExactMove(turnHand, orderedOppHands, liveBoard, freshPasses);
-        if (solved) best = { index: solved.index, side: solved.side };
-      } catch { /* fallback below */ }
-
-      // 2) Fallback: heuristic grand-master with perfect info.
-      if (!best) {
-        best = chooseBestBotMove(turnHand, liveBoard, {
-          opponentSizes: oppSizes,
-          boneyardSize,
-          opponentScores: oppScoresArr,
-          targetPts: targetPtsBot,
-          opponentHands: orderedOppHands,
-          boneyard: perfectBoneyard,
-        }) as any;
+      {
+        type C = { index: number; side: "left" | "right"; score: number };
+        const cands: C[] = [];
+        for (let i = 0; i < turnHand.length; i += 1) {
+          const t = turnHand[i];
+          const can = canPlaceSide(liveBoard, t);
+          if (!can) continue;
+          const sides: ("left" | "right")[] = can === "either" ? ["left", "right"] : [can];
+          for (const side of sides) {
+            // Mora indrindra: mandefa vato isa kely, mitazona ny mavesatra.
+            let sc = t[0] + t[1];
+            if (t[0] === t[1]) sc += 4; // mitazona ny double
+            cands.push({ index: i, side, score: sc });
+          }
+        }
+        cands.sort((a, b) => a.score - b.score);
+        best = cands[0] ? { index: cands[0].index, side: cands[0].side } : null;
       }
+
 
 
 

@@ -370,10 +370,18 @@ Deno.serve(async (req) => {
   );
 
   const cutoffMs = Date.now() - HANG_THRESHOLD_MS;
-  // Mpilalao virtuel: mikitika ao anatin'ny 0–7s (tsy 15s) ary manana
-  // tahan-pandresena voafetra (65%).
-  const { data: vps } = await supabase.from("virtual_players").select("user_id").eq("active", true);
-  const virtualIds = new Set<string>((vps ?? []).map((v: any) => v.user_id));
+  // Mpilalao virtuel: mikitika ao anatin'ny 0–7s (fa tsy 15s).
+  // TSY misy tahan-pandresena voatendry mialoha — ny fanapahan-kevitra AI
+  // sy ny vato tena azo ihany no mamaritra ny valiny (fair game).
+  const { data: vps } = await supabase
+    .from("virtual_players")
+    .select("user_id, level")
+    .eq("active", true);
+  const virtualLevel = new Map<string, string>(
+    (vps ?? []).map((v: any) => [v.user_id as string, (v.level as string) ?? "expert"]),
+  );
+  const virtualIds = new Set<string>(virtualLevel.keys());
+
 
   const { data: games, error } = await supabase
     .from("games")

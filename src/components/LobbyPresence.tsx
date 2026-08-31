@@ -59,27 +59,17 @@ export default function LobbyPresence({ kind, accent = "text-primary" }: Props) 
 
   return (
     <div className="rounded-2xl p-4 border border-white/10 bg-black/20 backdrop-blur">
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-2">
         <Users className={`w-4 h-4 ${accent}`} />
-        <h3 className={`font-display font-bold ${accent}`}>
-          Olona ao amin'ny Lobby ({members.length})
-        </h3>
+        <h3 className={`font-display font-bold ${accent}`}>Olona ao amin'ny Lobby</h3>
+        <span className="ml-auto flex items-center gap-1.5 text-sm font-extrabold tabular-nums text-emerald-300">
+          <span className="relative flex w-2.5 h-2.5">
+            <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400" />
+            <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-70" />
+          </span>
+          {members.length} en ligne
+        </span>
       </div>
-      {members.length === 0 ? (
-        <p className="text-center text-xs text-muted-foreground py-3">Tsy mbola misy</p>
-      ) : (
-        <ul className="flex flex-wrap gap-1.5">
-          {members.map((m) => (
-            <li
-              key={m.user_id}
-              className="px-2 py-1 rounded-full text-[11px] font-semibold bg-white/10 border border-white/15"
-            >
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 align-middle" />
-              {m.name}
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 }

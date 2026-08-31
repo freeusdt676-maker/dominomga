@@ -1779,6 +1779,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_virtual_player: { Args: { _uid: string }; Returns: boolean }
       join_3p_start: {
         Args: { _game_id: string; _player3: string }
         Returns: Json

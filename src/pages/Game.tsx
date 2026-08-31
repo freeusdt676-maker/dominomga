@@ -1320,11 +1320,16 @@ export default function Game() {
       {
         type C = { index: number; side: "left" | "right"; score: number };
         const cands: C[] = [];
+        const e = ends(liveBoard);
         for (let i = 0; i < turnHand.length; i += 1) {
           const t = turnHand[i];
-          const can = canPlaceSide(liveBoard, t);
-          if (!can) continue;
-          const sides: ("left" | "right")[] = can === "either" ? ["left", "right"] : [can];
+          if (!canPlace(liveBoard, t)) continue;
+          const sides: ("left" | "right")[] = !e
+            ? ["left"]
+            : ([
+                ...(t[0] === e.left || t[1] === e.left ? ["left"] : []),
+                ...(t[0] === e.right || t[1] === e.right ? ["right"] : []),
+              ] as ("left" | "right")[]);
           for (const side of sides) {
             // Mora indrindra: mandefa vato isa kely, mitazona ny mavesatra.
             let sc = t[0] + t[1];
@@ -1332,6 +1337,7 @@ export default function Game() {
             cands.push({ index: i, side, score: sc });
           }
         }
+
         cands.sort((a, b) => a.score - b.score);
         best = cands[0] ? { index: cands[0].index, side: cands[0].side } : null;
       }

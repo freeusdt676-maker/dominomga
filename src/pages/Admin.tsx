@@ -15,6 +15,8 @@ import { DominoTile } from "@/components/DominoTile";
 import PendingProfileApprovals from "@/components/PendingProfileApprovals";
 import PasswordRecoveryAdmin from "@/components/PasswordRecoveryAdmin";
 import TournamentAdmin from "@/components/TournamentAdmin";
+import VirtualPlayersAdmin from "@/components/VirtualPlayersAdmin";
+
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import OnlineUsersDialog from "@/components/OnlineUsersDialog";
 import CircleNavButton from "@/components/CircleNavButton";
@@ -865,7 +867,15 @@ export default function Admin() {
             <TabsTrigger value="commissions" className="shrink-0 whitespace-nowrap px-3">Commission</TabsTrigger>
             <TabsTrigger value="tournoi" className="shrink-0 whitespace-nowrap px-3">🏆 Tournoi</TabsTrigger>
             <TabsTrigger value="gestionnaire" className="shrink-0 whitespace-nowrap px-3">🔐 Gestionnaire</TabsTrigger>
+            <TabsTrigger value="bots" className="shrink-0 whitespace-nowrap px-3">🤖 Bots</TabsTrigger>
           </TabsList>
+
+          {/* JOUEURS VIRTUELS (admin only) */}
+          <TabsContent value="bots" className="mt-3">
+            <VirtualPlayersAdmin />
+          </TabsContent>
+
+
 
           {/* MPILALAO */}
           <TabsContent value="users" className="space-y-2 mt-3 max-h-[70vh] overflow-y-auto">

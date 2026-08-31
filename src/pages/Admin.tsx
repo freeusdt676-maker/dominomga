@@ -301,9 +301,13 @@ export default function Admin() {
       })
       .sort((a, b) => new Date(b.finished_at ?? 0).getTime() - new Date(a.finished_at ?? 0).getTime());
     setCommissions(commissionRows);
+    } finally {
+      busyRef.current = false;
+    }
   };
 
-  useEffect(() => { if (allowed) load(); }, [allowed, user]);
+  useEffect(() => { if (allowed) load({ heavy: true }); }, [allowed, user]);
+
 
   useEffect(() => {
     if (!allowed) return;

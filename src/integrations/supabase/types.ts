@@ -1398,6 +1398,42 @@ export type Database = {
         }
         Relationships: []
       }
+      virtual_players: {
+        Row: {
+          active: boolean
+          busy_until: string | null
+          created_at: string
+          name: string
+          online: boolean
+          online_until: string | null
+          phone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          busy_until?: string | null
+          created_at?: string
+          name: string
+          online?: boolean
+          online_until?: string | null
+          phone: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          busy_until?: string | null
+          created_at?: string
+          name?: string
+          online?: boolean
+          online_until?: string | null
+          phone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       wallets: {
         Row: {
           balance: number
@@ -1727,6 +1763,14 @@ export type Database = {
         Args: { _game_id: string; _player2: string }
         Returns: Json
       }
+      list_online_players: {
+        Args: never
+        Returns: {
+          name: string
+          phone_masked: string
+          user_id: string
+        }[]
+      }
       lobby_admin_sender_ids: { Args: never; Returns: string[] }
       log_audit: { Args: { _action: string; _meta?: Json }; Returns: undefined }
       ludo_cancel_waiting: { Args: { _game_id: string }; Returns: Json }
@@ -1932,6 +1976,14 @@ export type Database = {
       verify_game_settlement: {
         Args: { _game_id: string; _kind: string }
         Returns: Json
+      }
+      virtual_set_online: {
+        Args: { _ids: string[]; _online: boolean }
+        Returns: undefined
+      }
+      virtual_topup: {
+        Args: { _min: number; _user: string }
+        Returns: undefined
       }
       wallet_verify_pin: { Args: { _pin: string }; Returns: boolean }
       withdraw_request: {

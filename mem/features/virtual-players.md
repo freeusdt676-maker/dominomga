@@ -12,4 +12,6 @@ type: feature
 - Presence UI shows only a count ("N en ligne" + green dot), never names.
 - RÈGLE: aucune partie ne tourne sans au moins UN joueur réel. Les bots ne rejoignent que les salles contenant un vrai joueur; `purge_bot_only_games()` (appelée à chaque tick) annule les parties `in_progress` 100% bots.
 - Les salles ouvertes (waiting) créées par les bots restent, minimum 5 en permanence — elles servent d'appât pour les vrais joueurs.
+- EXCEPTION à la règle "aucune partie sans vrai joueur": exactement 2 parties 100% bots peuvent tourner en permanence (vitrine). `purge_bot_only_games()` garde les 2 plus récentes et annule le reste.
+- Mode des salles créées par les bots: D80 habituel, ~1 sur 5 en D120.
 - Compteur "en ligne" = présence réelle + `virtual_online_count()` (RPC public, isa fotsiny, jamais de noms).

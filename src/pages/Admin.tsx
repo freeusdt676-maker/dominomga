@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PasswordInput } from "@/components/PasswordInput";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -133,7 +133,15 @@ export default function Admin() {
     return () => { supabase.removeChannel(ch); };
   }, [allowed]);
 
-  const load = async () => {
+  const heavyAtRef = useRef(0);
+  const busyRef = useRef(false);
+  const load = async (opts?: { heavy?: boolean }) => {
+    // Fiarovana: tsy avela mifanindry ny requête (miteraka firaiketana rehefa
+    // maro ny pilalao sy ny événements temps réel).
+    if (busyRef.current) return;
+    busyRef.current = true;
+    try {
+
     // 1) Profiles (rehetra)
     const { data: u, error: uErr } = await supabase
       .from("profiles")
@@ -214,25 +222,31 @@ export default function Admin() {
       setGameBlocks(next);
     }
 
-    // Historique Domino + Ludo
-    const { data: hg } = await supabase
-      .from("games")
-      .select("id, ticket_number, stake, player1_id, player2_id, player3_id, winner_id, status, created_at, finished_at, turn_started_at, players_count")
-      .not("ticket_number", "is", null)
-      .order("created_at", { ascending: false })
-      .limit(500);
-    const { data: lg } = await supabase
-      .from("ludo_games" as any)
-      .select("id, ticket_number, stake, player1_id, player2_id, player3_id, player4_id, winner_id, status, created_at, finished_at, turn_started_at, players_count")
-      .not("ticket_number", "is", null)
-      .order("created_at", { ascending: false })
-      .limit(500);
-    const { data: pg } = await supabase
-      .from("petanque_games" as any)
-      .select("id, ticket_number, stake, player1_id, player2_id, winner_id, status, created_at, finished_at, turn_started_at, score_p1, score_p2, round_number")
-      .not("ticket_number", "is", null)
-      .order("created_at", { ascending: false })
-      .limit(500);
+    // Historique (mavesatra) — indray mandeha isaky ny 60s ihany, na raha
+    // notakiana mivantana (heavy), mba tsy hiraikitra ny admin.
+    if (!opts?.heavy && Date.now() - heavyAtRef.current < 60_000) return;
+    heavyAtRef.current = Date.now();
+    const [{ data: hg }, { data: lg }, { data: pg }] = await Promise.all([
+      supabase
+        .from("games")
+        .select("id, ticket_number, stake, player1_id, player2_id, player3_id, winner_id, status, created_at, finished_at, turn_started_at, players_count")
+        .not("ticket_number", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(200),
+      supabase
+        .from("ludo_games" as any)
+        .select("id, ticket_number, stake, player1_id, player2_id, player3_id, player4_id, winner_id, status, created_at, finished_at, turn_started_at, players_count")
+        .not("ticket_number", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(200),
+      supabase
+        .from("petanque_games" as any)
+        .select("id, ticket_number, stake, player1_id, player2_id, winner_id, status, created_at, finished_at, turn_started_at, score_p1, score_p2, round_number")
+        .not("ticket_number", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(200),
+    ]);
+
 
     const dominoHistory = (hg ?? []).map((game: any) => ({
       ...game,
@@ -287,31 +301,39 @@ export default function Admin() {
       })
       .sort((a, b) => new Date(b.finished_at ?? 0).getTime() - new Date(a.finished_at ?? 0).getTime());
     setCommissions(commissionRows);
+    } finally {
+      busyRef.current = false;
+    }
   };
 
-  useEffect(() => { if (allowed) load(); }, [allowed, user]);
+  useEffect(() => { if (allowed) load({ heavy: true }); }, [allowed, user]);
+
 
   useEffect(() => {
     if (!allowed) return;
-    // Debounce: ny table games/ludo/petanque dia manova matetika be rehefa maro
-    // ny lalao mandeha. Tsy maintsy atambatra ny reload mba tsy hiraikitra.
+    // Debounce + throttle: rehefa maro ny pilalao dia arivo ny événements
+    // (wallets, games…). Atambatra ho reload iray isaky ny 6s farafahakeliny.
     let t: any = null;
+    let last = 0;
     const reload = () => {
+      if (document.visibilityState !== "visible") return;
       if (t) clearTimeout(t);
-      t = setTimeout(() => { if (document.visibilityState === "visible") load(); }, 1200);
+      const wait = Math.max(1500, 6000 - (Date.now() - last));
+      t = setTimeout(() => { last = Date.now(); load(); }, wait);
     };
     const ch = supabase
       .channel("admin-rt")
-      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, reload)
       .on("postgres_changes", { event: "*", schema: "public", table: "transactions" }, reload)
       .on("postgres_changes", { event: "*", schema: "public", table: "password_reset_requests" }, reload)
-      .on("postgres_changes", { event: "*", schema: "public", table: "wallets" }, reload)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "games" }, reload)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "ludo_games" }, reload)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "petanque_games" }, reload)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "profiles" }, reload)
       .subscribe();
-    return () => { supabase.removeChannel(ch); if (t) clearTimeout(t); };
+    // Rafitra mavesatra (historique, solde) — indray mandeha isaky ny 60s.
+    const itv = setInterval(() => {
+      if (document.visibilityState === "visible") load({ heavy: true });
+    }, 60_000);
+    return () => { supabase.removeChannel(ch); clearInterval(itv); if (t) clearTimeout(t); };
   }, [allowed]);
+
 
 
   if (roleOk === null) return (

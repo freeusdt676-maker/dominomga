@@ -192,19 +192,26 @@ async function lobbyStep(supabase: any, players: any[], virtualIds: Set<string>)
     }
   }
 
-  // 2) Fitantanana ny isan'ny LALAO EN LIVE: 4 → 8 ihany.
-  //    Ny lalao ataon'ny olona TENA IZY no laharam-pahamehana; ny virtuel dia
-  //    fanampiny fameno isa ihany ka mihena rehefa maro ny olona tena izy.
-  const LIVE_MIN = 4;
-  const LIVE_MAX = 8;
+  // 2) Fitantanana ny SALLE MISOKATRA: tsy latsaka ny 5 foana ny lobby vonona.
+  const LIVE_MIN = 5;
+  const LIVE_MAX = 10;
+  const OPEN_MIN = 5;
   const liveAll = all.filter((g) => g.status === "waiting" || g.status === "in_progress");
   const realLive = liveAll.filter((g) => !virtualIds.has(g.player1_id));
   const virtualWaiting = all.filter((g) => g.status === "waiting" && virtualIds.has(g.player1_id));
   const liveCount = liveAll.length;
+  // Salle mbola azo idirana (misy toerana malalaka)
+  const openNow = all.filter((g) => {
+    const pc = Number(g.players_count ?? 2);
+    if (pc === 2) return g.status === "waiting" && !g.player2_id;
+    return !g.player3_id && (g.status === "waiting" || g.status === "in_progress");
+  }).length;
 
   let created = 0;
-  if (liveCount < LIVE_MIN && freeOnline.length > 0) {
-    const host = freeOnline[0];
+  const need = Math.max(OPEN_MIN - openNow, liveCount < LIVE_MIN ? LIVE_MIN - liveCount : 0);
+  for (let i = 0; i < Math.min(need, 3); i += 1) {
+    const host = freeOnline[i];
+    if (!host) break;
     const stake = rnd(STAKES);
     await supabase.rpc("virtual_topup", { _user: host.user_id, _min: BOT_BALANCE });
     const { error } = await supabase.from("games").insert({
@@ -214,22 +221,26 @@ async function lobbyStep(supabase: any, players: any[], virtualIds: Set<string>)
       game_mode: rnd(MODES),
       players_count: Math.random() < 0.7 ? 2 : 3,
     });
-    if (!error) created += 1;
+    if (!error) { created += 1; busy.add(host.user_id); }
   }
 
-  // 3) Fanadiovana: (a) salle virtuel ela loatra (>5 min) tsy nisy niditra,
-  //    (b) mihoatra ny 8 ny live na feno ny an'ny olona tena izy → esorina ny
-  //    salle virtuel mbola "waiting" tsy misy mpilalao tena izy.
-  const stale = virtualWaiting.filter(
-    (g) => !g.player2_id && Date.now() - new Date(g.created_at).getTime() > 5 * 60_000,
+  // 3) Fanadiovana: salle virtuel ela loatra (>8 min) na mihoatra ny fetra —
+  //    fa tsy mamela ny salle misokatra ho latsaka ny 5.
+  const removable = Math.max(0, openNow + created - OPEN_MIN);
+  const stale = virtualWaiting
+    .filter((g) => !g.player2_id && Date.now() - new Date(g.created_at).getTime() > 8 * 60_000)
+    .slice(0, removable);
+  const surplusCount = Math.max(
+    0,
+    Math.min(removable - stale.length, Math.max(0, liveCount - LIVE_MAX) + Math.max(0, realLive.length - LIVE_MIN)),
   );
-  const surplusCount = Math.max(0, liveCount - LIVE_MAX) + Math.max(0, realLive.length - LIVE_MIN);
   const surplus = virtualWaiting
     .filter((g) => !g.player2_id && !stale.includes(g))
     .slice(0, surplusCount);
   for (const g of [...stale, ...surplus]) {
     await supabase.from("games").delete().eq("id", g.id).eq("status", "waiting");
   }
+
   return { joined, created, cleaned: stale.length + surplus.length, busy };
 
 }

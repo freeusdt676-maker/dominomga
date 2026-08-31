@@ -225,6 +225,24 @@ function chooseBestBotMove(
   return cands[0] ?? null;
 }
 
+function chooseWeakMove(hand: Tile[], board: Placed[]): { index: number; side: "left" | "right" } | null {
+  type C = { index: number; side: "left" | "right"; score: number };
+  const cands: C[] = [];
+  for (let i = 0; i < hand.length; i += 1) {
+    const t = hand[i];
+    const can = canPlaceSide(board, t);
+    if (!can) continue;
+    const sides: ("left" | "right")[] = can === "either" ? ["left", "right"] : [can];
+    for (const side of sides) {
+      let sc = t[0] + t[1];
+      if (t[0] === t[1]) sc += 4;
+      cands.push({ index: i, side, score: sc });
+    }
+  }
+  cands.sort((a, b) => a.score - b.score);
+  return cands[0] ? { index: cands[0].index, side: cands[0].side } : null;
+}
+
 function targetFor(mode: string | null | undefined) {
   return mode === "d80" ? 80 : 120;
 }

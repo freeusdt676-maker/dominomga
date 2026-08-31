@@ -14,7 +14,10 @@ const POOL_MIN = 30;
 const MIN_LIVE = 5;
 const BOT_BALANCE = 500_000;
 const STAKES = [500, 1000, 2000, 3000, 5000];
-const MODES = ["d80", "d120"];
+// Ny bot: matetika D80, 1 amin'ny 5 ihany no D120.
+const MODES = ["d80", "d80", "d80", "d80", "d120"];
+// Isan'ny lalao 100% bot avela mandeha foana ao amin'ny lobby (vitrine).
+const SHOWCASE_BOT_GAMES = 2;
 
 const FIRST = [
   "Rado", "Tiana", "Fenohasina", "Nirina", "Mamy", "Hery", "Njaka", "Fanjava",
@@ -163,6 +166,14 @@ async function lobbyStep(supabase: any, players: any[], virtualIds: Set<string>)
   }
   const freeOnline = players.filter((p) => p.online && !busy.has(p.user_id));
 
+  // Isan'ny lalao mandeha izay 100% bot (vitrine)
+  let botLive = all.filter((g) =>
+    g.status === "in_progress" &&
+    virtualIds.has(g.player1_id) &&
+    (!g.player2_id || virtualIds.has(g.player2_id)) &&
+    (!g.player3_id || virtualIds.has(g.player3_id))
+  ).length;
+
   // 1) Fidirana amin'ny salle misokatra (na an'olona na an'ny virtuel)
   const open = all.filter((g) => {
     const pc = Number(g.players_count ?? 2);
@@ -179,7 +190,11 @@ async function lobbyStep(supabase: any, players: any[], virtualIds: Set<string>)
     // FITSIPIKA: tsy misy lalao mandeha raha tsy misy mpilalao TENA IZY ao.
     // Ka ny bot dia tsy miditra afa-tsy amin'ny salle misy olona tena izy.
     const hasReal = !virtualIds.has(g.player1_id) || (!!g.player2_id && !virtualIds.has(g.player2_id));
-    if (!hasReal) continue;
+    if (!hasReal) {
+      // Avela mandeha foana ny lalao 2 an'ny bot mba tsy ho foana ny lobby.
+      if (botLive >= SHOWCASE_BOT_GAMES) continue;
+      botLive += 1;
+    }
     if (Date.now() - since < wait) continue;
 
     const cand = freeOnline.find((p) => Number(g.stake) <= BOT_BALANCE && p.user_id !== g.player1_id && p.user_id !== g.player2_id);

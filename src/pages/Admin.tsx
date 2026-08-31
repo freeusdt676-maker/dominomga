@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PasswordInput } from "@/components/PasswordInput";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";

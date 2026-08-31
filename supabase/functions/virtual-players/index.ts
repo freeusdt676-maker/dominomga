@@ -69,14 +69,28 @@ function targetOnline(): number {
   return Math.max(MIN_LIVE, Math.round(MIN_LIVE + (day - MIN_LIVE) * ratio));
 }
 
+const LEVELS = ["expert", "expert", "expert", "avance", "faible"];
+
 async function ensurePool(supabase: any, existing: any[]) {
   const missing = POOL_MAX - existing.length;
   if (missing <= 0) return 0;
+  const usedNames = new Set<string>(existing.map((p: any) => p.name));
+  const usedPhones = new Set<string>(existing.map((p: any) => p.phone));
   const toCreate = Math.min(missing, 3);
   let created = 0;
   for (let i = 0; i < toCreate; i += 1) {
-    const name = `${rnd(FIRST)} ${rnd(LAST)}`.slice(0, 10).trim();
-    const phone = `${rnd(PREFIX)}${rndInt(1000000, 9999999)}`;
+    let name = "";
+    for (let t = 0; t < 20; t += 1) {
+      const c = `${rnd(FIRST)} ${rnd(LAST)}`.slice(0, 10).trim();
+      if (!usedNames.has(c)) { name = c; break; }
+    }
+    if (!name) continue;
+    let phone = "";
+    for (let t = 0; t < 20; t += 1) {
+      const c = `${rnd(PREFIX)}${rndInt(1000000, 9999999)}`;
+      if (!usedPhones.has(c)) { phone = c; break; }
+    }
+    if (!phone) continue;
     const email = `vp.${crypto.randomUUID().slice(0, 12)}@virtual.local`;
     const { data, error } = await supabase.auth.admin.createUser({
       email,
@@ -91,13 +105,18 @@ async function ensurePool(supabase: any, existing: any[]) {
     });
     if (error || !data?.user) continue;
     const uid = data.user.id;
-    const { error: insErr } = await supabase.from("virtual_players").insert({ user_id: uid, name, phone });
+    const { error: insErr } = await supabase
+      .from("virtual_players")
+      .insert({ user_id: uid, name, phone, level: rnd(LEVELS) });
     if (insErr) continue;
+    usedNames.add(name);
+    usedPhones.add(phone);
     await supabase.rpc("virtual_topup", { _user: uid, _min: BOT_BALANCE });
     created += 1;
   }
   return created;
 }
+
 
 async function syncPresence(supabase: any, players: any[], busyIds: Set<string>) {
   const target = targetOnline();
@@ -214,7 +233,7 @@ Deno.serve(async (req) => {
     while (Date.now() - started < 50_000) {
       const { data: players } = await supabase
         .from("virtual_players")
-        .select("user_id, name, online, active")
+        .select("user_id, name, phone, level, online, active")
         .eq("active", true);
       const list = players ?? [];
       if (list.length < POOL_MAX) stats.created += await ensurePool(supabase, list);

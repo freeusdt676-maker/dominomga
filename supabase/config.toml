@@ -20,3 +20,9 @@ verify_jwt = false
 
 [functions.storage-cleanup]
 verify_jwt = false
+
+[functions.domino-autoplay]
+verify_jwt = false
+
+[functions.virtual-players]
+verify_jwt = false

@@ -1403,34 +1403,43 @@ export type Database = {
           active: boolean
           busy_until: string | null
           created_at: string
+          games_played: number
+          level: string
           name: string
           online: boolean
           online_until: string | null
           phone: string
           updated_at: string
           user_id: string
+          wins: number
         }
         Insert: {
           active?: boolean
           busy_until?: string | null
           created_at?: string
+          games_played?: number
+          level?: string
           name: string
           online?: boolean
           online_until?: string | null
           phone: string
           updated_at?: string
           user_id: string
+          wins?: number
         }
         Update: {
           active?: boolean
           busy_until?: string | null
           created_at?: string
+          games_played?: number
+          level?: string
           name?: string
           online?: boolean
           online_until?: string | null
           phone?: string
           updated_at?: string
           user_id?: string
+          wins?: number
         }
         Relationships: []
       }
@@ -1568,6 +1577,21 @@ export type Database = {
           processed_at: string
           status: string
           user_id: string
+        }[]
+      }
+      admin_list_virtual_players: {
+        Args: never
+        Returns: {
+          active: boolean
+          game_id: string
+          games_played: number
+          level: string
+          name: string
+          online: boolean
+          phone: string
+          status: string
+          user_id: string
+          wins: number
         }[]
       }
       admin_reject_profile_change: {

@@ -370,10 +370,18 @@ Deno.serve(async (req) => {
   );
 
   const cutoffMs = Date.now() - HANG_THRESHOLD_MS;
-  // Mpilalao virtuel: mikitika ao anatin'ny 0–7s (tsy 15s) ary manana
-  // tahan-pandresena voafetra (65%).
-  const { data: vps } = await supabase.from("virtual_players").select("user_id").eq("active", true);
-  const virtualIds = new Set<string>((vps ?? []).map((v: any) => v.user_id));
+  // Mpilalao virtuel: mikitika ao anatin'ny 0–7s (fa tsy 15s).
+  // TSY misy tahan-pandresena voatendry mialoha — ny fanapahan-kevitra AI
+  // sy ny vato tena azo ihany no mamaritra ny valiny (fair game).
+  const { data: vps } = await supabase
+    .from("virtual_players")
+    .select("user_id, level")
+    .eq("active", true);
+  const virtualLevel = new Map<string, string>(
+    (vps ?? []).map((v: any) => [v.user_id as string, (v.level as string) ?? "expert"]),
+  );
+  const virtualIds = new Set<string>(virtualLevel.keys());
+
 
   const { data: games, error } = await supabase
     .from("games")
@@ -406,10 +414,12 @@ Deno.serve(async (req) => {
     const board = ((g as any).board_state ?? []) as Placed[];
     if (!g.turn_started_at) continue;
     const startedMs = new Date(g.turn_started_at).getTime();
+    const level = isVirtual ? (virtualLevel.get(g.current_turn as string) ?? "expert") : "expert";
     if (isVirtual) {
-      // Fiandrasana tsy mitovy isaky ny fihetsika: 0.4s → 7s
-      const seed = hashSeed(`${g.id}:${g.round_number ?? 1}:${board.length}`);
-      const waitMs = 400 + (seed % 6600);
+      // Fiandrasana tsy mitovy velively: 0–7s, miankina amin'ny tour sy ny toe-javatra.
+      const seed = hashSeed(`${g.id}:${g.turn_started_at}:${board.length}:${g.round_number ?? 1}`);
+      const base = seed % 7000; // 0 → 7s
+      const waitMs = level === "faible" ? Math.min(6999, base + 500) : base;
       if (Date.now() - startedMs < waitMs) continue;
     } else if (startedMs > cutoffMs) {
       continue;
@@ -419,10 +429,14 @@ Deno.serve(async (req) => {
     const oppSizes = getPlayerIds(g)
       .filter((id) => id !== g.current_turn)
       .map((id) => getHand(g, id).length);
-    const strongMode = !isVirtual || (hashSeed(`${g.id}:strength`) % 100) < 65;
-    const best = strongMode
-      ? chooseBestBotMove(hand, board, { opponentSizes: oppSizes })
-      : chooseWeakMove(hand, board);
+    // Ny niveau ihany no manova ny hakingan'ny fanapahan-kevitra — tsy misy
+    // fanovana vato na valiny voatendry mialoha.
+    const weakSlip = level === "faible"
+      && (hashSeed(`${g.id}:${g.turn_started_at}:slip`) % 100) < 55;
+    const best = weakSlip
+      ? chooseWeakMove(hand, board)
+      : chooseBestBotMove(hand, board, { opponentSizes: oppSizes });
+
 
     if (best && handKey) {
       const tile = hand[best.index];

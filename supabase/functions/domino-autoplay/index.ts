@@ -352,6 +352,11 @@ Deno.serve(async (req) => {
   );
 
   const cutoffMs = Date.now() - HANG_THRESHOLD_MS;
+  // Mpilalao virtuel: mikitika ao anatin'ny 0–7s (tsy 15s) ary manana
+  // tahan-pandresena voafetra (65%).
+  const { data: vps } = await supabase.from("virtual_players").select("user_id").eq("active", true);
+  const virtualIds = new Set<string>((vps ?? []).map((v: any) => v.user_id));
+
   const { data: games, error } = await supabase
     .from("games")
     .select("id, ticket_number, game_mode, players_count, player1_id, player2_id, player3_id, current_turn, turn_started_at, status, passes, board_state, player1_hand, player2_hand, player3_hand, boneyard, score_p1, score_p2, score_p3, round_number, reveal_until, last_reason, pending_winner_id")

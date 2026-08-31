@@ -18,7 +18,7 @@ type Room = {
   _name?: string;
 };
 
-const EXPIRY_MS = 2 * 60 * 1000;
+const EXPIRY_MS = 8 * 60 * 1000;
 
 export function seatsOf(g: Room) {
   const total = Number(g.players_count ?? 2);

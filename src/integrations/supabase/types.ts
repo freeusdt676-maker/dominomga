@@ -1904,6 +1904,7 @@ export type Database = {
         }
         Returns: Json
       }
+      purge_bot_only_games: { Args: never; Returns: number }
       record_login_attempt: {
         Args: { _phone: string; _success: boolean }
         Returns: Json
@@ -2002,6 +2003,7 @@ export type Database = {
         Args: { _game_id: string; _kind: string }
         Returns: Json
       }
+      virtual_online_count: { Args: never; Returns: number }
       virtual_set_online: {
         Args: { _ids: string[]; _online: boolean }
         Returns: undefined

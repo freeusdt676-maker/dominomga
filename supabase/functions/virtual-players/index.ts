@@ -192,10 +192,18 @@ async function lobbyStep(supabase: any, players: any[], virtualIds: Set<string>)
     }
   }
 
-  // 2) Famoronana salle vaovao (mba hisy foana lalao azo idirana)
+  // 2) Fitantanana ny isan'ny LALAO EN LIVE: 4 → 8 ihany.
+  //    Ny lalao ataon'ny olona TENA IZY no laharam-pahamehana; ny virtuel dia
+  //    fanampiny fameno isa ihany ka mihena rehefa maro ny olona tena izy.
+  const LIVE_MIN = 4;
+  const LIVE_MAX = 8;
+  const liveAll = all.filter((g) => g.status === "waiting" || g.status === "in_progress");
+  const realLive = liveAll.filter((g) => !virtualIds.has(g.player1_id));
   const virtualWaiting = all.filter((g) => g.status === "waiting" && virtualIds.has(g.player1_id));
+  const liveCount = liveAll.length;
+
   let created = 0;
-  if (virtualWaiting.length < 3 && freeOnline.length > 0 && Math.random() < 0.5) {
+  if (liveCount < LIVE_MIN && freeOnline.length > 0) {
     const host = freeOnline[0];
     const stake = rnd(STAKES);
     await supabase.rpc("virtual_topup", { _user: host.user_id, _min: BOT_BALANCE });
@@ -209,14 +217,21 @@ async function lobbyStep(supabase: any, players: any[], virtualIds: Set<string>)
     if (!error) created += 1;
   }
 
-  // 3) Fanadiovana: salle virtuel efa ela loatra (>5 min) tsy nisy niditra
+  // 3) Fanadiovana: (a) salle virtuel ela loatra (>5 min) tsy nisy niditra,
+  //    (b) mihoatra ny 8 ny live na feno ny an'ny olona tena izy → esorina ny
+  //    salle virtuel mbola "waiting" tsy misy mpilalao tena izy.
   const stale = virtualWaiting.filter(
     (g) => !g.player2_id && Date.now() - new Date(g.created_at).getTime() > 5 * 60_000,
   );
-  for (const g of stale) {
+  const surplusCount = Math.max(0, liveCount - LIVE_MAX) + Math.max(0, realLive.length - LIVE_MIN);
+  const surplus = virtualWaiting
+    .filter((g) => !g.player2_id && !stale.includes(g))
+    .slice(0, surplusCount);
+  for (const g of [...stale, ...surplus]) {
     await supabase.from("games").delete().eq("id", g.id).eq("status", "waiting");
   }
-  return { joined, created, cleaned: stale.length, busy };
+  return { joined, created, cleaned: stale.length + surplus.length, busy };
+
 }
 
 Deno.serve(async (req) => {

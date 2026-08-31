@@ -4,6 +4,7 @@ import {
   subscribeOnlineMembers,
   type PresenceMember,
 } from "@/hooks/useGlobalPresence";
+import { useVirtualOnlineCount } from "@/hooks/useVirtualOnlineCount";
 
 type Props = { accent?: string };
 
@@ -14,6 +15,7 @@ type Props = { accent?: string };
  */
 export default function OnlineUsersList({ accent = "text-primary" }: Props) {
   const [members, setMembers] = useState<PresenceMember[]>([]);
+  const botOnline = useVirtualOnlineCount();
 
   useEffect(() => {
     return subscribeOnlineMembers(setMembers);
@@ -24,7 +26,7 @@ export default function OnlineUsersList({ accent = "text-primary" }: Props) {
       <div className="flex items-center gap-2 mb-2">
         <Globe2 className={`w-4 h-4 ${accent}`} />
         <h3 className={`font-display font-bold ${accent}`}>
-          En ligne amin'ny app ({members.length})
+          En ligne amin'ny app ({members.length + botOnline})
         </h3>
       </div>
       {members.length === 0 ? (

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Users } from "lucide-react";
+import { useVirtualOnlineCount } from "@/hooks/useVirtualOnlineCount";
 
 type Props = {
   kind: "domino" | "ludo" | "petanque";
@@ -18,6 +19,7 @@ type Member = { user_id: string; name: string };
 export default function LobbyPresence({ kind, accent = "text-primary" }: Props) {
   const { user } = useAuth();
   const [members, setMembers] = useState<Member[]>([]);
+  const botOnline = useVirtualOnlineCount();
 
   useEffect(() => {
     if (!user) return;
@@ -67,7 +69,7 @@ export default function LobbyPresence({ kind, accent = "text-primary" }: Props) 
             <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400" />
             <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-70" />
           </span>
-          {members.length} en ligne
+          {members.length + botOnline} en ligne
         </span>
       </div>
     </div>

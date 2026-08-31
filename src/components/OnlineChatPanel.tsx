@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { subscribeOnlineMembers, type PresenceMember } from "@/hooks/useGlobalPresence";
+import { useVirtualOnlineCount } from "@/hooks/useVirtualOnlineCount";
 import { Send, Trash2, Smile, Crown } from "lucide-react";
 import { toast } from "sonner";
 import LiveDominoRooms from "@/components/LiveDominoRooms";
@@ -42,6 +43,9 @@ const EMOJIS = [
 export default function OnlineChatPanel() {
   const { user, isAdmin } = useAuth();
   const [members, setMembers] = useState<PresenceMember[]>([]);
+  const botOnline = useVirtualOnlineCount();
+  const onlineTotal = members.length + botOnline;
+
   const [messages, setMessages] = useState<any[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
   const [text, setText] = useState("");
@@ -160,7 +164,7 @@ export default function OnlineChatPanel() {
           </p>
           <span className="flex items-center gap-1.5 text-[11px] font-extrabold tabular-nums gold-luxe-text">
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            {members.length} en ligne
+            {onlineTotal} en ligne
           </span>
         </div>
         <div className="mt-2.5 flex items-center gap-2">
@@ -169,7 +173,7 @@ export default function OnlineChatPanel() {
             <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-70" />
           </span>
           <span className="text-[12px] font-extrabold tabular-nums text-emerald-200">
-            {members.length} en ligne
+            {onlineTotal} en ligne
           </span>
         </div>
 

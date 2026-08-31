@@ -10,3 +10,6 @@ type: feature
 - Admin totals: `admin_total_player_balance` excludes admin AND virtual wallets. Helper `public.is_virtual_player(uuid)`.
 - SECRET: virtual status is admin-only (`admin_list_virtual_players`, Admin → 🤖 Bots tab). Never reveal it to players.
 - Presence UI shows only a count ("N en ligne" + green dot), never names.
+- RÈGLE: aucune partie ne tourne sans au moins UN joueur réel. Les bots ne rejoignent que les salles contenant un vrai joueur; `purge_bot_only_games()` (appelée à chaque tick) annule les parties `in_progress` 100% bots.
+- Les salles ouvertes (waiting) créées par les bots restent, minimum 5 en permanence — elles servent d'appât pour les vrais joueurs.
+- Compteur "en ligne" = présence réelle + `virtual_online_count()` (RPC public, isa fotsiny, jamais de noms).

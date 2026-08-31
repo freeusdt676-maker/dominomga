@@ -154,6 +154,9 @@ async function lobbyStep(supabase: any, players: any[], virtualIds: Set<string>)
     .in("status", ["waiting", "in_progress"])
     .limit(200);
   const all = rooms ?? [];
+  // Fanafoanana: lalao mandeha nefa tsy misy mpilalao tena izy ao — foanana.
+  try { await supabase.rpc("purge_bot_only_games"); } catch { /* ignore */ }
+
   const busy = new Set<string>();
   for (const g of all) {
     [g.player1_id, g.player2_id, g.player3_id].forEach((id: string | null) => { if (id) busy.add(id); });
@@ -173,9 +176,12 @@ async function lobbyStep(supabase: any, players: any[], virtualIds: Set<string>)
     const since = new Date(seat === 3 ? (g.updated_at ?? g.created_at) : g.created_at).getTime();
     // 30–60s fiandrasana mba homena vahana ny mpilalao tena izy
     const wait = 30_000 + (hashSeed(`${g.id}:${seat}`) % 30_000);
-    const ownerVirtual = virtualIds.has(g.player1_id);
-    const extra = ownerVirtual ? 30_000 : 0; // virtuel vs virtuel: miandry ela kokoa
-    if (Date.now() - since < wait + extra) continue;
+    // FITSIPIKA: tsy misy lalao mandeha raha tsy misy mpilalao TENA IZY ao.
+    // Ka ny bot dia tsy miditra afa-tsy amin'ny salle misy olona tena izy.
+    const hasReal = !virtualIds.has(g.player1_id) || (!!g.player2_id && !virtualIds.has(g.player2_id));
+    if (!hasReal) continue;
+    if (Date.now() - since < wait) continue;
+
     const cand = freeOnline.find((p) => Number(g.stake) <= BOT_BALANCE && p.user_id !== g.player1_id && p.user_id !== g.player2_id);
     if (!cand) continue;
     await supabase.rpc("virtual_topup", { _user: cand.user_id, _min: BOT_BALANCE });

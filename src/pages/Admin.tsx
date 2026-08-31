@@ -222,25 +222,31 @@ export default function Admin() {
       setGameBlocks(next);
     }
 
-    // Historique Domino + Ludo
-    const { data: hg } = await supabase
-      .from("games")
-      .select("id, ticket_number, stake, player1_id, player2_id, player3_id, winner_id, status, created_at, finished_at, turn_started_at, players_count")
-      .not("ticket_number", "is", null)
-      .order("created_at", { ascending: false })
-      .limit(500);
-    const { data: lg } = await supabase
-      .from("ludo_games" as any)
-      .select("id, ticket_number, stake, player1_id, player2_id, player3_id, player4_id, winner_id, status, created_at, finished_at, turn_started_at, players_count")
-      .not("ticket_number", "is", null)
-      .order("created_at", { ascending: false })
-      .limit(500);
-    const { data: pg } = await supabase
-      .from("petanque_games" as any)
-      .select("id, ticket_number, stake, player1_id, player2_id, winner_id, status, created_at, finished_at, turn_started_at, score_p1, score_p2, round_number")
-      .not("ticket_number", "is", null)
-      .order("created_at", { ascending: false })
-      .limit(500);
+    // Historique (mavesatra) — indray mandeha isaky ny 60s ihany, na raha
+    // notakiana mivantana (heavy), mba tsy hiraikitra ny admin.
+    if (!opts?.heavy && Date.now() - heavyAtRef.current < 60_000) return;
+    heavyAtRef.current = Date.now();
+    const [{ data: hg }, { data: lg }, { data: pg }] = await Promise.all([
+      supabase
+        .from("games")
+        .select("id, ticket_number, stake, player1_id, player2_id, player3_id, winner_id, status, created_at, finished_at, turn_started_at, players_count")
+        .not("ticket_number", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(200),
+      supabase
+        .from("ludo_games" as any)
+        .select("id, ticket_number, stake, player1_id, player2_id, player3_id, player4_id, winner_id, status, created_at, finished_at, turn_started_at, players_count")
+        .not("ticket_number", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(200),
+      supabase
+        .from("petanque_games" as any)
+        .select("id, ticket_number, stake, player1_id, player2_id, winner_id, status, created_at, finished_at, turn_started_at, score_p1, score_p2, round_number")
+        .not("ticket_number", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(200),
+    ]);
+
 
     const dominoHistory = (hg ?? []).map((game: any) => ({
       ...game,

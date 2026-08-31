@@ -154,6 +154,9 @@ async function lobbyStep(supabase: any, players: any[], virtualIds: Set<string>)
     .in("status", ["waiting", "in_progress"])
     .limit(200);
   const all = rooms ?? [];
+  // Fanafoanana: lalao mandeha nefa tsy misy mpilalao tena izy ao — foanana.
+  try { await supabase.rpc("purge_bot_only_games"); } catch { /* ignore */ }
+
   const busy = new Set<string>();
   for (const g of all) {
     [g.player1_id, g.player2_id, g.player3_id].forEach((id: string | null) => { if (id) busy.add(id); });

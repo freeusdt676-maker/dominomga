@@ -163,23 +163,16 @@ export default function OnlineChatPanel() {
             {members.length} en ligne
           </span>
         </div>
-        <div className="mt-2.5 max-h-[4.2rem] overflow-y-auto">
-          {members.length === 0 ? (
-            <p className="text-[11px] text-muted-foreground italic">😴 Tsy misy olona en ligne</p>
-          ) : (
-            <ul className="flex flex-wrap gap-1.5">
-              {members.map((m) => (
-                <li
-                  key={m.user_id}
-                  className="px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide bg-emerald-500/[0.12] border border-emerald-400/25 text-emerald-200 flex items-center gap-1"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  {m.name}
-                </li>
-              ))}
-            </ul>
-          )}
+        <div className="mt-2.5 flex items-center gap-2">
+          <span className="relative flex w-2.5 h-2.5">
+            <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400" />
+            <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-70" />
+          </span>
+          <span className="text-[12px] font-extrabold tabular-nums text-emerald-200">
+            {members.length} en ligne
+          </span>
         </div>
+
       </div>
 
       {/* ---- 2. SALLES VONONA ---- */}

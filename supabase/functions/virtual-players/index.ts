@@ -233,7 +233,7 @@ Deno.serve(async (req) => {
     while (Date.now() - started < 50_000) {
       const { data: players } = await supabase
         .from("virtual_players")
-        .select("user_id, name, online, active")
+        .select("user_id, name, phone, level, online, active")
         .eq("active", true);
       const list = players ?? [];
       if (list.length < POOL_MAX) stats.created += await ensurePool(supabase, list);

@@ -133,7 +133,15 @@ export default function Admin() {
     return () => { supabase.removeChannel(ch); };
   }, [allowed]);
 
-  const load = async () => {
+  const heavyAtRef = useRef(0);
+  const busyRef = useRef(false);
+  const load = async (opts?: { heavy?: boolean }) => {
+    // Fiarovana: tsy avela mifanindry ny requête (miteraka firaiketana rehefa
+    // maro ny pilalao sy ny événements temps réel).
+    if (busyRef.current) return;
+    busyRef.current = true;
+    try {
+
     // 1) Profiles (rehetra)
     const { data: u, error: uErr } = await supabase
       .from("profiles")

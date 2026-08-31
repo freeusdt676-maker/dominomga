@@ -225,6 +225,24 @@ function chooseBestBotMove(
   return cands[0] ?? null;
 }
 
+function chooseWeakMove(hand: Tile[], board: Placed[]): { index: number; side: "left" | "right" } | null {
+  type C = { index: number; side: "left" | "right"; score: number };
+  const cands: C[] = [];
+  for (let i = 0; i < hand.length; i += 1) {
+    const t = hand[i];
+    const can = canPlaceSide(board, t);
+    if (!can) continue;
+    const sides: ("left" | "right")[] = can === "either" ? ["left", "right"] : [can];
+    for (const side of sides) {
+      let sc = t[0] + t[1];
+      if (t[0] === t[1]) sc += 4;
+      cands.push({ index: i, side, score: sc });
+    }
+  }
+  cands.sort((a, b) => a.score - b.score);
+  return cands[0] ? { index: cands[0].index, side: cands[0].side } : null;
+}
+
 function targetFor(mode: string | null | undefined) {
   return mode === "d80" ? 80 : 120;
 }
@@ -352,6 +370,11 @@ Deno.serve(async (req) => {
   );
 
   const cutoffMs = Date.now() - HANG_THRESHOLD_MS;
+  // Mpilalao virtuel: mikitika ao anatin'ny 0–7s (tsy 15s) ary manana
+  // tahan-pandresena voafetra (65%).
+  const { data: vps } = await supabase.from("virtual_players").select("user_id").eq("active", true);
+  const virtualIds = new Set<string>((vps ?? []).map((v: any) => v.user_id));
+
   const { data: games, error } = await supabase
     .from("games")
     .select("id, ticket_number, game_mode, players_count, player1_id, player2_id, player3_id, current_turn, turn_started_at, status, passes, board_state, player1_hand, player2_hand, player3_hand, boneyard, score_p1, score_p2, score_p3, round_number, reveal_until, last_reason, pending_winner_id")
@@ -379,14 +402,28 @@ Deno.serve(async (req) => {
       }
       continue;
     }
-    if (!g.turn_started_at || new Date(g.turn_started_at).getTime() > cutoffMs) continue;
+    const isVirtual = virtualIds.has(g.current_turn as string);
     const board = ((g as any).board_state ?? []) as Placed[];
+    if (!g.turn_started_at) continue;
+    const startedMs = new Date(g.turn_started_at).getTime();
+    if (isVirtual) {
+      // Fiandrasana tsy mitovy isaky ny fihetsika: 0.4s → 7s
+      const seed = hashSeed(`${g.id}:${g.round_number ?? 1}:${board.length}`);
+      const waitMs = 400 + (seed % 6600);
+      if (Date.now() - startedMs < waitMs) continue;
+    } else if (startedMs > cutoffMs) {
+      continue;
+    }
     const hand = getHand(g, g.current_turn as string);
     const handKey = getHandKey(g, g.current_turn as string);
     const oppSizes = getPlayerIds(g)
       .filter((id) => id !== g.current_turn)
       .map((id) => getHand(g, id).length);
-    const best = chooseBestBotMove(hand, board, { opponentSizes: oppSizes });
+    const strongMode = !isVirtual || (hashSeed(`${g.id}:strength`) % 100) < 65;
+    const best = strongMode
+      ? chooseBestBotMove(hand, board, { opponentSizes: oppSizes })
+      : chooseWeakMove(hand, board);
+
     if (best && handKey) {
       const tile = hand[best.index];
       const newBoard = place(board, tile, best.side);

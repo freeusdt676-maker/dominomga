@@ -18,7 +18,6 @@ type Room = {
   _name?: string;
 };
 
-const EXPIRY_MS = 8 * 60 * 1000;
 
 export function seatsOf(g: Room) {
   const total = Number(g.players_count ?? 2);
@@ -48,11 +47,10 @@ export default function LiveDominoRooms() {
       .or("status.eq.waiting,and(status.eq.in_progress,player3_id.is.null)")
       .order("created_at", { ascending: true })
       .limit(40);
-    const now = Date.now();
     const open = ((data ?? []) as Room[]).filter((g) => {
       const pc = Number(g.players_count ?? 2);
-      const age = now - new Date(g.created_at).getTime();
-      if (age > EXPIRY_MS && g.status === "waiting") return false;
+      // Ny salle vonona dia asehoy foana (ny serveur no manadio ny efa lany andro)
+
       if ([g.player1_id, g.player2_id, g.player3_id].includes(user.id)) return false;
       if (pc === 2) return g.status === "waiting" && !g.player2_id;
       return !g.player3_id && (g.status === "waiting" || g.status === "in_progress");

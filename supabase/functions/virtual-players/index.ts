@@ -16,20 +16,23 @@ const BOT_BALANCE = 500_000;
 const STAKES = [500, 1000, 2000, 3000, 5000];
 // Ny bot: matetika D80, 1 amin'ny 5 ihany no D120.
 const MODES = ["d80", "d80", "d80", "d80", "d120"];
-// Isan'ny lalao 100% bot avela mandeha foana ao amin'ny lobby (vitrine).
-const SHOWCASE_BOT_GAMES = 2;
+// Lalao 100% bot (DEMO fotsiny, tsy misy vola) avela mandeha foana
+// ao amin'ny live mba hanitona mason'olona: 1× 2P sy 1× 3P.
+const SHOWCASE_PER_MODE = 1;
 
 const FIRST = [
-  "Rado", "Tiana", "Fenohasina", "Nirina", "Mamy", "Hery", "Njaka", "Fanjava",
-  "Toky", "Lova", "Miora", "Sitraka", "Rija", "Haja", "Onja", "Fifaliana",
-  "Tsanta", "Andry", "Faniry", "Tahina", "Nomena", "Zo", "Fitia", "Aina",
-  "Soa", "Kanto", "Manda", "Sedra", "Herizo", "Voahangy", "Rivo", "Lalaina",
-  "Tojo", "Fandresena", "Mahefa", "Solofo", "Tsiory", "Ando", "Mahery", "Diary",
-  "Vonjy", "Domoina", "Fara", "Iharena", "Jaona", "Koto", "Lanto", "Nofy",
-  "Patrick", "Riana", "Sahaza", "Tantely", "Valisoa", "Zafy", "Ny Aina", "Tsilavina",
-  "Fabrice", "Herilala", "Mialy", "Vero",
+  "Tsilavo", "Maminiaina", "Heriniaina", "Sarobidy", "Tojonirina", "Fanomezantsoa",
+  "Mamisoa", "Hobiniaina", "Ny Hasina", "Lovasoa", "Mioramala", "Tsiroanaina",
+  "Jean Chris", "Mandahery", "Fenosoa", "Tahiry", "Nirintsoa", "Harilala",
+  "Sandratra", "Voahirana", "Mampionona", "Tsiry", "Hajahery", "Onjatiana",
+  "Fifalitra", "Tsaramaso", "Andriam", "Fanomezana", "Tahinala", "Nomentsoa",
+  "Zoarintsoa", "Fitiavana", "Ainasony", "Soanirina", "Kantorida", "Mandresy",
+  "Sedramalala", "Herizo", "Voahangy", "Rivonala", "Lalatiana", "Tojoniaina",
+  "Fandresena", "Mahefa", "Solofonaina", "Tsiory", "Andoniaina", "Maherizo",
+  "Diary", "Vonjy", "Domoina", "Faranirina", "Iharena", "Jaofetra", "Kotonala",
+  "Lantonirina", "Nofyson", "Patricia", "Rianala", "Sahazavana", "Tantely",
 ];
-const LAST = ["R", "Rk", "Rz", "Ny", "Mg", "Jr", "Be", "Za"];
+const LAST = ["R", "Rk", "Rz", "Ny", "Mg", "Jr", "Be", "Za", "Ts", "Hv"];
 
 const PREFIX = ["032", "033", "034", "037", "038"];
 
@@ -166,13 +169,17 @@ async function lobbyStep(supabase: any, players: any[], virtualIds: Set<string>)
   }
   const freeOnline = players.filter((p) => p.online && !busy.has(p.user_id));
 
-  // Isan'ny lalao mandeha izay 100% bot (vitrine)
-  let botLive = all.filter((g) =>
+  // Isan'ny lalao DEMO mandeha izay 100% bot, isaky ny mode (2P sy 3P)
+  const isBotOnly = (g: any) =>
     g.status === "in_progress" &&
     virtualIds.has(g.player1_id) &&
     (!g.player2_id || virtualIds.has(g.player2_id)) &&
-    (!g.player3_id || virtualIds.has(g.player3_id))
-  ).length;
+    (!g.player3_id || virtualIds.has(g.player3_id));
+  const botLiveByMode = new Map<number, number>();
+  for (const g of all.filter(isBotOnly)) {
+    const pc = Number(g.players_count ?? 2);
+    botLiveByMode.set(pc, (botLiveByMode.get(pc) ?? 0) + 1);
+  }
 
   // 1) Fidirana amin'ny salle misokatra (na an'olona na an'ny virtuel)
   const open = all.filter((g) => {
@@ -199,9 +206,11 @@ async function lobbyStep(supabase: any, players: any[], virtualIds: Set<string>)
     // Ka ny bot dia tsy miditra afa-tsy amin'ny salle misy olona tena izy.
     const hasReal = realCount > 0;
     if (!hasReal) {
-      // Avela mandeha foana ny lalao 2 an'ny bot mba tsy ho foana ny lobby.
-      if (botLive >= SHOWCASE_BOT_GAMES) continue;
-      botLive += 1;
+      // DEMO vitrine: 1× 2P sy 1× 3P 100% bot foana hita amin'ny live.
+      const pcDemo = Number(g.players_count ?? 2);
+      const live = botLiveByMode.get(pcDemo) ?? 0;
+      if (live >= SHOWCASE_PER_MODE) continue;
+      botLiveByMode.set(pcDemo, live + 1);
     }
     // FITSIPIKA 3P: bot roa manohitra olona tena izy IRAY ihany.
     // Raha efa misy olona tena izy roa ao amin'ny salle 3P dia tsy midititra bot.

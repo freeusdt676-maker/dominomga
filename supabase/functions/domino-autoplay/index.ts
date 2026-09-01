@@ -580,21 +580,22 @@ Deno.serve(async (req) => {
     const oppSizes = getPlayerIds(g)
       .filter((id) => id !== g.current_turn)
       .map((id) => getHand(g, id).length);
-    // Mpilalao virtuel: TSY mahalala ny vato an-tanan'ny hafa intsony.
-    // Mandinika ny vato efa nandeha (board) sy ny vato tsy mbola hita (unseen)
-    // ihany izy. Tanjaka 70%: 70% mandeha ny hetsika tsara indrindra, 30%
-    // safidy hafa (hetsika olombelona tsotra) mba handresen'ny olona indraindra.
-    const fair = () => {
+    // Mpilalao virtuel: MAHALALA NY VATO REHETRA (perfect info) satria ny
+    // backend no tompon'ny tanana rehetra. Tanjaka 90%: 90% mandeha ny
+    // hetsika faratampony (minimax exact), 10% safidy malemy mba hisian'ny
+    // fandresen'ny olona tena izy indraindra.
+    const cheat = () => {
       const moves = legalMoves(hand, board);
       if (!moves.length) return null;
-      const strong = chooseBestBotMove(hand, board, { opponentSizes: oppSizes });
-      if (!strong) return null;
-      if (Math.random() < 0.7) return strong;
+      if (Math.random() < 0.9) {
+        const exact = chooseExactBotMove(g, g.current_turn as string, hand, board);
+        if (exact) return exact;
+      }
       const weak = chooseWeakMove(hand, board);
       const alt = moves[Math.floor(Math.random() * moves.length)];
       return (Math.random() < 0.5 && weak) ? weak : alt;
     };
-    const best = fair();
+    const best = cheat();
 
 
 

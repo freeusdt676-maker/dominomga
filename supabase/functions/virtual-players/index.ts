@@ -169,13 +169,17 @@ async function lobbyStep(supabase: any, players: any[], virtualIds: Set<string>)
   }
   const freeOnline = players.filter((p) => p.online && !busy.has(p.user_id));
 
-  // Isan'ny lalao mandeha izay 100% bot (vitrine)
-  let botLive = all.filter((g) =>
+  // Isan'ny lalao DEMO mandeha izay 100% bot, isaky ny mode (2P sy 3P)
+  const isBotOnly = (g: any) =>
     g.status === "in_progress" &&
     virtualIds.has(g.player1_id) &&
     (!g.player2_id || virtualIds.has(g.player2_id)) &&
-    (!g.player3_id || virtualIds.has(g.player3_id))
-  ).length;
+    (!g.player3_id || virtualIds.has(g.player3_id));
+  const botLiveByMode = new Map<number, number>();
+  for (const g of all.filter(isBotOnly)) {
+    const pc = Number(g.players_count ?? 2);
+    botLiveByMode.set(pc, (botLiveByMode.get(pc) ?? 0) + 1);
+  }
 
   // 1) Fidirana amin'ny salle misokatra (na an'olona na an'ny virtuel)
   const open = all.filter((g) => {
@@ -202,9 +206,11 @@ async function lobbyStep(supabase: any, players: any[], virtualIds: Set<string>)
     // Ka ny bot dia tsy miditra afa-tsy amin'ny salle misy olona tena izy.
     const hasReal = realCount > 0;
     if (!hasReal) {
-      // Avela mandeha foana ny lalao 2 an'ny bot mba tsy ho foana ny lobby.
-      if (botLive >= SHOWCASE_BOT_GAMES) continue;
-      botLive += 1;
+      // DEMO vitrine: 1× 2P sy 1× 3P 100% bot foana hita amin'ny live.
+      const pcDemo = Number(g.players_count ?? 2);
+      const live = botLiveByMode.get(pcDemo) ?? 0;
+      if (live >= SHOWCASE_PER_MODE) continue;
+      botLiveByMode.set(pcDemo, live + 1);
     }
     // FITSIPIKA 3P: bot roa manohitra olona tena izy IRAY ihany.
     // Raha efa misy olona tena izy roa ao amin'ny salle 3P dia tsy midititra bot.

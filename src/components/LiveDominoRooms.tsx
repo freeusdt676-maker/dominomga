@@ -18,7 +18,6 @@ type Room = {
   _name?: string;
 };
 
-const EXPIRY_MS = 8 * 60 * 1000;
 
 export function seatsOf(g: Room) {
   const total = Number(g.players_count ?? 2);
@@ -48,7 +47,6 @@ export default function LiveDominoRooms() {
       .or("status.eq.waiting,and(status.eq.in_progress,player3_id.is.null)")
       .order("created_at", { ascending: true })
       .limit(40);
-    const now = Date.now();
     const open = ((data ?? []) as Room[]).filter((g) => {
       const pc = Number(g.players_count ?? 2);
       // Ny salle vonona dia asehoy foana (ny serveur no manadio ny efa lany andro)

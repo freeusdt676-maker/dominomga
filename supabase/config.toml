@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.virtual-players]
 verify_jwt = false
+
+[functions.recovery-approve]
+verify_jwt = true

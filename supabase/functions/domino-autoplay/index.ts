@@ -1,4 +1,5 @@
 // Server-side Domino watchdog: prevents permanent hangs.
+// Niveau bot global: admin_set_bot_skill (50/60/70/80/100) — app_internal_config.bot_skill.
 // Every 1s (via pg_cron), it plays a legal tile after the 15s deadline,
 // passes ONLY when no legal tile exists, and advances expired reveal phases.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -606,7 +607,7 @@ Deno.serve(async (req) => {
         if (Math.random() < p) best = chooseExactBotMove(g, g.current_turn as string, hand, board);
       } else {
         // Fair info: fanisana ny vato efa nivoaka sy ny sisa ihany.
-        if (Math.random() < p) best = chooseBestBotMove(hand, board);
+        if (Math.random() < p) best = chooseBestBotMove(hand, board, { opponentSizes: oppSizes });
       }
       if (!best) {
         const weak = chooseWeakMove(hand, board);

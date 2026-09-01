@@ -274,11 +274,86 @@ export default function Admin() {
       _winnerName: game.winner_id ? (profMap[game.winner_id]?.mvola_name ?? "?") : null,
     }));
 
+    const allHistory = [...dominoHistory, ...ludoHistory, ...petHistory];
+
+    // ---- Classement (mandresy / 2é / 3é) + antony nandresena, avy amin'ny round_ledger final
+    const { data: led } = await supabase
+      .from("round_ledger" as any)
+      .select("game_id, player_id, cumulative, amount, is_final, is_winner, reason, created_at")
+      .eq("is_final", true)
+      .order("created_at", { ascending: false })
+      .limit(1500);
+    const ledByGame: Record<string, any[]> = {};
+    ((led ?? []) as any[]).forEach((r: any) => {
+      (ledByGame[r.game_id] ??= []).push(r);
+    });
+
+    // ---- Solde teo aloha / taorian'ny lalao (naverina mianotra avy amin'ny solde ankehitriny)
+    const { data: txAll } = await supabase
+      .from("transactions")
+      .select("user_id, type, amount, status, game_id, created_at")
+      .order("created_at", { ascending: false })
+      .limit(3000);
+    const signed = (t: any) => {
+      const a = Number(t.amount ?? 0);
+      if (t.type === "deposit") return ["approved", "completed"].includes(t.status) ? a : 0;
+      if (t.type === "withdrawal") return t.status === "rejected" ? 0 : -a;
+      if (t.type === "game_stake" || t.type === "game_loss") return -a;
+      if (t.type === "game_win" || t.type === "refund") return a;
+      return 0;
+    };
+    const byUser: Record<string, any[]> = {};
+    ((txAll ?? []) as any[]).forEach((t: any) => { (byUser[t.user_id] ??= []).push(t); });
+    // gameBal[game_id][user_id] = { before, after }
+    const gameBal: Record<string, Record<string, { before: number; after: number }>> = {};
+    Object.entries(byUser).forEach(([uid, listDesc]) => {
+      const asc = [...listDesc].reverse();
+      let run = walletMap[uid] ?? 0;
+      const after: number[] = [];
+      const before: number[] = [];
+      for (let i = asc.length - 1; i >= 0; i--) {
+        after[i] = run;
+        before[i] = run - signed(asc[i]);
+        run = before[i];
+      }
+      asc.forEach((t: any, i: number) => {
+        if (!t.game_id) return;
+        const slot = (gameBal[t.game_id] ??= {});
+        const cur = slot[uid];
+        slot[uid] = { before: cur ? cur.before : before[i], after: after[i] };
+      });
+    });
+
+    const enriched = allHistory.map((g: any) => {
+      const rows = ledByGame[g.id] ?? [];
+      const ids = [g.player1_id, g.player2_id, g.player3_id, g.player4_id].filter(Boolean);
+      const ranking = ids
+        .map((id: string) => {
+          const row = rows.find((r: any) => r.player_id === id);
+          const bal = gameBal[g.id]?.[id];
+          return {
+            user_id: id,
+            name: profMap[id]?.mvola_name ?? "?",
+            cumulative: row ? Number(row.cumulative ?? 0) : null,
+            amount: row ? Number(row.amount ?? 0) : null,
+            is_winner: row ? Boolean(row.is_winner) : id === g.winner_id,
+            before: bal?.before ?? null,
+            after: bal?.after ?? null,
+          };
+        })
+        .sort((a: any, b: any) => {
+          if (a.is_winner !== b.is_winner) return a.is_winner ? -1 : 1;
+          return (b.cumulative ?? -1) - (a.cumulative ?? -1);
+        });
+      return { ...g, _rank: ranking, _reason: rows[0]?.reason ?? g.last_reason ?? null };
+    });
+
     setHistory(
-      [...dominoHistory, ...ludoHistory, ...petHistory].sort(
+      enriched.sort(
         (a: any, b: any) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime(),
       ),
     );
+
 
     // Commissions Admin (10%) — entrées issues des parties finies
     const commissionRows = [...dominoHistory, ...ludoHistory, ...petHistory]
@@ -1166,8 +1241,42 @@ export default function Admin() {
                     </span>
                   </div>
                   <p><b>{(h._players ?? []).join(" · ")}</b></p>
-                  <p>Mise: <b className="gold-text">{fmtAr(h.stake)}</b></p>
-                  {h._winnerName && <p>🏆 Pandresy: <b className="text-success">{h._winnerName}</b></p>}
+                  <div className="grid grid-cols-2 gap-1">
+                    <p>Mise: <b className="gold-text">{fmtAr(h.stake)}</b></p>
+                    <p>Mpilalao: <b>{h.players_count ?? (h._players ?? []).length}P</b></p>
+                  </div>
+                  {h._reason && (
+                    <p className="rounded bg-primary/10 border border-primary/30 px-2 py-1 text-[10px]">
+                      Antony nandresena: <b className="gold-text">{h._reason}</b>
+                    </p>
+                  )}
+                  {(h._rank ?? []).length > 0 && (
+                    <div className="space-y-1 pt-1">
+                      {(h._rank as any[]).map((r, idx) => (
+                        <div key={r.user_id} className="rounded-lg border border-primary/15 bg-card/40 px-2 py-1">
+                          <div className="flex justify-between gap-2">
+                            <span className="font-bold">
+                              {idx === 0 ? "🏆 Mandresy" : idx === 1 ? "2é" : idx === 2 ? "3é" : "4é"} — {r.name}
+                            </span>
+                            {r.cumulative != null && <span className="text-muted-foreground">{r.cumulative} pt</span>}
+                          </div>
+                          <div className="flex justify-between gap-2 text-[10px] text-muted-foreground">
+                            <span>
+                              Solde teo aloha: <b className="text-foreground">{r.before != null ? fmtAr(r.before) : "—"}</b>
+                              {" → "}taorian'ny lalao: <b className="text-foreground">{r.after != null ? fmtAr(r.after) : "—"}</b>
+                            </span>
+                            {r.amount != null && (
+                              <b className={r.amount >= 0 ? "text-success" : "text-destructive"}>
+                                {r.amount >= 0 ? "+" : ""}{fmtAr(r.amount)}
+                              </b>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {!(h._rank ?? []).length && h._winnerName && <p>🏆 Pandresy: <b className="text-success">{h._winnerName}</b></p>}
+
                   <p className="text-[10px] text-muted-foreground">
                     Niatomboka: {new Date(start).toLocaleString()}<br />
                     {h.finished_at && <>Niafarany: {new Date(h.finished_at).toLocaleString()}</>}

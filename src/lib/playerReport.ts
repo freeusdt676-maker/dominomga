@@ -2,8 +2,38 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
 
-const money = (v: number) => `${Number(v || 0).toLocaleString("fr-FR")} Ar`;
+// Sorabola: espace tsotra ihany (tsy U+202F) mba tsy hiseho "1/000" ao amin'ny PDF.
+const money = (v: number) => {
+  const n = Number(v || 0);
+  const s = Math.abs(n)
+    .toLocaleString("fr-FR", { maximumFractionDigits: 0 })
+    .replace(/[\u202f\u00a0\u2009\s]/g, " ");
+  return `${n < 0 ? "-" : ""}${s} Ar`;
+};
 const dt = (v?: string | null) => (v ? new Date(v).toLocaleString("fr-FR") : "—");
+
+const TYPE_LABEL: Record<string, string> = {
+  deposit: "Dépôt",
+  withdrawal: "Retrait",
+  game_stake: "Mise (jeu)",
+  game_loss: "Perte (jeu)",
+  game_win: "Gain (jeu)",
+  refund: "Remboursement",
+};
+
+function signedAmount(tx: any): number {
+  const a = Number(tx.amount ?? 0);
+  switch (tx.type) {
+    case "deposit": return ["approved", "completed"].includes(tx.status) ? a : 0;
+    case "withdrawal": return tx.status === "rejected" ? 0 : -a;
+    case "game_stake":
+    case "game_loss": return -a;
+    case "game_win":
+    case "refund": return a;
+    default: return 0;
+  }
+}
+
 
 export type ReportProfile = {
   user_id: string;
@@ -91,16 +121,41 @@ export async function downloadMyPlayerReport(profile: ReportProfile, stats: Repo
     columnStyles: { 0: { cellWidth: 160, fontStyle: "bold" } },
   });
 
+  // Solde avant / après isaky ny mouvement (averina mianotra avy amin'ny solde ankehitriny).
+  const ascTx = [...txs].reverse();
+  const beforeArr: number[] = new Array(ascTx.length).fill(0);
+  const afterArr: number[] = new Array(ascTx.length).fill(0);
+  let run = balance;
+  for (let i = ascTx.length - 1; i >= 0; i--) {
+    afterArr[i] = run;
+    beforeArr[i] = run - signedAmount(ascTx[i]);
+    run = beforeArr[i];
+  }
+
   autoTable(doc, {
     startY: (doc as any).lastAutoTable.finalY + 18,
-    head: [["Date", "Type", "Montant", "Statut", "Référence"]],
+    head: [["Date", "Type", "Statut", "Mouvement", "Solde avant", "Solde après", "Référence"]],
     body: txs.length
-      ? txs.map((t) => [dt(t.created_at), t.type, money(Number(t.amount || 0)), t.status, t.mvola_reference ?? "—"])
-      : [["—", "Aucun mouvement", "—", "—", "—"]],
+      ? txs.map((t) => {
+          const i = ascTx.indexOf(t);
+          const mv = signedAmount(t);
+          return [
+            dt(t.created_at),
+            TYPE_LABEL[t.type] ?? t.type,
+            t.status,
+            `${mv > 0 ? "+" : ""}${money(mv)}`,
+            money(beforeArr[i] ?? 0),
+            money(afterArr[i] ?? 0),
+            t.mvola_reference ?? "—",
+          ];
+        })
+      : [["—", "Aucun mouvement", "—", "—", "—", "—", "—"]],
     theme: "striped",
     headStyles: { fillColor: [14, 46, 30], textColor: [233, 196, 106] },
     styles: { fontSize: 8, cellPadding: 3 },
+    columnStyles: { 3: { halign: "right" }, 4: { halign: "right" }, 5: { halign: "right" } },
   });
+
 
   autoTable(doc, {
     startY: (doc as any).lastAutoTable.finalY + 18,

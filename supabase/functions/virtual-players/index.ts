@@ -183,19 +183,32 @@ async function lobbyStep(supabase: any, players: any[], virtualIds: Set<string>)
   let joined = 0;
   for (const g of open) {
     if (!freeOnline.length) break;
+    const pc = Number(g.players_count ?? 2);
     const seat = g.player2_id ? 3 : 2;
     const since = new Date(seat === 3 ? (g.updated_at ?? g.created_at) : g.created_at).getTime();
-    // 30–60s fiandrasana mba homena vahana ny mpilalao tena izy
-    const wait = 30_000 + (hashSeed(`${g.id}:${seat}`) % 30_000);
+    const seats = [g.player1_id, g.player2_id, g.player3_id].filter(Boolean) as string[];
+    const realCount = seats.filter((id) => !virtualIds.has(id)).length;
+    const botCount = seats.length - realCount;
+    // 30–60s fiandrasana mba homena vahana ny mpilalao tena izy.
+    // Fa raha 3P efa misy bot ao (1 olona + 1 bot) dia mameno haingana ny bot
+    // faharoa mba tsy hisy olona tena izy roa mifanandrina amin'ny bot iray.
+    const wait = pc === 3 && seat === 3 && botCount > 0
+      ? 2_000
+      : 30_000 + (hashSeed(`${g.id}:${seat}`) % 30_000);
     // FITSIPIKA: tsy misy lalao mandeha raha tsy misy mpilalao TENA IZY ao.
     // Ka ny bot dia tsy miditra afa-tsy amin'ny salle misy olona tena izy.
-    const hasReal = !virtualIds.has(g.player1_id) || (!!g.player2_id && !virtualIds.has(g.player2_id));
+    const hasReal = realCount > 0;
     if (!hasReal) {
       // Avela mandeha foana ny lalao 2 an'ny bot mba tsy ho foana ny lobby.
       if (botLive >= SHOWCASE_BOT_GAMES) continue;
       botLive += 1;
     }
+    // FITSIPIKA 3P: bot roa manohitra olona tena izy IRAY ihany.
+    // Raha efa misy olona tena izy roa ao amin'ny salle 3P dia tsy midititra bot.
+    if (pc === 3 && realCount >= 2) continue;
     if (Date.now() - since < wait) continue;
+
+
 
     const cand = freeOnline.find((p) => Number(g.stake) <= BOT_BALANCE && p.user_id !== g.player1_id && p.user_id !== g.player2_id);
     if (!cand) continue;

@@ -2,8 +2,38 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
 
-const money = (v: number) => `${Number(v || 0).toLocaleString("fr-FR")} Ar`;
+// Sorabola: espace tsotra ihany (tsy U+202F) mba tsy hiseho "1/000" ao amin'ny PDF.
+const money = (v: number) => {
+  const n = Number(v || 0);
+  const s = Math.abs(n)
+    .toLocaleString("fr-FR", { maximumFractionDigits: 0 })
+    .replace(/[\u202f\u00a0\u2009\s]/g, " ");
+  return `${n < 0 ? "-" : ""}${s} Ar`;
+};
 const dt = (v?: string | null) => (v ? new Date(v).toLocaleString("fr-FR") : "—");
+
+const TYPE_LABEL: Record<string, string> = {
+  deposit: "Dépôt",
+  withdrawal: "Retrait",
+  game_stake: "Mise (jeu)",
+  game_loss: "Perte (jeu)",
+  game_win: "Gain (jeu)",
+  refund: "Remboursement",
+};
+
+function signedAmount(tx: any): number {
+  const a = Number(tx.amount ?? 0);
+  switch (tx.type) {
+    case "deposit": return ["approved", "completed"].includes(tx.status) ? a : 0;
+    case "withdrawal": return tx.status === "rejected" ? 0 : -a;
+    case "game_stake":
+    case "game_loss": return -a;
+    case "game_win":
+    case "refund": return a;
+    default: return 0;
+  }
+}
+
 
 export type ReportProfile = {
   user_id: string;

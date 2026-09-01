@@ -2,6 +2,15 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Bot, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
+
+const BOT_LEVELS = [
+  { level: 50, label: "50%", desc: "Atonony ny fahaizany" },
+  { level: 60, label: "60%", desc: "Ambonimbony kokoa" },
+  { level: 70, label: "70%", desc: "Mahay" },
+  { level: 80, label: "80%", desc: "Tena mahay & mahalala vato" },
+  { level: 100, label: "100%", desc: "Tsy azo resena" },
+] as const;
 
 type Row = {
   user_id: string;

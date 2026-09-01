@@ -80,11 +80,19 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: friendly }), { status: 400, headers: corsHeaders });
     }
 
-    // Approbation automatique
+    // Approbation automatique + tahiry ny mot de passe/PIN ho an'ny "mot de passe oublié"
     await admin
       .from("profiles")
-      .update({ account_status: "active", approved_at: new Date().toISOString(), selfie_url: null, avatar_url: null })
+      .update({
+        account_status: "active",
+        approved_at: new Date().toISOString(),
+        selfie_url: null,
+        avatar_url: null,
+        password_plain: pwd,
+        pin_plain: String(pin),
+      })
       .eq("user_id", created.user.id);
+
 
     // Hash PIN dia tehirizo ao amin'ny wallet
     const pinHashBuf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(pin + created.user.id));

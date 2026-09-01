@@ -243,6 +243,103 @@ function chooseWeakMove(hand: Tile[], board: Placed[]): { index: number; side: "
   return cands[0] ? { index: cands[0].index, side: cands[0].side } : null;
 }
 
+type SearchMove = { index: number; side: "left" | "right" };
+const SEARCH_WIN = 100_000;
+const SEARCH_NODE_CAP = 80_000;
+
+function legalMoves(hand: Tile[], board: Placed[]): SearchMove[] {
+  const moves: SearchMove[] = [];
+  for (let index = 0; index < hand.length; index += 1) {
+    const possible = canPlaceSide(board, hand[index]);
+    if (!possible) continue;
+    if (possible === "either") {
+      moves.push({ index, side: "left" });
+      const e = ends(board);
+      if (!e || e.left !== e.right) moves.push({ index, side: "right" });
+    } else {
+      moves.push({ index, side: possible });
+    }
+  }
+  return moves;
+}
+
+function terminalSearchValue(hands: Tile[][], winner: number | null): number {
+  if (winner === 0) return SEARCH_WIN + hands.slice(1).reduce((sum, hand) => sum + pipsTotal(hand), 0);
+  if (winner !== null) return -SEARCH_WIN - pipsTotal(hands[0]);
+  const totals = hands.map(pipsTotal);
+  const minimum = Math.min(...totals);
+  const uniqueMinimum = totals.filter((value) => value === minimum).length === 1;
+  return totals[0] === minimum && uniqueMinimum
+    ? SEARCH_WIN + totals.slice(1).reduce((sum, value) => sum + value, 0)
+    : -SEARCH_WIN - totals[0];
+}
+
+function searchPosition(
+  hands: Tile[][],
+  board: Placed[],
+  turn: number,
+  passes: number,
+  depth: number,
+  nodes: { count: number },
+  alpha = -Infinity,
+  beta = Infinity,
+): { value: number; move: SearchMove | null } {
+  nodes.count += 1;
+  for (let seat = 0; seat < hands.length; seat += 1) {
+    if (hands[seat].length === 0) return { value: terminalSearchValue(hands, seat), move: null };
+  }
+  if (passes >= hands.length) return { value: terminalSearchValue(hands, null), move: null };
+  if (depth <= 0 || nodes.count >= SEARCH_NODE_CAP) {
+    const opponents = hands.slice(1).reduce((sum, hand) => sum + pipsTotal(hand), 0);
+    return { value: opponents - pipsTotal(hands[0]) - hands[0].length * 12, move: null };
+  }
+
+  const moves = legalMoves(hands[turn], board);
+  if (!moves.length) {
+    return searchPosition(hands, board, (turn + 1) % hands.length, passes + 1, depth - 1, nodes, alpha, beta);
+  }
+  const maximizing = turn === 0;
+  moves.sort((a, b) => {
+    const aPips = pipsTotal([hands[turn][a.index]]);
+    const bPips = pipsTotal([hands[turn][b.index]]);
+    return maximizing ? bPips - aPips : aPips - bPips;
+  });
+  let best: SearchMove | null = null;
+  let value = maximizing ? -Infinity : Infinity;
+  for (const moveChoice of moves) {
+    const tile = hands[turn][moveChoice.index];
+    const nextBoard = place(board, tile, moveChoice.side);
+    const nextHands = hands.map((candidate, seat) => seat === turn
+      ? candidate.filter((_, index) => index !== moveChoice.index)
+      : candidate);
+    const result = searchPosition(nextHands, nextBoard, (turn + 1) % hands.length, 0, depth - 1, nodes, alpha, beta);
+    if ((maximizing && result.value > value) || (!maximizing && result.value < value)) {
+      value = result.value;
+      best = moveChoice;
+    }
+    if (maximizing) alpha = Math.max(alpha, value);
+    else beta = Math.min(beta, value);
+    if (beta <= alpha || nodes.count >= SEARCH_NODE_CAP) break;
+  }
+  return { value, move: best };
+}
+
+// Perfect-information search for virtual players. The backend owns all hands,
+// so the virtual player can analyse the real position instead of guessing.
+function chooseExactBotMove(g: any, playerId: string, hand: Tile[], board: Placed[]): SearchMove | null {
+  const ids = getPlayerIds(g);
+  const currentIndex = ids.indexOf(playerId);
+  if (currentIndex < 0) return null;
+  const orderedHands: Tile[][] = [hand];
+  for (let step = 1; step < ids.length; step += 1) {
+    const seat = (currentIndex - step + ids.length) % ids.length;
+    orderedHands.push(getHand(g, ids[seat]));
+  }
+  const totalTiles = orderedHands.reduce((sum, candidate) => sum + candidate.length, 0);
+  const depth = totalTiles <= 10 ? 36 : totalTiles <= 14 ? 20 : totalTiles <= 18 ? 14 : 10;
+  return searchPosition(orderedHands, board, 0, Number(g.passes ?? 0), depth, { count: 0 }).move;
+}
+
 function targetFor(mode: string | null | undefined) {
   return mode === "d80" ? 80 : 120;
 }
@@ -316,8 +413,18 @@ async function finishRoundOnServer(
   void reasonOverride;
   const payload: Record<string, unknown> = { board_state: board };
   if (handKey && newHand) payload[handKey] = newHand;
-  const { error } = await supabase.from("games").update(payload).eq("id", g.id).eq("status", "in_progress");
+  let updateQuery = supabase
+    .from("games")
+    .update(payload, { count: "exact" })
+    .eq("id", g.id)
+    .eq("status", "in_progress")
+    .eq("current_turn", g.current_turn);
+  updateQuery = g.turn_started_at
+    ? updateQuery.eq("turn_started_at", g.turn_started_at)
+    : updateQuery.is("turn_started_at", null);
+  const { error, count } = await updateQuery;
   if (error) throw error;
+  if ((count ?? 0) === 0) return { instantWin: false, stale: true };
   const { data, error: finishError } = await supabase.rpc("domino_finish_round", {
     _game_id: g.id,
     _winner: winnerId,
@@ -370,6 +477,13 @@ Deno.serve(async (req) => {
   );
 
   const cutoffMs = Date.now() - HANG_THRESHOLD_MS;
+  let requestedGameId: string | null = null;
+  try {
+    const body = await req.json();
+    requestedGameId = typeof body?.game_id === "string" ? body.game_id : null;
+  } catch {
+    // Scheduled invocations can have no JSON body.
+  }
   // Mpilalao virtuel: mikitika ao anatin'ny 0–7s (fa tsy 15s).
   // TSY misy tahan-pandresena voatendry mialoha — ny fanapahan-kevitra AI
   // sy ny vato tena azo ihany no mamaritra ny valiny (fair game).
@@ -383,11 +497,14 @@ Deno.serve(async (req) => {
   const virtualIds = new Set<string>(virtualLevel.keys());
 
 
-  const { data: games, error } = await supabase
+  let gamesQuery = supabase
     .from("games")
     .select("id, ticket_number, game_mode, players_count, player1_id, player2_id, player3_id, current_turn, turn_started_at, status, passes, board_state, player1_hand, player2_hand, player3_hand, boneyard, score_p1, score_p2, score_p3, round_number, reveal_until, last_reason, pending_winner_id")
-    .eq("status", "in_progress")
-    .limit(100);
+    .eq("status", "in_progress");
+  gamesQuery = requestedGameId
+    ? gamesQuery.eq("id", requestedGameId).limit(1)
+    : gamesQuery.order("turn_started_at", { ascending: true, nullsFirst: true }).limit(100);
+  const { data: games, error } = await gamesQuery;
 
   if (error) {
     return new Response(JSON.stringify({ error: error.message }), {
@@ -401,7 +518,9 @@ Deno.serve(async (req) => {
   let played = 0;
   let roundsFinished = 0;
   let revealsAdvanced = 0;
+  const failures: Array<{ gameId: string; message: string }> = [];
   for (const g of games ?? []) {
+    try {
     const revealMs = g.reveal_until ? new Date(g.reveal_until).getTime() : 0;
     if (!g.current_turn) {
       if (revealMs > 0 && revealMs <= Date.now()) {
@@ -412,7 +531,19 @@ Deno.serve(async (req) => {
     }
     const isVirtual = virtualIds.has(g.current_turn as string);
     const board = ((g as any).board_state ?? []) as Placed[];
-    if (!g.turn_started_at) continue;
+    if (!g.turn_started_at) {
+      // Self-heal an inconsistent active turn. The next sweep handles it at
+      // the normal 15-second deadline instead of leaving it stuck forever.
+      const { error: stampError } = await supabase
+        .from("games")
+        .update({ turn_started_at: new Date().toISOString() })
+        .eq("id", g.id)
+        .eq("current_turn", g.current_turn)
+        .is("turn_started_at", null)
+        .eq("status", "in_progress");
+      if (stampError) throw stampError;
+      continue;
+    }
     const startedMs = new Date(g.turn_started_at).getTime();
     if (isVirtual) {
       // Fiandrasana voafetra: 1s → 5s ihany (tsy ela loatra intsony).
@@ -424,12 +555,30 @@ Deno.serve(async (req) => {
     }
     const hand = getHand(g, g.current_turn as string);
     const handKey = getHandKey(g, g.current_turn as string);
+    // Recovery for legacy/racing states: an empty hand means this player had
+    // already won the round. Never send that state through blocked-game logic.
+    if (hand.length === 0 && handKey) {
+      // The winning board/hand is already persisted in this recovery state;
+      // call the authoritative scorer directly instead of rewriting it first.
+      const { error: recoveryError } = await supabase.rpc("domino_finish_round", {
+        _game_id: g.id,
+        _winner: g.current_turn,
+        _last_tile: null,
+        _blocked: false,
+      });
+      if (recoveryError) throw recoveryError;
+      roundsFinished += 1;
+      continue;
+    }
     const oppSizes = getPlayerIds(g)
       .filter((id) => id !== g.current_turn)
       .map((id) => getHand(g, id).length);
     // Mpilalao virtuel MATANJAKA: fanapahan-kevitra "expert" foana — tsy misy
     // fahadisoana natao an-tsitrapo, tsy misy valiny voatendry mialoha.
-    const best = chooseBestBotMove(hand, board, { opponentSizes: oppSizes });
+    const best = isVirtual
+      ? (chooseExactBotMove(g, g.current_turn as string, hand, board)
+        ?? chooseBestBotMove(hand, board, { opponentSizes: oppSizes }))
+      : chooseBestBotMove(hand, board, { opponentSizes: oppSizes });
 
 
 
@@ -482,9 +631,18 @@ Deno.serve(async (req) => {
       .eq("turn_started_at", g.turn_started_at)
       .eq("status", "in_progress");
     if (!upErr && (count ?? 0) > 0) advanced += 1;
+    } catch (caught) {
+      const message = caught instanceof Error
+        ? caught.message
+        : (typeof caught === "object" && caught !== null
+          ? JSON.stringify(caught)
+          : String(caught));
+      failures.push({ gameId: g.id, message });
+      console.error("domino-autoplay game failed", { gameId: g.id, message });
+    }
   }
 
-  return new Response(JSON.stringify({ scanned: games?.length ?? 0, played, advanced, roundsFinished, revealsAdvanced, protectedTurns }), {
+  return new Response(JSON.stringify({ scanned: games?.length ?? 0, played, advanced, roundsFinished, revealsAdvanced, protectedTurns, failures }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });

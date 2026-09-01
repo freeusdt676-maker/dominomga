@@ -1312,35 +1312,27 @@ export default function Game() {
           return 0;
         });
       const targetPtsBot = Number((fresh as any).target_points ?? (Number(fresh.players_count ?? 2) === 3 ? 120 : 80));
-      // Bot MALEMY: milalao amin'ny fahalalana ara-drariny ihany (vatony sy
-      // ny latabatra), ary misafidy vato mora (isa kely) — mitondra any
-      // amin'ny faharesena fa tsy favori intsony.
-      void oppSizes; void boneyardSize; void oppScoresArr; void targetPtsBot;
-      let best: { index: number; side: "left" | "right" } | null = null;
-      {
-        type C = { index: number; side: "left" | "right"; score: number };
-        const cands: C[] = [];
-        const e = ends(liveBoard);
-        for (let i = 0; i < turnHand.length; i += 1) {
-          const t = turnHand[i];
-          if (!canPlace(liveBoard, t)) continue;
-          const sides: ("left" | "right")[] = !e
-            ? ["left"]
-            : ([
-                ...(t[0] === e.left || t[1] === e.left ? ["left"] : []),
-                ...(t[0] === e.right || t[1] === e.right ? ["right"] : []),
-              ] as ("left" | "right")[]);
-          for (const side of sides) {
-            // Mora indrindra: mandefa vato isa kely, mitazona ny mavesatra.
-            let sc = t[0] + t[1];
-            if (t[0] === t[1]) sc += 4; // mitazona ny double
-            cands.push({ index: i, side, score: sc });
-          }
-        }
-
-        cands.sort((a, b) => a.score - b.score);
-        best = cands[0] ? { index: cands[0].index, side: cands[0].side } : null;
+      const orderedOpponentHands: Tile[][] = [];
+      const ids = getPlayerIds(fresh);
+      const currentSeat = ids.indexOf(turnId);
+      for (let step = 1; step < ids.length; step += 1) {
+        const seat = (currentSeat - step + ids.length) % ids.length;
+        const key = getHandKey(fresh, ids[seat]);
+        orderedOpponentHands.push(key ? (((fresh as any)[key] as Tile[]) ?? []) : []);
       }
+      // Bot ON: kajy exact/minimax amin'ny tanana rehetra; raha tratra ny
+      // computational cap dia miverina amin'ny stratégie Grand-Maître.
+      const exact = bestExactMove(turnHand, orderedOpponentHands, liveBoard, Number(fresh.passes ?? 0));
+      const best = exact
+        ? { index: exact.index, side: exact.side }
+        : chooseBestBotMove(turnHand, liveBoard, {
+            opponentSizes: oppSizes,
+            boneyardSize,
+            opponentScores: oppScoresArr,
+            targetPts: targetPtsBot,
+            opponentHands: orderedOpponentHands,
+            boneyard: ((fresh.boneyard as Tile[]) ?? []),
+          });
 
 
 

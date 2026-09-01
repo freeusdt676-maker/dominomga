@@ -34,14 +34,28 @@ export default function PasswordRecoveryAdmin() {
   const pendingCount = items.filter((i) => i.status === "pending").length;
 
   const decide = async (id: string, approve: boolean, n?: string) => {
+    if (approve) {
+      // Ny système mihitsy no manome ny mot de passe/PIN mandeha tokoa
+      const { data, error } = await supabase.functions.invoke("recovery-approve", {
+        body: { request_id: id },
+      });
+      if (error || (data as any)?.error) {
+        toast.error((data as any)?.error || error?.message || "Tsy nety");
+        return;
+      }
+      toast.success((data as any)?.regenerated ? "Approuvé — mot de passe vaovao nomena" : "Approuvé");
+      load();
+      return;
+    }
     const { data, error } = await supabase.rpc("admin_decide_recovery" as any,
-      { _request_id: id, _approve: approve, _note: n ?? null });
+      { _request_id: id, _approve: false, _note: n ?? null });
     if (error) { toast.error(error.message); return; }
     if ((data as any)?.ok) {
-      toast.success(approve ? "Approuvé" : "Refusé");
+      toast.success("Refusé");
       setNoteFor(null); setNote("");
     }
   };
+
 
   return (
     <div className="card-felt rounded-2xl p-4 mb-4 border border-primary/30">

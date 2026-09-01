@@ -1241,8 +1241,42 @@ export default function Admin() {
                     </span>
                   </div>
                   <p><b>{(h._players ?? []).join(" · ")}</b></p>
-                  <p>Mise: <b className="gold-text">{fmtAr(h.stake)}</b></p>
-                  {h._winnerName && <p>🏆 Pandresy: <b className="text-success">{h._winnerName}</b></p>}
+                  <div className="grid grid-cols-2 gap-1">
+                    <p>Mise: <b className="gold-text">{fmtAr(h.stake)}</b></p>
+                    <p>Mpilalao: <b>{h.players_count ?? (h._players ?? []).length}P</b></p>
+                  </div>
+                  {h._reason && (
+                    <p className="rounded bg-primary/10 border border-primary/30 px-2 py-1 text-[10px]">
+                      Antony nandresena: <b className="gold-text">{h._reason}</b>
+                    </p>
+                  )}
+                  {(h._rank ?? []).length > 0 && (
+                    <div className="space-y-1 pt-1">
+                      {(h._rank as any[]).map((r, idx) => (
+                        <div key={r.user_id} className="rounded-lg border border-primary/15 bg-card/40 px-2 py-1">
+                          <div className="flex justify-between gap-2">
+                            <span className="font-bold">
+                              {idx === 0 ? "🏆 Mandresy" : idx === 1 ? "2é" : idx === 2 ? "3é" : "4é"} — {r.name}
+                            </span>
+                            {r.cumulative != null && <span className="text-muted-foreground">{r.cumulative} pt</span>}
+                          </div>
+                          <div className="flex justify-between gap-2 text-[10px] text-muted-foreground">
+                            <span>
+                              Solde teo aloha: <b className="text-foreground">{r.before != null ? fmtAr(r.before) : "—"}</b>
+                              {" → "}taorian'ny lalao: <b className="text-foreground">{r.after != null ? fmtAr(r.after) : "—"}</b>
+                            </span>
+                            {r.amount != null && (
+                              <b className={r.amount >= 0 ? "text-success" : "text-destructive"}>
+                                {r.amount >= 0 ? "+" : ""}{fmtAr(r.amount)}
+                              </b>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {!(h._rank ?? []).length && h._winnerName && <p>🏆 Pandresy: <b className="text-success">{h._winnerName}</b></p>}
+
                   <p className="text-[10px] text-muted-foreground">
                     Niatomboka: {new Date(start).toLocaleString()}<br />
                     {h.finished_at && <>Niafarany: {new Date(h.finished_at).toLocaleString()}</>}

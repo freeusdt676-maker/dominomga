@@ -580,22 +580,29 @@ Deno.serve(async (req) => {
     const oppSizes = getPlayerIds(g)
       .filter((id) => id !== g.current_turn)
       .map((id) => getHand(g, id).length);
-    // Mpilalao virtuel: MAHALALA NY VATO REHETRA (perfect info) satria ny
-    // backend no tompon'ny tanana rehetra. Tanjaka 90%: 90% mandeha ny
-    // hetsika faratampony (minimax exact), 10% safidy malemy mba hisian'ny
-    // fandresen'ny olona tena izy indraindra.
-    const cheat = () => {
-      const moves = legalMoves(hand, board);
-      if (!moves.length) return null;
-      if (Math.random() < 0.9) {
-        const exact = chooseExactBotMove(g, g.current_turn as string, hand, board);
-        if (exact) return exact;
+    // NIVEAU BOT (avoakan'ny admin amin'ny bouton "Niveau bot"):
+    //  50%  = malemy (antsasany fotsiny ny hetsika tsara, fair info)
+    //  60%  = ambonimbony kokoa (60% hetsika tsara, fair info)
+    //  70%  = mahay (70% hetsika tsara, fair info)
+    //  80%  = tena mahay SY mahalala vato (80% minimax perfect info)
+    //  100% = tsy azo atao (minimax perfect info foana)
+    const moves = legalMoves(hand, board);
+    let best: SearchMove | null = null;
+    if (moves.length) {
+      const p = botSkill / 100;
+      if (botSkill >= 80) {
+        // Perfect info: mahita ny tanan'ny adversaire rehetra (backend).
+        if (Math.random() < p) best = chooseExactBotMove(g, g.current_turn as string, hand, board);
+      } else {
+        // Fair info: fanisana ny vato efa nivoaka sy ny sisa ihany.
+        if (Math.random() < p) best = chooseBestBotMove(hand, board);
       }
-      const weak = chooseWeakMove(hand, board);
-      const alt = moves[Math.floor(Math.random() * moves.length)];
-      return (Math.random() < 0.5 && weak) ? weak : alt;
-    };
-    const best = cheat();
+      if (!best) {
+        const weak = chooseWeakMove(hand, board);
+        const alt = moves[Math.floor(Math.random() * moves.length)];
+        best = (Math.random() < 0.5 && weak) ? weak : alt;
+      }
+    }
 
 
 

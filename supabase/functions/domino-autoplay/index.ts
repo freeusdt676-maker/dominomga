@@ -296,7 +296,10 @@ function searchPosition(
 
   const moves = legalMoves(hands[turn], board);
   if (!moves.length) {
-    return searchPosition(hands, board, (turn + 1) % hands.length, passes + 1, depth - 1, nodes, alpha, beta);
+    // A recursive result belongs to the next player. Never bubble that move
+    // back as though it were playable from the current player's hand.
+    const result = searchPosition(hands, board, (turn + 1) % hands.length, passes + 1, depth - 1, nodes, alpha, beta);
+    return { value: result.value, move: null };
   }
   const maximizing = turn === 0;
   moves.sort((a, b) => {
@@ -327,6 +330,10 @@ function searchPosition(
 // Perfect-information search for virtual players. The backend owns all hands,
 // so the virtual player can analyse the real position instead of guessing.
 function chooseExactBotMove(g: any, playerId: string, hand: Tile[], board: Placed[]): SearchMove | null {
+  // Passing is the only valid action when this hand has no legal move.
+  // This guard also prevents an opponent's recursive move index from ever
+  // being interpreted against the virtual player's hand.
+  if (!legalMoves(hand, board).length) return null;
   const ids = getPlayerIds(g);
   const currentIndex = ids.indexOf(playerId);
   if (currentIndex < 0) return null;
@@ -584,6 +591,9 @@ Deno.serve(async (req) => {
 
     if (best && handKey) {
       const tile = hand[best.index];
+      if (!tile || canPlaceSide(board, tile) === null) {
+        throw new Error("bot_solver_returned_invalid_move");
+      }
       const newBoard = place(board, tile, best.side);
       const newHand = hand.filter((_, i) => i !== best.index);
       if (newHand.length === 0) {
@@ -603,9 +613,11 @@ Deno.serve(async (req) => {
           passes: 0,
         }, { count: "exact" })
         .eq("id", g.id)
+        .eq("current_turn", g.current_turn)
         .eq("turn_started_at", g.turn_started_at)
         .eq("status", "in_progress");
-      if (!upErr && (count ?? 0) > 0) played += 1;
+      if (upErr) throw upErr;
+      if ((count ?? 0) > 0) played += 1;
       continue;
     }
     if (handHasMove(hand, board)) {
@@ -628,9 +640,11 @@ Deno.serve(async (req) => {
         passes,
       }, { count: "exact" })
       .eq("id", g.id)
+      .eq("current_turn", g.current_turn)
       .eq("turn_started_at", g.turn_started_at)
       .eq("status", "in_progress");
-    if (!upErr && (count ?? 0) > 0) advanced += 1;
+    if (upErr) throw upErr;
+    if ((count ?? 0) > 0) advanced += 1;
     } catch (caught) {
       const message = caught instanceof Error
         ? caught.message

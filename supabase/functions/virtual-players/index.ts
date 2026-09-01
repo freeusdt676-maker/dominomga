@@ -16,20 +16,23 @@ const BOT_BALANCE = 500_000;
 const STAKES = [500, 1000, 2000, 3000, 5000];
 // Ny bot: matetika D80, 1 amin'ny 5 ihany no D120.
 const MODES = ["d80", "d80", "d80", "d80", "d120"];
-// Isan'ny lalao 100% bot avela mandeha foana ao amin'ny lobby (vitrine).
-const SHOWCASE_BOT_GAMES = 2;
+// Lalao 100% bot (DEMO fotsiny, tsy misy vola) avela mandeha foana
+// ao amin'ny live mba hanitona mason'olona: 1× 2P sy 1× 3P.
+const SHOWCASE_PER_MODE = 1;
 
 const FIRST = [
-  "Rado", "Tiana", "Fenohasina", "Nirina", "Mamy", "Hery", "Njaka", "Fanjava",
-  "Toky", "Lova", "Miora", "Sitraka", "Rija", "Haja", "Onja", "Fifaliana",
-  "Tsanta", "Andry", "Faniry", "Tahina", "Nomena", "Zo", "Fitia", "Aina",
-  "Soa", "Kanto", "Manda", "Sedra", "Herizo", "Voahangy", "Rivo", "Lalaina",
-  "Tojo", "Fandresena", "Mahefa", "Solofo", "Tsiory", "Ando", "Mahery", "Diary",
-  "Vonjy", "Domoina", "Fara", "Iharena", "Jaona", "Koto", "Lanto", "Nofy",
-  "Patrick", "Riana", "Sahaza", "Tantely", "Valisoa", "Zafy", "Ny Aina", "Tsilavina",
-  "Fabrice", "Herilala", "Mialy", "Vero",
+  "Tsilavo", "Maminiaina", "Heriniaina", "Sarobidy", "Tojonirina", "Fanomezantsoa",
+  "Mamisoa", "Hobiniaina", "Ny Hasina", "Lovasoa", "Mioramala", "Tsiroanaina",
+  "Jean Chris", "Mandahery", "Fenosoa", "Tahiry", "Nirintsoa", "Harilala",
+  "Sandratra", "Voahirana", "Mampionona", "Tsiry", "Hajahery", "Onjatiana",
+  "Fifalitra", "Tsaramaso", "Andriam", "Fanomezana", "Tahinala", "Nomentsoa",
+  "Zoarintsoa", "Fitiavana", "Ainasony", "Soanirina", "Kantorida", "Mandresy",
+  "Sedramalala", "Herizo", "Voahangy", "Rivonala", "Lalatiana", "Tojoniaina",
+  "Fandresena", "Mahefa", "Solofonaina", "Tsiory", "Andoniaina", "Maherizo",
+  "Diary", "Vonjy", "Domoina", "Faranirina", "Iharena", "Jaofetra", "Kotonala",
+  "Lantonirina", "Nofyson", "Patricia", "Rianala", "Sahazavana", "Tantely",
 ];
-const LAST = ["R", "Rk", "Rz", "Ny", "Mg", "Jr", "Be", "Za"];
+const LAST = ["R", "Rk", "Rz", "Ny", "Mg", "Jr", "Be", "Za", "Ts", "Hv"];
 
 const PREFIX = ["032", "033", "034", "037", "038"];
 

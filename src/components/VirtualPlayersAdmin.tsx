@@ -2,6 +2,15 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Bot, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
+
+const BOT_LEVELS = [
+  { level: 50, label: "50%", desc: "Atonony ny fahaizany" },
+  { level: 60, label: "60%", desc: "Ambonimbony kokoa" },
+  { level: 70, label: "70%", desc: "Mahay" },
+  { level: 80, label: "80%", desc: "Tena mahay & mahalala vato" },
+  { level: 100, label: "100%", desc: "Tsy azo resena" },
+] as const;
 
 type Row = {
   user_id: string;
@@ -34,6 +43,8 @@ const STATUS_CLASS: Record<string, string> = {
 export default function VirtualPlayersAdmin() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
+  const [skill, setSkill] = useState<number | null>(null);
+  const [skillBusy, setSkillBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -47,6 +58,15 @@ export default function VirtualPlayersAdmin() {
     const t = setInterval(load, 20000);
     return () => clearInterval(t);
   }, [load]);
+
+  const setLevel = async (level: number) => {
+    setSkillBusy(true);
+    const { data, error } = await supabase.rpc("admin_set_bot_skill" as any, { _level: level });
+    setSkillBusy(false);
+    if (error || data !== true) return toast.error("Tsy voatahiry ny niveau");
+    setSkill(level);
+    toast.success(`Niveau bot: ${level}%`);
+  };
 
   const online = rows.filter((r) => r.online).length;
   const inGame = rows.filter((r) => r.status === "en_partie").length;
@@ -63,6 +83,30 @@ export default function VirtualPlayersAdmin() {
         <Button size="sm" variant="outline" onClick={load} disabled={loading}>
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
         </Button>
+      </div>
+
+      <div className="rounded-lg border border-border bg-card/60 p-3 space-y-2">
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+          🎚️ Niveau bot {skill !== null && <span className="text-primary">· {skill}%</span>}
+        </p>
+        <div className="grid grid-cols-5 gap-1.5">
+          {BOT_LEVELS.map((l) => (
+            <button
+              key={l.level}
+              type="button"
+              disabled={skillBusy}
+              onClick={() => setLevel(l.level)}
+              className={`rounded-lg border px-1 py-2 text-center transition-all ${
+                skill === l.level
+                  ? "border-primary bg-primary/15 text-primary shadow-[0_0_12px_hsl(var(--primary)/0.35)]"
+                  : "border-border bg-background/60 text-foreground hover:border-primary/50"
+              }`}
+            >
+              <span className="block text-sm font-extrabold">{l.label}</span>
+              <span className="block text-[9px] leading-tight text-muted-foreground mt-0.5">{l.desc}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="space-y-1.5 max-h-[60vh] overflow-y-auto">

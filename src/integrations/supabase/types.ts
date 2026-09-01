@@ -1615,6 +1615,7 @@ export type Database = {
         Args: { _admin_id: string; _content: string }
         Returns: Json
       }
+      admin_set_bot_skill: { Args: { _level: number }; Returns: boolean }
       admin_set_game_block: {
         Args: {
           _admin_id: string

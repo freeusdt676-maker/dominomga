@@ -503,6 +503,17 @@ Deno.serve(async (req) => {
   );
   const virtualIds = new Set<string>(virtualLevel.keys());
 
+  // Niveau bot global — voafaritry ny admin (bouton "Niveau bot").
+  // 50 / 60 / 70 / 80 / 100. Default 80 raha tsy voafaritra.
+  let botSkill = 80;
+  const { data: skillCfg } = await supabase
+    .from("app_internal_config")
+    .select("value")
+    .eq("key", "bot_skill")
+    .maybeSingle();
+  const parsedSkill = Number((skillCfg as any)?.value);
+  if ([50, 60, 70, 80, 100].includes(parsedSkill)) botSkill = parsedSkill;
+
 
   let gamesQuery = supabase
     .from("games")

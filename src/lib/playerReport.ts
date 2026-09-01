@@ -121,16 +121,41 @@ export async function downloadMyPlayerReport(profile: ReportProfile, stats: Repo
     columnStyles: { 0: { cellWidth: 160, fontStyle: "bold" } },
   });
 
+  // Solde avant / après isaky ny mouvement (averina mianotra avy amin'ny solde ankehitriny).
+  const ascTx = [...txs].reverse();
+  const beforeArr: number[] = new Array(ascTx.length).fill(0);
+  const afterArr: number[] = new Array(ascTx.length).fill(0);
+  let run = balance;
+  for (let i = ascTx.length - 1; i >= 0; i--) {
+    afterArr[i] = run;
+    beforeArr[i] = run - signedAmount(ascTx[i]);
+    run = beforeArr[i];
+  }
+
   autoTable(doc, {
     startY: (doc as any).lastAutoTable.finalY + 18,
-    head: [["Date", "Type", "Montant", "Statut", "Référence"]],
+    head: [["Date", "Type", "Statut", "Mouvement", "Solde avant", "Solde après", "Référence"]],
     body: txs.length
-      ? txs.map((t) => [dt(t.created_at), t.type, money(Number(t.amount || 0)), t.status, t.mvola_reference ?? "—"])
-      : [["—", "Aucun mouvement", "—", "—", "—"]],
+      ? txs.map((t) => {
+          const i = ascTx.indexOf(t);
+          const mv = signedAmount(t);
+          return [
+            dt(t.created_at),
+            TYPE_LABEL[t.type] ?? t.type,
+            t.status,
+            `${mv > 0 ? "+" : ""}${money(mv)}`,
+            money(beforeArr[i] ?? 0),
+            money(afterArr[i] ?? 0),
+            t.mvola_reference ?? "—",
+          ];
+        })
+      : [["—", "Aucun mouvement", "—", "—", "—", "—", "—"]],
     theme: "striped",
     headStyles: { fillColor: [14, 46, 30], textColor: [233, 196, 106] },
     styles: { fontSize: 8, cellPadding: 3 },
+    columnStyles: { 3: { halign: "right" }, 4: { halign: "right" }, 5: { halign: "right" } },
   });
+
 
   autoTable(doc, {
     startY: (doc as any).lastAutoTable.finalY + 18,

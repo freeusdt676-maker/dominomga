@@ -413,8 +413,18 @@ async function finishRoundOnServer(
   void reasonOverride;
   const payload: Record<string, unknown> = { board_state: board };
   if (handKey && newHand) payload[handKey] = newHand;
-  const { error } = await supabase.from("games").update(payload).eq("id", g.id).eq("status", "in_progress");
+  let updateQuery = supabase
+    .from("games")
+    .update(payload, { count: "exact" })
+    .eq("id", g.id)
+    .eq("status", "in_progress")
+    .eq("current_turn", g.current_turn);
+  updateQuery = g.turn_started_at
+    ? updateQuery.eq("turn_started_at", g.turn_started_at)
+    : updateQuery.is("turn_started_at", null);
+  const { error, count } = await updateQuery;
   if (error) throw error;
+  if ((count ?? 0) === 0) return { instantWin: false, stale: true };
   const { data, error: finishError } = await supabase.rpc("domino_finish_round", {
     _game_id: g.id,
     _winner: winnerId,
@@ -467,6 +477,13 @@ Deno.serve(async (req) => {
   );
 
   const cutoffMs = Date.now() - HANG_THRESHOLD_MS;
+  let requestedGameId: string | null = null;
+  try {
+    const body = await req.json();
+    requestedGameId = typeof body?.game_id === "string" ? body.game_id : null;
+  } catch {
+    // Scheduled invocations can have no JSON body.
+  }
   // Mpilalao virtuel: mikitika ao anatin'ny 0–7s (fa tsy 15s).
   // TSY misy tahan-pandresena voatendry mialoha — ny fanapahan-kevitra AI
   // sy ny vato tena azo ihany no mamaritra ny valiny (fair game).
@@ -480,11 +497,14 @@ Deno.serve(async (req) => {
   const virtualIds = new Set<string>(virtualLevel.keys());
 
 
-  const { data: games, error } = await supabase
+  let gamesQuery = supabase
     .from("games")
     .select("id, ticket_number, game_mode, players_count, player1_id, player2_id, player3_id, current_turn, turn_started_at, status, passes, board_state, player1_hand, player2_hand, player3_hand, boneyard, score_p1, score_p2, score_p3, round_number, reveal_until, last_reason, pending_winner_id")
-    .eq("status", "in_progress")
-    .limit(100);
+    .eq("status", "in_progress");
+  gamesQuery = requestedGameId
+    ? gamesQuery.eq("id", requestedGameId).limit(1)
+    : gamesQuery.order("turn_started_at", { ascending: true, nullsFirst: true }).limit(100);
+  const { data: games, error } = await gamesQuery;
 
   if (error) {
     return new Response(JSON.stringify({ error: error.message }), {
@@ -511,7 +531,19 @@ Deno.serve(async (req) => {
     }
     const isVirtual = virtualIds.has(g.current_turn as string);
     const board = ((g as any).board_state ?? []) as Placed[];
-    if (!g.turn_started_at) continue;
+    if (!g.turn_started_at) {
+      // Self-heal an inconsistent active turn. The next sweep handles it at
+      // the normal 15-second deadline instead of leaving it stuck forever.
+      const { error: stampError } = await supabase
+        .from("games")
+        .update({ turn_started_at: new Date().toISOString() })
+        .eq("id", g.id)
+        .eq("current_turn", g.current_turn)
+        .is("turn_started_at", null)
+        .eq("status", "in_progress");
+      if (stampError) throw stampError;
+      continue;
+    }
     const startedMs = new Date(g.turn_started_at).getTime();
     if (isVirtual) {
       // Fiandrasana voafetra: 1s → 5s ihany (tsy ela loatra intsony).

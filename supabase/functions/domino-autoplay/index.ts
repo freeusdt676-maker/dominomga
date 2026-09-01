@@ -558,7 +558,15 @@ Deno.serve(async (req) => {
     // Recovery for legacy/racing states: an empty hand means this player had
     // already won the round. Never send that state through blocked-game logic.
     if (hand.length === 0 && handKey) {
-      await finishRoundOnServer(supabase, g, g.current_turn as string, 0, null, board, handKey, hand);
+      // The winning board/hand is already persisted in this recovery state;
+      // call the authoritative scorer directly instead of rewriting it first.
+      const { error: recoveryError } = await supabase.rpc("domino_finish_round", {
+        _game_id: g.id,
+        _winner: g.current_turn,
+        _last_tile: null,
+        _blocked: false,
+      });
+      if (recoveryError) throw recoveryError;
       roundsFinished += 1;
       continue;
     }
@@ -624,7 +632,11 @@ Deno.serve(async (req) => {
       .eq("status", "in_progress");
     if (!upErr && (count ?? 0) > 0) advanced += 1;
     } catch (caught) {
-      const message = caught instanceof Error ? caught.message : String(caught);
+      const message = caught instanceof Error
+        ? caught.message
+        : (typeof caught === "object" && caught !== null
+          ? JSON.stringify(caught)
+          : String(caught));
       failures.push({ gameId: g.id, message });
       console.error("domino-autoplay game failed", { gameId: g.id, message });
     }

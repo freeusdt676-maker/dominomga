@@ -10,7 +10,7 @@ type: feature
 - MONEY (critical): bots pay nothing. `start_game_deduct` skips virtual players; commission = 10%×stake×REAL players, `cash_pool` = (stake−commission)×REAL players. Example 2P real-vs-bot at 1000 Ar → commission 100, pot 900. `enforce_domino_settle_integrity` validates commission with real-player count. `settle_game` tolerates pot=0 (bot-only games). `admin_cancel_domino_game` refunds real players only.
 - Admin totals: `admin_total_player_balance` excludes admin AND virtual wallets. Helper `public.is_virtual_player(uuid)`.
 - SECRET: virtual status is admin-only (`admin_list_virtual_players`, Admin → 🤖 Bots tab). Never reveal it to players.
-- Presence UI shows only a count ("N en ligne" + green dot), never names.
+- Presence UI: le compteur "N en ligne" ET les NOMS des bots en ligne sont affichés (RPC public `virtual_online_players()` retourne name only), mélangés aux vrais joueurs sans marque distinctive — demande utilisateur du 2026-09-02.
 - RÈGLE: aucune partie ne tourne sans au moins UN joueur réel. Les bots ne rejoignent que les salles contenant un vrai joueur; `purge_bot_only_games()` (appelée à chaque tick) annule les parties `in_progress` 100% bots.
 - Les salles ouvertes (waiting) créées par les bots restent, minimum 5 en permanence — elles servent d'appât pour les vrais joueurs.
 - EXCEPTION à la règle "aucune partie sans vrai joueur": parties 100% bots = DEMO sans argent, 1× 2P et 1× 3P en permanence (vitrine). `purge_bot_only_games()` garde la plus récente par mode et annule le reste.

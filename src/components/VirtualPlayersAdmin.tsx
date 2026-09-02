@@ -45,11 +45,17 @@ export default function VirtualPlayersAdmin() {
   const [loading, setLoading] = useState(false);
   const [skill, setSkill] = useState<number | null>(null);
   const [skillBusy, setSkillBusy] = useState(false);
+  const [botsOn, setBotsOn] = useState<boolean | null>(null);
+  const [toggleBusy, setToggleBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase.rpc("admin_list_virtual_players");
+    const [{ data }, { data: en }] = await Promise.all([
+      supabase.rpc("admin_list_virtual_players"),
+      supabase.rpc("bots_enabled" as any),
+    ]);
     setRows((data as Row[]) ?? []);
+    if (typeof en === "boolean") setBotsOn(en);
     setLoading(false);
   }, []);
 
@@ -59,6 +65,21 @@ export default function VirtualPlayersAdmin() {
     return () => clearInterval(t);
   }, [load]);
 
+  const toggleBots = async (next: boolean) => {
+    setToggleBusy(true);
+    const { data, error } = await supabase.rpc("admin_set_bots_enabled" as any, { _enabled: next });
+    setToggleBusy(false);
+    if (error) return toast.error("Tsy tafita ny fanovana");
+    setBotsOn(next);
+    const r = data as any;
+    toast.success(
+      next
+        ? "Bot vurtiel NAVELA — hipoitra indray izy ireo"
+        : `Bot vurtiel NAJANONA — salle voafafa: ${r?.rooms_cancelled ?? 0} · demo: ${r?.demo_cancelled ?? 0}`,
+    );
+    load();
+  };
+
   const setLevel = async (level: number) => {
     setSkillBusy(true);
     const { data, error } = await supabase.rpc("admin_set_bot_skill" as any, { _level: level });
@@ -67,6 +88,7 @@ export default function VirtualPlayersAdmin() {
     setSkill(level);
     toast.success(`Niveau bot: ${level}%`);
   };
+
 
   const online = rows.filter((r) => r.online).length;
   const inGame = rows.filter((r) => r.status === "en_partie").length;

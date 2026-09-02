@@ -109,6 +109,46 @@ export default function VirtualPlayersAdmin() {
 
       <div className="rounded-lg border border-border bg-card/60 p-3 space-y-2">
         <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+          🤖 Bot vurtiel{" "}
+          <span className={botsOn === false ? "text-destructive" : "text-primary"}>
+            · {botsOn === false ? "DÉSACTIVÉ" : "ACTIVÉ"}
+          </span>
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            disabled={toggleBusy}
+            onClick={() => toggleBots(true)}
+            className={`rounded-lg border px-2 py-2 text-xs font-extrabold transition-all ${
+              botsOn !== false
+                ? "border-primary bg-primary/15 text-primary shadow-[0_0_12px_hsl(var(--primary)/0.35)]"
+                : "border-border bg-background/60 text-foreground hover:border-primary/50"
+            }`}
+          >
+            ✅ Activer
+          </button>
+          <button
+            type="button"
+            disabled={toggleBusy}
+            onClick={() => toggleBots(false)}
+            className={`rounded-lg border px-2 py-2 text-xs font-extrabold transition-all ${
+              botsOn === false
+                ? "border-destructive bg-destructive/15 text-destructive"
+                : "border-border bg-background/60 text-foreground hover:border-destructive/50"
+            }`}
+          >
+            ⛔ Désactiver
+          </button>
+        </div>
+        <p className="text-[10px] leading-tight text-muted-foreground">
+          Désactivé: miala daholo ny bot, tsy mamorona salle intsony — olona tena izy ihany no
+          mifaninana. Activé: miverina miasa avy hatrany izy ireo.
+        </p>
+      </div>
+
+
+      <div className="rounded-lg border border-border bg-card/60 p-3 space-y-2">
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
           🎚️ Niveau bot {skill !== null && <span className="text-primary">· {skill}%</span>}
         </p>
         <div className="grid grid-cols-5 gap-1.5">

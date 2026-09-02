@@ -300,6 +300,14 @@ Deno.serve(async (req) => {
   try {
     // Tick isaky ny 5s mandritra ~50s (cron isaky ny 1 minitra)
     while (Date.now() - started < 50_000) {
+      // Bouton admin: raha désactivé ny bot vurtiel dia tsy manao na inona na inona
+      // ny orchestrateur (efa nesorina tao amin'ny salle izy ireo tamin'ny RPC).
+      const { data: enabled } = await supabase.rpc("bots_enabled");
+      if (enabled === false) {
+        return new Response(JSON.stringify({ ...stats, disabled: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const { data: players } = await supabase
         .from("virtual_players")
         .select("user_id, name, phone, level, online, active")
@@ -315,6 +323,7 @@ Deno.serve(async (req) => {
       stats.online = list.filter((p: any) => p.online).length;
       await new Promise((r) => setTimeout(r, 5000));
     }
+
   } catch (e) {
     return new Response(JSON.stringify({ error: String(e), stats }), {
       status: 500,

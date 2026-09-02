@@ -1616,6 +1616,7 @@ export type Database = {
         Returns: Json
       }
       admin_set_bot_skill: { Args: { _level: number }; Returns: boolean }
+      admin_set_bots_enabled: { Args: { _enabled: boolean }; Returns: Json }
       admin_set_game_block: {
         Args: {
           _admin_id: string
@@ -1657,6 +1658,7 @@ export type Database = {
         }
         Returns: Json
       }
+      bots_enabled: { Args: never; Returns: boolean }
       cancel_waiting_game: { Args: { _game_id: string }; Returns: Json }
       check_login_lockout: { Args: { _phone: string }; Returns: Json }
       check_rate_limit: {

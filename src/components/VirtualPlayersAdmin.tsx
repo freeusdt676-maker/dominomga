@@ -45,11 +45,17 @@ export default function VirtualPlayersAdmin() {
   const [loading, setLoading] = useState(false);
   const [skill, setSkill] = useState<number | null>(null);
   const [skillBusy, setSkillBusy] = useState(false);
+  const [botsOn, setBotsOn] = useState<boolean | null>(null);
+  const [toggleBusy, setToggleBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase.rpc("admin_list_virtual_players");
+    const [{ data }, { data: en }] = await Promise.all([
+      supabase.rpc("admin_list_virtual_players"),
+      supabase.rpc("bots_enabled" as any),
+    ]);
     setRows((data as Row[]) ?? []);
+    if (typeof en === "boolean") setBotsOn(en);
     setLoading(false);
   }, []);
 
@@ -59,6 +65,21 @@ export default function VirtualPlayersAdmin() {
     return () => clearInterval(t);
   }, [load]);
 
+  const toggleBots = async (next: boolean) => {
+    setToggleBusy(true);
+    const { data, error } = await supabase.rpc("admin_set_bots_enabled" as any, { _enabled: next });
+    setToggleBusy(false);
+    if (error) return toast.error("Tsy tafita ny fanovana");
+    setBotsOn(next);
+    const r = data as any;
+    toast.success(
+      next
+        ? "Bot vurtiel NAVELA — hipoitra indray izy ireo"
+        : `Bot vurtiel NAJANONA — salle voafafa: ${r?.rooms_cancelled ?? 0} · demo: ${r?.demo_cancelled ?? 0}`,
+    );
+    load();
+  };
+
   const setLevel = async (level: number) => {
     setSkillBusy(true);
     const { data, error } = await supabase.rpc("admin_set_bot_skill" as any, { _level: level });
@@ -67,6 +88,7 @@ export default function VirtualPlayersAdmin() {
     setSkill(level);
     toast.success(`Niveau bot: ${level}%`);
   };
+
 
   const online = rows.filter((r) => r.online).length;
   const inGame = rows.filter((r) => r.status === "en_partie").length;
@@ -84,6 +106,46 @@ export default function VirtualPlayersAdmin() {
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
         </Button>
       </div>
+
+      <div className="rounded-lg border border-border bg-card/60 p-3 space-y-2">
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+          🤖 Bot vurtiel{" "}
+          <span className={botsOn === false ? "text-destructive" : "text-primary"}>
+            · {botsOn === false ? "DÉSACTIVÉ" : "ACTIVÉ"}
+          </span>
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            disabled={toggleBusy}
+            onClick={() => toggleBots(true)}
+            className={`rounded-lg border px-2 py-2 text-xs font-extrabold transition-all ${
+              botsOn !== false
+                ? "border-primary bg-primary/15 text-primary shadow-[0_0_12px_hsl(var(--primary)/0.35)]"
+                : "border-border bg-background/60 text-foreground hover:border-primary/50"
+            }`}
+          >
+            ✅ Activer
+          </button>
+          <button
+            type="button"
+            disabled={toggleBusy}
+            onClick={() => toggleBots(false)}
+            className={`rounded-lg border px-2 py-2 text-xs font-extrabold transition-all ${
+              botsOn === false
+                ? "border-destructive bg-destructive/15 text-destructive"
+                : "border-border bg-background/60 text-foreground hover:border-destructive/50"
+            }`}
+          >
+            ⛔ Désactiver
+          </button>
+        </div>
+        <p className="text-[10px] leading-tight text-muted-foreground">
+          Désactivé: miala daholo ny bot, tsy mamorona salle intsony — olona tena izy ihany no
+          mifaninana. Activé: miverina miasa avy hatrany izy ireo.
+        </p>
+      </div>
+
 
       <div className="rounded-lg border border-border bg-card/60 p-3 space-y-2">
         <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">

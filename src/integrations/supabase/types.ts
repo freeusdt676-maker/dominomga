@@ -2007,6 +2007,12 @@ export type Database = {
         Returns: Json
       }
       virtual_online_count: { Args: never; Returns: number }
+      virtual_online_players: {
+        Args: never
+        Returns: {
+          name: string
+        }[]
+      }
       virtual_set_online: {
         Args: { _ids: string[]; _online: boolean }
         Returns: undefined

@@ -762,26 +762,36 @@ export default function PetanqueGame() {
   // Commit the jack position then keep same player on aim phase for first ball throw
   const finishJackThrow = async (jack: Jack, thrower: "p1" | "p2") => {
     if (!g) return;
-    // Validation: jack must land in the valid zone, otherwise re-throw by the same player
+    const attempts = (g.state?.jackAttempts ?? 0) + 1;
+    // Fitsipika: 6–10 m ary 1/2 m farafahakeliny lavitra ny sisiny. Raha tsy
+    // mety dia averina atsipy — fa aorian'ny fanandramana 3 dia ny rafitra no
+    // mametraka azy amin'ny toerana ara-dalàna (araka ny fitsipika ofisialy:
+    // lasan'ny mpanohitra ny fametrahana).
     if (!isJackValid(jack)) {
-      toast.error("Tsy mety ny boul kely (akaiky/lavitra loatra) — atsipy indray");
-      await supabase.rpc("petanque_update_state" as any, {
-        _game_id: g.id,
-        _state: {
-          balls: [],
-          jack: null,
-          phase: "throw_jack",
-          remaining: { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER },
-          lastThrower: thrower,
-        },
-        _current_turn: thrower === "p1" ? g.player1_id : g.player2_id,
-        _turn_started_at: new Date().toISOString(),
-        _score_p1: g.score_p1,
-        _score_p2: g.score_p2,
-        _round_number: g.round_number,
-      });
-      setThrowing(false);
-      return;
+      if (attempts < MAX_JACK_ATTEMPTS) {
+        toast.error(`Tsy mety ny boul kely (${attempts}/${MAX_JACK_ATTEMPTS}) — atsipy indray`);
+        await supabase.rpc("petanque_update_state" as any, {
+          _game_id: g.id,
+          _state: {
+            balls: [],
+            jack: null,
+            phase: "throw_jack",
+            remaining: { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER },
+            lastThrower: thrower,
+            jackThrower: thrower,
+            jackAttempts: attempts,
+          },
+          _current_turn: thrower === "p1" ? g.player1_id : g.player2_id,
+          _turn_started_at: new Date().toISOString(),
+          _score_p1: g.score_p1,
+          _score_p2: g.score_p2,
+          _round_number: g.round_number,
+        });
+        setThrowing(false);
+        return;
+      }
+      jack = randomValidJack();
+      toast("Fanandramana 3 tsy nety — napetraka ara-dalàna ny boul kely");
     }
     const currentTurnUser = thrower === "p1" ? g.player1_id : g.player2_id;
     await supabase.rpc("petanque_update_state" as any, {
@@ -792,6 +802,8 @@ export default function PetanqueGame() {
         phase: "aim",
         remaining: { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER },
         lastThrower: thrower,
+        jackThrower: thrower,
+        jackAttempts: 0,
       },
       _current_turn: currentTurnUser,
       _turn_started_at: new Date().toISOString(),
@@ -801,6 +813,7 @@ export default function PetanqueGame() {
     });
     setThrowing(false);
   };
+
 
   // ---- 20s auto-throw (robot) — any connected player may trigger after server confirms timeout ----
   useEffect(() => {

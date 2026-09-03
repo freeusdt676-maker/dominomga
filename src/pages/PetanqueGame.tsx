@@ -855,18 +855,19 @@ export default function PetanqueGame() {
         }
         // Auto jack-throw if needed
         if (fresh.state?.phase === "throw_jack") {
-          // Auto-place jack at ~80% du terrain, centré — zone valide garantie
-          const jackX = (Math.random() - 0.5) * 0.6;
-          const jackZ = 8.0 + Math.random() * 0.6;
+          // Toerana ara-dalàna (6–10 m, lavitra ny sisiny) — antoka fa valide
+          const autoJack = randomValidJack();
           const currentTurnUser = throwSide === "p1" ? fresh.player1_id : fresh.player2_id;
           await supabase.rpc("petanque_update_state" as any, {
             _game_id: fresh.id,
             _state: {
               balls: [],
-              jack: { x: jackX, z: jackZ },
+              jack: autoJack,
               phase: "aim",
               remaining: { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER },
               lastThrower: throwSide,
+              jackThrower: throwSide,
+              jackAttempts: 0,
             },
             _current_turn: currentTurnUser,
             _turn_started_at: new Date().toISOString(),
@@ -884,11 +885,13 @@ export default function PetanqueGame() {
         const dzJ = jk.z - (-1.3);
         const angleRad = Math.atan2(dxJ, dzJ);
         const ba = Math.round((angleRad * 180) / Math.PI);
-        // Hery voakajy mba ho akaiky ny cochonnet (mapping inverse de runThrow)
+        // Hery voakajy — inverse marina ny mapping ao amin'ny runThrow:
+        // speed = 5 + (f/100)^1.25 * 21 ; halaviran-dalana ≈ speed / 1.34
         const dist = Math.hypot(dxJ, dzJ);
-        // speed = 4 + (f/100)*11 ; halavin-dalana ≈ speed / (1 - friction^60) → approx tuning
-        const targetSpeed = Math.max(5, Math.min(13, 3.6 + dist * 0.95));
-        const bf = Math.round(Math.max(35, Math.min(95, ((targetSpeed - 4) / 11) * 100)));
+        const targetSpeed = Math.max(5.5, Math.min(26, dist * 1.34));
+        const tNorm = Math.pow(Math.max(0, (targetSpeed - 5) / 21), 1 / 1.25);
+        const bf = Math.round(Math.max(10, Math.min(100, tNorm * 100)));
+
         const remaining = fresh.state?.remaining ?? { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER };
         if (remaining[throwSide] <= 0) {
           autoThrowRef.current = null;

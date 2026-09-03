@@ -35,6 +35,10 @@ type GameRow = {
     phase: "aim" | "rolling" | "settle" | "throw_jack";
     remaining: { p1: number; p2: number };
     lastThrower?: "p1" | "p2";
+    /** Iza no nanipy ny cochonnet tamin'ity round ity (izy no manomboka). */
+    jackThrower?: "p1" | "p2";
+    /** Isan'ny fanandramana nanipazana cochonnet tsy nety (3 max). */
+    jackAttempts?: number;
   };
 };
 

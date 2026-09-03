@@ -929,6 +929,8 @@ export default function PetanqueGame() {
     let newBalls = sanitized;
     let newJack = finalJack;
     let newRemaining = remaining;
+    let newJackThrower: "p1" | "p2" = g.state?.jackThrower ?? "p1";
+
 
     const jackThrower: "p1" | "p2" = g.state?.jackThrower ?? "p1";
     const jackOut = !isJackOnCourt(finalJack);

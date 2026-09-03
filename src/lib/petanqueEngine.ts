@@ -19,15 +19,41 @@ export const COURT = {
   minSpeed: 0.14,
 };
 
-// Ny cochonnet dia ekena raha mbola tafiditra ao anaty COURT — na akaiky
-// na lavitra. Ny mpilalao no misafidy hery, ary tsy misy fetra bebe kokoa.
-export const JACK_VALID = { minZ: COURT.minZ, maxZ: COURT.maxZ, maxAbsX: COURT.maxX };
+// ---- Fitsipika ofisialy pétanque ----
+// Ny cochonnet (boul kely) dia tsy maintsy mipetraka 6 m ka hatramin'ny 10 m
+// avy amin'ny faribolana fanipazana (z = -1.3) ary 1 m farafahakeliny lavitra
+// ny sisin-tany. Raha tsy tafiditra dia atsipy indray (3 fanandramana ihany).
+export const THROW_Z = -1.3;
+export const JACK_MIN_DIST = 6;
+export const JACK_MAX_DIST = 10;
+export const JACK_EDGE_MARGIN = 0.5;
+export const MAX_JACK_ATTEMPTS = 3;
+export const JACK_VALID = {
+  minZ: THROW_Z + JACK_MIN_DIST,
+  maxZ: Math.min(COURT.maxZ - JACK_EDGE_MARGIN, THROW_Z + JACK_MAX_DIST),
+  maxAbsX: COURT.maxX - JACK_EDGE_MARGIN,
+};
 export function isJackValid(j: Jack | null): boolean {
   if (!j) return false;
-  if (j.x < COURT.minX || j.x > COURT.maxX) return false;
-  if (j.z < COURT.minZ || j.z > COURT.maxZ) return false;
+  if (Math.abs(j.x) > JACK_VALID.maxAbsX) return false;
+  if (j.z < JACK_VALID.minZ || j.z > JACK_VALID.maxZ) return false;
   return true;
 }
+// Mbola ao anaty terrain ve ny cochonnet (aorian'ny fikapohana)? Raha tsia dia
+// "round nul" — tsy misy isa, averina ilay round.
+export function isJackOnCourt(j: Jack | null): boolean {
+  if (!j) return false;
+  return j.x >= COURT.minX && j.x <= COURT.maxX && j.z >= COURT.minZ && j.z <= COURT.maxZ;
+}
+// Toerana ara-dalàna raha ny mpanohitra no mametraka ny cochonnet (aorian'ny
+// fanandramana 3 tsy nahomby).
+export function randomValidJack(): Jack {
+  return {
+    x: (Math.random() - 0.5) * 2 * (JACK_VALID.maxAbsX * 0.7),
+    z: JACK_VALID.minZ + Math.random() * (JACK_VALID.maxZ - JACK_VALID.minZ),
+  };
+}
+
 
 // Detects balls that have rolled OUT of the terrain. They are ejected past the
 // edge (no bouncing). A ball is forfeit as soon as its center crosses the

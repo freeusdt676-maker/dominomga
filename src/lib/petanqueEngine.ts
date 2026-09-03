@@ -140,10 +140,8 @@ export function stepPhysics(
         const sp = Math.hypot(b.vx, b.vz);
         jack.x += nx * sp * 0.02; jack.z += nz * sp * 0.02;
         b.vx *= 0.7; b.vz *= 0.7;
-        if (jack.x < COURT.minX) jack.x = COURT.minX;
-        if (jack.x > COURT.maxX) jack.x = COURT.maxX;
-        if (jack.z < COURT.minZ) jack.z = COURT.minZ;
-        if (jack.z > COURT.maxZ) jack.z = COURT.maxZ;
+        // Tsy voafehy anaty terrain intsony: raha voatosika mivoaka ny
+        // cochonnet dia "round nul" (fitsipika ofisialy).
       }
     }
   }
@@ -161,6 +159,26 @@ export function computeRoundScore(balls: Ball[], jack: Jack): { winner: "p1" | "
   const points = withDist.filter(x => x.owner === winner && x.d < oppClosest.d).length;
   return { winner, points: Math.max(1, points) };
 }
+
+// Vokatry ny round manontolo, miaraka amin'ny tranga "nul":
+//  - cochonnet nivoaka ny terrain → round nul (tsy misy isa, averina)
+//  - tsy misy baolina sisa ao anaty terrain → round nul
+export type RoundOutcome = { winner: "p1" | "p2" | null; points: number; nul: boolean };
+export function computeRoundOutcome(
+  balls: Ball[],
+  jack: Jack | null,
+  ballsPerPlayer = 4,
+): RoundOutcome {
+  if (!isJackOnCourt(jack)) return { winner: null, points: 0, nul: true };
+  const inCourt = balls.filter(
+    (b) => b.x >= COURT.minX && b.x <= COURT.maxX && b.z >= COURT.minZ && b.z <= COURT.maxZ,
+  );
+  if (inCourt.length === 0) return { winner: null, points: 0, nul: true };
+  const r = computeRoundScore(inCourt, jack as Jack);
+  if (!r.winner || r.points <= 0) return { winner: null, points: 0, nul: true };
+  return { winner: r.winner, points: Math.min(ballsPerPlayer, r.points), nul: false };
+}
+
 
 // Determine next thrower in a round given remaining balls and last winner of the previous round
 // Standard pétanque: after each throw, the side NOT holding the point throws next, until they hold or run out.

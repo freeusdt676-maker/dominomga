@@ -930,9 +930,59 @@ export default function PetanqueGame() {
     let newJack = finalJack;
     let newRemaining = remaining;
 
-    if (remaining.p1 <= 0 && remaining.p2 <= 0 && finalJack) {
-      // round done — compute score
-      const r = computeRoundScore(sanitized, finalJack);
+    const jackThrower: "p1" | "p2" = g.state?.jackThrower ?? "p1";
+    const jackOut = !isJackOnCourt(finalJack);
+    const roundOver = remaining.p1 <= 0 && remaining.p2 <= 0;
+
+    // ---- Cochonnet nivoaka ny terrain → round NUL avy hatrany ----
+    if (jackOut) {
+      toast("Nivoaka ny boul kely — round nul, averina");
+      await supabase.rpc("petanque_update_state" as any, {
+        _game_id: g.id,
+        _state: {
+          balls: [],
+          jack: null,
+          phase: "throw_jack",
+          remaining: { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER },
+          lastThrower: thrower,
+          jackThrower,
+          jackAttempts: 0,
+        },
+        _current_turn: jackThrower === "p1" ? g.player1_id : g.player2_id,
+        _turn_started_at: new Date().toISOString(),
+        _score_p1: g.score_p1,
+        _score_p2: g.score_p2,
+        _round_number: g.round_number,
+      });
+      setThrowing(false);
+      return;
+    }
+
+    if (roundOver) {
+      // round done — compute official outcome (nul raha tsy misy baolina)
+      const r = computeRoundOutcome(sanitized, finalJack, BALLS_PER_PLAYER);
+      if (r.nul) {
+        toast("Round nul — tsy misy isa, averina ny round");
+        await supabase.rpc("petanque_update_state" as any, {
+          _game_id: g.id,
+          _state: {
+            balls: [],
+            jack: null,
+            phase: "throw_jack",
+            remaining: { p1: BALLS_PER_PLAYER, p2: BALLS_PER_PLAYER },
+            lastThrower: thrower,
+            jackThrower,
+            jackAttempts: 0,
+          },
+          _current_turn: jackThrower === "p1" ? g.player1_id : g.player2_id,
+          _turn_started_at: new Date().toISOString(),
+          _score_p1: g.score_p1,
+          _score_p2: g.score_p2,
+          _round_number: g.round_number,
+        });
+        setThrowing(false);
+        return;
+      }
       if (r.winner === "p1") newScoreP1 += r.points;
       if (r.winner === "p2") newScoreP2 += r.points;
       newRound += 1;
@@ -945,6 +995,8 @@ export default function PetanqueGame() {
           phase: "settle" as const,
           remaining,
           lastThrower: thrower,
+          jackThrower,
+          jackAttempts: 0,
         };
 
         const { error: updateError } = await supabase.rpc("petanque_update_state" as any, {
@@ -986,10 +1038,8 @@ export default function PetanqueGame() {
       newPhase = "throw_jack";
       // Winner of the round throws the jack to start the next one
       nextTurnUser = r.winner === "p1" ? g.player1_id : g.player2_id;
-      // 🎉 Applause + bravo when a side actually scores points
-      if (r.points > 0) {
-        try { sfx.applause(); } catch {}
-      }
+      newJackThrower = r.winner as "p1" | "p2";
+      try { sfx.applause(); } catch {}
       toast.success(`Round ${g.round_number}: +${r.points} ho an'ny ${r.winner === "p1" ? "Mena" : "Manga"}`);
     } else {
       const nx = nextThrower(sanitized, finalJack, remaining, thrower);
@@ -1003,7 +1053,10 @@ export default function PetanqueGame() {
       phase: newPhase,
       remaining: newRemaining,
       lastThrower: thrower,
+      jackThrower: newJackThrower,
+      jackAttempts: 0,
     };
+
     await supabase.rpc("petanque_update_state" as any, {
       _game_id: g.id,
       _state: newState,

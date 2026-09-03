@@ -10,7 +10,8 @@ import { ArrowLeft, Pause, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Ball, Jack, COURT, distance, stepPhysics, computeRoundScore, nextThrower,
-  isJackValid, JACK_VALID, detectForfeits,
+  isJackValid, JACK_VALID, detectForfeits, computeRoundOutcome, isJackOnCourt,
+  randomValidJack, MAX_JACK_ATTEMPTS,
 } from "@/lib/petanqueEngine";
 import { useThemeClass } from "@/hooks/use-theme-class";
 import { sfx } from "@/lib/sfx";

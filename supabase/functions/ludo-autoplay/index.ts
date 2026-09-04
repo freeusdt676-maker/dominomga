@@ -225,7 +225,7 @@ Deno.serve(async (req) => {
       await sb.rpc("ludo_update_state", {
         _game_id: g.id, _pawns: res.pawns, _last_dice: dice,
         _current_turn_seat: res.extraTurn ? seat : nextSeat(seats, seat),
-        _dice_rolled: false, _consecutive_sixes: res.extraTurn && dice === 6 ? cs : 0,
+        _dice_rolled: false, _consecutive_sixes: res.extraTurn && dice === 6 ? sixCount : 0,
         _turn_started_at: new Date().toISOString(),
       });
       if (res.won) {

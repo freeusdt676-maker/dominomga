@@ -168,10 +168,12 @@ Deno.serve(async (req) => {
       const pawns: PawnRec[] = (g.pawns ?? []).slice();
       let dice = Number(g.last_dice ?? 0);
       const cs = Number(g.consecutive_sixes ?? 0);
+      let sixCount = cs;
 
       if (!g.dice_rolled) {
         dice = rollBalancedDice(pawns, seat, seats);
         const newSix = dice === 6 ? cs + 1 : 0;
+        sixCount = newSix;
         if (newSix >= 3) {
           await sb.rpc("ludo_update_state", {
             _game_id: g.id, _last_dice: dice, _dice_rolled: false, _consecutive_sixes: 0,
@@ -197,13 +199,9 @@ Deno.serve(async (req) => {
           }
           continue;
         }
-        // Roll only — mark rolled so pick can happen next tick
-        await sb.rpc("ludo_update_state", {
-          _game_id: g.id, _last_dice: dice, _dice_rolled: true, _consecutive_sixes: newSix,
-          _turn_started_at: new Date().toISOString(),
-        });
         // Continue in same tick to apply move immediately
       }
+
 
       // Pick move
       const pick = botChoose(pawns, seat, dice);
@@ -227,7 +225,7 @@ Deno.serve(async (req) => {
       await sb.rpc("ludo_update_state", {
         _game_id: g.id, _pawns: res.pawns, _last_dice: dice,
         _current_turn_seat: res.extraTurn ? seat : nextSeat(seats, seat),
-        _dice_rolled: false, _consecutive_sixes: res.extraTurn && dice === 6 ? cs : 0,
+        _dice_rolled: false, _consecutive_sixes: res.extraTurn && dice === 6 ? sixCount : 0,
         _turn_started_at: new Date().toISOString(),
       });
       if (res.won) {

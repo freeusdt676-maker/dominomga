@@ -909,8 +909,11 @@ export default function LudoPage() {
         }
         return;
       }
-      // Legal moves exist — miandry ny pion hokitihin'ny mpilalao (na 10s → watchdog).
-      await commit({ last_dice: v, dice_rolled: true, consecutive_sixes: newSix });
+      // Legal moves exist — miandry ny pion hokitihin'ny mpilalao.
+      // Averina atomboka ny 10s mba hananany fotoana feno hisafidianana pion
+      // (raha tsy izany dia mety maka ny tour ny watchdog raha efa tara ny roll).
+      await commit({ last_dice: v, dice_rolled: true, consecutive_sixes: newSix, turn_started_at: new Date().toISOString() });
+
     } finally {
       rpcBusy.current = false;
     }

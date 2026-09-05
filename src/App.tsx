@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -8,10 +9,7 @@ import NotFound from "./pages/NotFound.tsx";
 import Lobby from "./pages/Lobby";
 import Wallet from "./pages/Wallet";
 import Rules from "./pages/Rules";
-import AdminChat from "./pages/AdminChat";
 import Game from "./pages/Game";
-import Admin from "./pages/Admin";
-import AdminSecurity from "./pages/AdminSecurity";
 import PetanqueLobby from "./pages/PetanqueLobby";
 import PetanqueGame from "./pages/PetanqueGame";
 import Discussions from "./pages/Discussions";
@@ -31,6 +29,10 @@ import BlockedOverlay from "./components/BlockedOverlay";
 import AppErrorBoundary from "./components/AppErrorBoundary";
 import WalletBadge from "./components/WalletBadge";
 
+const AdminChat = lazy(() => import("./pages/AdminChat"));
+const Admin = lazy(() => import("./pages/Admin"));
+const AdminSecurity = lazy(() => import("./pages/AdminSecurity"));
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -43,6 +45,7 @@ const App = () => (
         <AuthProvider>
           <BlockedOverlay />
           <WalletBadge />
+          <Suspense fallback={null}>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/lobby" element={<Lobby />} />
@@ -69,6 +72,7 @@ const App = () => (
             <Route path="/spectate/ludo/:id" element={<Ludo />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

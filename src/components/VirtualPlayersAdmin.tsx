@@ -50,12 +50,14 @@ export default function VirtualPlayersAdmin() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data }, { data: en }] = await Promise.all([
+    const [{ data }, { data: cfg }] = await Promise.all([
       supabase.rpc("admin_list_virtual_players"),
-      supabase.rpc("bots_enabled" as any),
+      supabase.rpc("admin_bot_config" as any),
     ]);
     setRows((data as Row[]) ?? []);
-    if (typeof en === "boolean") setBotsOn(en);
+    const c = cfg as { enabled?: boolean; skill?: number } | null;
+    if (c && typeof c.enabled === "boolean") setBotsOn(c.enabled);
+    if (c && typeof c.skill === "number") setSkill(c.skill);
     setLoading(false);
   }, []);
 

@@ -1503,6 +1503,7 @@ export type Database = {
         Args: { _admin_id: string; _message: string; _user_id: string }
         Returns: Json
       }
+      admin_bot_config: { Args: never; Returns: Json }
       admin_cancel_all_active_games: {
         Args: { _admin_id: string; _pin: string }
         Returns: Json

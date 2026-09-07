@@ -1406,6 +1406,8 @@ export type Database = {
           games_played: number
           level: string
           name: string
+          name_history: Json
+          next_rename_at: string
           online: boolean
           online_until: string | null
           phone: string
@@ -1420,6 +1422,8 @@ export type Database = {
           games_played?: number
           level?: string
           name: string
+          name_history?: Json
+          next_rename_at?: string
           online?: boolean
           online_until?: string | null
           phone: string
@@ -1434,6 +1438,8 @@ export type Database = {
           games_played?: number
           level?: string
           name?: string
+          name_history?: Json
+          next_rename_at?: string
           online?: boolean
           online_until?: string | null
           phone?: string

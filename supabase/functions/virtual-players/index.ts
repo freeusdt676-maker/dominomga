@@ -32,7 +32,9 @@ const FIRST = [
   "Diary", "Vonjy", "Domoina", "Faranirina", "Iharena", "Jaofetra", "Kotonala",
   "Lantonirina", "Nofyson", "Patricia", "Rianala", "Sahazavana", "Tantely",
 ];
-const LAST = ["R", "Rk", "Rz", "Ny", "Mg", "Jr", "Be", "Za", "Ts", "Hv"];
+// Anarana TOKANA ihany (tsy misy tovana toy ny "Mg", "Rj"...) mba tsy ho fantatra
+// hoe kaonty virtuel — toa olona tena izy tokoa.
+
 
 const PREFIX = ["032", "033", "034", "037", "038"];
 
@@ -87,7 +89,7 @@ async function ensurePool(supabase: any, existing: any[]) {
   for (let i = 0; i < toCreate; i += 1) {
     let name = "";
     for (let t = 0; t < 20; t += 1) {
-      const c = `${rnd(FIRST)} ${rnd(LAST)}`.slice(0, 10).trim();
+      const c = `${rnd(FIRST)}`.slice(0, 10).trim();
       if (!usedNames.has(c)) { name = c; break; }
     }
     if (!name) continue;
@@ -121,6 +123,61 @@ async function ensurePool(supabase: any, existing: any[]) {
     created += 1;
   }
   return created;
+}
+
+/**
+ * Fanovana anarana miovaova: isaky ny 1–3 andro dia manova anarana ny bot,
+ * ary indraindray (≈40%) miverina amin'ny anarany taloha (raha efa mihoatra
+ * ny 2 andro no nialany taminy). Anarana tokana ihany, tsy misy tovana.
+ */
+async function rotateNames(supabase: any, players: any[], busyIds: Set<string>) {
+  const now = Date.now();
+  const used = new Set<string>(players.map((p: any) => p.name));
+  let renamed = 0;
+  const due = players.filter(
+    (p: any) =>
+      !busyIds.has(p.user_id) &&
+      p.next_rename_at &&
+      new Date(p.next_rename_at).getTime() <= now,
+  );
+  for (const p of due.slice(0, 3)) {
+    const history: { name: string; at: string }[] = Array.isArray(p.name_history)
+      ? p.name_history
+      : [];
+    let next = "";
+    const revivable = history.filter(
+      (h) => h?.name && h.name !== p.name && !used.has(h.name) &&
+        now - new Date(h.at).getTime() >= 2 * 24 * 3600_000,
+    );
+    if (revivable.length && Math.random() < 0.4) {
+      next = rnd(revivable).name;
+    } else {
+      for (let t = 0; t < 25; t += 1) {
+        const c = rnd(FIRST).slice(0, 10).trim();
+        if (c !== p.name && !used.has(c)) { next = c; break; }
+      }
+    }
+    if (!next) continue;
+    const nextHistory = [...history.filter((h) => h?.name !== next), {
+      name: p.name,
+      at: new Date().toISOString(),
+    }].slice(-8);
+    const { error } = await supabase
+      .from("virtual_players")
+      .update({
+        name: next,
+        name_history: nextHistory,
+        next_rename_at: new Date(now + rndInt(24, 72) * 3600_000).toISOString(),
+      })
+      .eq("user_id", p.user_id);
+    if (error) continue;
+    await supabase.from("profiles").update({ mvola_name: next }).eq("user_id", p.user_id);
+    used.delete(p.name);
+    used.add(next);
+    p.name = next;
+    renamed += 1;
+  }
+  return renamed;
 }
 
 
@@ -296,7 +353,7 @@ Deno.serve(async (req) => {
   );
 
   const started = Date.now();
-  const stats = { created: 0, joined: 0, rooms: 0, cleaned: 0, target: 0, online: 0 };
+  const stats = { created: 0, joined: 0, rooms: 0, cleaned: 0, target: 0, online: 0, renamed: 0 };
   try {
     // Tick isaky ny 5s mandritra ~50s (cron isaky ny 1 minitra)
     while (Date.now() - started < 50_000) {
@@ -310,7 +367,7 @@ Deno.serve(async (req) => {
       }
       const { data: players } = await supabase
         .from("virtual_players")
-        .select("user_id, name, phone, level, online, active")
+        .select("user_id, name, phone, level, online, active, name_history, next_rename_at")
         .eq("active", true);
       const list = players ?? [];
       if (list.length < POOL_MAX) stats.created += await ensurePool(supabase, list);
@@ -320,6 +377,7 @@ Deno.serve(async (req) => {
       stats.rooms += res.created;
       stats.cleaned += res.cleaned;
       stats.target = await syncPresence(supabase, list, res.busy);
+      stats.renamed += await rotateNames(supabase, list, res.busy);
       stats.online = list.filter((p: any) => p.online).length;
       await new Promise((r) => setTimeout(r, 5000));
     }

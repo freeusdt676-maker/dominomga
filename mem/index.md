@@ -10,6 +10,7 @@ Bots/joueurs virtuels: secret tanteraka amin'ny mpilalao; admin ihany no mahita.
 - [Règle 3P bots](mem://features/virtual-players-3p) — 3P misy bot = 1 olona tena izy + 2 bot tsy mifanampy
 - [Bouton ON/OFF bots](mem://features/bots-toggle) — admin_set_bots_enabled, bots disparaissent/reviennent
 - [Fiarovana tsiambaratelo bot](mem://constraints/bot-secrecy) — grants/RLS bot admin-only, admin pages lazy-loaded
+- [Anaran'ny bot (rotation)](mem://features/virtual-players-names) — anarana tokana, miova isaky ny 1–3 andro, miverina taloha aorian'ny 2 andro
 
 
 - [Crash MGA](mem://features/crash-mga)

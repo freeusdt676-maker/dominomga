@@ -1,5 +1,5 @@
 // Server-side Domino watchdog: prevents permanent hangs.
-// Niveau bot global: admin_set_bot_skill (50/60/70/80/100) — app_internal_config.bot_skill.
+// Niveau bot global: admin_set_bot_skill (40/50/60/70/80/90/100) — app_internal_config.bot_skill.
 // Every 1s (via pg_cron), it plays a legal tile after the 15s deadline,
 // passes ONLY when no legal tile exists, and advances expired reveal phases.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -513,7 +513,7 @@ Deno.serve(async (req) => {
     .eq("key", "bot_skill")
     .maybeSingle();
   const parsedSkill = Number((skillCfg as any)?.value);
-  if ([50, 60, 70, 80, 100].includes(parsedSkill)) botSkill = parsedSkill;
+  if ([40, 50, 60, 70, 80, 90, 100].includes(parsedSkill)) botSkill = parsedSkill;
 
 
   let gamesQuery = supabase
@@ -602,9 +602,18 @@ Deno.serve(async (req) => {
     let best: SearchMove | null = null;
     if (moves.length) {
       const p = botSkill / 100;
-      if (botSkill >= 80) {
+      if (botSkill <= 40) {
+        // TENA MALEMY: hetsika ratsy indrindra no alefa matetika (vato lehibe aloha),
+        // ary tsy manao kajy lalina mihitsy.
+        const weak = chooseWeakMove(hand, board);
+        const alt = moves[Math.floor(Math.random() * moves.length)];
+        best = Math.random() < 0.8 ? (weak ?? alt) : alt;
+      } else if (botSkill >= 80) {
         // Perfect info: mahita ny tanan'ny adversaire rehetra (backend).
         if (Math.random() < p) best = chooseExactBotMove(g, g.current_turn as string, hand, board);
+        // Raha tsy minimax ilay tour, mbola heuristique matanjaka no ampiasaina
+        // (90% sy 100% dia tsy manao hadalana mihitsy).
+        if (!best) best = chooseBestBotMove(hand, board, { opponentSizes: oppSizes });
       } else {
         // Fair info: fanisana ny vato efa nivoaka sy ny sisa ihany.
         if (Math.random() < p) best = chooseBestBotMove(hand, board, { opponentSizes: oppSizes });

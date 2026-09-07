@@ -125,6 +125,61 @@ async function ensurePool(supabase: any, existing: any[]) {
   return created;
 }
 
+/**
+ * Fanovana anarana miovaova: isaky ny 1–3 andro dia manova anarana ny bot,
+ * ary indraindray (≈40%) miverina amin'ny anarany taloha (raha efa mihoatra
+ * ny 2 andro no nialany taminy). Anarana tokana ihany, tsy misy tovana.
+ */
+async function rotateNames(supabase: any, players: any[], busyIds: Set<string>) {
+  const now = Date.now();
+  const used = new Set<string>(players.map((p: any) => p.name));
+  let renamed = 0;
+  const due = players.filter(
+    (p: any) =>
+      !busyIds.has(p.user_id) &&
+      p.next_rename_at &&
+      new Date(p.next_rename_at).getTime() <= now,
+  );
+  for (const p of due.slice(0, 3)) {
+    const history: { name: string; at: string }[] = Array.isArray(p.name_history)
+      ? p.name_history
+      : [];
+    let next = "";
+    const revivable = history.filter(
+      (h) => h?.name && h.name !== p.name && !used.has(h.name) &&
+        now - new Date(h.at).getTime() >= 2 * 24 * 3600_000,
+    );
+    if (revivable.length && Math.random() < 0.4) {
+      next = rnd(revivable).name;
+    } else {
+      for (let t = 0; t < 25; t += 1) {
+        const c = rnd(FIRST).slice(0, 10).trim();
+        if (c !== p.name && !used.has(c)) { next = c; break; }
+      }
+    }
+    if (!next) continue;
+    const nextHistory = [...history.filter((h) => h?.name !== next), {
+      name: p.name,
+      at: new Date().toISOString(),
+    }].slice(-8);
+    const { error } = await supabase
+      .from("virtual_players")
+      .update({
+        name: next,
+        name_history: nextHistory,
+        next_rename_at: new Date(now + rndInt(24, 72) * 3600_000).toISOString(),
+      })
+      .eq("user_id", p.user_id);
+    if (error) continue;
+    await supabase.from("profiles").update({ mvola_name: next }).eq("user_id", p.user_id);
+    used.delete(p.name);
+    used.add(next);
+    p.name = next;
+    renamed += 1;
+  }
+  return renamed;
+}
+
 
 async function syncPresence(supabase: any, players: any[], busyIds: Set<string>) {
   const target = targetOnline();

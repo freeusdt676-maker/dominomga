@@ -89,7 +89,7 @@ async function ensurePool(supabase: any, existing: any[]) {
   for (let i = 0; i < toCreate; i += 1) {
     let name = "";
     for (let t = 0; t < 20; t += 1) {
-      const c = `${rnd(FIRST)} ${rnd(LAST)}`.slice(0, 10).trim();
+      const c = `${rnd(FIRST)}`.slice(0, 10).trim();
       if (!usedNames.has(c)) { name = c; break; }
     }
     if (!name) continue;

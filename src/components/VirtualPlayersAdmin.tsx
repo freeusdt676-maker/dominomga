@@ -155,7 +155,7 @@ export default function VirtualPlayersAdmin() {
         <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
           🎚️ Niveau bot {skill !== null && <span className="text-primary">· {skill}%</span>}
         </p>
-        <div className="grid grid-cols-5 gap-1.5">
+        <div className="grid grid-cols-4 gap-1.5">
           {BOT_LEVELS.map((l) => (
             <button
               key={l.level}

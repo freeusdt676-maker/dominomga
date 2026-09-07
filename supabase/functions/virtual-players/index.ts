@@ -353,7 +353,7 @@ Deno.serve(async (req) => {
   );
 
   const started = Date.now();
-  const stats = { created: 0, joined: 0, rooms: 0, cleaned: 0, target: 0, online: 0 };
+  const stats = { created: 0, joined: 0, rooms: 0, cleaned: 0, target: 0, online: 0, renamed: 0 };
   try {
     // Tick isaky ny 5s mandritra ~50s (cron isaky ny 1 minitra)
     while (Date.now() - started < 50_000) {

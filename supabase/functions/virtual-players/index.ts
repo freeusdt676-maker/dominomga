@@ -32,7 +32,9 @@ const FIRST = [
   "Diary", "Vonjy", "Domoina", "Faranirina", "Iharena", "Jaofetra", "Kotonala",
   "Lantonirina", "Nofyson", "Patricia", "Rianala", "Sahazavana", "Tantely",
 ];
-const LAST = ["R", "Rk", "Rz", "Ny", "Mg", "Jr", "Be", "Za", "Ts", "Hv"];
+// Anarana TOKANA ihany (tsy misy tovana toy ny "Mg", "Rj"...) mba tsy ho fantatra
+// hoe kaonty virtuel — toa olona tena izy tokoa.
+
 
 const PREFIX = ["032", "033", "034", "037", "038"];
 

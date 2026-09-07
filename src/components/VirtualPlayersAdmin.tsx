@@ -5,10 +5,12 @@ import { Bot, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 const BOT_LEVELS = [
+  { level: 40, label: "40%", desc: "Tena malemy" },
   { level: 50, label: "50%", desc: "Atonony ny fahaizany" },
   { level: 60, label: "60%", desc: "Ambonimbony kokoa" },
   { level: 70, label: "70%", desc: "Mahay" },
   { level: 80, label: "80%", desc: "Tena mahay & mahalala vato" },
+  { level: 90, label: "90%", desc: "Tena mafy & mahalala vato" },
   { level: 100, label: "100%", desc: "Tsy azo resena" },
 ] as const;
 

@@ -5,10 +5,12 @@ import { Bot, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 const BOT_LEVELS = [
+  { level: 40, label: "40%", desc: "Tena malemy" },
   { level: 50, label: "50%", desc: "Atonony ny fahaizany" },
   { level: 60, label: "60%", desc: "Ambonimbony kokoa" },
   { level: 70, label: "70%", desc: "Mahay" },
   { level: 80, label: "80%", desc: "Tena mahay & mahalala vato" },
+  { level: 90, label: "90%", desc: "Tena mafy & mahalala vato" },
   { level: 100, label: "100%", desc: "Tsy azo resena" },
 ] as const;
 
@@ -153,7 +155,7 @@ export default function VirtualPlayersAdmin() {
         <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
           🎚️ Niveau bot {skill !== null && <span className="text-primary">· {skill}%</span>}
         </p>
-        <div className="grid grid-cols-5 gap-1.5">
+        <div className="grid grid-cols-4 gap-1.5">
           {BOT_LEVELS.map((l) => (
             <button
               key={l.level}

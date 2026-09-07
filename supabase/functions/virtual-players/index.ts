@@ -377,6 +377,7 @@ Deno.serve(async (req) => {
       stats.rooms += res.created;
       stats.cleaned += res.cleaned;
       stats.target = await syncPresence(supabase, list, res.busy);
+      stats.renamed += await rotateNames(supabase, list, res.busy);
       stats.online = list.filter((p: any) => p.online).length;
       await new Promise((r) => setTimeout(r, 5000));
     }

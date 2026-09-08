@@ -97,16 +97,7 @@ export default function ScreenShield({ children }: { children: React.ReactNode }
       >
         {children}
       </div>
-      {hidden && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background print:hidden">
-          <div className="text-center space-y-2 px-6">
-            <p className="text-2xl">🔒</p>
-            <p className="text-sm font-bold text-muted-foreground">
-              Domino Mga — Voarara ny capture
-            </p>
-          </div>
-        </div>
-      )}
+      {hidden && <div className="fixed inset-0 z-[9999] bg-background print:hidden" aria-hidden />}
     </div>
   );
 }

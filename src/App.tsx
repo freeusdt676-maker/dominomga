@@ -28,6 +28,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import BlockedOverlay from "./components/BlockedOverlay";
 import AppErrorBoundary from "./components/AppErrorBoundary";
 import WalletBadge from "./components/WalletBadge";
+import ScreenShield from "./components/ScreenShield";
 
 const AdminChat = lazy(() => import("./pages/AdminChat"));
 const Admin = lazy(() => import("./pages/Admin"));
@@ -43,6 +44,7 @@ const App = () => (
       <Sonner position="top-center" duration={7000} richColors closeButton />
       <BrowserRouter>
         <AuthProvider>
+          <ScreenShield>
           <BlockedOverlay />
           <WalletBadge />
           <Suspense fallback={null}>
@@ -73,6 +75,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>
+          </ScreenShield>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

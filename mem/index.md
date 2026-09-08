@@ -20,3 +20,4 @@ Bots/joueurs virtuels: secret tanteraka amin'ny mpilalao; admin ihany no mahita.
 - [Domino locked](mem://constraints/domino-locked)
 - [Money accounting](mem://constraints/money-accounting)
 - [Money immutable](mem://constraints/money-immutable)
+- [Screenshot shield](mem://features/screenshot-shield) — ScreenShield anti-capture, deterrent-level only

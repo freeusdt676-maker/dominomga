@@ -1,80 +1,108 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
- * Fiarovana capture d'écran (faratampony azo atao amin'ny web):
- * - Manjavozavo (blur) ny app rehefa miala focus na miova tab/afenina
- * - Sakana ny bokotra PrintScreen + manadio ny clipboard
- * - Sakana ny right-click / context menu
- * - Sakana ny raccourcis fanontana/fanaovana capture (Ctrl+P, Ctrl+Shift+S)
+ * Fiarovana capture d'écran ihany (faratampony azo atao amin'ny web):
+ * - Manjavozavo (blur) ny app rehefa miala focus na miova tab/afenina (fotoana anaovan'ny olona capture)
+ * - Sakana ny PrintScreen (+ manadio clipboard) sy ny raccourcis capture (Win+Shift+S, Cmd+Shift+3/4/5)
+ * - NAVELA ny fanontana (imprimer) sy ny fandikana (copier) sy ny right-click
  */
 export default function ScreenShield({ children }: { children: React.ReactNode }) {
   const [hidden, setHidden] = useState(false);
+  const printingRef = useRef(false);
 
   useEffect(() => {
-    const onVis = () => setHidden(document.hidden);
-    const onBlur = () => setHidden(true);
+    // Aza manjavona rehefa manonta (imprimer) ny mpampiasa
+    const onBeforePrint = () => {
+      printingRef.current = true;
+      setHidden(false);
+    };
+    const onAfterPrint = () => {
+      printingRef.current = false;
+    };
+
+    const onVis = () => {
+      if (printingRef.current) return;
+      setHidden(document.hidden);
+    };
+    const onBlur = () => {
+      if (printingRef.current) return;
+      setHidden(true);
+    };
     const onFocus = () => setHidden(false);
 
     const clearClipboard = () => {
       try {
-        navigator.clipboard?.writeText("").catch(() => {});
+        navigator.clipboard?.writeText(" ").catch(() => {});
       } catch {}
     };
 
+    const shieldBriefly = () => {
+      setHidden(true);
+      window.setTimeout(() => {
+        if (document.hasFocus() && !document.hidden) setHidden(false);
+      }, 1500);
+    };
+
     const onKey = (e: KeyboardEvent) => {
-      // PrintScreen: manadio clipboard alohan'ny hakan'ny OS
-      if (e.key === "PrintScreen") {
+      const k = e.key?.toLowerCase();
+      // PrintScreen
+      if (e.key === "PrintScreen" || k === "printscreen") {
         clearClipboard();
+        shieldBriefly();
         e.preventDefault();
         return;
       }
-      // Ctrl+P (imprimer), Ctrl+Shift+S / Ctrl+S, Ctrl+U
-      if ((e.ctrlKey || e.metaKey) && ["p", "s", "u"].includes(e.key.toLowerCase())) {
+      // Windows: Win+Shift+S (Snipping Tool)
+      if (e.shiftKey && (e.metaKey || e.getModifierState?.("Meta")) && k === "s") {
+        clearClipboard();
+        shieldBriefly();
         e.preventDefault();
-        e.stopPropagation();
+        return;
+      }
+      // macOS: Cmd+Shift+3 / 4 / 5
+      if (e.metaKey && e.shiftKey && ["3", "4", "5"].includes(k)) {
+        clearClipboard();
+        shieldBriefly();
+        e.preventDefault();
       }
     };
 
-    const onCtx = (e: MouseEvent) => e.preventDefault();
-    const onCopy = (e: ClipboardEvent) => e.preventDefault();
-
+    window.addEventListener("beforeprint", onBeforePrint);
+    window.addEventListener("afterprint", onAfterPrint);
     document.addEventListener("visibilitychange", onVis);
     window.addEventListener("blur", onBlur);
     window.addEventListener("focus", onFocus);
     window.addEventListener("keydown", onKey, true);
     window.addEventListener("keyup", onKey, true);
-    window.addEventListener("contextmenu", onCtx);
-    window.addEventListener("copy", onCopy);
 
     return () => {
+      window.removeEventListener("beforeprint", onBeforePrint);
+      window.removeEventListener("afterprint", onAfterPrint);
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("blur", onBlur);
       window.removeEventListener("focus", onFocus);
       window.removeEventListener("keydown", onKey, true);
       window.removeEventListener("keyup", onKey, true);
-      window.removeEventListener("contextmenu", onCtx);
-      window.removeEventListener("copy", onCopy);
     };
   }, []);
 
   return (
     <div className="relative">
       <div
-        className="transition-[filter] duration-150"
+        className="transition-[filter] duration-100 print:!blur-0"
         style={{
-          filter: hidden ? "blur(24px) brightness(0.35)" : "none",
-          userSelect: hidden ? "none" : undefined,
+          filter: hidden ? "blur(28px) brightness(0.25)" : "none",
           pointerEvents: hidden ? "none" : undefined,
         }}
       >
         {children}
       </div>
       {hidden && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background print:hidden">
           <div className="text-center space-y-2 px-6">
             <p className="text-2xl">🔒</p>
             <p className="text-sm font-bold text-muted-foreground">
-              Domino Mga — Voarara ny fijerena
+              Domino Mga — Voarara ny capture
             </p>
           </div>
         </div>

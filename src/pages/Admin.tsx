@@ -142,21 +142,33 @@ export default function Admin() {
     busyRef.current = true;
     try {
 
-    // 1) Profiles (rehetra)
-    const { data: u, error: uErr } = await supabase
-      .from("profiles")
-      .select("id,user_id,mvola_name,phone,birth_date,gender,avatar_url,last_seen,is_online,created_at,updated_at,account_status,selfie_url,approved_at,approved_by,player_number")
-      .order("created_at", { ascending: false })
-      .limit(500);
-    if (uErr) console.error("profiles load err", uErr);
-    const profiles = u ?? [];
+    // 1) Profiles (rehetra) — alaina tsikelikely mba tsy ho tapaka amin'ny 500/1000.
+    // Zava-dehibe izany rehefa mitombo ny compte: tsy tokony hanjavona ny ID tranainy.
+    const profiles: any[] = [];
+    const profilePageSize = 500;
+    for (let from = 0; ; from += profilePageSize) {
+      const { data: page, error: uErr } = await supabase
+        .from("profiles")
+        .select("id,user_id,mvola_name,phone,birth_date,gender,avatar_url,last_seen,is_online,created_at,updated_at,account_status,selfie_url,approved_at,approved_by,player_number")
+        .order("created_at", { ascending: false })
+        .range(from, from + profilePageSize - 1);
+      if (uErr) {
+        console.error("profiles load err", uErr);
+        break;
+      }
+      profiles.push(...(page ?? []));
+      if (!page || page.length < profilePageSize) break;
+    }
 
     // 2) Wallets — manual map
     const ids = profiles.map((p: any) => p.user_id);
     let walletMap: Record<string, number> = {};
     if (ids.length) {
-      const { data: ws } = await supabase.from("wallets").select("user_id,balance").in("user_id", ids);
-      (ws ?? []).forEach((w: any) => { walletMap[w.user_id] = Number(w.balance ?? 0); });
+      for (let from = 0; from < ids.length; from += 200) {
+        const idPage = ids.slice(from, from + 200);
+        const { data: ws } = await supabase.from("wallets").select("user_id,balance").in("user_id", idPage);
+        (ws ?? []).forEach((w: any) => { walletMap[w.user_id] = Number(w.balance ?? 0); });
+      }
     }
     setUsers(profiles.map((p: any) => ({ ...p, _balance: walletMap[p.user_id] ?? 0 })));
 
@@ -975,7 +987,7 @@ export default function Admin() {
 
 
           {/* MPILALAO */}
-          <TabsContent value="users" className="space-y-2 mt-3 max-h-[70vh] overflow-y-auto">
+          <TabsContent value="users" className="space-y-2 mt-3">
             <div className="card-felt rounded-xl p-3 mb-2 border-l-4 border-primary">
               <p className="text-xs text-foreground/80">👥 <b>Lisitra ny mpilalao.</b> Tsindrio ny anarana hijery ny mombamomba azy. Marika mena = miandry fakatoavana.</p>
               <div className="relative mt-2">
